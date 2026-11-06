@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Db;
 
+use OCA\Vereinsbuchhaltung\Service\ClubClock;
 use OCP\AppFramework\Db\QBMapper;
 use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\IDBConnection;
@@ -12,12 +13,18 @@ use OCP\IDBConnection;
  * @extends QBMapper<OpenItem>
  */
 class OpenItemMapper extends QBMapper {
-	public function __construct(IDBConnection $db) {
+	private ReadCache $readCache;
+
+	public function __construct(IDBConnection $db, ?ReadCache $readCache = null) {
 		parent::__construct($db, 'vbh_open_items', OpenItem::class);
+		$this->readCache = $readCache ?? new ReadCache();
 	}
 
-	/** @return OpenItem[] */
-	public function findAll(): array {
+	/**
+	 * @param ?string $status nur Posten mit diesem Status (null = alle)
+	 * @return OpenItem[]
+	 */
+	public function findAll(?string $status = null): array {
 		$qb = $this->db->getQueryBuilder();
 		$qb->select('*')
 			->from($this->getTableName())
@@ -26,10 +33,58 @@ class OpenItemMapper extends QBMapper {
 			->where($qb->expr()->gt('amount_cents', $qb->createNamedParameter(0, IQueryBuilder::PARAM_INT)))
 			->orderBy('due_date', 'ASC')
 			->addOrderBy('id', 'DESC');
+		if ($status !== null) {
+			$qb->andWhere($qb->expr()->eq('status', $qb->createNamedParameter($status)));
+		}
 		return $this->findEntities($qb);
 	}
 
+	/**
+	 * Zähler für die Filter-Chips der Offene-Posten-Sicht, direkt aus der Datenbank
+	 * (Issue #255). Wie {@see findAll} ohne beitragsfreie Posten (0 €).
+	 *
+	 * @param string $today Stichtag `Y-m-d`; überfällig = offen und Fälligkeit davor
+	 * @return array{open:int, overdue:int, paid:int, waived:int, cancelled:int, all:int}
+	 */
+	public function countsByStatus(string $today): array {
+		$counts = ['open' => 0, 'overdue' => 0, 'paid' => 0, 'waived' => 0, 'cancelled' => 0, 'all' => 0];
+
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('status')
+			->selectAlias($qb->func()->count('*'), 'c')
+			->from($this->getTableName())
+			->where($qb->expr()->gt('amount_cents', $qb->createNamedParameter(0, IQueryBuilder::PARAM_INT)))
+			->groupBy('status');
+		$result = $qb->executeQuery();
+		while (($row = $result->fetch()) !== false) {
+			$n = (int)$row['c'];
+			if (array_key_exists((string)$row['status'], $counts) && $row['status'] !== 'overdue' && $row['status'] !== 'all') {
+				$counts[(string)$row['status']] = $n;
+			}
+			$counts['all'] += $n;
+		}
+		$result->closeCursor();
+
+		$qb = $this->db->getQueryBuilder();
+		$qb->select($qb->func()->count('*', 'c'))
+			->from($this->getTableName())
+			->where($qb->expr()->gt('amount_cents', $qb->createNamedParameter(0, IQueryBuilder::PARAM_INT)))
+			->andWhere($qb->expr()->eq('status', $qb->createNamedParameter('open')))
+			->andWhere($qb->expr()->isNotNull('due_date'))
+			->andWhere($qb->expr()->lt('due_date', $qb->createNamedParameter($today)));
+		$result = $qb->executeQuery();
+		$counts['overdue'] = (int)$result->fetchOne();
+		$result->closeCursor();
+
+		return $counts;
+	}
+
 	public function find(int $id): OpenItem {
+		// Im Lese-Puffer zuerst unter den offenen Forderungen nachsehen (Sprungziele der Aufgabenliste).
+		$cached = $this->readCache->byId('openItems.openClaims', fn () => $this->findOpenClaims(), $id);
+		if ($cached instanceof OpenItem) {
+			return $cached;
+		}
 		$qb = $this->db->getQueryBuilder();
 		$qb->select('*')
 			->from($this->getTableName())
@@ -87,6 +142,63 @@ class OpenItemMapper extends QBMapper {
 			->orderBy('due_date', 'ASC')
 			->addOrderBy('id', 'DESC');
 		return $this->findEntities($qb);
+	}
+
+	/**
+	 * Welche der Mitglieder haben mindestens eine Forderung im Sinn von
+	 * {@see findClaims()} (member_id und type gesetzt, Betrag über 0)? Nur die
+	 * Mitglieds-IDs per DISTINCT, ohne {@see ReadCache} – für die Löschsperre.
+	 *
+	 * @param int[] $memberIds
+	 * @return list<int>
+	 */
+	public function memberIdsWithClaims(array $memberIds): array {
+		$found = [];
+		foreach (array_chunk(array_values(array_unique($memberIds)), 1000) as $chunk) {
+			$qb = $this->db->getQueryBuilder();
+			$qb->selectDistinct('member_id')
+				->from($this->getTableName())
+				->where($qb->expr()->in('member_id', $qb->createNamedParameter($chunk, IQueryBuilder::PARAM_INT_ARRAY)))
+				->andWhere($qb->expr()->isNotNull('type'))
+				->andWhere($qb->expr()->gt('amount_cents', $qb->createNamedParameter(0, IQueryBuilder::PARAM_INT)));
+			$result = $qb->executeQuery();
+			while (($memberId = $result->fetchOne()) !== false) {
+				$found[] = (int)$memberId;
+			}
+			$result->closeCursor();
+		}
+		return $found;
+	}
+
+	/**
+	 * Wie {@see findClaims()}, aber nur Forderungen im Zustand „offen“ nach
+	 * {@see \OCA\Vereinsbuchhaltung\Service\ClaimStateResolver::resolve()}: weder
+	 * storniert noch erledigt. Der Filter läuft in SQL – die Aufgabenliste
+	 * braucht nur diese, und die erledigten sammeln sich über die Jahre an.
+	 *
+	 * Innerhalb eines {@see ReadCache::during()} nur einmal geladen.
+	 *
+	 * @return list<OpenItem>
+	 */
+	public function findOpenClaims(): array {
+		return $this->readCache->entities('openItems.openClaims', function (): array {
+			$qb = $this->db->getQueryBuilder();
+			$qb->select('*')
+				->from($this->getTableName())
+				->where($qb->expr()->isNotNull('member_id'))
+				->andWhere($qb->expr()->isNotNull('type'))
+				->andWhere($qb->expr()->gt('amount_cents', $qb->createNamedParameter(0, IQueryBuilder::PARAM_INT)))
+				// Dieselben Bedingungen wie ClaimStateResolver::resolve() für STATE_OPEN.
+				->andWhere($qb->expr()->isNull('cancelled_at'))
+				->andWhere($qb->expr()->isNull('settled_at'))
+				->andWhere($qb->expr()->orX(
+					$qb->expr()->isNull('status'),
+					$qb->expr()->notIn('status', $qb->createNamedParameter(['cancelled', 'paid', 'waived'], IQueryBuilder::PARAM_STR_ARRAY)),
+				))
+				->orderBy('due_date', 'ASC')
+				->addOrderBy('id', 'DESC');
+			return array_values($this->findEntities($qb));
+		});
 	}
 
 	/**
@@ -177,14 +289,18 @@ class OpenItemMapper extends QBMapper {
 		return $this->findEntities($qb);
 	}
 
-	/** Anzahl überfälliger offener Posten (für die Dashboard-KPI). */
-	public function countOverdue(): int {
+	/**
+	 * Anzahl überfälliger offener Posten (für die Dashboard-KPI).
+	 *
+	 * @param string|null $today Stichtag JJJJ-MM-TT, sonst der Kalendertag des Vereins (#263)
+	 */
+	public function countOverdue(?string $today = null): int {
 		$qb = $this->db->getQueryBuilder();
 		$qb->select($qb->func()->count('*', 'c'))
 			->from($this->getTableName())
 			->where($qb->expr()->eq('status', $qb->createNamedParameter('open')))
 			->andWhere($qb->expr()->isNotNull('due_date'))
-			->andWhere($qb->expr()->lt('due_date', $qb->createNamedParameter(date('Y-m-d'))));
+			->andWhere($qb->expr()->lt('due_date', $qb->createNamedParameter($today ?? ClubClock::todayFromSystemClock())));
 		$result = $qb->executeQuery();
 		$count = (int)$result->fetchOne();
 		$result->closeCursor();

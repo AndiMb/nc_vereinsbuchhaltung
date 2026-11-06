@@ -28,8 +28,8 @@ use OCA\Vereinsbuchhaltung\Service\DirectDebitEligibilityResolver;
 use OCA\Vereinsbuchhaltung\Service\DunningSettings;
 use OCA\Vereinsbuchhaltung\Service\DunningTaskService;
 use OCA\Vereinsbuchhaltung\Service\TaskTargetResolver;
+use OCA\Vereinsbuchhaltung\Tests\Unit\Support\AppConfigStub;
 use OCP\AppFramework\Utility\ITimeFactory;
-use OCP\IConfig;
 use OCP\IL10N;
 use OCP\IUserManager;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -108,8 +108,7 @@ class ClaimOverviewServiceTest extends TestCase {
 	}
 
 	private function service(): ClaimOverviewService {
-		$config = $this->createMock(IConfig::class);
-		$config->method('getAppValue')->willReturnCallback(static fn (string $app, string $key, string $default = ''): string => $default);
+		$config = AppConfigStub::create($this);
 		$time = $this->createMock(ITimeFactory::class);
 		$time->method('getDateTime')->willReturn(new \DateTime(self::TODAY . ' 12:00:00'));
 		$l10n = $this->createMock(IL10N::class);

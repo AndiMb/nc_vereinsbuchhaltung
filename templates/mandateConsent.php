@@ -22,6 +22,10 @@ declare(strict_types=1);
  * (Bankverbindung und Referenz bleiben), false = Mandat erteilen
  */
 
+// Stile aus css/mandate-consent.css (#265: eigene Datei statt <style> hier);
+// vor der Ausgabe angemeldet, die Public-Huelle setzt sie in den <head>.
+\OCP\Util::addStyle(\OCA\Vereinsbuchhaltung\AppInfo\Application::APP_ID, 'mandate-consent');
+
 $status = $_['status'];
 $clubName = (string)($_['clubName'] ?? '');
 // Die Texte, die sich zwischen Erteilen und erneutem Bestätigen unterscheiden, an einer Stelle.
@@ -39,67 +43,6 @@ $copy = !empty($_['reconfirm'])
 		'hint' => 'Mit Klick auf „Ich stimme zu“ ermächtigen Sie den oben genannten Zahlungsempfänger, fällige Beträge per SEPA-Lastschrift von Ihrem Konto einzuziehen. Das Mandat wird sofort aktiv.',
 	];
 ?>
-<style>
-	.vbh-consent-page {
-		/* Die Public-Hülle von Nextcloud (#content) ist fest positioniert und
-		   schneidet Überlauf ab - ohne eigenen Scroll-Container ist bei einem
-		   niedrigen Fenster (Handy, Querformat) der Zustimmungsknopf am Ende
-		   der Seite nicht erreichbar. */
-		flex: 1 1 auto;
-		min-width: 0;
-		overflow-y: auto;
-		box-sizing: border-box;
-		font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
-		color: #222;
-		background: #f5f5f5;
-		padding: 24px 16px;
-	}
-	.vbh-consent-page *, .vbh-consent-page *::before, .vbh-consent-page *::after { box-sizing: border-box; }
-	.vbh-consent-card {
-		max-width: 640px;
-		margin: 0 auto;
-		background: #fff;
-		border-radius: 8px;
-		padding: 24px;
-		box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
-	}
-	.vbh-consent-card h1 { font-size: 1.3rem; margin: 0 0 4px; }
-	.vbh-club { color: #555; font-size: 0.9rem; margin-bottom: 20px; }
-	.vbh-legal-text p { line-height: 1.5; }
-	dl.vbh-mandate-data { display: grid; grid-template-columns: minmax(0, max-content) minmax(0, 1fr); gap: 6px 16px; align-items: baseline; margin: 20px 0; font-size: 0.95rem; }
-	/* Nextcloud-Core formatiert dt/dd selbst (feste Breite, Float); ohne Zurücksetzen überlagert die lange
-	   Beschriftung „Gläubiger-Identifikationsnummer“ ihren Wert. */
-	dl.vbh-mandate-data dt, dl.vbh-mandate-data dd { display: block; float: none; position: static; width: auto; min-width: 0; margin: 0; padding: 0; text-align: start; white-space: normal; }
-	dl.vbh-mandate-data dt { font-weight: 600; color: #444; }
-	dl.vbh-mandate-data dd { overflow-wrap: anywhere; }
-	.vbh-actions { margin-top: 24px; }
-	button.vbh-consent-submit {
-		background: #2d7d46;
-		color: #fff;
-		border: none;
-		border-radius: 4px;
-		padding: 12px 20px;
-		font-size: 1rem;
-		cursor: pointer;
-	}
-	button.vbh-consent-submit:hover { background: #256238; }
-	.vbh-hint { color: #555; font-size: 0.85rem; margin-top: 12px; }
-	.vbh-status-box {
-		border-radius: 6px;
-		padding: 16px;
-		margin-bottom: 16px;
-	}
-	.vbh-status-box.vbh-success { background: #eaf6ec; border: 1px solid #bfe3c8; }
-	.vbh-status-box.vbh-error { background: #fdeaea; border: 1px solid #f3c2c2; }
-	@media (prefers-color-scheme: dark) {
-		.vbh-consent-page { background: #1b1b1b; color: #ddd; }
-		.vbh-consent-card { background: #262626; box-shadow: none; }
-		.vbh-club, .vbh-hint { color: #aaa; }
-		dl.vbh-mandate-data dt { color: #ccc; }
-		.vbh-status-box.vbh-success { background: #1f3324; border-color: #2d5136; }
-		.vbh-status-box.vbh-error { background: #3a2323; border-color: #6b3a3a; }
-	}
-</style>
 <div class="vbh-consent-page">
 	<div class="vbh-consent-card">
 		<h1>SEPA-Lastschriftmandat</h1>
@@ -120,7 +63,7 @@ $copy = !empty($_['reconfirm'])
 			<div class="vbh-status-box vbh-success">
 				<strong>Bereits bestätigt</strong>
 				<p><?php p($copy['consumed']); ?><?php if (!empty($_['consentAt'])) {
-					echo ' (am ' . htmlspecialchars(\OCA\Vereinsbuchhaltung\Service\GermanDate::format(substr((string)$_['consentAt'], 0, 10)), ENT_QUOTES) . ')';
+					echo ' (am ' . htmlspecialchars(\OCA\Vereinsbuchhaltung\Service\GermanDate::format(\OCA\Vereinsbuchhaltung\Service\ClubClock::localDate((string)$_['consentAt'])), ENT_QUOTES) . ')';
 				} ?>. Es ist aktiv, eine erneute Bestätigung ist nicht nötig.</p>
 			</div>
 			<div class="vbh-legal-text"><?php print_unescaped((string)($_['legalTextHtml'] ?? '')); ?></div>

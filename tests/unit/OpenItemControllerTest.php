@@ -133,6 +133,38 @@ class OpenItemControllerTest extends TestCase {
 		$this->assertSame(Http::STATUS_OK, $this->controller()->destroy(4)->getStatus());
 	}
 
+	public function testIndexFiltertNachStatus(): void {
+		$item = $this->freeItem();
+		$this->service->expects($this->once())->method('findAll')->with('paid')->willReturn([$item]);
+
+		$response = $this->controller()->index('paid');
+
+		$this->assertSame(Http::STATUS_OK, $response->getStatus());
+		$this->assertSame([$item], $response->getData());
+	}
+
+	public function testIndexOhneStatusLiefertAlles(): void {
+		$this->service->expects($this->once())->method('findAll')->with(null)->willReturn([]);
+
+		$this->assertSame(Http::STATUS_OK, $this->controller()->index()->getStatus());
+	}
+
+	public function testIndexLehntUnbekanntenStatusAb(): void {
+		$this->service->expects($this->never())->method('findAll');
+
+		$this->assertSame(Http::STATUS_BAD_REQUEST, $this->controller()->index('bogus')->getStatus());
+	}
+
+	public function testCountsLiefertAlleChips(): void {
+		$counts = ['open' => 3, 'overdue' => 1, 'paid' => 2, 'waived' => 0, 'cancelled' => 1, 'all' => 6];
+		$this->service->expects($this->once())->method('counts')->willReturn($counts);
+
+		$response = $this->controller()->counts();
+
+		$this->assertSame(Http::STATUS_OK, $response->getStatus());
+		$this->assertSame($counts, $response->getData());
+	}
+
 	public function testDieSchreibendenEndpunkteTragenAusdruecklichDieSchreibrolle(): void {
 		foreach (['markPaid', 'cancel', 'reopen', 'destroy'] as $method) {
 			$this->assertSame(PermissionService::ROLE_WRITE, $this->declaredRole($method), $method);

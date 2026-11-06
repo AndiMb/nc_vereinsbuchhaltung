@@ -24,6 +24,7 @@ class BudgetSnapshotService {
 		private BudgetMapper $budgetMapper,
 		private AccountMapper $accountMapper,
 		private PeriodService $periods,
+		private ClubClock $clock,
 	) {
 	}
 
@@ -47,7 +48,7 @@ class BudgetSnapshotService {
 	public function create(string $userId, int $periodId, string $label): array {
 		$label = trim($label);
 		if ($label === '') {
-			$label = 'Stand ' . date('d.m.Y H:i');
+			$label = 'Stand ' . $this->clock->now()->format('d.m.Y H:i');
 		}
 		$label = mb_substr($label, 0, 128);
 
@@ -55,7 +56,7 @@ class BudgetSnapshotService {
 		$snapshot->setUserId($userId);
 		$snapshot->setPeriodId($periodId);
 		$snapshot->setLabel($label);
-		$snapshot->setCreatedAt(new \DateTime());
+		$snapshot->setCreatedAt(new \DateTime()); // UTC-Zeitstempel (#263)
 		$snapshot = $this->snapshotMapper->insert($snapshot);
 		$snapshotId = (int)$snapshot->getId();
 

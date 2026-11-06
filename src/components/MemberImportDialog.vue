@@ -235,9 +235,9 @@ export default {
 	},
 
 	watch: {
-		show(open) {
+		show: { immediate: true, handler(open) {
 			if (open) { this.resetImport() }
-		},
+		} },
 	},
 
 	methods: {

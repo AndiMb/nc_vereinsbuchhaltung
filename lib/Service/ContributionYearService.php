@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Service;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IL10N;
 
 /**
@@ -28,13 +28,14 @@ class ContributionYearService {
 	public const DEFAULT_START_MONTH = 1;
 
 	public function __construct(
-		private IConfig $config,
+		private IAppConfig $config,
+		private ClubClock $clock,
 		private ?IL10N $l10n = null,
 	) {
 	}
 
 	public function getStartMonth(): int {
-		$stored = $this->config->getAppValue(Application::APP_ID, self::SETTING_KEY, (string)self::DEFAULT_START_MONTH);
+		$stored = $this->config->getValueString(Application::APP_ID, self::SETTING_KEY, (string)self::DEFAULT_START_MONTH);
 		$month = (int)$stored;
 		return $month >= 1 && $month <= 12 ? $month : self::DEFAULT_START_MONTH;
 	}
@@ -44,7 +45,7 @@ class ContributionYearService {
 		if ($month < 1 || $month > 12) {
 			throw new \InvalidArgumentException($this->msg('Startmonat muss zwischen 1 und 12 liegen.'));
 		}
-		$this->config->setAppValue(Application::APP_ID, self::SETTING_KEY, (string)$month);
+		$this->config->setValueString(Application::APP_ID, self::SETTING_KEY, (string)$month);
 	}
 
 	/**
@@ -101,7 +102,7 @@ class ContributionYearService {
 
 	/** Anker-Kalenderjahr des laufenden Beitragsjahres (Standard: heute). */
 	public function currentAnchorYear(?string $today = null): int {
-		return $this->anchorYearFor($today ?? date('Y-m-d'));
+		return $this->anchorYearFor($today ?? $this->clock->today());
 	}
 
 	/**

@@ -51,6 +51,7 @@ class JournalService {
 		private TransactionRunner $transaction,
 		private IL10N $l10n,
 		private ?InvoicePaymentLedger $invoicePayments = null,
+		private ?ReimbursementPaymentReverter $reimbursementPayments = null,
 	) {
 	}
 
@@ -141,7 +142,7 @@ class JournalService {
 		$journal->setDescription(mb_substr($description, 0, 255));
 		$journal->setDocumentRef($docRef !== null ? mb_substr($docRef, 0, 64) : null);
 		$journal->setBankTxId(null);
-		$journal->setCreatedAt((new \DateTime())->format('Y-m-d H:i:s'));
+		$journal->setCreatedAt((new \DateTime())->format('Y-m-d H:i:s')); // UTC-Zeitstempel (#263)
 		$journal->setUpdatedAt(self::now());
 		$journal = $this->journalMapper->insert($journal);
 
@@ -457,6 +458,7 @@ class JournalService {
 			$released = $this->releaseBankTransaction($journal);
 			// Lief eine Rechnungszahlung über diesen Buchungssatz, wird sie zurückgenommen.
 			$this->invoicePayments?->revertForJournal($journal->getId());
+			$this->reimbursementPayments?->revertForJournal($journal->getId());
 			$this->attachmentStorage->deleteForJournal($journal->getId());
 			$this->lineMapper->deleteByJournal($journal->getId());
 			$this->journalMapper->delete($journal);
@@ -699,7 +701,7 @@ class JournalService {
 
 	/** Änderungszeitstempel mit Mikrosekunden (Sekundenauflösung reicht dem Konfliktvergleich nicht). */
 	private static function now(): string {
-		return (new \DateTime())->format('Y-m-d H:i:s.u');
+		return (new \DateTime())->format('Y-m-d H:i:s.u'); // UTC-Zeitstempel (#263)
 	}
 
 	private function addLine(int $journalId, int $accountId, int $debit, int $credit): void {

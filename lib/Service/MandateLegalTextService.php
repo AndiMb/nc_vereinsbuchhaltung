@@ -203,7 +203,7 @@ class MandateLegalTextService {
 		$version = new MandateLegalTextVersion();
 		$version->setCreatedBy($createdBy);
 		$version->setBody($this->composeBody($rahmen));
-		$version->setCreatedAt((new \DateTime())->format('Y-m-d H:i:s'));
+		$version->setCreatedAt((new \DateTime())->format('Y-m-d H:i:s')); // UTC-Zeitstempel (#263)
 		return $this->mapper->insert($version);
 	}
 }

@@ -11,6 +11,7 @@ use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
 use OCA\Vereinsbuchhaltung\Db\RuleMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
 use OCA\Vereinsbuchhaltung\Exception\PeriodClosedException;
+use OCA\Vereinsbuchhaltung\Exception\UserFacingException;
 use OCA\Vereinsbuchhaltung\Service\Sepa\SepaImportSettingsService;
 use OCA\Vereinsbuchhaltung\Service\Statement\BankAccountMatcher;
 use OCA\Vereinsbuchhaltung\Service\Statement\RowNormalizer;
@@ -542,7 +543,7 @@ class AccountService {
 				continue;
 			}
 		}
-		throw new \RuntimeException($this->l10n->t('Eigenkapitalkonto für Eröffnung konnte nicht angelegt werden.'));
+		throw new UserFacingException($this->l10n->t('Eigenkapitalkonto für Eröffnung konnte nicht angelegt werden.'));
 	}
 
 	/**

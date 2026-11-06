@@ -12,6 +12,7 @@ use OCA\Vereinsbuchhaltung\Db\CostCenterMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
+use OCA\Vereinsbuchhaltung\Exception\UserFacingException;
 use OCA\Vereinsbuchhaltung\Service\Statement\RowNormalizer;
 use OCP\IL10N;
 
@@ -433,7 +434,7 @@ class XbucImportService {
 		// des Folgejahres überein, wird der Import blockiert (nichts wird geändert).
 		$transition = $reset ? null : $this->analyzeYearTransition($userId, $data, $span);
 		if ($transition !== null && $transition['hasMismatch']) {
-			throw new \RuntimeException($this->transitionErrorMessage($transition));
+			throw new UserFacingException($this->transitionErrorMessage($transition));
 		}
 
 		// Festschreibung: der Merge-Import darf kein abgeschlossenes Jahr

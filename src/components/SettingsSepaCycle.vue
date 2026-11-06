@@ -79,6 +79,7 @@ import LeadDaysStrip from './LeadDaysStrip.vue'
 import { useDueDateSchedule } from '../composables/useDueDateSchedule.js'
 import { useSepaSettings } from '../composables/useSepaSettings.js'
 import { useSettingsCardSave } from '../composables/useSettingsCardSave.js'
+import { clubToday } from '../lib/clubTime.js'
 import { formatDate } from '../lib/format.js'
 import { DAYS_MAX, DAYS_MIN, daysError, leadDaysOrderHints, monthOptions, nextMonthStart } from '../lib/sepaSettings.js'
 
@@ -129,7 +130,7 @@ export default {
 		exampleDue() {
 			const values = Object.values(this.leads)
 			if (values.some((v) => v === '' || v === null || !Number.isInteger(Number(v)))) { return null }
-			return nextMonthStart(new Date().toISOString().slice(0, 10))
+			return nextMonthStart(clubToday())
 		},
 
 		orderHints() {

@@ -11,6 +11,7 @@ use OCA\Vereinsbuchhaltung\Db\Mandate;
 use OCA\Vereinsbuchhaltung\Db\Member;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Exception\ForbiddenException;
+use OCA\Vereinsbuchhaltung\Middleware\NoRevisionBump;
 use OCA\Vereinsbuchhaltung\Service\ActorContextService;
 use OCA\Vereinsbuchhaltung\Service\Export\BeitragsbescheinigungRenderer;
 use OCA\Vereinsbuchhaltung\Service\Export\DatenuebersichtRenderer;
@@ -292,6 +293,7 @@ class SelfController extends Controller {
 	 * Speichern - Wirkt ab … · erster Einzug am … · Betrag").
 	 */
 	#[NoAdminRequired]
+	#[NoRevisionBump]
 	public function previewAssignment(int $id, ?float $monthlyAmount = null, ?int $intervalMonths = null, ?string $paymentMethod = null): DataResponse {
 		try {
 			$preview = $this->contributions->preview(

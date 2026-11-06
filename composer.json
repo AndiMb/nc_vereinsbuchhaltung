@@ -16,14 +16,34 @@
 		"GiroCode-Anhang der Mahnwesen-Mails) ist die erste echte",
 		"Produktivabhaengigkeit dieser App ueberhaupt. Nextcloud laedt von einer",
 		"App nur composer/autoload.php, NIE vendor/autoload.php - dieses holt",
-		"Application::register() selbst per require_once nach (Issue #120; vorher",
+		"Application::loadComposerAutoloader() per require_once nach, aufgerufen von",
+		"den Klassen, die eine Bibliothek nutzen (Issue #120, #265; vorher",
 		"war die Bibliothek in der laufenden Instanz nicht ladbar und kein",
 		"Mahnmail trug je einen GiroCode). Das Release-Tarball enthaelt vendor/",
 		"deshalb bewusst mit.",
 		"Bewusst ^5.0 statt ^6.0: 6.x verlangt PHP ^8.2, die App deklarierte aber frueher",
 		"PHP >=8.2 (appinfo/info.xml, CI-Matrix). 6.x laeuft seit der Anhebung auch,",
 		"der Wechsel ist aber ein eigener Schritt (API-Aenderungen), nicht Teil der Anhebung.",
-		"Lokal: 'phpunit --configuration phpunit.xml' nach 'composer install'."
+		"Lokal: 'phpunit --configuration phpunit.xml' nach 'composer install'.",
+		"replace: Pakete, die Nextcloud selbst in 3rdparty/ mitbringt, liefert die App NICHT",
+		"mit (Issue #268). Composers Autoloader wird vorangestellt; eine eigene Kopie",
+		"verdraengt also die des Servers, sobald vendor/autoload.php geladen ist. Mit",
+		"symfony/console 7.4 (ueber horstoeko/invoicesuite) brachen so die occ-Befehle",
+		"anderer Apps, die gegen die Console 6.4 des Servers geschrieben sind. Ersetzt",
+		"wird nur, was NC 33 BIS NC 35 (min/max-version in info.xml) in einer Version",
+		"liefern, die die abhaengigen Pakete akzeptieren - Stand 3rdparty v33.0.0 bis",
+		"v35.0.2: symfony/console 6.4, ab NC 35 7.4 (invoicesuite: ^6.4.14 || ^7.1.7),",
+		"symfony/process 6.4",
+		"(invoicesuite: ^6.4.14), doctrine/lexer 3.0.1 (jms/serializer: ^2 || ^3),",
+		"psr/container 2.0.2, symfony/deprecation-contracts 3.6+ (symfony/yaml: ^2.5|^3)",
+		"sowie die nur von der Console gebrauchten symfony/string, service-contracts und",
+		"die beiden intl-Polyfills. Die Einschraenkungen hinter den Paketen geben die",
+		"Versionen des Servers wieder; ein blosses '*' kollidierte mit dem conflict",
+		"'symfony/console <6.4' von symfony/yaml. mpdf/mpdf liefert dagegen niemand:",
+		"die App nutzt den mpdf-Pfad von invoicesuite nicht, TCPDF erzeugt die PDFs.",
+		"symfony/finder, symfony/yaml und polyfill-ctype hat der Server nicht - sie",
+		"bleiben in vendor/. Wer die Liste aendert, prueft vorher 3rdparty/composer.lock",
+		"aller unterstuetzten Serverversionen."
 	],
 	"autoload": {
 		"psr-4": {
@@ -38,6 +58,15 @@
 		}
 	},
 	"replace": {
-		"mpdf/mpdf": "*"
+		"mpdf/mpdf": "*",
+		"doctrine/lexer": "^3.0",
+		"psr/container": "^2.0",
+		"symfony/console": "^6.4 || ^7.4",
+		"symfony/deprecation-contracts": "^3.6",
+		"symfony/polyfill-intl-grapheme": "^1.32",
+		"symfony/polyfill-intl-normalizer": "^1.33",
+		"symfony/process": "^6.4",
+		"symfony/service-contracts": "^3.5",
+		"symfony/string": "^6.4 || ^7.4"
 	}
 }

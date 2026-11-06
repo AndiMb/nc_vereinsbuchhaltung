@@ -4,6 +4,7 @@
 // Beträge in Cent, Mengen in Zehntausendstel, Rabatt in Basispunkten – so zeigt
 // der Editor dieselben Cent wie das PDF, ohne Rundungsabweichung. `t()` wird
 // erst beim Aufruf ausgewertet, nie beim Import.
+import { clubToday } from './clubTime.js'
 import { t } from './l10n.js'
 
 /** Ganzzahlige Division, halbe Einheiten weg von null (InvoiceCalculator::roundDiv). */
@@ -70,15 +71,18 @@ export function quantityToE4(text) {
 	return n === null ? null : Math.round(n * 10000)
 }
 
+const QUANTITY = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 4 })
+const DISCOUNT = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 2 })
+
 /** Menge als Text in deutscher Schreibweise ohne überflüssige Nullen: 35000 → "3,5". */
 export function formatQuantity(quantityE4) {
 	const v = quantityE4 / 10000
-	return new Intl.NumberFormat('de-DE', { maximumFractionDigits: 4 }).format(v)
+	return QUANTITY.format(v)
 }
 
 /** Rabatt in Basispunkten als Prozentzahl: 1000 → "10". */
 export function formatDiscount(discountBp) {
-	return new Intl.NumberFormat('de-DE', { maximumFractionDigits: 2 }).format(discountBp / 100)
+	return DISCOUNT.format(discountBp / 100)
 }
 
 /** Einheitencode (UN/ECE Rec. 20) → Beschriftung für die Auswahl und die Tabelle. */
@@ -172,9 +176,9 @@ export function statusClass(invoice) {
 	return 'vbh-inv-status vbh-inv-status--' + displayStatus(invoice)
 }
 
+/** Heute als JJJJ-MM-TT – der Tag des Vereins, nicht der des Browsers (#263). */
 export function todayIso() {
-	const d = new Date()
-	return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+	return clubToday()
 }
 
 /** Datum (Y-m-d) plus Tage, ohne Zeitzonen-Sprung. */

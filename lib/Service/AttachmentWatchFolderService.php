@@ -9,10 +9,13 @@ use OCA\Vereinsbuchhaltung\Db\AttachmentMapper;
 use OCA\Vereinsbuchhaltung\Db\Journal;
 use OCA\Vereinsbuchhaltung\Db\ReceiptHashMapper;
 use OCA\Vereinsbuchhaltung\Db\ReimbursementFileMapper;
+use OCA\Vereinsbuchhaltung\Exception\UserFacingException;
 use OCP\Files\File;
 use OCP\Files\Folder;
 use OCP\Files\IRootFolder;
 use OCP\Files\Node;
+use OCP\ICache;
+use OCP\ICacheFactory;
 use OCP\IL10N;
 
 /**
@@ -46,6 +49,16 @@ class AttachmentWatchFolderService {
 	/** Höchstens so viele Dateien je Verschiebe-Aufruf; die Oberfläche teilt größere Mengen auf. */
 	public const MAX_MOVE = 500;
 
+	/**
+	 * So lange gilt ein zwischengespeicherter Scan höchstens. Der Schlüssel
+	 * enthält den ETag des Ordners, der sich bei jeder Änderung im Baum
+	 * ändert; die TTL begrenzt den veralteten Stand bei externem Speicher,
+	 * dessen ETag Änderungen nicht nach oben weitergibt.
+	 */
+	public const SCAN_CACHE_TTL = 300;
+
+	private ?ICache $scanCache;
+
 	public function __construct(
 		private AttachmentStorageService $storage,
 		private AttachmentMapper $attachmentMapper,
@@ -53,7 +66,9 @@ class AttachmentWatchFolderService {
 		private IL10N $l10n,
 		private ReceiptHashMapper $hashes,
 		private ReimbursementFileMapper $reimbursementFiles,
+		?ICacheFactory $cacheFactory = null,
 	) {
+		$this->scanCache = $cacheFactory?->createDistributed('vereinsbuchhaltung-watch');
 	}
 
 	public static function isReceipt(string $mime): bool {
@@ -116,6 +131,10 @@ class AttachmentWatchFolderService {
 	 * Alle Beleg-Dateien im Ordnerbaum, neueste zuerst. Null, wenn der
 	 * Wächter-Modus aus ist oder der Ordner fehlt.
 	 *
+	 * Das Ergebnis liegt bis zu {@see SCAN_CACHE_TTL} Sekunden im verteilten
+	 * Cache, solange sich der ETag des Ordners nicht ändert – Übersicht,
+	 * Belegvorschläge und Eingangskorb lesen den Baum dann nicht jedes Mal neu.
+	 *
 	 * @return array{files: list<array{fileId:int, name:string, folder:string, size:int, mtime:int, mime:string}>, capped: bool}|null
 	 */
 	public function scan(): ?array {
@@ -123,10 +142,23 @@ class AttachmentWatchFolderService {
 		if ($folder === null) {
 			return null;
 		}
+		$key = null;
+		if ($this->scanCache !== null) {
+			$key = 'scan-' . $folder->getId() . '-' . $folder->getEtag();
+			$cached = $this->scanCache->get($key);
+			if (is_array($cached) && is_array($cached['files'] ?? null) && is_bool($cached['capped'] ?? null)) {
+				/** @var array{files: list<array{fileId:int, name:string, folder:string, size:int, mtime:int, mime:string}>, capped: bool} $cached */
+				return $cached;
+			}
+		}
 		$files = [];
 		$capped = $this->collect($folder, '', $files);
 		usort($files, static fn (array $a, array $b): int => $b['mtime'] <=> $a['mtime'] ?: strcmp($a['name'], $b['name']));
-		return ['files' => $files, 'capped' => $capped];
+		$result = ['files' => $files, 'capped' => $capped];
+		if ($key !== null) {
+			$this->scanCache?->set($key, $result, self::SCAN_CACHE_TTL);
+		}
+		return $result;
 	}
 
 	/**
@@ -411,14 +443,14 @@ class AttachmentWatchFolderService {
 	public function fileInFolder(int $fileId): File {
 		$folder = $this->storage->watchFolder();
 		if ($folder === null) {
-			throw new \RuntimeException($this->l10n->t('Der Wächter-Ordner für Belege existiert nicht. Bitte in den Einstellungen prüfen.'));
+			throw new UserFacingException($this->l10n->t('Der Wächter-Ordner für Belege existiert nicht. Bitte in den Einstellungen prüfen.'));
 		}
 		$node = $folder->getFirstNodeById($fileId);
 		if (!$node instanceof File) {
-			throw new \RuntimeException($this->l10n->t('Die Datei liegt nicht im Wächter-Ordner.'));
+			throw new UserFacingException($this->l10n->t('Die Datei liegt nicht im Wächter-Ordner.'));
 		}
 		if (!self::isReceipt($node->getMimetype())) {
-			throw new \RuntimeException($this->l10n->t('Nur Bilder (JPG/PNG/GIF/WebP) und PDFs erlaubt'));
+			throw new UserFacingException($this->l10n->t('Nur Bilder (JPG/PNG/GIF/WebP) und PDFs erlaubt'));
 		}
 		return $node;
 	}
@@ -465,7 +497,7 @@ class AttachmentWatchFolderService {
 	public function move(string $userId, array $fileIds, string $target): array {
 		$folder = $this->storage->watchFolder();
 		if ($folder === null) {
-			throw new \RuntimeException($this->l10n->t('Der Wächter-Ordner für Belege existiert nicht. Bitte in den Einstellungen prüfen.'));
+			throw new UserFacingException($this->l10n->t('Der Wächter-Ordner für Belege existiert nicht. Bitte in den Einstellungen prüfen.'));
 		}
 		if ($fileIds === [] || count($fileIds) > self::MAX_MOVE) {
 			throw new \InvalidArgumentException($this->l10n->t('Bitte zwischen 1 und %s Dateien auswählen.', [self::MAX_MOVE]));
@@ -546,11 +578,11 @@ class AttachmentWatchFolderService {
 	public function link(string $userId, int $journalId, int $fileId): Attachment {
 		$node = $this->fileInFolder($fileId);
 		if ($this->reimbursementFiles->reimbursementIdsByFileIds([$fileId]) !== []) {
-			throw new \RuntimeException($this->l10n->t('Diese Datei gehört zu einem Auslagenantrag und wird bei der Auszahlung automatisch mit der Buchung verknüpft.'));
+			throw new UserFacingException($this->l10n->t('Diese Datei gehört zu einem Auslagenantrag und wird bei der Auszahlung automatisch mit der Buchung verknüpft.'));
 		}
 		foreach ($this->attachmentMapper->findByJournal($journalId, $userId) as $existing) {
 			if ((int)$existing->getFileId() === $fileId) {
-				throw new \RuntimeException($this->l10n->t('Diese Datei hängt bereits an der Buchung.'));
+				throw new UserFacingException($this->l10n->t('Diese Datei hängt bereits an der Buchung.'));
 			}
 		}
 		$attachment = new Attachment();
@@ -559,7 +591,7 @@ class AttachmentWatchFolderService {
 		$attachment->setFileName($node->getName());
 		$attachment->setMimeType($node->getMimetype());
 		$attachment->setFileSize((int)$node->getSize());
-		$attachment->setUploadedAt(new \DateTime());
+		$attachment->setUploadedAt(new \DateTime()); // UTC-Zeitstempel (#263)
 		$this->storage->attach($attachment, $node);
 		return $this->attachmentMapper->insert($attachment);
 	}

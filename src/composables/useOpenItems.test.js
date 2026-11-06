@@ -8,7 +8,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 // Überfälligkeits-Zahl der Dashboard-Kachel beide Sorten weiter zählt.
 
 const listOpenItems = vi.fn()
-vi.mock('../api.js', () => ({ default: { listOpenItems: () => listOpenItems() } }))
+const getOpenItemCounts = vi.fn()
+vi.mock('../api.js', () => ({ default: { listOpenItems: (status) => listOpenItems(status), getOpenItemCounts: () => getOpenItemCounts() } }))
 const showError = vi.fn()
 vi.mock('@nextcloud/dialogs', () => ({ showError: (message) => showError(message) }))
 
@@ -20,7 +21,11 @@ const claim = (id, over = {}) => free(id, { debtor: 'Anna Musterfrau', memberId:
 
 beforeEach(() => {
 	state.openItems = []
+	state.openItemCounts = { open: 0, overdue: 0, paid: 0, waived: 0, cancelled: 0, all: 0 }
+	state.openItemFilterKey = 'open'
 	listOpenItems.mockReset()
+	getOpenItemCounts.mockReset()
+	getOpenItemCounts.mockResolvedValue({ data: { open: 0, overdue: 0, paid: 0, waived: 0, cancelled: 0, all: 0 } })
 	showError.mockReset()
 })
 
@@ -33,10 +38,41 @@ describe('loadOpenItems', () => {
 		expect(state.openItems[1]).toMatchObject({ memberId: 7, type: 'beitrag' })
 	})
 
-	it('zählt überfällige Posten beider Sorten für die Kachel im Dashboard', async () => {
-		listOpenItems.mockResolvedValue({ data: [free(1, { overdue: true }), claim(2, { overdue: true }), claim(3)] })
+	it('laedt standardmaessig nur offene Posten', async () => {
+		listOpenItems.mockResolvedValue({ data: [free(1)] })
 		await loadOpenItems()
 
+		expect(listOpenItems).toHaveBeenCalledWith('open')
+		expect(getOpenItemCounts).toHaveBeenCalledTimes(1)
+	})
+
+	it('laedt beim Filterwechsel den Status nach', async () => {
+		listOpenItems.mockResolvedValue({ data: [free(5, { status: 'paid' })] })
+		await loadOpenItems('paid')
+
+		expect(listOpenItems).toHaveBeenLastCalledWith('paid')
+		expect(state.openItems.map((o) => o.id)).toEqual([5])
+
+		await loadOpenItems('all')
+		expect(listOpenItems).toHaveBeenLastCalledWith(null)
+		await loadOpenItems('overdue')
+		expect(listOpenItems).toHaveBeenLastCalledWith('open')
+	})
+
+	it('behaelt den gewaehlten Filter beim Nachladen ohne Argument', async () => {
+		listOpenItems.mockResolvedValue({ data: [] })
+		await loadOpenItems('cancelled')
+		await loadOpenItems()
+
+		expect(listOpenItems).toHaveBeenLastCalledWith('cancelled')
+	})
+
+	it('overdueCount kommt aus den Zaehlern', async () => {
+		listOpenItems.mockResolvedValue({ data: [free(1)] })
+		getOpenItemCounts.mockResolvedValue({ data: { open: 3, overdue: 2, paid: 0, waived: 0, cancelled: 0, all: 3 } })
+		await loadOpenItems()
+
+		expect(state.openItemCounts.all).toBe(3)
 		expect(overdueCount.value).toBe(2)
 	})
 
@@ -48,5 +84,28 @@ describe('loadOpenItems', () => {
 
 		expect(showError).toHaveBeenCalledWith('Keine Leseberechtigung.')
 		expect(state.openItems.map((o) => o.id)).toEqual([1])
+	})
+
+	// Zwei Ladevorgänge mit DEMSELBEN Filter (Abgleich mit fremden Änderungen
+	// und Nachladen nach „bezahlt“): Der zuerst gestellte, aber zuletzt
+	// beantwortete darf Liste und Zähler nicht auf den alten Stand setzen.
+	it('verwirft bei gleichem Filter die verspätete Antwort des älteren Aufrufs', async () => {
+		const lists = []
+		const counts = []
+		listOpenItems.mockImplementation(() => new Promise((resolve) => { lists.push(resolve) }))
+		getOpenItemCounts.mockImplementation(() => new Promise((resolve) => { counts.push(resolve) }))
+
+		const older = loadOpenItems('open')
+		const newer = loadOpenItems('open')
+		lists[1]({ data: [] })
+		counts[1]({ data: { open: 0, overdue: 0, paid: 1, waived: 0, cancelled: 0, all: 1 } })
+		await newer
+		lists[0]({ data: [free(1)] })
+		counts[0]({ data: { open: 1, overdue: 0, paid: 0, waived: 0, cancelled: 0, all: 1 } })
+		await older
+
+		expect(state.openItems).toEqual([])
+		expect(state.openItemCounts.paid).toBe(1)
+		expect(state.openItemCounts.open).toBe(0)
 	})
 })

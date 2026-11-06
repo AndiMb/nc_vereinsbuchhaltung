@@ -1,9 +1,6 @@
-import { register, setLanguage, unregister } from '@nextcloud/l10n'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { CONTEXT_SEPARATOR, loadAppTranslations, n, t, tc, tRaw } from './l10n.js'
-
-// generateUrl() braucht eine Nextcloud-Seite (window.OC); hier genügt der Pfad.
-vi.mock('@nextcloud/router', () => ({ generateUrl: (path) => `/index.php${path}` }))
+import { register, unregister } from '@nextcloud/l10n'
+import { afterEach, describe, expect, it } from 'vitest'
+import { CONTEXT_SEPARATOR, n, t, tc, tRaw } from './l10n.js'
 
 // @nextcloud/l10n kodiert Platzhalterwerte standardmaessig als HTML. Die
 // Texte landen aber in Vue-Templates, die selbst escapen - ein "&" im
@@ -65,41 +62,6 @@ describe('tRaw()', () => {
 
 	it('schickt keinen Nutzerwert durch die Bibliothek (ein Wert, der wie ein Platzhalter aussieht, bleibt Text)', () => {
 		expect(tRaw('{a}', { a: '%n' }, {})).toBe('%n')
-	})
-})
-
-describe('loadAppTranslations()', () => {
-	beforeEach(() => {
-		vi.stubGlobal('fetch', vi.fn(async () => ({
-			ok: true,
-			json: async () => ({ translations: { 'Guten Tag': 'Hallo' } }),
-		})))
-	})
-
-	afterEach(() => {
-		unregister('vereinsbuchhaltung')
-		vi.unstubAllGlobals()
-	})
-
-	it('lädt für förmliches Deutsch („de_DE", der Quelltext) nichts', async () => {
-		setLanguage('de_DE')
-		await loadAppTranslations()
-		expect(fetch).not.toHaveBeenCalled()
-		expect(t('Guten Tag')).toBe('Guten Tag')
-	})
-
-	it('lädt für informelles Deutsch („de") die Du-Fassung', async () => {
-		setLanguage('de')
-		await loadAppTranslations()
-		expect(fetch).toHaveBeenCalledOnce()
-		expect(String(fetch.mock.calls[0][0])).toMatch(/\/api\/l10n\/de$/)
-		expect(t('Guten Tag')).toBe('Hallo')
-	})
-
-	it('lädt für Englisch das Übersetzungsbündel', async () => {
-		setLanguage('en')
-		await loadAppTranslations()
-		expect(String(fetch.mock.calls[0][0])).toMatch(/\/api\/l10n\/en$/)
 	})
 })
 

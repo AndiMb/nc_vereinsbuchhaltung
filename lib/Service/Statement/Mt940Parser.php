@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Service\Statement;
 
+use OCA\Vereinsbuchhaltung\Exception\UserFacingException;
 use OCA\Vereinsbuchhaltung\Service\Sepa\DkReturnReasonCodes;
 use OCA\Vereinsbuchhaltung\Service\Sepa\SepaPurposeFields;
 use OCP\IL10N;
@@ -92,7 +93,7 @@ class Mt940Parser implements StatementParser {
 		}
 
 		if ($out === []) {
-			throw new \RuntimeException($this->msg('Die MT940-Datei enthält keine lesbaren Buchungen (:61:).'));
+			throw new UserFacingException($this->msg('Die MT940-Datei enthält keine lesbaren Buchungen (:61:).'));
 		}
 		return $out;
 	}

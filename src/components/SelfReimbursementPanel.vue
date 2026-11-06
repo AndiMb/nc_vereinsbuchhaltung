@@ -42,7 +42,7 @@
 									{{ formatDate(item.expenseDate) }}
 								</td>
 								<td class="vbh-purpose vbh-stack-title">
-									<span class="vbh-clamp">{{ item.purpose }}</span>
+									<span class="vbh-clamp"><span v-if="item.number" class="vbh-reimb-number">{{ item.number }}</span> {{ item.purpose }}</span>
 								</td>
 								<td class="num strong">
 									{{ formatMoney(item.amountCents / 100) }}
@@ -194,6 +194,10 @@
 					{{ t('Auslage vom {date}', { date: formatDate(detail.expenseDate) }) }}
 				</h2>
 				<dl class="vbh-selfservice-fields">
+					<template v-if="detail.number">
+						<dt>{{ t('Auslagennummer') }}</dt>
+						<dd>{{ detail.number }}</dd>
+					</template>
 					<dt>{{ t('Betrag') }}</dt>
 					<dd>{{ formatMoney(detail.amountCents / 100) }}</dd>
 					<template v-if="detail.invoiceNumber">
@@ -511,6 +515,11 @@ export default {
 	gap: 4px 8px;
 	align-items: center;
 	justify-content: flex-end;
+}
+
+.vbh-reimb-number {
+	font-weight: 600;
+	white-space: nowrap;
 }
 
 .vbh-reimb-progress {

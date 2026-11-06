@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Service;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
-use OCP\IConfig;
+use OCP\IAppConfig;
 
 /**
  * Änderungsstand des gemeinsamen Buchhaltungsbestands.
@@ -21,16 +21,26 @@ class RevisionService {
 	private const KEY = 'data_revision';
 
 	public function __construct(
-		private IConfig $config,
+		private IAppConfig $config,
 	) {
 	}
 
 	public function get(): string {
-		return $this->config->getAppValue(Application::APP_ID, self::KEY, '');
+		return $this->config->getValueString(Application::APP_ID, self::KEY, '');
 	}
 
-	public function bump(): void {
+	/**
+	 * Setzt ein neues Token und liefert den Stand davor und danach. Der
+	 * schreibende Browser übernimmt damit den neuen Stand selbst, wenn davor
+	 * sein eigener bekannter Stand lag – sonst hielte sein nächster Abgleich die
+	 * eigene Änderung für eine fremde und lüde die ganze Ansicht ein zweites Mal.
+	 *
+	 * @return array{previous: string, current: string}
+	 */
+	public function bump(): array {
+		$previous = $this->get();
 		$token = microtime(true) . '.' . bin2hex(random_bytes(4));
-		$this->config->setAppValue(Application::APP_ID, self::KEY, $token);
+		$this->config->setValueString(Application::APP_ID, self::KEY, $token);
+		return ['previous' => $previous, 'current' => $token];
 	}
 }

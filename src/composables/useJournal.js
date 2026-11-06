@@ -1,14 +1,24 @@
 import { showError } from '@nextcloud/dialogs'
-import { computed, reactive } from 'vue'
+import { computed, reactive, shallowRef } from 'vue'
 import api from '../api.js'
 import { errMsg } from '../lib/format.js'
 import { t } from '../lib/l10n.js'
+import { createLatestRequest } from '../lib/latestRequest.js'
+import { createRowCache } from '../lib/rowCache.js'
 import { useAccounts } from './useAccounts.js'
 import { usePeriods } from './usePeriods.js'
 
+// Die geladenen Listen liegen in shallowRefs (Issue #254): Sie werden nur als
+// Ganzes ersetzt, nie in sich geändert. So läuft kein Leser über tausende
+// Proxys, und die Einträge bleiben die Objekte vom Server. reactive() packt
+// die Refs aus; state.journalData = … ersetzt den Inhalt des Refs.
 const state = reactive({
-	journalData: [],
-	transactions: [],
+	journalData: shallowRef([]),
+	// Nur noch die unzugeordneten Umsätze (Issue #255).
+	transactions: shallowRef([]),
+	// Was die Oberfläche von den zugeordneten braucht, verdichtet: Historie je
+	// Zahlungspartner, Fortschritt und die Umsätze der Journal-Zeilen.
+	txContext: shallowRef({ history: [], progress: { total: 0, assigned: 0 }, byJournal: {} }),
 })
 
 const periods = usePeriods()
@@ -16,13 +26,36 @@ const accounts = useAccounts()
 
 // Kein Teil des reaktiven Zustands: nur loadJournal() liest die Nummer.
 let journalSeq = 0
+// Dasselbe für loadTransactions(): der Kontext (byJournal) hängt am Zeitraum.
+const startTransactionsLoad = createLatestRequest()
 
 function accountLabel(id) {
 	const acc = accounts.accountsById.value[id]
 	return acc ? `${acc.number} ${acc.name}` : `#${id}`
 }
 
-const journalRows = computed(() => state.journalData.map((item) => {
+// Schlüssel der Kontobeschriftungen und -arten: Ändert sich ein Konto, das in
+// einer Zeile steht (Nummer, Name) oder ihre Richtung bestimmt (isBank), werden
+// alle Zeilen neu gebaut. Konten haben keinen eigenen Änderungsstempel, darum
+// zählen die Felder selbst; das sind wenige hundert Konten, nicht Buchungen.
+export function accountLabelKey(list) {
+	return list.length + '|' + list.map((a) => `${a.id}:${a.number}:${a.name}:${a.isBank ? 1 : 0}`).join('|')
+}
+const accountsKey = computed(() => accountLabelKey(accounts.state.accounts))
+
+// Stand einer Buchung: updatedAt, sonst createdAt – Bankzuordnung
+// (BookingService) und Eröffnungsbilanz (OpeningBalanceService) legen
+// Buchungen ohne updatedAt an, und jede spätere Änderung über JournalService
+// setzt es. Dazu die Nummer, weil das Neu-Nummerieren (EntryNumberService)
+// keinen Stempel anfasst. Ohne beide Stempel kein Stand: dann baut der
+// Zwischenspeicher die Zeile jedes Mal neu.
+export function journalVersion(item) {
+	const j = item.journal
+	const stamp = j.updatedAt || j.createdAt
+	return stamp ? `${stamp}#${j.entryNo}` : null
+}
+
+function buildJournalRow(item) {
 	const j = item.journal
 	const lines = item.lines || []
 	const dl = lines.filter((l) => l.debitCents > 0)
@@ -53,7 +86,13 @@ const journalRows = computed(() => state.journalData.map((item) => {
 		updatedAt: j.updatedAt || null,
 		comment: j.comment || '',
 	}
-}))
+}
+
+const journalRowCache = createRowCache(buildJournalRow, { id: (item) => item.journal.id, version: journalVersion })
+
+// Unveränderte Buchungen behalten nach jedem Nachladen ihr Zeilenobjekt, damit
+// v-memo in der Buchungstabelle sie überspringt (Issue #254).
+const journalRows = computed(() => journalRowCache(state.journalData, accountsKey.value))
 
 const unassignedCount = computed(() => state.transactions.filter((t) => t.status === 'unassigned').length)
 
@@ -75,11 +114,21 @@ async function loadJournal() {
 	}
 }
 
-async function loadTransactions() {
+async function loadTransactions(periodId = null) {
+	// Bei schnellem Zeitraumwechsel P1 → P2 darf die verspätete Antwort für P1
+	// den Kontext von P2 nicht überschreiben: nur die zuletzt gestartete gilt.
+	const isCurrent = startTransactionsLoad()
 	try {
-		const { data } = await api.listTransactions('')
-		state.transactions = data
-	} catch (e) { showError(errMsg(e, t('Buchungen konnten nicht geladen werden'))) }
+		// Beide Abfragen laufen gleichzeitig; erst wenn beide da sind, wird
+		// übernommen, damit Liste und Fortschritt nie auseinanderlaufen.
+		const [list, context] = await Promise.all([api.listTransactions('unassigned'), api.transactionContext(periodId)])
+		if (!isCurrent()) { return }
+		state.transactions = list.data
+		state.txContext = context.data
+	} catch (e) {
+		if (!isCurrent()) { return }
+		showError(errMsg(e, t('Buchungen konnten nicht geladen werden')))
+	}
 }
 
 export function useJournal() {

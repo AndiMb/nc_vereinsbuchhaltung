@@ -65,7 +65,9 @@ class AccountStatementService {
 			}
 		}
 
-		$journalIds = $this->lineMapper->findJournalIdsForAccounts($userId, $ids);
+		// Nur Buchungen im gewählten Zeitraum laden; der Vortrag kommt als Summe
+		// aus der Datenbank statt aus allen Vorjahresbuchungen.
+		$journalIds = $this->lineMapper->findJournalIdsForAccounts($userId, $ids, $from, $to);
 		// Buchungsköpfe und -zeilen gebündelt laden statt je Buchung einzeln.
 		$journalsById = $this->journalMapper->findByIds($userId, $journalIds);
 		$linesByJournal = $this->lineMapper->findByJournals($journalIds);
@@ -73,18 +75,9 @@ class AccountStatementService {
 		$rows = [];
 		$sumDebit = 0;
 		$sumCredit = 0;
-		// Saldovortrag: Bewegung auf diesen Konten vor Beginn des Geschäftsjahres.
-		$carryDebit = 0;
-		$carryCredit = 0;
 		foreach ($journalIds as $jid) {
 			$journal = $journalsById[$jid] ?? null;
 			if ($journal === null) {
-				continue;
-			}
-			$date = (string)$journal->getDate();
-			$beforePeriod = $from !== null && $date < $from;
-			$afterPeriod = $to !== null && $date > $to;
-			if ($afterPeriod) {
 				continue;
 			}
 			$lines = $linesByJournal[$jid] ?? [];
@@ -101,13 +94,6 @@ class AccountStatementService {
 			}
 			foreach ($lines as $line) {
 				if (!isset($idSet[$line->getAccountId()])) {
-					continue;
-				}
-				if ($beforePeriod) {
-					if (isset($stockIdSet[$line->getAccountId()])) {
-						$carryDebit += $line->getDebitCents();
-						$carryCredit += $line->getCreditCents();
-					}
 					continue;
 				}
 				$sumDebit += $line->getDebitCents();
@@ -135,11 +121,16 @@ class AccountStatementService {
 			return [$a['date'], $a['entryNo']] <=> [$b['date'], $b['entryNo']];
 		});
 
-		// Saldovortrag nur bei gewähltem Zeitraum; beigetragen haben oben ohnehin
-		// nur Zeilen von Geldkonten (debit-Natur), daher Soll − Haben.
+		// Saldovortrag: Bewegung auf den Geldkonten unter diesen Konten vor Beginn
+		// des Geschäftsjahres, nur bei gewähltem Zeitraum. Geldkonten haben
+		// debit-Natur, daher Soll − Haben.
 		$carryCents = 0;
 		if ($from !== null) {
-			$carryCents = $carryDebit - $carryCredit;
+			$stockIds = array_values(array_filter($ids, static fn (int $aid): bool => isset($stockIdSet[$aid])));
+			if ($stockIds !== []) {
+				$before = $this->lineMapper->sumForAccountsBefore($userId, $stockIds, $from);
+				$carryCents = $before['debit'] - $before['credit'];
+			}
 		}
 		$periodNet = $account->isCreditNature() ? ($sumCredit - $sumDebit) : ($sumDebit - $sumCredit);
 		$balanceCents = $carryCents + $periodNet;

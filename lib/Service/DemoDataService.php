@@ -10,7 +10,8 @@ use OCA\Vereinsbuchhaltung\Db\AccountMapper;
 use OCA\Vereinsbuchhaltung\Db\BankTransaction;
 use OCA\Vereinsbuchhaltung\Db\BankTransactionMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
-use OCP\IConfig;
+use OCA\Vereinsbuchhaltung\Exception\UserFacingException;
+use OCP\IAppConfig;
 use OCP\IL10N;
 
 /**
@@ -27,9 +28,10 @@ class DemoDataService {
 		private OpeningBalanceService $openingService,
 		private JournalService $journalService,
 		private BankTransactionMapper $txMapper,
-		private IConfig $config,
+		private IAppConfig $config,
 		private TransactionRunner $transaction,
 		private IL10N $l10n,
+		private ClubClock $clock,
 	) {
 	}
 
@@ -52,7 +54,7 @@ class DemoDataService {
 	 */
 	private function doSeed(string $userId): array {
 		if (!$this->isEmpty($userId)) {
-			throw new \RuntimeException($this->l10n->t('Es sind bereits Konten vorhanden – Beispieldaten lassen sich nur in einem leeren Verein anlegen.'));
+			throw new UserFacingException($this->l10n->t('Es sind bereits Konten vorhanden – Beispieldaten lassen sich nur in einem leeren Verein anlegen.'));
 		}
 
 		$accounts = $this->accountService->seedDefaults($userId);
@@ -72,7 +74,7 @@ class DemoDataService {
 		 */
 		$konto = function (string $number) use ($byNumber): Account {
 			if (!isset($byNumber[$number])) {
-				throw new \RuntimeException($this->l10n->t(
+				throw new UserFacingException($this->l10n->t(
 					'Beispieldaten: Konto %s fehlt im Standard-Kontenrahmen.',
 					[$number],
 				));
@@ -84,11 +86,11 @@ class DemoDataService {
 		$kasse = $konto('1000');
 
 		// Anfangsbestand vor drei Monaten, damit die laufenden Buchungen danach liegen.
-		$openingDate = (new \DateTime('first day of -3 months'))->format('Y-m-d');
+		$openingDate = $this->clock->now()->modify('first day of -3 months')->format('Y-m-d');
 		$this->accountService->setOpeningFields($bank->getId(), $userId, 250000, $openingDate);
 		$this->openingService->sync($this->accountMapper->find($bank->getId(), $userId));
 
-		$rel = fn (string $offset): string => (new \DateTime($offset))->format('Y-m-d');
+		$rel = fn (string $offset): string => $this->clock->now()->modify($offset)->format('Y-m-d');
 
 		// [Beschreibung, Soll-Konto, Haben-Konto, Betrag in Cent, Datum]
 		$bookings = [
@@ -131,7 +133,7 @@ class DemoDataService {
 			$this->txMapper->insert($tx);
 		}
 
-		$this->config->setAppValue(Application::APP_ID, 'demo_seeded', '1');
+		$this->config->setValueString(Application::APP_ID, 'demo_seeded', '1');
 
 		return [
 			'accounts' => count($accounts),
@@ -141,10 +143,10 @@ class DemoDataService {
 	}
 
 	public function isActive(): bool {
-		return $this->config->getAppValue(Application::APP_ID, 'demo_seeded', '') === '1';
+		return $this->config->getValueString(Application::APP_ID, 'demo_seeded', '') === '1';
 	}
 
 	public function clearFlag(): void {
-		$this->config->deleteAppValue(Application::APP_ID, 'demo_seeded');
+		$this->config->deleteKey(Application::APP_ID, 'demo_seeded');
 	}
 }

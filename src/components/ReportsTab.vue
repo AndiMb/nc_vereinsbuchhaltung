@@ -439,8 +439,8 @@
 						<h4>{{ t('Beteiligte Konten') }} <span class="vbh-hint">{{ t('(Konto anklicken für Buchungen)') }}</span></h4>
 						<div v-if="selectedCC.accounts.length && isMobile" class="vbh-cardlist">
 							<div
-								v-for="(a, i) in selectedCC.accounts"
-								:key="'m' + i"
+								v-for="a in selectedCC.accounts"
+								:key="'m' + a.accountId"
 								class="vbh-mcard tappable"
 								role="button"
 								tabindex="0"
@@ -452,7 +452,7 @@
 								</div>
 								<div v-if="ccExpanded[a.accountId]" class="vbh-cclist" @click.stop>
 									<template v-if="ccBookings[a.accountId] && ccBookings[a.accountId].length">
-										<div v-for="(r, j) in ccBookings[a.accountId]" :key="j" class="vbh-ccbooking">
+										<div v-for="{ r, key } in ccBookingItems(a.accountId)" :key="key" class="vbh-ccbooking">
 											<span class="vbh-mcard-meta">{{ formatDate(r.date) }}</span>
 											<span class="vbh-ccbooking-desc">{{ r.description }}</span>
 											<span class="vbh-ccbooking-amount">{{ r.debit ? formatMoney(r.debit) : formatMoney(r.credit) }}</span>
@@ -478,7 +478,7 @@
 								<tbody>
 									<!-- :key gehoert unter Vue 3 aufs <template>, nicht mehr auf die
 									     einzelnen <tr> (Muster wie beim Finanzplan unten) -->
-									<template v-for="(a, i) in selectedCC.accounts" :key="i">
+									<template v-for="a in selectedCC.accounts" :key="a.accountId">
 										<tr class="vbh-ccrow" @click="toggleCCAccount(a.accountId)">
 											<td class="nowrap">
 												<span class="vbh-caret" :class="{ open: ccExpanded[a.accountId] }">›</span> {{ a.number }}
@@ -508,7 +508,7 @@
 														</tr>
 													</thead>
 													<tbody>
-														<tr v-for="(r, j) in ccBookings[a.accountId]" :key="j">
+														<tr v-for="{ r, key } in ccBookingItems(a.accountId)" :key="key">
 															<td class="num vbh-col-hide-sm">
 																{{ r.entryNo }}
 															</td>
@@ -958,16 +958,6 @@
 <script>
 import { mdiCalendarRange, mdiDelete, mdiDownload, mdiPaperclip, mdiPrinter } from '@mdi/js'
 import { showError, showSuccess } from '@nextcloud/dialogs'
-import {
-	CategoryScale,
-	Chart,
-	Legend,
-	LinearScale,
-	LineController,
-	LineElement,
-	PointElement,
-	Tooltip,
-} from 'chart.js'
 import { toRefs } from 'vue'
 import NcActionInput from '@nextcloud/vue/components/NcActionInput'
 import NcActionLink from '@nextcloud/vue/components/NcActionLink'
@@ -989,10 +979,12 @@ import { useBalances } from '../composables/useBalances.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { usePeriods } from '../composables/usePeriods.js'
 import { useSort } from '../composables/useSort.js'
+import { loadChart } from '../lib/chartLoader.js'
 import { chartTheme, onThemeChange, withAlpha } from '../lib/chartTheme.js'
+import { clubToday } from '../lib/clubTime.js'
 import { amountClass, budgetDiffClass, formatDate, formatDateTime, formatMoney, formatPercent, roleLabel, trendClass, typeLabel } from '../lib/format.js'
-
-Chart.register(LineController, LineElement, PointElement, CategoryScale, LinearScale, Tooltip, Legend)
+import { addDays } from '../lib/invoices.js'
+import { statementRowKeys } from '../lib/rowKeys.js'
 
 export default {
 	name: 'ReportsTab',
@@ -1295,7 +1287,7 @@ export default {
 		// ein Designwechsel ausloesen kann. Der trendChartVisible-Watcher
 		// zeichnet beim Zurueckwechseln ohnehin neu.
 		this.stopThemeWatch = onThemeChange(() => {
-			if (this.trendChartVisible) { this.renderTrendChart() }
+			if (this.trendChartVisible) { this.renderTrendChart(true) }
 		})
 	},
 
@@ -1338,9 +1330,7 @@ export default {
 				const saved = localStorage.getItem('vbh_kurzbericht_since')
 				if (saved) { return saved }
 			} catch { /* voll/gesperrt - dann eben Default */ }
-			const d = new Date()
-			d.setDate(d.getDate() - 30)
-			return d.toISOString().slice(0, 10)
+			return addDays(clubToday(), -30)
 		},
 
 		async loadReserveReport() {
@@ -1355,6 +1345,13 @@ export default {
 			} catch { /* Diagramm ist eine Zusatzansicht, kein harter Fehler */ }
 		},
 
+		/** Buchungszeilen eines Kontos in der Kostenstellen-Ansicht samt Schluessel (siehe statementRowKeys). */
+		ccBookingItems(accountId) {
+			const rows = this.ccBookings[accountId] || []
+			const keys = statementRowKeys(rows)
+			return rows.map((r, j) => ({ r, key: keys[j] }))
+		},
+
 		destroyChart(key) {
 			if (this.chartInstances[key]) {
 				this.chartInstances[key].destroy()
@@ -1362,15 +1359,23 @@ export default {
 			}
 		},
 
-		renderTrendChart() {
+		/**
+		 * @param {boolean} [rebuild] Instanz neu bauen statt aktualisieren (Designwechsel: die Farben stecken in den Optionen und Zeichnungen)
+		 */
+		async renderTrendChart(rebuild = false) {
+			if (!this.$refs.trendChart) { return }
+			const Chart = await loadChart()
+			// Waehrend des Nachladens kann die Ansicht gewechselt worden sein.
 			const canvas = this.$refs.trendChart
 			if (!canvas) { return }
-			this.destroyChart('trend')
 			const { labels, income, expense, result } = this.trendChartData
-			if (!labels.length) { return }
+			if (!labels.length) {
+				this.destroyChart('trend')
+				return
+			}
 			const theme = chartTheme()
 			const eur = (v) => new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(v)
-			this.chartInstances.trend = new Chart(canvas, {
+			const config = {
 				type: 'line',
 				data: {
 					labels,
@@ -1413,7 +1418,19 @@ export default {
 						y: { ticks: { color: theme.mutedText, callback: (v) => eur(v) }, grid: { color: theme.grid } },
 					},
 				},
-			})
+			}
+
+			// Vorhandene Instanz nur mit neuen Daten aktualisieren (ohne Animation); neu gebaut
+			// wird ohne Instanz, bei einem Designwechsel oder wenn die Zeichenfläche eine andere ist.
+			const chart = this.chartInstances.trend
+			if (chart && !rebuild && chart.canvas === canvas) {
+				chart.data = config.data
+				chart.options = config.options
+				chart.update('none')
+				return
+			}
+			this.destroyChart('trend')
+			this.chartInstances.trend = new Chart(canvas, config)
 		},
 
 		auditDetailText(a) {

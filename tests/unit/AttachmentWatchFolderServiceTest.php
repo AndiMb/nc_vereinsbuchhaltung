@@ -15,6 +15,8 @@ use OCP\Files\File;
 use OCP\Files\Folder;
 use OCP\Files\IRootFolder;
 use OCP\Files\Node;
+use OCP\ICache;
+use OCP\ICacheFactory;
 use OCP\IL10N;
 use OCP\Lock\LockedException;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -68,6 +70,50 @@ class AttachmentWatchFolderServiceTest extends TestCase {
 			array_map(static fn (array $f): array => [$f['fileId'], $f['name'], $f['folder']], $scan['files']),
 			'Neueste zuerst, nur Beleg-Typen, Pfad relativ zum Wächter-Ordner',
 		);
+	}
+
+	/**
+	 * Zwei Scans desselben Ordners mit unverändertem ETag lesen den Baum nur
+	 * einmal; der zweite kommt aus dem Cache und liefert dasselbe Ergebnis.
+	 */
+	public function testScanNutztDenCacheBeiGleichemEtag(): void {
+		$root = $this->createMock(Folder::class);
+		$root->method('getId')->willReturn(500);
+		$root->method('getEtag')->willReturn('etag-1');
+		$root->expects($this->once())->method('getDirectoryListing')->willReturn([
+			$this->file(11, 'Rechnung.pdf', 'application/pdf', 100, 1000),
+		]);
+		$this->storage->method('watchFolder')->willReturn($root);
+		$service = $this->service(null, $this->cacheFactory());
+
+		$first = $service->scan();
+		$second = $service->scan();
+
+		$this->assertNotNull($first);
+		$this->assertSame($first, $second);
+		$this->assertSame([11], array_column($second['files'], 'fileId'));
+	}
+
+	/** Ändert sich der ETag (Datei hinzugekommen), wird neu gelesen. */
+	public function testScanLiestNeuBeiGeaendertemEtag(): void {
+		$root = $this->createMock(Folder::class);
+		$root->method('getId')->willReturn(500);
+		$root->method('getEtag')->willReturnOnConsecutiveCalls('etag-1', 'etag-2');
+		$root->expects($this->exactly(2))->method('getDirectoryListing')->willReturnOnConsecutiveCalls(
+			[$this->file(11, 'Rechnung.pdf', 'application/pdf', 100, 1000)],
+			[
+				$this->file(11, 'Rechnung.pdf', 'application/pdf', 100, 1000),
+				$this->file(12, 'Neu.pdf', 'application/pdf', 100, 2000),
+			],
+		);
+		$this->storage->method('watchFolder')->willReturn($root);
+		$service = $this->service(null, $this->cacheFactory());
+
+		$service->scan();
+		$second = $service->scan();
+
+		$this->assertNotNull($second);
+		$this->assertSame([12, 11], array_column($second['files'], 'fileId'));
 	}
 
 	/**
@@ -822,7 +868,24 @@ class AttachmentWatchFolderServiceTest extends TestCase {
 		$this->assertSame(1, $this->service($rootFolder)->backfillFileIds(self::BOOK, 'altnutzer', 'Alt/Belege'));
 	}
 
-	private function service(?IRootFolder $rootFolder = null): AttachmentWatchFolderService {
+	/** Verteilter Cache als Array, mit dem Präfix, den der Dienst anfordert. */
+	private function cacheFactory(): ICacheFactory&MockObject {
+		/** @var \ArrayObject<string, mixed> $values */
+		$values = new \ArrayObject();
+		$cache = $this->createMock(ICache::class);
+		$cache->method('get')->willReturnCallback(static function (string $key) use ($values): mixed {
+			return $values[$key] ?? null;
+		});
+		$cache->method('set')->willReturnCallback(static function (string $key, mixed $value, int $ttl = 0) use ($values): bool {
+			$values[$key] = $value;
+			return true;
+		});
+		$factory = $this->createMock(ICacheFactory::class);
+		$factory->method('createDistributed')->with('vereinsbuchhaltung-watch')->willReturn($cache);
+		return $factory;
+	}
+
+	private function service(?IRootFolder $rootFolder = null, ?ICacheFactory $cacheFactory = null): AttachmentWatchFolderService {
 		$l10n = $this->createMock(IL10N::class);
 		$l10n->method('t')->willReturnCallback(
 			static fn (string $text, array $parameters = []): string => vsprintf($text, $parameters),
@@ -834,6 +897,7 @@ class AttachmentWatchFolderServiceTest extends TestCase {
 			$l10n,
 			$this->hashes,
 			$this->createMock(ReimbursementFileMapper::class),
+			$cacheFactory,
 		);
 	}
 }

@@ -735,6 +735,15 @@ export const api = {
 	 * NC-Kontoverknüpfung schlägt Konten anhand von IUserManager::getByEmail()
 	 * vor, `setupUsers()` legt Testnutzer aber ohne Mailadresse an.
 	 */
+	/** Räumt die Verknüpfung (samt Mitglied) weg, die ein abgebrochener Lauf für dieses Nextcloud-Konto übrig ließ. */
+	async unlinkMemberByNcUser(request, ncUserId) {
+		const existing = (await this.listMembers(request)).find((m) => m.ncUserId === ncUserId)
+		if (existing) {
+			await this.unlinkMember(request, existing.id)
+			await this.deleteMember(request, existing.id)
+		}
+	},
+
 	async setUserEmail(request, uid, email, { user = 'admin' } = {}) {
 		const resp = await request.fetch(`${BASE_URL}/ocs/v2.php/cloud/users/${uid}?format=json`, {
 			method: 'PUT',
@@ -907,6 +916,33 @@ export const api = {
 
 	async payReimbursement(request, id, journalId, paidDate, { user = 'admin', expectOk = true } = {}) {
 		return call(request, 'POST', `/reimbursements/${id}/pay`, { user, expectOk, data: { journalId, paidDate } })
+	},
+
+	/** „Überweisung angewiesen“ vormerken. */
+	async markReimbursementTransferred(request, id, { user = 'admin', expectOk = true } = {}) {
+		return call(request, 'POST', `/reimbursements/${id}/transferred`, { user, expectOk })
+	},
+
+	async unmarkReimbursementTransferred(request, id, { user = 'admin', expectOk = true } = {}) {
+		return call(request, 'DELETE', `/reimbursements/${id}/transferred`, { user, expectOk })
+	},
+
+	/** Kontoumsatz einer freigegebenen Auslage zuordnen und gegen das Aufwandskonto buchen. */
+	async assignReimbursementTransaction(request, id, bankTxId, contraAccountId, { user = 'admin', expectOk = true } = {}) {
+		return call(request, 'POST', `/reimbursements/${id}/assign`, { user, expectOk, data: { bankTxId, contraAccountId } })
+	},
+
+	async revertReimbursementPayment(request, id, { user = 'admin', expectOk = true } = {}) {
+		return call(request, 'POST', `/reimbursements/${id}/revert-payment`, { user, expectOk })
+	},
+
+	/** Nummernkreis der Auslagen lesen bzw. ändern. */
+	async reimbursementNumberRange(request, { user = 'admin' } = {}) {
+		return (await call(request, 'GET', '/reimbursements/number-range', { user })).json()
+	},
+
+	async saveReimbursementNumberRange(request, data, { user = 'admin', expectOk = true } = {}) {
+		return call(request, 'PUT', '/reimbursements/number-range', { user, expectOk, data })
 	},
 
 	/** Roher Zugriff für Spezialfälle; expectOk standardmäßig aus. */

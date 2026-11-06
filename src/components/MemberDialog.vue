@@ -471,8 +471,9 @@ import api from '../api.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { useContributionGroups } from '../composables/useContributionGroups.js'
 import { accountPayload, emptyAccount, missingAccountFields } from '../lib/accountForm.js'
+import { clubToday } from '../lib/clubTime.js'
 import { defaultCountry } from '../lib/countryDefault.js'
-import { errMsg, formatDate } from '../lib/format.js'
+import { errMsg, formatDate, formatEuro } from '../lib/format.js'
 import { intervalLabel } from '../lib/frequency.js'
 import { linkedAccountText } from '../lib/memberAccount.js'
 import { focusOnOpen } from '../lib/modalFocus.js'
@@ -492,7 +493,7 @@ function emptyForm(member) {
 		// Mitglied behält, was gespeichert ist (auch „nichts“).
 		country: member ? (member.country ?? '') : defaultCountry(),
 		memberNumber: member?.memberNumber ?? '',
-		joinedAt: member?.joinedAt ?? new Date().toISOString().slice(0, 10),
+		joinedAt: member?.joinedAt ?? clubToday(),
 		internalNote: member?.internalNote ?? '',
 		// Nur beim Anlegen relevant (siehe Template): das optionale Mandat
 		// (Schritt 2) und die optionale Zuweisung (Schritt 3) des
@@ -506,7 +507,7 @@ function emptyForm(member) {
 					bic: '',
 					accountHolder: '',
 					mandateReference: '',
-					signedDate: new Date().toISOString().slice(0, 10),
+					signedDate: clubToday(),
 					groupId: null,
 					intervalMonths: 12,
 					// Leer: den üblichen Betrag liefert die gewählte Beitragsgruppe (Watcher selectedGroup).
@@ -514,7 +515,7 @@ function emptyForm(member) {
 					// Ohne Mailadresse (beim Öffnen leer) ist nur Überweisung möglich; sobald
 					// eine eingetragen wird, schaltet der Watcher hasEmail auf Lastschrift.
 					paymentMethod: 'ueberweisung',
-					validFrom: new Date().toISOString().slice(0, 10),
+					validFrom: clubToday(),
 					// Nextcloud-Konto und Willkommens-Mail (beide optional, beide aus): die Vorbelegung der
 					// Kontoangaben aus den Stammdaten übernimmt der Watcher `suggestedAccount`.
 					createAccount: false,
@@ -577,7 +578,7 @@ export default {
 			linking: false,
 			leaving: false,
 			deleting: false,
-			leaveDate: new Date().toISOString().slice(0, 10),
+			leaveDate: clubToday(),
 			assignmentPreview: null,
 			certificateYears: [],
 			certificateYear: null,
@@ -643,12 +644,14 @@ export default {
 	},
 
 	watch: {
-		show(open) {
+		// immediate: der Dialog wird per v-if erst beim Oeffnen eingehaengt
+		// (und als eigener Chunk nachgeladen) - show ist dann schon true.
+		show: { immediate: true, handler(open) {
 			if (!open) { return }
 			this.form = emptyForm(this.member)
 			this.suggestions = []
 			this.suggestionsLoaded = false
-			this.leaveDate = new Date().toISOString().slice(0, 10)
+			this.leaveDate = clubToday()
 			this.assignmentPreview = null
 			this.certificateYears = []
 			this.certificateYear = null
@@ -666,7 +669,7 @@ export default {
 			} else {
 				focusOnOpen(this, () => this.$refs.nameInput || this.$refs.orgInput)
 			}
-		},
+		} },
 
 		// Kontoname, Anzeigename und E-Mail folgen den Stammdaten, solange niemand sie von Hand geändert hat
 		// (der Wert entspricht noch dem Vorschlag zu den vorherigen Stammdaten).
@@ -725,7 +728,7 @@ export default {
 			panel.scrollIntoView({ block: 'start' })
 		},
 
-		euro(cents) { return (cents / 100).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' }) },
+		euro(cents) { return formatEuro(cents / 100) },
 
 		stammdaten() {
 			return {

@@ -9,6 +9,7 @@ use OCA\Vereinsbuchhaltung\Db\Mandate;
 use OCA\Vereinsbuchhaltung\Exception\ConsumedActivationTokenException;
 use OCA\Vereinsbuchhaltung\Exception\ExpiredActivationTokenException;
 use OCA\Vereinsbuchhaltung\Exception\InvalidActivationTokenException;
+use OCA\Vereinsbuchhaltung\Service\ClubClock;
 use OCA\Vereinsbuchhaltung\Service\MandateActivationService;
 use OCA\Vereinsbuchhaltung\Service\MandateFormRenderer;
 use OCP\AppFramework\Controller;
@@ -19,8 +20,9 @@ use OCP\AppFramework\Http\Attribute\BruteForceProtection;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\Attribute\PublicPage;
+use OCP\AppFramework\Http\Attribute\UserRateLimit;
 use OCP\AppFramework\Http\TemplateResponse;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IRequest;
 use OCP\IURLGenerator;
 
@@ -44,8 +46,8 @@ use OCP\IURLGenerator;
  * kryptographisch zufällige, zeitlich begrenzte, einmal verwendbare Token
  * selbst (siehe {@see MandateActivationService}). Der Validator IST in
  * diesem Sinn das Anti-CSRF-Token: eine fremde Seite kann ihn nicht kennen
- * oder erraten. Zusätzlich `#[AnonRateLimit]`/`#[BruteForceProtection]`
- * gegen Enumerations-/Brute-Force-Versuche.
+ * oder erraten. Zusätzlich `#[AnonRateLimit]`/`#[UserRateLimit]`/`#[BruteForceProtection]`
+ * gegen Enumerations-/Brute-Force-Versuche (Fehlerseiten melden `throttle()`).
  *
  * Bewusst KEIN Bypass in der {@see \OCA\Vereinsbuchhaltung\Middleware\PermissionMiddleware}
  * über eine vbh-Rolle – dieser Controller braucht gar keine, er wird dort
@@ -59,7 +61,8 @@ class MandateConsentController extends Controller {
 		private MandateActivationService $activation,
 		private MandateFormRenderer $formRenderer,
 		private IURLGenerator $urlGenerator,
-		private IConfig $config,
+		private IAppConfig $config,
+		private ClubClock $clock,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -68,6 +71,7 @@ class MandateConsentController extends Controller {
 	#[NoAdminRequired]
 	#[NoCSRFRequired]
 	#[AnonRateLimit(limit: 30, period: 3600)]
+	#[UserRateLimit(limit: 30, period: 3600)]
 	#[BruteForceProtection(action: 'vbh_mandate_consent')]
 	public function show(string $token): TemplateResponse {
 		try {
@@ -88,6 +92,7 @@ class MandateConsentController extends Controller {
 	#[NoAdminRequired]
 	#[NoCSRFRequired]
 	#[AnonRateLimit(limit: 10, period: 3600)]
+	#[UserRateLimit(limit: 10, period: 3600)]
 	#[BruteForceProtection(action: 'vbh_mandate_consent')]
 	public function accept(string $token): TemplateResponse {
 		try {
@@ -118,15 +123,15 @@ class MandateConsentController extends Controller {
 	 */
 	private function renderView(array $view, string $token): TemplateResponse {
 		$mandate = $view['mandate'];
-		$clubName = $this->config->getAppValue(Application::APP_ID, 'club_name', '');
-		$creditorId = $this->config->getAppValue(Application::APP_ID, 'sepa_creditor_id', '');
+		$clubName = $this->config->getValueString(Application::APP_ID, 'club_name', '');
+		$creditorId = $this->config->getValueString(Application::APP_ID, 'sepa_creditor_id', '');
 		// "Datum" der Pflichtangaben: bei einer noch offenen Zustimmung das
 		// heutige Datum (das prospektive Unterschriftsdatum), bei einer bereits
 		// erteilten das tatsächliche - sonst zeigte ein Wochen später erneut
 		// geöffneter Link ein falsches, viel zu spätes Datum an.
 		$referenceDate = $view['status'] === 'consumed' && $mandate->getSignedAt() !== null
 			? $mandate->getSignedAt()
-			: date('Y-m-d');
+			: $this->clock->today();
 
 		return new TemplateResponse(
 			Application::APP_ID,
@@ -146,15 +151,21 @@ class MandateConsentController extends Controller {
 		);
 	}
 
-	/** @param 404|410 $httpStatus */
-	private function errorPage(string $status, string $message, int $httpStatus): TemplateResponse {
-		return new TemplateResponse(
+	/**
+	 * Fehlerseite eines ungültigen/abgelaufenen Links. Standardmäßig als
+	 * Fehlversuch gedrosselt: `#[BruteForceProtection]` zählt nur, wenn die
+	 * Antwort `throttle()` meldet (#259).
+	 *
+	 * @param 404|410 $httpStatus
+	 */
+	private function errorPage(string $status, string $message, int $httpStatus, bool $throttle = true): TemplateResponse {
+		$response = new TemplateResponse(
 			Application::APP_ID,
 			'mandateConsent',
 			[
 				'status' => $status,
 				'reconfirm' => false,
-				'clubName' => $this->config->getAppValue(Application::APP_ID, 'club_name', ''),
+				'clubName' => $this->config->getValueString(Application::APP_ID, 'club_name', ''),
 				'legalTextHtml' => '',
 				'dataBlockHtml' => '',
 				'consentAt' => null,
@@ -165,5 +176,9 @@ class MandateConsentController extends Controller {
 			TemplateResponse::RENDER_AS_PUBLIC,
 			$httpStatus,
 		);
+		if ($throttle) {
+			$response->throttle(['action' => 'vbh_mandate_consent']);
+		}
+		return $response;
 	}
 }

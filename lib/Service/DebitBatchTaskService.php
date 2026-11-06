@@ -39,6 +39,8 @@ use OCP\IL10N;
  */
 class DebitBatchTaskService {
 
+	private ClubClock $clock;
+
 	public function __construct(
 		private OpenItemMapper $openItems,
 		private DebitItemMapper $debitItems,
@@ -47,7 +49,9 @@ class DebitBatchTaskService {
 		private ContributionCycleSettings $settings,
 		private ITimeFactory $time,
 		private IL10N $l10n,
+		?ClubClock $clock = null,
 	) {
+		$this->clock = $clock ?? new ClubClock($this->time);
 	}
 
 	/** @return list<array{severity:string,message:string,objectType:?string,objectId:?int}> */
@@ -62,18 +66,19 @@ class DebitBatchTaskService {
 	/** @return list<array{severity:string,message:string,objectType:null,objectId:null}> */
 	private function findReleaseDueTasks(string $today): array {
 		$horizon = $this->horizon($today);
-		$alreadyBatched = $this->debitItems->findOpenItemIdsInLiveBatches();
+		// Als Schlüssel statt Liste: je Forderung ein isset() statt einer Suche durch alle Posten.
+		$alreadyBatched = array_flip($this->debitItems->findOpenItemIdsInLiveBatches());
 
 		/** @var array<string, OpenItem[]> $byDueDate */
 		$byDueDate = [];
-		foreach ($this->openItems->findClaims() as $item) {
+		foreach ($this->openItems->findOpenClaims() as $item) {
 			if ($item->getDueDate() === null || $item->getDueDate() > $horizon) {
 				continue;
 			}
 			if (ClaimStateResolver::resolveForItem($item) !== ClaimStateResolver::STATE_OPEN) {
 				continue;
 			}
-			if (in_array($item->getId(), $alreadyBatched, true)) {
+			if (isset($alreadyBatched[(int)$item->getId()])) {
 				continue; // bereits in einem lebenden Lauf - kein Problem mehr
 			}
 			if (!$this->eligibility->isEligible($item)) {
@@ -123,6 +128,6 @@ class DebitBatchTaskService {
 	}
 
 	private function today(): string {
-		return $this->time->getDateTime()->format('Y-m-d');
+		return $this->clock->today();
 	}
 }

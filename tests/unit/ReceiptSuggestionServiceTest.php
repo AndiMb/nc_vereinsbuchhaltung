@@ -114,7 +114,7 @@ class ReceiptSuggestionServiceTest extends TestCase {
 		$this->assertSame(['linked' => [], 'skipped' => []], $service->linkPairs('u', [['journalId' => 1, 'fileId' => 2]]));
 	}
 
-	public function testForFormLiestHoechstensZwanzigDateienJeAnfrage(): void {
+	public function testForFormLiestJeAnfrageNurWenigeDateien(): void {
 		$this->inbox([self::file(1)], true);
 		$this->index->expects($this->once())->method('refresh')
 			->with($this->anything(), ReceiptIndexService::REQUEST_MAX_FILES, ReceiptIndexService::REQUEST_MAX_SECONDS, false)
@@ -122,6 +122,26 @@ class ReceiptSuggestionServiceTest extends TestCase {
 		$this->index->method('entries')->willReturn([]);
 
 		$this->assertSame(['pending' => 1, 'suggestions' => []], $this->service()->forForm('u', ['date' => '2026-10-20', 'amountCents' => 100], []));
+	}
+
+	/**
+	 * Im Request werden nur offene Dateien gelesen, höchstens fünf in einer
+	 * halben Sekunde, und nie als vollständiger Scan: das Aufräumen fehlender
+	 * Einträge bleibt dem ReceiptIndexJob.
+	 */
+	public function testPrepareLiestImRequestNurOffeneDateien(): void {
+		$this->inbox([self::file(1), self::file(2, [55]), self::file(3)]);
+		$this->index->expects($this->once())->method('refresh')
+			->with(
+				$this->callback(static fn (array $files): bool => array_column($files, 'fileId') === [1, 3]),
+				5,
+				0.5,
+				false,
+			)
+			->willReturn(['indexed' => 0, 'pending' => 0]);
+		$this->index->method('entries')->willReturn([]);
+
+		$this->service()->forForm('u', ['date' => '2026-10-20', 'amountCents' => 100], []);
 	}
 
 	public function testForFormSchliesstZugeordneteUndWartelisteAus(): void {

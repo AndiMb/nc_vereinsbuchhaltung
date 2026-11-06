@@ -10,8 +10,10 @@ use OCA\Vereinsbuchhaltung\Db\MandateMapper;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
 use OCA\Vereinsbuchhaltung\Service\ClaimStateResolver;
+use OCA\Vereinsbuchhaltung\Service\ClubClock;
 use OCA\Vereinsbuchhaltung\Service\MandateService;
 use OCP\AppFramework\Utility\ITimeFactory;
+use OCP\BackgroundJob\IJob;
 use OCP\BackgroundJob\TimedJob;
 use Psr\Log\LoggerInterface;
 
@@ -44,11 +46,14 @@ class MandateDepartureJob extends TimedJob {
 	) {
 		parent::__construct($time);
 		$this->setInterval(86400);
+		// Tagesjob: darf in das Wartungsfenster der Instanz rutschen (#265).
+		$this->setTimeSensitivity(IJob::TIME_INSENSITIVE);
 		$this->setAllowParallelRuns(false);
 	}
 
 	protected function run($argument): void {
-		$today = $this->time->getDateTime()->format('Y-m-d');
+		// Kalendertag des Vereins, nicht der UTC-Tag (#263).
+		$today = (new ClubClock($this->time))->today();
 		try {
 			$ended = 0;
 			foreach ($this->memberMapper->findLeftOnOrBefore($today) as $member) {

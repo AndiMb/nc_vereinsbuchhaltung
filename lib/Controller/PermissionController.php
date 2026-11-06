@@ -7,13 +7,13 @@ namespace OCA\Vereinsbuchhaltung\Controller;
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\PermissionMapper;
 use OCA\Vereinsbuchhaltung\Service\AuditService;
+use OCA\Vereinsbuchhaltung\Service\FrontendStateService;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
-use OCA\Vereinsbuchhaltung\Service\ReimbursementAccess;
-use OCA\Vereinsbuchhaltung\Service\SelfServiceService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
+use OCP\AppFramework\Http\Attribute\PasswordConfirmationRequired;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\IGroupManager;
 use OCP\IL10N;
@@ -24,13 +24,11 @@ class PermissionController extends Controller {
 
 	public function __construct(
 		IRequest $request,
-		private PermissionService $permissions,
 		private PermissionMapper $mapper,
 		private IGroupManager $groupManager,
 		private IUserManager $userManager,
 		private AuditService $audit,
-		private SelfServiceService $selfService,
-		private ReimbursementAccess $reimbursementAccess,
+		private FrontendStateService $frontendState,
 		private IL10N $l10n,
 	) {
 		parent::__construct(Application::APP_ID, $request);
@@ -39,17 +37,12 @@ class PermissionController extends Controller {
 	/**
 	 * Eigene Rolle/Rechte – für jeden angemeldeten Nutzer erreichbar.
 	 *
-	 * `selfService` steuert zusätzlich, ob die SPA den Bereich „Mein Beitrag"
-	 * zeigt (Spec §3.4) – unabhängig von der vbh-Rolle, siehe App.vue.
+	 * Inhalt siehe FrontendStateService::me(); beim Seitenaufruf liegt derselbe
+	 * Wert schon als Initial State in der Seite (PageController).
 	 */
 	#[NoAdminRequired]
 	public function me(): DataResponse {
-		$data = $this->permissions->describeCurrent();
-		$data['selfService'] = $this->selfService->describeCurrent();
-		// Auslagenerstattung: steuert den Unterreiter „Auslagen“ unter „Mein Bereich“ und den Reiter
-		// in der Verwaltungssicht, siehe ReimbursementAccess.
-		$data['reimbursement'] = $this->reimbursementAccess->describeCurrent();
-		return new DataResponse($data);
+		return new DataResponse($this->frontendState->me());
 	}
 
 	#[NoAdminRequired]
@@ -78,6 +71,7 @@ class PermissionController extends Controller {
 	}
 
 	#[NoAdminRequired]
+	#[PasswordConfirmationRequired]
 	public function setRole(string $principalType, string $principalId, string $role): DataResponse {
 		if (!in_array($principalType, ['user', 'group'], true)) {
 			return new DataResponse(['message' => $this->l10n->t('Ungültiger Typ')], Http::STATUS_BAD_REQUEST);
@@ -108,6 +102,7 @@ class PermissionController extends Controller {
 	}
 
 	#[NoAdminRequired]
+	#[PasswordConfirmationRequired]
 	public function destroy(int $id): DataResponse {
 		try {
 			$perm = $this->mapper->find($id);

@@ -98,7 +98,7 @@
 				role="tabpanel"
 				aria-labelledby="vbh-rtpl-tab-columns">
 				<ol class="vbh-rtpl-list">
-					<li v-for="(col, i) in def.columns" :key="i" class="vbh-form">
+					<li v-for="(col, i) in def.columns" :key="col.uid ?? i" class="vbh-form">
 						<label>{{ tRaw('Spalte {n}', {}, { n: i + 1 }) }}
 							<select v-model="col.source">
 								<option v-for="s in SOURCES" :key="s" :value="s">{{ sourceName(s) }}</option>
@@ -142,7 +142,7 @@
 						</span>
 					</li>
 				</ol>
-				<NcButton variant="secondary" :disabled="def.columns.length >= MAX_COLUMNS" @click="def.columns.push({ source: 'actual', periodOffset: 0 })">
+				<NcButton variant="secondary" :disabled="def.columns.length >= MAX_COLUMNS" @click="def.columns.push(newColumn())">
 					{{ t('Spalte hinzufügen') }}
 				</NcButton>
 			</section>
@@ -254,12 +254,15 @@ import {
 	MAX_COLUMNS,
 	MIN_PERIOD_OFFSET,
 	moved,
+	newColumn,
 	newGroup,
 	offsetName,
 	outline,
 	sourceName,
 	SOURCES,
+	stripUids,
 	validate,
+	withUids,
 } from '../lib/reportDefinition.js'
 
 /**
@@ -300,7 +303,7 @@ export default {
 			MAX_COLUMNS,
 			OFFSETS: Array.from({ length: -MIN_PERIOD_OFFSET + 1 }, (_, i) => -i),
 			name: this.template.name,
-			def: JSON.parse(JSON.stringify(this.template.definition)),
+			def: withUids(JSON.parse(JSON.stringify(this.template.definition))),
 			activeTab: 'general',
 			serverErrors: [],
 			saving: false,
@@ -374,13 +377,14 @@ export default {
 		newGroup,
 		offsetName,
 		sourceName,
+		newColumn,
 
 		async save() {
 			this.saving = true
 			try {
 				const { data } = this.isNew
-					? await api.createReportTemplate(this.name, this.def)
-					: await api.updateReportTemplate(this.template.id, this.name, this.def)
+					? await api.createReportTemplate(this.name, stripUids(this.def))
+					: await api.updateReportTemplate(this.template.id, this.name, stripUids(this.def))
 				showSuccess(this.t('Vorlage gespeichert'))
 				this.$emit('saved', data)
 			} catch (e) {

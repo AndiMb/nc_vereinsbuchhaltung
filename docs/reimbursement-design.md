@@ -130,11 +130,28 @@ dem Mitglied; wie bei Rechnungen über `invoice_id` gekennzeichnet, ohne `type`)
 
 ## 7. Auszahlung und Buchung
 
-Gebucht wird **erst bei der Auszahlung**. Buchhalter oder Verwalter öffnen den
-normalen Buchungsdialog, vorbelegt mit Betrag, Datum und Zweck. Aufwandskonto,
-Bankkonto und Kostenstelle wählt der Buchende; die normalen Perioden-/
-Abschlussregeln gelten. Die Buchung wird mit dem offenen Posten verknüpft, der
-Antrag wird `paid`, die Belege hängen an der Buchung. Kein Verbindlichkeitskonto.
+Gebucht wird **erst bei der Auszahlung**, und zwar mit dem Kontoumsatz:
+
+1. Jeder Antrag trägt beim Einreichen eine Nummer aus dem Nummernkreis `auslage`
+   (`AUSL-{JJJJ}-{NNNN}`, Spalte `number`).
+2. „Überweisung vorbereiten“ zeigt Girocode und Überweisungsdaten; der
+   Verwendungszweck lautet `<Nummer> - <Zweck>` (höchstens 140 Zeichen).
+   „Überweisung abgeschlossen“ vermerkt das als Ereignis `transferred`
+   (`transferred_at`); der Status bleibt `approved`.
+3. Der Kontoumsatz (Abgang) wird unter *Zuzuordnen* der Auslage zugeordnet:
+   als Chip bei erkannter Nummer (oder IBAN und Betrag), sonst von Hand über
+   „Einer Auslage zuordnen…“. Der Betrag muss stimmen; der Buchende wählt das
+   Aufwandskonto. Die Zuordnung bucht den Umsatz, verknüpft Buchung und
+   offenen Posten, setzt den Antrag auf `paid` und hängt die Belege an. So steht
+   dieselbe Zahlung nie zweimal in den Büchern.
+4. „Zahlung zurücknehmen“ löscht die Buchung; derselbe Haken
+   (`ReimbursementPaymentReverter`) greift, wenn der Buchungssatz anders verschwindet.
+   Antrag wieder `approved`, Posten offen, Belege zurück beim Antrag, Ereignis
+   `payment_reverted`. „Vormerkung zurücknehmen“ schreibt `transfer_revoked`.
+5. Ohne Kontoumsatz (Barzahlung): „Ohne Kontoumsatz buchen“ öffnet den normalen
+   Buchungsdialog, vorbelegt mit Betrag, Datum und Zweck.
+
+Die normalen Perioden-/Abschlussregeln gelten. Kein Verbindlichkeitskonto.
 
 ## 8. Belege / Ablage
 

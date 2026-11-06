@@ -17,6 +17,26 @@ als „[object Object]" (falsche Renderer-Callback-Signatur, Nextcloud-
 Core-Bug, reproduziert 23.08.2026). Stattdessen **Fettdruck als Zeilenanfang**
 verwenden, z. B. `**Neu:**`.
 
+## [0.51.0] – 2026-11-06
+
+**Neu:**
+- **Auslagennummer** (`AUSL-2026-0012`): wird beim Einreichen vergeben, steht
+  im Verwendungszweck der Überweisung, in „Mein Bereich“ und in der Suche.
+  Das Muster ist unter *Einstellungen → Auslagenerstattung* einstellbar;
+  bestehende Anträge werden nachnummeriert.
+- **Überweisung vorbereiten:** Girocode und kopierbare Angaben.
+  „Überweisung abgeschlossen“ merkt nur vor und lässt sich zurücknehmen.
+- **Kontoumsatz einer Auslage zuordnen:** Unter *Zuzuordnen* erkennt der Chip
+  „✓ Auslage …“ Nummer (oder IBAN und Betrag); sonst „Einer Auslage
+  zuordnen…“. Bucht gegen das Aufwandskonto und zahlt aus, ohne
+  Doppelbuchung.
+- **Zahlung zurücknehmen:** stellt Antrag, offenen Posten und Belege wieder
+  her; gilt auch, wenn die Buchung gelöscht wird.
+- **Kachel „Offene Auslagen“** auf der Übersicht.
+
+**Geändert:**
+- „Auszahlung buchen“ heißt „Ohne Kontoumsatz buchen“ (Barzahlung).
+
 ## [0.50.0] – 2026-11-01
 
 **Neu:**

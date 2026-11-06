@@ -6,7 +6,9 @@ namespace OCA\Vereinsbuchhaltung\Controller;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\AssignmentMapper;
+use OCA\Vereinsbuchhaltung\Middleware\NoRevisionBump;
 use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
+use OCA\Vereinsbuchhaltung\Service\ClubClock;
 use OCA\Vereinsbuchhaltung\Service\ContributionCycleSettings;
 use OCA\Vereinsbuchhaltung\Service\ContributionYearService;
 use OCA\Vereinsbuchhaltung\Service\DueDateScheduleService;
@@ -32,6 +34,8 @@ use OCP\IRequest;
  */
 class DueDateScheduleController extends Controller {
 
+	private ClubClock $clock;
+
 	public function __construct(
 		IRequest $request,
 		private DueDateScheduleService $schedule,
@@ -39,7 +43,9 @@ class DueDateScheduleController extends Controller {
 		private ContributionYearService $contributionYear,
 		private AssignmentMapper $assignments,
 		private ITimeFactory $time,
+		?ClubClock $clock = null,
 	) {
+		$this->clock = $clock ?? new ClubClock($this->time);
 		parent::__construct(Application::APP_ID, $request);
 	}
 
@@ -72,6 +78,7 @@ class DueDateScheduleController extends Controller {
 	 */
 	#[NoAdminRequired]
 	#[RequiresRole(PermissionService::ROLE_READ)]
+	#[NoRevisionBump]
 	public function preview(int $intervalMonths, int $defaultOffsetDays, array $overrides = [], ?int $year = null): DataResponse {
 		try {
 			return new DataResponse($this->schedule->preview($intervalMonths, $defaultOffsetDays, $overrides, $year ?? $this->contributionYear->anchorYearFor($this->today())));
@@ -159,6 +166,6 @@ class DueDateScheduleController extends Controller {
 	}
 
 	private function today(): string {
-		return $this->time->getDateTime()->format('Y-m-d');
+		return $this->clock->today();
 	}
 }

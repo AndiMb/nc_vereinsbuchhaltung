@@ -219,18 +219,22 @@
 <script>
 import { mdiPlus, mdiTableArrowUp } from '@mdi/js'
 import { showError } from '@nextcloud/dialogs'
+import { defineAsyncComponent } from 'vue'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import InvoiceBatchImportDialog from './InvoiceBatchImportDialog.vue'
 import InvoiceBatchPanel from './InvoiceBatchPanel.vue'
 import InvoiceDetail from './InvoiceDetail.vue'
-import InvoiceEditor from './InvoiceEditor.vue'
 import InvoicePlanList from './InvoicePlanList.vue'
 import api from '../api.js'
 import { useSort } from '../composables/useSort.js'
+import { clubToday } from '../lib/clubTime.js'
 import { errMsg, formatDate, formatMoney } from '../lib/format.js'
 import { displayStatus, displayStatusLabel, dunningLabel, invoiceSortFields, isDunningDue, statusClass } from '../lib/invoices.js'
+
+// Der Rechnungseditor wird erst beim ersten Bearbeiten geladen.
+const InvoiceEditor = defineAsyncComponent(() => import(/* webpackChunkName: "vbh-invoiceeditor" */ './InvoiceEditor.vue'))
 
 /**
  * Reiter „Rechnungen" (Epic #168): Liste mit Filtern, Editor für Entwürfe und
@@ -254,7 +258,7 @@ export default {
 		newRequest: { type: Object, default: () => ({ kind: null, n: 0 }) },
 	},
 
-	emits: ['update:invoiceId', 'changed', 'editing'],
+	emits: ['update:invoiceId', 'changed', 'editing', 'request-handled'],
 
 	setup() {
 		const { sort, toggleSort, sortArrow, applySort } = useSort()
@@ -337,7 +341,7 @@ export default {
 
 		/** Brutto aller in diesem Jahr als Kleinunternehmer festgeschriebenen, nicht stornierten Rechnungen. */
 		smallBusinessTurnoverCents() {
-			const year = String(new Date().getFullYear())
+			const year = clubToday().slice(0, 4)
 			return this.invoices
 				.filter((i) => i.kind !== 'storno' && ['issued', 'sent', 'paid'].includes(i.status) && i.taxMode === 'kleinunternehmer' && String(i.issueDate || '').startsWith(year))
 				.reduce((sum, i) => sum + i.grossCents, 0)
@@ -374,16 +378,24 @@ export default {
 		/** Der App-Kopf blendet den schwebenden „+“-Knopf aus, solange der Editor offen ist (er läge über der Summe). */
 		view(view) { this.$emit('editing', view === 'edit') },
 
-		newRequest(request) {
-			if (request.kind === 'plan') { this.newPlan() } else if (request.kind === 'invoice') { this.newInvoice() }
-		},
+		newRequest(request) { this.handleNewRequest(request) },
 	},
 
 	async mounted() {
 		await Promise.all([this.loadMeta(), this.loadInvoices(), this.loadBatches()])
+		// Der Reiter wird erst beim ersten Besuch aufgebaut: eine Anfrage, die ihn
+		// erst oeffnet (+ Rechnung), kommt vor dem Watcher an.
+		this.handleNewRequest(this.newRequest)
 	},
 
 	methods: {
+		/** Einmalig: danach meldet der Reiter die Anfrage als erledigt (App setzt sie zurueck). */
+		handleNewRequest(request) {
+			if (!request || request.n <= 0) { return }
+			this.$emit('request-handled')
+			if (request.kind === 'plan') { this.newPlan() } else if (request.kind === 'invoice') { this.newInvoice() }
+		},
+
 		formatDate,
 		formatMoney,
 		displayStatusLabel,

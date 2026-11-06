@@ -9,11 +9,20 @@ const url = (path) => generateUrl(base + path)
 // Revision-Polling eigene Änderungen (die Handler laden selbst nach) von
 // fremden unterscheiden kann.
 let lastWriteTs = 0
+// Empfänger für den Änderungsstand, den der Server nach einem eigenen
+// Schreibzugriff mitschickt (RevisionMiddleware). useSync() registriert sich
+// hier; ein Import in die Gegenrichtung wäre zirkulär.
+let revisionBumpListener = null
 axios.interceptors.response.use((response) => {
 	const method = ((response.config && response.config.method) || 'get').toLowerCase()
 	const requestUrl = (response.config && response.config.url) || ''
 	if (method !== 'get' && method !== 'head' && requestUrl.includes('/apps/vereinsbuchhaltung/')) {
 		lastWriteTs = Date.now()
+		const headers = response.headers || {}
+		const current = headers['x-vbh-revision']
+		if (current !== undefined && revisionBumpListener) {
+			revisionBumpListener(headers['x-vbh-revision-previous'] ?? '', current)
+		}
 	}
 	return response
 })
@@ -22,6 +31,8 @@ export default {
 	// Kollaboration (Änderungsstand)
 	revision: () => axios.get(url('/revision')),
 	lastWriteAt: () => lastWriteTs,
+	/** @param {(previous: string, current: string) => void} fn Empfänger für den Stand nach eigenen Schreibzugriffen */
+	onRevisionBump: (fn) => { revisionBumpListener = fn },
 
 	// Geschäftsjahre: Liste, Regel, Grenzen, Festschreibung.
 	// `period` ist überall die Perioden-ID; fehlt sie oder ist sie 0, meint der
@@ -49,6 +60,8 @@ export default {
 
 	// Buchungen (Bankumsätze)
 	listTransactions: (status) => axios.get(url('/transactions'), { params: { status } }),
+	// Historie, Fortschritt und Umsätze der Journal-Zeilen zu den bereits zugeordneten Umsätzen (Issue #255).
+	transactionContext: (period) => axios.get(url('/transactions/context'), { params: { period } }),
 	assignTransaction: (id, contraAccountId) => axios.post(url(`/transactions/${id}/assign`), { contraAccountId }),
 	// Aufteilung auf mehrere Gegenkonten: parts = [{accountId, amount}, …] in Euro
 	assignTransactionParts: (id, parts) => axios.post(url(`/transactions/${id}/assign`), { parts }),
@@ -62,6 +75,8 @@ export default {
 	// Import zero Buchhaltung (.xbuc)
 	previewXbuc: (formData) => axios.post(url('/import/xbuc/preview'), formData),
 	commitXbuc: (formData) => axios.post(url('/import/xbuc'), formData),
+	// Löscht vorher alle Daten – nur nach withPasswordConfirmation() aufrufen (#260).
+	commitXbucWithReset: (formData) => axios.post(url('/import/xbuc/reset'), formData),
 	reset: () => axios.post(url('/reset')),
 	seedDemo: () => axios.post(url('/demo/seed')),
 
@@ -163,7 +178,8 @@ export default {
 	debtorFromMember: (memberId) => axios.post(url(`/debtors/from-member/${memberId}`)),
 
 	// Offene Posten
-	listOpenItems: () => axios.get(url('/open-items')),
+	listOpenItems: (status) => axios.get(url('/open-items'), { params: status ? { status } : {} }),
+	getOpenItemCounts: () => axios.get(url('/open-items/counts')),
 	createOpenItem: (data) => axios.post(url('/open-items'), data),
 	markOpenItemPaid: (id, journalId) => axios.post(url(`/open-items/${id}/pay`), { journalId: journalId || undefined }),
 	cancelOpenItem: (id) => axios.post(url(`/open-items/${id}/cancel`)),
@@ -383,7 +399,8 @@ export default {
 	dismissWhatsNew: (version) => axios.post(url('/whatsnew/seen'), { version }),
 
 	// Belegablage
-	attachmentCounts: () => axios.get(url('/attachments/counts')),
+	// Zähler nur für Buchungen der gewählten Periode (ohne `period`: alle).
+	attachmentCounts: (period) => axios.get(url('/attachments/counts'), { params: { period } }),
 	listAttachments: (journalId) => axios.get(url(`/journal/${journalId}/attachments`)),
 	uploadAttachment: (journalId, formData) => axios.post(url(`/journal/${journalId}/attachments`), formData),
 	deleteAttachment: (id) => axios.delete(url(`/attachments/${id}`)),
@@ -423,9 +440,18 @@ export default {
 	selfReimbursementReceiptUrl: (id, fileId) => generateUrl(`${base}/self/reimbursements/${id}/receipts/${fileId}/view`),
 	// Verwaltung (Buchungen -> Auslagen)
 	reimbursements: () => axios.get(url('/reimbursements')),
+	reimbursementsSummary: () => axios.get(url('/reimbursements/summary')),
 	reimbursement: (id) => axios.get(url(`/reimbursements/${id}`)),
 	approveReimbursement: (id) => axios.post(url(`/reimbursements/${id}/approve`)),
 	rejectReimbursement: (id, reason) => axios.post(url(`/reimbursements/${id}/reject`), { reason }),
+	reimbursementTransfer: (id) => axios.get(url(`/reimbursements/${id}/transfer`)),
+	reimbursementNumberRange: () => axios.get(url('/reimbursements/number-range')),
+	saveReimbursementNumberRange: (data) => axios.put(url('/reimbursements/number-range'), data),
+	reimbursementSuggestions: () => axios.get(url('/reimbursements/suggestions')),
+	markReimbursementTransferred: (id) => axios.post(url(`/reimbursements/${id}/transferred`)),
+	unmarkReimbursementTransferred: (id) => axios.delete(url(`/reimbursements/${id}/transferred`)),
+	revertReimbursementPayment: (id) => axios.post(url(`/reimbursements/${id}/revert-payment`)),
+	assignReimbursementTransaction: (id, bankTxId, contraAccountId) => axios.post(url(`/reimbursements/${id}/assign`), { bankTxId, contraAccountId }),
 	payReimbursement: (id, journalId, paidDate) => axios.post(url(`/reimbursements/${id}/pay`), { journalId, paidDate }),
 	reimbursementReceiptUrl: (id, fileId) => generateUrl(`${base}/reimbursements/${id}/receipts/${fileId}/view`),
 

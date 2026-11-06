@@ -15,6 +15,26 @@ Markdown headings as "[object Object]" since `marked` v18 (wrong renderer
 callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 **bold lead-in** at the start of a line instead, e.g. `**New:**`.
 
+## [0.51.0] – 2026-11-06
+
+**New:**
+- **Expense claim number** (`AUSL-2026-0012`): assigned on submission, part of
+  the transfer's payment reference, shown in "My area" and searchable. The
+  pattern is configurable under *Settings → Expense reimbursement*; existing
+  requests are numbered retroactively.
+- **Prepare transfer:** Girocode and copyable details. "Transfer completed"
+  only notes it and can be reverted.
+- **Assign a bank transaction to a claim:** under *To assign*, the chip
+  "✓ Expense claim …" recognizes the number (or IBAN and amount); otherwise
+  "Assign to expense claim…". Books to the expense account and pays out, with
+  no double booking.
+- **Revert payout:** restores request, open item and receipts; also applies
+  when the booking is deleted.
+- **"Open expense claims" tile** on the overview.
+
+**Changed:**
+- "Book payout" is now "Book without bank transaction" (cash payments).
+
 ## [0.50.0] – 2026-11-01
 
 **New:**

@@ -8,6 +8,7 @@ use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\Mandate;
 use OCA\Vereinsbuchhaltung\Db\MandateAmendment;
 use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
+use OCA\Vereinsbuchhaltung\Service\ClubClock;
 use OCA\Vereinsbuchhaltung\Service\Export\PrintableReportPage;
 use OCA\Vereinsbuchhaltung\Service\MandateActivationService;
 use OCA\Vereinsbuchhaltung\Service\MandateDocumentService;
@@ -26,10 +27,11 @@ use OCP\AppFramework\Http\DataDisplayResponse;
 use OCP\AppFramework\Http\DataDownloadResponse;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\AppFramework\Http\EmptyContentSecurityPolicy;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IL10N;
 use OCP\IRequest;
 use OCP\IUserSession;
+use Psr\Log\LoggerInterface;
 
 /**
  * Pflege der SEPA-Mandate im neuen Lifecycle-Modell (Spec §2.2/§3.2, Issue
@@ -45,6 +47,8 @@ use OCP\IUserSession;
  */
 class MandateController extends Controller {
 
+	use InternalErrorResponder;
+
 	private const MAX_DOCUMENT_SIZE = 20 * 1024 * 1024; // 20 MB
 
 	public function __construct(
@@ -58,8 +62,10 @@ class MandateController extends Controller {
 		private OpenItemService $openItems,
 		private PermissionService $permissions,
 		private IUserSession $userSession,
-		private IConfig $config,
+		private IAppConfig $config,
 		private IL10N $l10n,
+		private LoggerInterface $logger,
+		private ClubClock $clock,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -88,7 +94,7 @@ class MandateController extends Controller {
 		// steht.
 		$running = in_array($mandate->getStatus(), [Mandate::STATUS_ACTIVE, Mandate::STATUS_SUSPENDED], true);
 		$data['expiresAt'] = $running ? $this->expiryCalculator->expiresAt($mandate)?->format('Y-m-d') : null;
-		$data['expiryWarning'] = $this->expiryCalculator->needsExpiryWarning($mandate, new \DateTimeImmutable('today'));
+		$data['expiryWarning'] = $this->expiryCalculator->needsExpiryWarning($mandate, new \DateTimeImmutable($this->clock->today()));
 		return $data;
 	}
 
@@ -227,7 +233,7 @@ class MandateController extends Controller {
 		} catch (\InvalidArgumentException $e) {
 			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
 		} catch (\RuntimeException $e) {
-			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_GATEWAY);
+			return $this->internalError($e, Http::STATUS_BAD_GATEWAY, $this->l10n->t('E-Mail konnte nicht versendet werden.'));
 		} catch (DoesNotExistException) {
 			return new DataResponse(['message' => $this->l10n->t('Mandat nicht gefunden')], Http::STATUS_NOT_FOUND);
 		}
@@ -258,14 +264,14 @@ class MandateController extends Controller {
 			? ($this->legalText->find((int)$mandate->getMandateTextVersion()) ?? $this->legalText->current())
 			: $this->legalText->current();
 
-		$clubName = $this->config->getAppValue(Application::APP_ID, 'club_name', '');
-		$creditorId = $this->config->getAppValue(Application::APP_ID, 'sepa_creditor_id', '');
+		$clubName = $this->config->getValueString(Application::APP_ID, 'club_name', '');
+		$creditorId = $this->config->getValueString(Application::APP_ID, 'sepa_creditor_id', '');
 
 		// Das Formular selbst ist ein deutsches Dokument ohne t() (siehe MandateFormRenderer);
 		// übersetzt ist nur der Druckhinweis oben, der beim Drucken wegfällt.
 		$body = PrintableReportPage::header(null, $clubName, 'SEPA-Lastschriftmandat', PrintableReportPage::escape($mandate->getMandateReference()));
 		$body .= '<section>' . $this->formRenderer->renderLegalText($legalText, $clubName) . '</section>';
-		$body .= '<section>' . $this->formRenderer->renderDataBlock($mandate, $creditorId, $mandate->getSignedAt() ?? date('Y-m-d')) . '</section>';
+		$body .= '<section>' . $this->formRenderer->renderDataBlock($mandate, $creditorId, $mandate->getSignedAt() ?? $this->clock->today()) . '</section>';
 		$body .= '<section class="signatures">' . $this->signatureSection($mandate) . '</section>';
 
 		$html = PrintableReportPage::document('SEPA-Lastschriftmandat ' . $mandate->getMandateReference(), PrintableReportPage::printHint($this->l10n->t('Zum Drucken oder Als-PDF-Speichern: <strong>Strg+P</strong> (Mac: ⌘P) im Browser.')) . $body);
@@ -283,7 +289,13 @@ class MandateController extends Controller {
 	 */
 	private function signatureSection(Mandate $mandate): string {
 		if ($mandate->getConsentAt() !== null) {
-			return '<div>Elektronisch bestätigt am ' . PrintableReportPage::escape($mandate->getConsentAt())
+			// Gespeichert ist UTC; gedruckt wird die Vereinszeit samt Zone, damit
+			// Vermerk und Unterschriftsdatum (Vereinstag, #263) denselben Tag zeigen.
+			$local = ClubClock::localDateTime($mandate->getConsentAt());
+			$when = $local !== null
+				? $local->format('d.m.Y, H:i') . ' Uhr (' . $local->getTimezone()->getName() . ')'
+				: $mandate->getConsentAt();
+			return '<div>Elektronisch bestätigt am ' . PrintableReportPage::escape($when)
 				. ' (IP ' . PrintableReportPage::escape((string)$mandate->getConsentIp()) . ')</div>';
 		}
 		if ($mandate->isElectronic()) {
@@ -406,7 +418,7 @@ class MandateController extends Controller {
 		} catch (DoesNotExistException) {
 			return new DataResponse(['message' => $this->l10n->t('Mandat nicht gefunden')], Http::STATUS_NOT_FOUND);
 		} catch (\RuntimeException $e) {
-			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
+			return $this->internalError($e, Http::STATUS_BAD_REQUEST, $this->l10n->t('Datei konnte nicht gespeichert werden.'));
 		}
 	}
 

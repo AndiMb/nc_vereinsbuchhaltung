@@ -127,10 +127,17 @@ describe('startAutoRefresh', () => {
 		expect(listTasks).toHaveBeenCalledTimes(2)
 	})
 
-	it('laedt beim Fokussieren des Fensters neu', () => {
+	it('laedt nach vbh:remote-change neu', async () => {
 		stop = startAutoRefresh()
-		listeners.focus()
+		expect(listTasks).toHaveBeenCalledTimes(1)
+		listeners['vbh:remote-change']()
 		expect(listTasks).toHaveBeenCalledTimes(2)
+	})
+
+	it('ein Fensterfokus allein loest keine Abfrage aus', async () => {
+		stop = startAutoRefresh()
+		expect(listeners.focus).toBeUndefined()
+		expect(listTasks).toHaveBeenCalledTimes(1)
 	})
 
 	it('laedt nach einer eigenen Schreibaktion nach, mehrere in Folge nur einmal', async () => {
@@ -165,7 +172,7 @@ describe('startAutoRefresh', () => {
 		stop()
 		stop = null
 		expect(eject).toHaveBeenCalledWith(42)
-		expect(listeners.focus).toBeUndefined()
+		expect(listeners['vbh:remote-change']).toBeUndefined()
 		listTasks.mockClear()
 		await vi.advanceTimersByTimeAsync(600000)
 		expect(listTasks).not.toHaveBeenCalled()

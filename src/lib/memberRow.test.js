@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { assignmentStatusLabel, assignmentStatusTone, buildMemberRow, isLiveAssignment, isWithdrawnAssignment, nextDueDates } from './memberRow.js'
 
 // Zeilenaufbau der Mitgliederliste: Mandat und Zuweisung in die gemeinsame
@@ -223,5 +223,19 @@ describe('zurückgenommene und künftige Zuweisungen', () => {
 		expect(assignmentStatusLabel(ended, TODAY)).toBe('beendet 31.12.2025')
 		expect(assignmentStatusLabel(withdrawn, TODAY)).toBe('zurückgenommen')
 		expect(assignmentStatusTone(withdrawn, TODAY)).toBe('muted')
+	})
+})
+
+describe('Stichtag ohne Angabe – Issue #263', () => {
+	it('ist der Tag des Vereins, nicht der UTC-Tag', () => {
+		vi.useFakeTimers({ toFake: ['Date'] })
+		vi.setSystemTime(new Date('2026-11-01T23:30:00Z'))
+		try {
+			// In Berlin ist schon der 02.11. – eine bis 01.11. laufende Zuweisung ist beendet.
+			expect(isLiveAssignment({ validFrom: '2026-01-01', validTo: '2026-11-01' })).toBe(false)
+			expect(assignmentStatusTone({ active: false, validFrom: '2026-11-02' })).toBe('muted')
+		} finally {
+			vi.useRealTimers()
+		}
 	})
 })

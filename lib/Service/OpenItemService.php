@@ -38,12 +38,18 @@ class OpenItemService {
 		private OpenItemMapper $mapper,
 		private JournalMapper $journalMapper,
 		private IL10N $l10n,
+		private ClubClock $clock,
 	) {
 	}
 
 	/** @return OpenItem[] */
-	public function findAll(): array {
-		return $this->mapper->findAll();
+	public function findAll(?string $status = null): array {
+		return $this->mapper->findAll($status);
+	}
+
+	/** @return array{open:int, overdue:int, paid:int, waived:int, cancelled:int, all:int} */
+	public function counts(): array {
+		return $this->mapper->countsByStatus($this->clock->today());
 	}
 
 	public function find(int $id): OpenItem {
@@ -51,7 +57,7 @@ class OpenItemService {
 	}
 
 	public function countOverdue(): int {
-		return $this->mapper->countOverdue();
+		return $this->mapper->countOverdue($this->clock->today());
 	}
 
 	/**
@@ -87,7 +93,7 @@ class OpenItemService {
 		$item->setDueDate($dueDate !== null && $dueDate !== '' ? $dueDate : null);
 		$item->setStatus('open');
 		$item->setAccountId($accountId);
-		$item->setCreatedAt((new \DateTime())->format(\DateTime::ATOM));
+		$item->setCreatedAt((new \DateTime())->format(\DateTime::ATOM)); // UTC-Zeitstempel (#263)
 		return $this->mapper->insert($item);
 	}
 

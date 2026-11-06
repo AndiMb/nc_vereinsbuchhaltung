@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Service\InvoiceBatch;
 
+use OCP\ITempManager;
+
 /**
  * Liest eine Tabelle für Sammelrechnungen (#243): XLSX oder CSV, erkannt am
  * Inhalt, nicht am Dateinamen.
@@ -19,8 +21,11 @@ namespace OCA\Vereinsbuchhaltung\Service\InvoiceBatch;
  * Ergebnis: Zeilennummer im Blatt (ab 1) => Zellen als Text. Leere Zeilen
  * fehlen, damit Meldungen trotzdem die Zeile nennen, die der Nutzer sieht.
  *
- * Ohne Nextcloud-Abhängigkeiten; die Meldungen sind deutsche Quelltexte, die
- * der aufrufende Dienst übersetzt.
+ * Einzige Nextcloud-Abhängigkeit ist die temporäre Datei für das ZIP, die über
+ * {@see ITempManager} entsteht (#265): Nextcloud legt sie in seinem eigenen
+ * Temp-Verzeichnis an und räumt sie am Ende des Requests ab, auch wenn ein
+ * Fehler das Löschen hier verhindert. Die Meldungen sind deutsche Quelltexte,
+ * die der aufrufende Dienst übersetzt.
  */
 class SpreadsheetReader {
 
@@ -36,11 +41,11 @@ class SpreadsheetReader {
 	 * @return array<int, list<string>>
 	 * @throws \InvalidArgumentException wenn die Datei nicht lesbar ist
 	 */
-	public static function read(string $content): array {
+	public static function read(string $content, ITempManager $temp): array {
 		if (trim($content) === '') {
 			throw new \InvalidArgumentException('Die Datei ist leer.');
 		}
-		return str_starts_with($content, "PK\x03\x04") ? self::readXlsx($content) : self::readCsv($content);
+		return str_starts_with($content, "PK\x03\x04") ? self::readXlsx($content, $temp) : self::readCsv($content);
 	}
 
 	// ------------------------------------------------------------------
@@ -48,11 +53,11 @@ class SpreadsheetReader {
 	// ------------------------------------------------------------------
 
 	/** @return array<int, list<string>> */
-	private static function readXlsx(string $content): array {
+	private static function readXlsx(string $content, ITempManager $temp): array {
 		if (!class_exists(\ZipArchive::class)) {
 			throw new \InvalidArgumentException('Excel-Dateien lassen sich auf diesem Server nicht lesen (PHP-Erweiterung „zip“ fehlt). Bitte als CSV speichern.');
 		}
-		$tmp = tempnam(sys_get_temp_dir(), 'vbh-xlsx');
+		$tmp = $temp->getTemporaryFile('.xlsx');
 		if ($tmp === false) {
 			throw new \InvalidArgumentException('Die Excel-Datei ließ sich nicht lesen.');
 		}

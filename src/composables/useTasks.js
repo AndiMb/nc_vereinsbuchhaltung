@@ -59,6 +59,10 @@ async function loadTasks() {
 // ab, was von der Uhr abhängt (eine Frist läuft ab, ein neuer Tag beginnt).
 const POLL_INTERVAL = 300000
 const WRITE_DEBOUNCE = 1500
+// Das Fenster-Ereignis, mit dem App.vue (refreshAfterRemoteChange) meldet, dass der
+// Änderungsstand-Abgleich fremde Änderungen geholt hat. Ein Fensterfokus allein löst
+// nichts mehr aus: der Fokus wechselt oft (Dateidialog, Viewer, anderer Tab).
+const REMOTE_CHANGE_EVENT = 'vbh:remote-change'
 
 // Schreibzugriffe, die eine Aufgabe auslösen oder beheben können. Buchungen,
 // Konten, Belege u. ä. gehören nicht dazu und sollen die Abfrage nicht bei jeder
@@ -69,7 +73,8 @@ const TASK_RELEVANT_WRITE = /\/apps\/vereinsbuchhaltung\/api\/(members|mandates|
 let stopRefresh = null
 
 /**
- * Hält die Liste aktuell: beim Fokussieren des Fensters, nach einer eigenen
+ * Hält die Liste aktuell: nach einer Änderung durch andere Personen
+ * (Ereignis `vbh:remote-change`), nach einer eigenen
  * Schreibaktion mit Bezug zu Mitgliedern/Mandaten/Forderungen/Läufen (eine
  * behobene Störung soll sofort aus dem Badge verschwinden, nicht erst beim
  * nächsten Abgleich) und sonst alle fünf Minuten, solange der Tab sichtbar ist.
@@ -98,8 +103,8 @@ function startAutoRefresh() {
 		return response
 	})
 
-	const onFocus = () => loadTasks()
-	window.addEventListener('focus', onFocus)
+	const onRemoteChange = () => { loadTasks() }
+	window.addEventListener(REMOTE_CHANGE_EVENT, onRemoteChange)
 
 	const pollTimer = setInterval(() => {
 		if (!document.hidden) { loadTasks() }
@@ -109,7 +114,7 @@ function startAutoRefresh() {
 
 	stopRefresh = () => {
 		axios.interceptors.response.eject(interceptorId)
-		window.removeEventListener('focus', onFocus)
+		window.removeEventListener(REMOTE_CHANGE_EVENT, onRemoteChange)
 		clearInterval(pollTimer)
 		clearTimeout(writeTimer)
 		stopRefresh = null

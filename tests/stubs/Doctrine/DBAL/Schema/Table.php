@@ -9,7 +9,7 @@ namespace Doctrine\DBAL\Schema;
  *
  * ISchemaWrapper::getTable() liefert eine Doctrine-Tabelle, das Stub-Paket
  * nextcloud/ocp bringt DBAL aber nicht mit. Nur die Methoden, die
- * Migrationstests mocken (Version000163MigrationTest), Signaturen wie in
+ * Migrationstests mocken (Version000163MigrationTest, Version000172MigrationTest), Signaturen wie in
  * DBAL 3.
  *
  * Wird ausschließlich vom Autoloader in tests/bootstrap.php eingebunden.
@@ -25,6 +25,19 @@ class Table {
 
 	/** @param array<string, mixed> $options */
 	public function changeColumn(string $name, array $options): self {
+		return $this;
+	}
+
+	public function hasIndex(string $name): bool {
+		return false;
+	}
+
+	/**
+	 * @param list<string> $columnNames
+	 * @param list<string> $flags
+	 * @param array<string, mixed> $options
+	 */
+	public function addIndex(array $columnNames, ?string $indexName = null, array $flags = [], array $options = []): self {
 		return $this;
 	}
 }

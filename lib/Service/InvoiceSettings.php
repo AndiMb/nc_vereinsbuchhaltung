@@ -8,7 +8,7 @@ use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\Invoice;
 use OCA\Vereinsbuchhaltung\Service\Invoice\InvoiceDunningService;
 use OCA\Vereinsbuchhaltung\Service\Invoice\InvoiceMailService;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IL10N;
 
 /**
@@ -95,14 +95,14 @@ class InvoiceSettings {
 	public const SMALL_BUSINESS_NOTICE = 'Gemäß § 19 UStG wird keine Umsatzsteuer berechnet.';
 
 	public function __construct(
-		private IConfig $config,
+		private IAppConfig $config,
 		private FolderPathValidator $folderPathValidator,
 		private ?IL10N $l10n = null,
 	) {
 	}
 
 	private function get(string $key, string $default = ''): string {
-		return $this->config->getAppValue(Application::APP_ID, $key, $default);
+		return $this->config->getValueString(Application::APP_ID, $key, $default);
 	}
 
 	public function isActive(): bool {
@@ -226,10 +226,10 @@ class InvoiceSettings {
 			throw new \InvalidArgumentException('Unbekanntes Umsatzsteuerkonto');
 		}
 		if ($accountId === null) {
-			$this->config->deleteAppValue(Application::APP_ID, $key);
+			$this->config->deleteKey(Application::APP_ID, $key);
 			return;
 		}
-		$this->config->setAppValue(Application::APP_ID, $key, (string)$accountId);
+		$this->config->setValueString(Application::APP_ID, $key, (string)$accountId);
 	}
 
 	/**
@@ -487,17 +487,17 @@ class InvoiceSettings {
 		}
 
 		foreach ($writes as $key => $value) {
-			$this->config->setAppValue(Application::APP_ID, $key, $value);
+			$this->config->setValueString(Application::APP_ID, $key, $value);
 		}
 		return null;
 	}
 
 	public function setAccountId(?int $accountId): void {
 		if ($accountId === null) {
-			$this->config->deleteAppValue(Application::APP_ID, self::SETTING_ACCOUNT_ID);
+			$this->config->deleteKey(Application::APP_ID, self::SETTING_ACCOUNT_ID);
 			return;
 		}
-		$this->config->setAppValue(Application::APP_ID, self::SETTING_ACCOUNT_ID, (string)$accountId);
+		$this->config->setValueString(Application::APP_ID, self::SETTING_ACCOUNT_ID, (string)$accountId);
 	}
 
 	/** @param list<int|string> $params */

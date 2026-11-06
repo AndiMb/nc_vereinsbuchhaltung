@@ -8,7 +8,9 @@ use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\Invoice;
 use OCA\Vereinsbuchhaltung\Db\InvoiceDocument;
 use OCA\Vereinsbuchhaltung\Db\InvoiceDocumentMapper;
+use OCA\Vereinsbuchhaltung\Exception\UserFacingException;
 use OCA\Vereinsbuchhaltung\Service\AttachmentStorageService;
+use OCA\Vereinsbuchhaltung\Service\ClubClock;
 use OCA\Vereinsbuchhaltung\Service\InvoiceSettings;
 use OCA\Vereinsbuchhaltung\Service\SafeFileName;
 use OCP\Files\AppData\IAppDataFactory;
@@ -43,6 +45,7 @@ class InvoiceDocumentStorage {
 		private InvoiceSettings $settings,
 		private InvoiceDocumentMapper $documents,
 		private IL10N $l10n,
+		private ClubClock $clock,
 	) {
 		$this->appData = $appDataFactory->get(Application::APP_ID);
 	}
@@ -67,12 +70,12 @@ class InvoiceDocumentStorage {
 		$doc->setFileName($fileName);
 		$doc->setSha256(hash('sha256', $content));
 		$doc->setProfile($profile);
-		$doc->setGeneratedAt((new \DateTimeImmutable())->format(\DateTimeInterface::ATOM));
+		$doc->setGeneratedAt((new \DateTimeImmutable())->format(\DateTimeInterface::ATOM)); // UTC-Zeitstempel (#263)
 		$doc->setFileId(0);
 
 		$user = $this->attachmentStorage->storageUser();
 		if ($user !== '') {
-			$year = substr((string)($invoice->getIssueDate() ?? date('Y-m-d')), 0, 4);
+			$year = substr((string)($invoice->getIssueDate() ?? $this->clock->today()), 0, 4);
 			$folder = $this->ensureFolder($this->rootFolder->getUserFolder($user), $this->settings->folder() . '/' . $year);
 			$file = $folder->newFile($folder->getNonExistingName($fileName));
 			$file->putContent($content);
@@ -86,7 +89,7 @@ class InvoiceDocumentStorage {
 			$this->appDataFolder(true)->newFile((string)$doc->getId())->putContent($content);
 		} catch (\Throwable $e) {
 			$this->documents->delete($doc);
-			throw new \RuntimeException($this->l10n->t('Das Dokument konnte nicht gespeichert werden.'), 0, $e);
+			throw new UserFacingException($this->l10n->t('Das Dokument konnte nicht gespeichert werden.'), 0, $e);
 		}
 		return $doc;
 	}
@@ -97,7 +100,7 @@ class InvoiceDocumentStorage {
 	public function read(InvoiceDocument $doc): string {
 		$content = $this->readOrNull($doc);
 		if ($content === null) {
-			throw new \RuntimeException($this->l10n->t('Die Datei zum Dokument wurde nicht gefunden.'));
+			throw new UserFacingException($this->l10n->t('Die Datei zum Dokument wurde nicht gefunden.'));
 		}
 		return $content;
 	}
@@ -169,7 +172,7 @@ class InvoiceDocumentStorage {
 			if ($current->nodeExists($part)) {
 				$node = $current->get($part);
 				if (!($node instanceof Folder)) {
-					throw new \RuntimeException($this->l10n->t("Pfadkomponente '%s' ist kein Ordner", [$part]));
+					throw new UserFacingException($this->l10n->t("Pfadkomponente '%s' ist kein Ordner", [$part]));
 				}
 				$current = $node;
 			} else {

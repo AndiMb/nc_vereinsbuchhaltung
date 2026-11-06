@@ -15,6 +15,7 @@ use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
 use OCA\Vereinsbuchhaltung\Service\AssignmentService;
 use OCA\Vereinsbuchhaltung\Service\ContributionYearService;
 use OCA\Vereinsbuchhaltung\Service\DueDateScheduleService;
+use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubClockStub;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\IL10N;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -75,18 +76,18 @@ class AssignmentServiceTest extends TestCase {
 		$time->method('getDateTime')->willReturn(new \DateTime($today));
 		$l10n = $this->createMock(IL10N::class);
 		$l10n->method('t')->willReturnCallback(static fn (string $text, array $parameters = []): string => vsprintf($text, $parameters));
-		// Ein "nacktes" createMock(IConfig::class) liefert fuer JEDEN Aufruf
-		// null statt des dritten getAppValue()-Arguments ($default) - anders
+		// Ein "nacktes" createMock(IAppConfig::class) liefert fuer JEDEN Aufruf
+		// null statt des dritten getValueString()-Arguments ($default) - anders
 		// als die echte Implementierung. DueDateScheduleService/
 		// ContributionYearService verlassen sich aber auf diesen Default
 		// (leerer Terminplan/Kalenderjahr), deshalb hier wie in
 		// ClaimGenerationServiceTest ein Fake mit Default-Rueckgabe statt des
 		// bloßen Mocks.
-		$config = $this->createMock(\OCP\IConfig::class);
-		$config->method('getAppValue')->willReturnCallback(
+		$config = $this->createMock(\OCP\IAppConfig::class);
+		$config->method('getValueString')->willReturnCallback(
 			static fn (string $app, string $key, string $default = '') => $default,
 		);
-		$contributionYear = new ContributionYearService($config);
+		$contributionYear = new ContributionYearService($config, ClubClockStub::system());
 		$dueDateSchedule = new DueDateScheduleService($config, $contributionYear, $l10n);
 		return new AssignmentService($this->mapper, $this->eventMapper, $this->groupMapper, $this->openItemMapper, $contributionYear, $dueDateSchedule, $time, $l10n);
 	}

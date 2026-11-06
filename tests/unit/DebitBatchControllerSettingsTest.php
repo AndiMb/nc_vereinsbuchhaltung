@@ -13,7 +13,7 @@ use OCA\Vereinsbuchhaltung\Service\DebitBatchXmlStorageService;
 use OCA\Vereinsbuchhaltung\Service\DebitTimelineService;
 use OCA\Vereinsbuchhaltung\Service\FolderPathValidator;
 use OCP\AppFramework\Http;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IL10N;
 use OCP\IRequest;
 use OCP\IUserManager;
@@ -41,10 +41,11 @@ class DebitBatchControllerSettingsTest extends TestCase {
 	}
 
 	private function controller(): DebitBatchController {
-		$config = $this->createMock(IConfig::class);
-		$config->method('getAppValue')->willReturnCallback(fn (string $app, string $key, string $default = '') => $this->store[$key] ?? $default);
-		$config->method('setAppValue')->willReturnCallback(function (string $app, string $key, string $value): void {
+		$config = $this->createMock(IAppConfig::class);
+		$config->method('getValueString')->willReturnCallback(fn (string $app, string $key, string $default = '') => $this->store[$key] ?? $default);
+		$config->method('setValueString')->willReturnCallback(function (string $app, string $key, string $value): bool {
 			$this->store[$key] = $value;
+			return true;
 		});
 		$l10n = $this->createMock(IL10N::class);
 		$l10n->method('t')->willReturnCallback(static fn (string $text, array $params = []) => vsprintf($text, $params));

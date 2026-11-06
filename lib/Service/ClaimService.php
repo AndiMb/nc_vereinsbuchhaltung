@@ -28,6 +28,8 @@ use OCP\IL10N;
  */
 class ClaimService {
 
+	private ClubClock $clock;
+
 	public function __construct(
 		private OpenItemMapper $mapper,
 		private MemberMapper $memberMapper,
@@ -35,7 +37,9 @@ class ClaimService {
 		private IL10N $l10n,
 		private DebitItemMapper $debitItems,
 		private AuditService $audit,
+		?ClubClock $clock = null,
 	) {
+		$this->clock = $clock ?? new ClubClock($this->time);
 	}
 
 	/**
@@ -248,7 +252,7 @@ class ClaimService {
 	}
 
 	private function today(): string {
-		return $this->time->getDateTime()->format('Y-m-d');
+		return $this->clock->today();
 	}
 
 	private function now(): string {

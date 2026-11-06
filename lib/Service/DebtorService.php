@@ -51,7 +51,7 @@ class DebtorService {
 	 */
 	public function create(array $data): Debtor {
 		$debtor = new Debtor();
-		$debtor->setCreatedAt((new \DateTimeImmutable())->format(\DateTimeInterface::ATOM));
+		$debtor->setCreatedAt((new \DateTimeImmutable())->format(\DateTimeInterface::ATOM)); // UTC-Zeitstempel (#263)
 		$this->apply($debtor, $data);
 		return $this->mapper->insert($debtor);
 	}

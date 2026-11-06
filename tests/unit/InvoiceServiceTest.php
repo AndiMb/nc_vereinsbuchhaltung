@@ -26,8 +26,9 @@ use OCA\Vereinsbuchhaltung\Service\InvoiceService;
 use OCA\Vereinsbuchhaltung\Service\InvoiceSettings;
 use OCA\Vereinsbuchhaltung\Service\NumberRangeService;
 use OCA\Vereinsbuchhaltung\Service\SepaDebtorAccountService;
+use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubClockStub;
 use OCP\AppFramework\Db\DoesNotExistException;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IDBConnection;
 use OCP\IL10N;
 use OCP\IUserSession;
@@ -150,8 +151,8 @@ class InvoiceServiceTest extends TestCase {
 			return ['number' => sprintf('RE-%s-%04d', $date->format('Y'), $this->nextNumber++), 'rangeId' => 1];
 		});
 
-		$config = $this->createMock(IConfig::class);
-		$config->method('getAppValue')->willReturnCallback(fn (string $app, string $key, string $default = '') => $this->config[$key] ?? $default);
+		$config = $this->createMock(IAppConfig::class);
+		$config->method('getValueString')->willReturnCallback(fn (string $app, string $key, string $default = '') => $this->config[$key] ?? $default);
 		$l10n = $this->createMock(IL10N::class);
 		$l10n->method('t')->willReturnCallback(static fn (string $text, $params = []) => vsprintf($text, (array)$params));
 		$settings = new InvoiceSettings($config, new FolderPathValidator($l10n), $l10n);
@@ -173,6 +174,7 @@ class InvoiceServiceTest extends TestCase {
 			new TransactionRunner($this->createMock(IDBConnection::class)),
 			$this->audit,
 			$session,
+			ClubClockStub::system(),
 			$l10n,
 		);
 	}

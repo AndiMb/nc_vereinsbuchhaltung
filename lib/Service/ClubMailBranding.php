@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Service;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\L10N\IFactory;
 use OCP\Mail\IEMailTemplate;
 use OCP\Mail\IMailer;
@@ -39,7 +39,7 @@ class ClubMailBranding {
 	private array|false|null $logo = false;
 
 	public function __construct(
-		private IConfig $config,
+		private IAppConfig $config,
 		private BrandingService $branding,
 		private IMailer $mailer,
 		private IFactory $l10nFactory,
@@ -95,11 +95,11 @@ class ClubMailBranding {
 	}
 
 	private function clubName(): string {
-		return trim($this->config->getAppValue(Application::APP_ID, 'club_name', ''));
+		return trim($this->config->getValueString(Application::APP_ID, 'club_name', ''));
 	}
 
 	private function replyTo(): ?string {
-		$email = trim($this->config->getAppValue(Application::APP_ID, 'club_email', ''));
+		$email = trim($this->config->getValueString(Application::APP_ID, 'club_email', ''));
 		return $email !== '' && $this->mailer->validateMailAddress($email) ? $email : null;
 	}
 

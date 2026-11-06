@@ -51,10 +51,10 @@ async function main() {
 	try {
 		console.log('Starte Nextcloud-Testserver…')
 
-		// stable34: neueste von der App unterstützte Serverlinie, dieselbe wie
+		// stable35: neueste von der App unterstützte Serverlinie, dieselbe wie
 		// im CI. Der zweite Parameter mountet das App-Verzeichnis (die App-ID
 		// kommt aus appinfo/info.xml, der Ordnername spielt keine Rolle).
-		const ip = await startNextcloud('stable34', true, {
+		const ip = await startNextcloud('stable35', true, {
 			// E2E_PORT: nebenher läuft oft schon ein Testserver einer anderen Arbeitskopie auf 8080.
 			exposePort: Number(process.env.E2E_PORT || 8080),
 			forceRecreate: true,

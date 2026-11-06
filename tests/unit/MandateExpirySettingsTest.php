@@ -6,7 +6,7 @@ namespace OCA\Vereinsbuchhaltung\Tests\Unit;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Service\MandateExpirySettings;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
@@ -17,27 +17,27 @@ use PHPUnit\Framework\TestCase;
  */
 class MandateExpirySettingsTest extends TestCase {
 
-	private IConfig&MockObject $config;
+	private IAppConfig&MockObject $config;
 
 	protected function setUp(): void {
-		$this->config = $this->createMock(IConfig::class);
+		$this->config = $this->createMock(IAppConfig::class);
 	}
 
 	public function testStandardSindHundertachtzigTage(): void {
-		$this->config->method('getAppValue')->willReturnCallback(static fn (string $app, string $key, string $default = '') => $default);
+		$this->config->method('getValueString')->willReturnCallback(static fn (string $app, string $key, string $default = '') => $default);
 
 		$this->assertSame(180, (new MandateExpirySettings($this->config))->warningDays());
 	}
 
 	public function testGespeicherterWertWirdGelesen(): void {
-		$this->config->method('getAppValue')->with(Application::APP_ID, 'expiry_warning_days', '180')->willReturn('90');
+		$this->config->method('getValueString')->with(Application::APP_ID, 'expiry_warning_days', '180')->willReturn('90');
 
 		$this->assertSame(90, (new MandateExpirySettings($this->config))->warningDays());
 	}
 
 	/** @dataProvider ungueltigeGespeicherteWerte */
 	public function testUngueltigerGespeicherterWertFaelltAufStandardZurueck(string $stored): void {
-		$this->config->method('getAppValue')->willReturn($stored);
+		$this->config->method('getValueString')->willReturn($stored);
 
 		$this->assertSame(180, (new MandateExpirySettings($this->config))->warningDays());
 	}
@@ -49,7 +49,7 @@ class MandateExpirySettingsTest extends TestCase {
 
 	public function testSetWarningDaysSchreibtDenWert(): void {
 		$this->config->expects($this->once())
-			->method('setAppValue')
+			->method('setValueString')
 			->with(Application::APP_ID, 'expiry_warning_days', '30');
 
 		(new MandateExpirySettings($this->config))->setWarningDays(30);
@@ -57,7 +57,7 @@ class MandateExpirySettingsTest extends TestCase {
 
 	/** @dataProvider ungueltigeEingaben */
 	public function testSetWarningDaysLehntUnplausibleWerteAbOhneZuSchreiben(int $days): void {
-		$this->config->expects($this->never())->method('setAppValue');
+		$this->config->expects($this->never())->method('setValueString');
 
 		$this->expectException(\InvalidArgumentException::class);
 		(new MandateExpirySettings($this->config))->setWarningDays($days);
@@ -69,7 +69,7 @@ class MandateExpirySettingsTest extends TestCase {
 	}
 
 	public function testGrenzwerteSindErlaubt(): void {
-		$this->config->expects($this->exactly(2))->method('setAppValue');
+		$this->config->expects($this->exactly(2))->method('setValueString');
 		$settings = new MandateExpirySettings($this->config);
 
 		$settings->setWarningDays(1);

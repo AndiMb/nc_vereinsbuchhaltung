@@ -17,8 +17,9 @@ use OCA\Vereinsbuchhaltung\Db\OpenItem;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
 use OCA\Vereinsbuchhaltung\Db\ReturnedDebitMapper;
 use OCA\Vereinsbuchhaltung\Service\ClaimStateResolver;
+use OCA\Vereinsbuchhaltung\Service\ClubClock;
 use OCP\AppFramework\Db\DoesNotExistException;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IL10N;
 
 /**
@@ -54,8 +55,9 @@ class DatenuebersichtRenderer {
 		private OpenItemMapper $openItems,
 		private AssignmentMapper $assignments,
 		private ContributionGroupMapper $groups,
-		private IConfig $config,
+		private IAppConfig $config,
 		private IL10N $l10n,
+		private ClubClock $clock,
 	) {
 	}
 
@@ -63,10 +65,10 @@ class DatenuebersichtRenderer {
 	public function render(int $memberId): string {
 		$member = $this->members->find($memberId);
 
-		$clubName = $this->config->getAppValue(Application::APP_ID, 'club_name', '');
+		$clubName = $this->config->getValueString(Application::APP_ID, 'club_name', '');
 		$heading = $this->l10n->t('Datenübersicht');
 		$title = ($clubName !== '' ? $clubName . ' – ' : '') . $heading;
-		$meta = $this->l10n->t('Auskunft nach Art. 15 DSGVO (kein strukturierter Export nach Art. 20) · erstellt am %s', [ReportFormat::date(date('Y-m-d'))]);
+		$meta = $this->l10n->t('Auskunft nach Art. 15 DSGVO (kein strukturierter Export nach Art. 20) · erstellt am %s', [ReportFormat::date($this->clock->today())]);
 
 		$h = PrintableReportPage::printHint($this->l10n->t('Zum Drucken oder Als-PDF-Speichern: <strong>Strg+P</strong> (Mac: ⌘P) im Browser.'));
 		$h .= PrintableReportPage::header(null, $clubName, $heading, PrintableReportPage::escape($meta));
@@ -86,7 +88,7 @@ class DatenuebersichtRenderer {
 		if ($member->isRedacted()) {
 			$h .= '<p>' . PrintableReportPage::escape($this->l10n->t(
 				'Diese Mitgliedsakte wurde am %s im Rahmen der gesetzlich vorgesehenen DSGVO-Anonymisierung geschwärzt. Name, Kontaktdaten, Bankverbindungen und personenbezogene Freitexte sind unwiderruflich entfernt; nur strukturierte Angaben (Beträge, Daten, Status) bleiben aus buchhalterischen Gründen erhalten.',
-				[ReportFormat::date(substr((string)$member->getRedactedAt(), 0, 10))],
+				[ReportFormat::date(ClubClock::localDate((string)$member->getRedactedAt()))],
 			)) . '</p>';
 		}
 		$h .= '<table>';
@@ -132,8 +134,8 @@ class DatenuebersichtRenderer {
 				. '<td>' . PrintableReportPage::escape((string)($mandate->maskedIban() ?? '–')) . '</td>'
 				. '<td>' . PrintableReportPage::escape($mandate->getAccountHolder()) . '</td>'
 				. '<td>' . PrintableReportPage::escape($mandate->getStatus()) . '</td>'
-				. '<td>' . ReportFormat::date($mandate->getActivatedAt()) . '</td>'
-				. '<td>' . ReportFormat::date($mandate->getEndedAt()) . '</td>'
+				. '<td>' . ReportFormat::date(ClubClock::localDate((string)$mandate->getActivatedAt())) . '</td>'
+				. '<td>' . ReportFormat::date(ClubClock::localDate((string)$mandate->getEndedAt())) . '</td>'
 				. '</tr>';
 		}
 		$h .= '</table>';

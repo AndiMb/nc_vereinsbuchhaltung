@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Service\Sepa;
 
+use OCA\Vereinsbuchhaltung\Service\ClubClock;
+
 /**
  * Erzeugt eine SEPA-Lastschrift-Einreichungsdatei (pain.008.001.02, „SEPA
  * Core Direct Debit"). Deckt den in Deutschland üblichen Normalfall ab:
@@ -65,7 +67,7 @@ class PainXmlBuilder {
 		// Issue #71: ein bei der Freigabe eingefrorener Zeitpunkt macht die Datei
 		// byte-identisch nachrenderbar (Spec §3.5) - ohne Angabe der
 		// tatsächliche Erzeugungszeitpunkt.
-		$this->el($doc, $grpHdr, 'CreDtTm', $creditor->creationDateTime ?? (new \DateTime())->format('Y-m-d\TH:i:s'));
+		$this->el($doc, $grpHdr, 'CreDtTm', $creditor->creationDateTime ?? (new \DateTimeImmutable('now', ClubClock::zone()))->format('Y-m-d\TH:i:s'));
 		$this->el($doc, $grpHdr, 'NbOfTxs', (string)count($rows));
 		$this->el($doc, $grpHdr, 'CtrlSum', $this->formatAmount($this->sumCents($rows)));
 		$initgPty = $doc->createElement('InitgPty');

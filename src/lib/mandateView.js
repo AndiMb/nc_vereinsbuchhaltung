@@ -7,13 +7,15 @@
 // Die Enum-Werte des Backends sind deutsch (`entwurf`/`aktiv`/`ausgesetzt`/
 // `erloschen`, `papier`/`elektronisch`, `widerrufen`/`ersetzt`/…, siehe
 // Mandate.php); die Oberfläche zeigt nie den Rohwert, sondern Klartext.
+import { clubToday } from './clubTime.js'
 import { formatDate } from './format.js'
 import { t, tc, tRaw } from './l10n.js'
 
 const DAY_MS = 24 * 3600 * 1000
 
+// Tag des Vereins, nicht UTC (#263).
 function isoToday() {
-	return new Date().toISOString().slice(0, 10)
+	return clubToday()
 }
 
 // --- Sätze mit Nutzerdaten --------------------------------------------------

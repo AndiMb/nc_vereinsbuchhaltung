@@ -30,6 +30,8 @@ use OCP\IL10N;
  */
 final class DunningTaskService {
 
+	private ClubClock $clock;
+
 	public function __construct(
 		private OpenItemMapper $openItems,
 		private DunningNoticeMapper $notices,
@@ -37,7 +39,9 @@ final class DunningTaskService {
 		private DunningSettings $settings,
 		private ITimeFactory $time,
 		private IL10N $l10n,
+		?ClubClock $clock = null,
 	) {
+		$this->clock = $clock ?? new ClubClock($this->time);
 	}
 
 	/** @return list<array{severity:string,message:string,objectType:string,objectId:int}> */
@@ -46,7 +50,7 @@ final class DunningTaskService {
 		$intervalDays = $this->settings->intervalDays();
 
 		$tasks = [];
-		foreach ($this->openItems->findClaims() as $item) {
+		foreach ($this->openItems->findOpenClaims() as $item) {
 			if (ClaimStateResolver::resolveForItem($item) !== ClaimStateResolver::STATE_OPEN) {
 				continue;
 			}
@@ -59,7 +63,7 @@ final class DunningTaskService {
 			if ($dunningNotice === null) {
 				continue;
 			}
-			$deadline = (new \DateTimeImmutable($dunningNotice->getSentAt()))->modify('+' . $intervalDays . ' days')->format('Y-m-d');
+			$deadline = (new \DateTimeImmutable(ClubClock::localDate($dunningNotice->getSentAt())))->modify('+' . $intervalDays . ' days')->format('Y-m-d');
 			if ($today < $deadline) {
 				continue;
 			}
@@ -76,6 +80,6 @@ final class DunningTaskService {
 	}
 
 	private function today(): string {
-		return $this->time->getDateTime()->format('Y-m-d');
+		return $this->clock->today();
 	}
 }

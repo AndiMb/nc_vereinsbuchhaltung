@@ -1,42 +1,23 @@
-import { getLanguage, register, translate, translatePlural } from '@nextcloud/l10n'
+import { translate, translatePlural } from '@nextcloud/l10n'
 // Uebersetzungs-Helfer fuer die Vue-Oberflaeche.
 //
 // Die Quelltexte im Code sind bewusst Deutsch (Herkunftssprache der App), nicht
 // Englisch wie sonst im Nextcloud-Oekosystem ueblich, und im Beitragsmodul in
-// Sie-Form. @nextcloud/l10n geht in loadTranslations() aber davon aus, dass
-// Englisch die Quellsprache ist, und laedt fuer getLanguage() === 'en' gar kein
-// Uebersetzungsbundle nach - fuer uns waere das genau die falsche Sprache.
-// Deshalb wird hier selbst geladen (register() statt loadTranslations()).
+// Sie-Form.
+//
+// Geladen wird hier nichts: Nextcloud bindet die Uebersetzungen der App als
+// Skript l10n/<sprache>.js in die Seite ein, bevor die App startet
+// (Util::addTranslations im PageController, Issue #264). Das Skript ruft OC.L10N.register()
+// auf und fuellt damit dieselbe Ablage, aus der translate() unten liest. Die
+// .js-Dateien entstehen aus l10n/<sprache>.json (npm run l10n:js).
 //
 // Nextcloud kennt zwei deutsche Sprachen: 'de_DE' („Deutsch (Förmlich - Sie)")
-// und 'de' (informell, „Du"). 'de_DE' IST der Quelltext, für sie wird nichts
-// geladen. 'de' lädt l10n/de.json: das ist keine Übersetzung, sondern die
+// und 'de' (informell, „Du"). 'de_DE' IST der Quelltext, l10n/de_DE.js ist
+// leer. 'de' bringt l10n/de.js: das ist keine Übersetzung, sondern die
 // Du-Fassung der Texte an Mitglieder (Mein Beitrag, Mails; Spec §1.4, Issue
 // #106). Alle übrigen Texte stehen dort nicht und bleiben, wie sie sind.
-import { generateUrl } from '@nextcloud/router'
 
 const APP_ID = 'vereinsbuchhaltung'
-const SOURCE_LANGUAGE = 'de_DE'
-
-export async function loadAppTranslations() {
-	if (getLanguage() === SOURCE_LANGUAGE) { return }
-	try {
-		// Ueber einen eigenen Endpunkt statt direkt ueber generateFilePath():
-		// Nextclouds .htaccess liefert aus dem App-Verzeichnis nur Dateien mit
-		// bestimmten Endungen aus, .json gehoert nicht dazu. Der direkte Abruf
-		// lieferte deshalb immer eine 404-HTML-Seite, und die Oberflaeche blieb
-		// in jeder Sprache deutsch (siehe L10nController).
-		const response = await fetch(generateUrl(`/apps/${APP_ID}/api/l10n/${getLanguage()}`))
-		if (!response.ok) { return }
-		const bundle = await response.json()
-		if (bundle && typeof bundle.translations === 'object') {
-			register(APP_ID, bundle.translations)
-		}
-	} catch {
-		// Kein Netzwerk oder keine Uebersetzungsdatei fuer die Sprache -> es bleibt
-		// bei den deutschen Quelltexten, kein Fehler wert.
-	}
-}
 
 // Kein HTML-Escaping und kein DOMPurify in der Uebersetzung: die Texte landen
 // ausschliesslich in Vue-Templates ({{ }} und :attr-Bindings), und Vue

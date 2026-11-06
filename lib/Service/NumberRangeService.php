@@ -6,6 +6,7 @@ namespace OCA\Vereinsbuchhaltung\Service;
 
 use OCA\Vereinsbuchhaltung\Db\NumberRange;
 use OCA\Vereinsbuchhaltung\Db\NumberRangeMapper;
+use OCA\Vereinsbuchhaltung\Exception\UserFacingException;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\DB\Exception as DbException;
 use OCP\IL10N;
@@ -13,7 +14,8 @@ use OCP\IL10N;
 /**
  * Fortlaufende Rechnungsnummern (§ 14 Abs. 4 Nr. 4 UStG: einmalig, aus einer
  * oder mehreren Zahlenreihen). Pro Art gibt es einen Kreis: `rechnung`
- * (`RE-{JJJJ}-{NNNN}`) und `storno` (`ST-{JJJJ}-{NNNN}`).
+ * (`RE-{JJJJ}-{NNNN}`), `storno` (`ST-{JJJJ}-{NNNN}`) und `auslage`
+ * (`AUSL-{JJJJ}-{NNNN}`, Auslagenanträge).
  *
  * Muster: `{JJJJ}` ist das Jahr des Rechnungsdatums, `{JJ}` die letzten zwei
  * Stellen, `{MM}` der Monat (zweistellig), `{NNNN}` der Zähler. Die Anzahl der N bestimmt die Mindestbreite
@@ -37,6 +39,7 @@ class NumberRangeService {
 	public const DEFAULT_PATTERNS = [
 		NumberRange::KIND_INVOICE => 'RE-{JJJJ}-{NNNN}',
 		NumberRange::KIND_CREDIT => 'ST-{JJJJ}-{NNNN}',
+		NumberRange::KIND_REIMBURSEMENT => 'AUSL-{JJJJ}-{NNNN}',
 	];
 
 	private const MAX_ATTEMPTS = 5;
@@ -49,10 +52,10 @@ class NumberRangeService {
 	) {
 	}
 
-	/** @return NumberRange[] beide Kreise, fehlende werden mit dem Standardmuster angelegt */
+	/** @return NumberRange[] die Kreise der Rechnungsstellung, fehlende werden mit dem Standardmuster angelegt */
 	public function all(): array {
 		$ranges = [];
-		foreach (NumberRange::KINDS as $kind) {
+		foreach (NumberRange::INVOICE_KINDS as $kind) {
 			$ranges[] = $this->ensure($kind);
 		}
 		return $ranges;
@@ -143,7 +146,7 @@ class NumberRangeService {
 				}
 			}
 			$no = self::startNo($range, $key);
-			$issuedAt = (new \DateTimeImmutable())->format(\DateTimeInterface::ATOM);
+			$issuedAt = (new \DateTimeImmutable())->format(\DateTimeInterface::ATOM); // UTC-Zeitstempel (#263)
 			if ($this->mapper->advance((int)$range->getId(), $range->getNextNo(), $no + 1, $key, $issuedAt)) {
 				return [
 					'number' => self::format($range->getPrefixPattern(), $date, $no),
@@ -151,7 +154,7 @@ class NumberRangeService {
 				];
 			}
 		}
-		throw new \RuntimeException($this->msg('Die Rechnungsnummer konnte nicht vergeben werden. Bitte noch einmal versuchen.'));
+		throw new UserFacingException($this->msg('Die Rechnungsnummer konnte nicht vergeben werden. Bitte noch einmal versuchen.'));
 	}
 
 	/** Die Nummer, die {@see issue()} jetzt vergäbe, ohne den Zähler zu verändern. */

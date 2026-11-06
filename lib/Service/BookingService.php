@@ -41,6 +41,7 @@ class BookingService {
 		private TransactionRunner $transaction,
 		private IL10N $l10n,
 		private ?InvoicePaymentLedger $invoicePayments = null,
+		private ?ReimbursementPaymentReverter $reimbursementPayments = null,
 	) {
 	}
 
@@ -200,7 +201,7 @@ class BookingService {
 		$journal->setEntryNo($this->entryNumbers->next($userId, (int)$period->getId()));
 		$journal->setDescription($this->buildDescription($tx));
 		$journal->setBankTxId($tx->getId());
-		$journal->setCreatedAt((new \DateTime())->format('Y-m-d H:i:s'));
+		$journal->setCreatedAt((new \DateTime())->format('Y-m-d H:i:s')); // UTC-Zeitstempel (#263)
 		$journal = $this->journalMapper->insert($journal);
 
 		// Geldeingang: Bank im Soll, die Gegenkonten im Haben – bei Ausgang
@@ -298,6 +299,8 @@ class BookingService {
 		$periodId = (int)$journal->getPeriodId();
 		// Lief eine Rechnungszahlung über diesen Buchungssatz, wird sie zurückgenommen.
 		$this->invoicePayments?->revertForJournal($journal->getId());
+		// Ebenso die Auszahlung einer Auslage; sie holt die Belege zurück, bevor sie mit der Buchung gehen.
+		$this->reimbursementPayments?->revertForJournal($journal->getId());
 		$this->attachmentStorage->deleteForJournal($journal->getId());
 		$this->lineMapper->deleteByJournal($journal->getId());
 		$this->journalMapper->delete($journal);

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Service\Statement;
 
+use OCA\Vereinsbuchhaltung\Exception\UserFacingException;
 use OCP\IL10N;
 
 /**
@@ -52,7 +53,7 @@ class Camt053Parser implements StatementParser {
 	public function parse(string $content): array {
 		$entries = $this->entries($content);
 		if ($entries === []) {
-			throw new \RuntimeException($this->msg('Die CAMT-Datei enthält keine Buchungen (<Ntry>).'));
+			throw new UserFacingException($this->msg('Die CAMT-Datei enthält keine Buchungen (<Ntry>).'));
 		}
 
 		$rows = [];
@@ -83,7 +84,7 @@ class Camt053Parser implements StatementParser {
 			$xml = simplexml_load_string($content, \SimpleXMLElement::class, LIBXML_NONET | LIBXML_NOCDATA);
 			if ($xml === false) {
 				$first = libxml_get_errors()[0] ?? null;
-				throw new \RuntimeException($this->msg('Die Datei ist kein gültiges XML')
+				throw new UserFacingException($this->msg('Die Datei ist kein gültiges XML')
 					. ($first !== null ? ': ' . trim($first->message) : '.'));
 			}
 		} finally {

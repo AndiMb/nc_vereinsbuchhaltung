@@ -68,7 +68,7 @@ async function openAntrag(page, purpose) {
 	// Filter „Alle" (nicht der Unterreiter „Alle Buchungen"): gleich nach dem Öffnen steht „Zu prüfen".
 	await visibleSection(page).locator('.vbh-reimb-staff .vbh-chip', { hasText: /^Alle\s*\d/ }).click()
 	await visibleSection(page).locator('tr.vbh-reimb-row', { hasText: purpose }).click()
-	const dialog = page.getByRole('dialog', { name: /Auslage #\d+ von Erika Musterfrau/ })
+	const dialog = page.getByRole('dialog', { name: /Auslage AUSL-\d{4}-\d{4} von Erika Musterfrau/ })
 	await expect(dialog).toBeVisible()
 	return dialog
 }
@@ -131,15 +131,15 @@ test.describe('Auslagenerstattung', () => {
 		await openSettingsPage(page, USERS.admin)
 		const section = page.locator('#settings-section_auslagen')
 		await expect(section.getByText('Auslagenerstattung aktivieren')).toBeVisible()
-		const approvals = section.locator('input[type="number"]')
+		const approvals = section.getByLabel('Nötige Freigaben')
 		await expect(approvals).toHaveValue('2')
 
 		await approvals.fill('5')
-		await section.getByRole('button', { name: 'Speichern' }).click()
+		await section.getByRole('button', { name: 'Speichern' }).first().click()
 		await expect(section.getByRole('alert')).toContainText('mindestens 6 Verwalter')
 
 		await approvals.fill('1')
-		await section.getByRole('button', { name: 'Speichern' }).click()
+		await section.getByRole('button', { name: 'Speichern' }).first().click()
 		await expect(page.getByRole('status').filter({ hasText: 'Einstellungen gespeichert' }).first()).toBeVisible()
 		expect((await api.getSettings(request)).reimbursement_required_approvals).toBe(1)
 
@@ -294,11 +294,21 @@ test.describe('Auslagenerstattung', () => {
 
 	// --- Auszahlen -------------------------------------------------------------------
 
-	test('„Auszahlung buchen" öffnet den Buchungsdialog, vermerkt die Überweisung und hängt den Beleg an die Buchung', async ({ page, request }) => {
+	test('„Überweisung vorbereiten" zeigt den Girocode und merkt vor; „Ohne Kontoumsatz buchen" öffnet den Buchungsdialog und vermerkt die Überweisung und hängt den Beleg an die Buchung', async ({ page, request }) => {
 		const expense = accounts.find((a) => a.type === 'expense')
 		await openAuslagenSicht(page, USERS.admin)
 		const detail = await openAntrag(page, 'Material Jugendfreizeit')
-		await detail.getByRole('button', { name: 'Auszahlung buchen' }).click()
+		await detail.getByRole('button', { name: 'Überweisung vorbereiten' }).click()
+
+		// Erst die Überweisung: Girocode und die Angaben zum Kopieren, Verwendungszweck „AUSL-JJJJ-NNNN - <Zweck>“.
+		const transfer = page.getByRole('dialog', { name: 'Überweisung vorbereiten' })
+		await expect(transfer.getByRole('img', { name: 'Girocode der Überweisung' })).toBeVisible()
+		await expect(transfer).toContainText(/AUSL-\d{4}-\d{4} - Material Jugendfreizeit/)
+		await transfer.getByRole('button', { name: 'Überweisung abgeschlossen' }).click()
+
+		// Vorgemerkt: gebucht wird mit dem Kontoumsatz. Hier ohne Kontoumsatz (Barzahlung).
+		await expect(detail).toContainText('Die Überweisung ist angewiesen')
+		await detail.getByRole('button', { name: 'Ohne Kontoumsatz buchen' }).click()
 
 		// Der normale Buchungsdialog, vorbelegt mit Text und Betrag; Konto und Geldkonto wählt, wer bucht.
 		const dialog = page.getByRole('dialog')
@@ -324,8 +334,8 @@ test.describe('Auslagenerstattung', () => {
 
 		// Die Historie nennt jeden Schritt und stimmt in sich.
 		const full = await (await api.getReimbursement(request, reimbursement.id)).json()
-		expect(full.history.map((e) => e.action)).toEqual(['submitted', 'approved', 'approved', 'paid'])
-		expect(full.history.map((e) => e.actorUid)).toEqual([USERS.ohneRolle, USERS.verwalter, USERS.buchhalter, USERS.admin])
+		expect(full.history.map((e) => e.action)).toEqual(['submitted', 'approved', 'approved', 'transferred', 'paid'])
+		expect(full.history.map((e) => e.actorUid)).toEqual([USERS.ohneRolle, USERS.verwalter, USERS.buchhalter, USERS.admin, USERS.admin])
 		full.history.forEach((entry, i) => {
 			expect(entry.seq).toBe(i + 1)
 			expect(entry.prevHash).toBe(i === 0 ? null : full.history[i - 1].hash)

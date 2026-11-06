@@ -78,6 +78,8 @@ use OCP\IUserSession;
  */
 class MemberImportService {
 
+	private ClubClock $clock;
+
 	public function __construct(
 		private MemberCsvParser $parser,
 		private MemberMapper $memberMapper,
@@ -91,7 +93,9 @@ class MemberImportService {
 		private IL10N $l10n,
 		private ITimeFactory $time,
 		private IbanValidator $ibanValidator,
+		?ClubClock $clock = null,
 	) {
+		$this->clock = $clock ?? new ClubClock($this->time);
 	}
 
 	/**
@@ -410,7 +414,7 @@ class MemberImportService {
 		// Ein Eintritt in der Vergangenheit ist ausdrücklich erlaubt (Bestandsliste);
 		// ohne Angabe gilt der Importtag.
 		$member->setJoinedAt($row['joinedAt'] ?? $this->today());
-		$member->setCreatedAt((new \DateTime())->format('Y-m-d H:i:s'));
+		$member->setCreatedAt((new \DateTime())->format('Y-m-d H:i:s')); // UTC-Zeitstempel (#263)
 		return $this->memberMapper->insert($member);
 	}
 
@@ -570,7 +574,7 @@ class MemberImportService {
 	}
 
 	private function today(): string {
-		return $this->time->getDateTime()->format('Y-m-d');
+		return $this->clock->today();
 	}
 
 	/** JJJJ-MM-TT → TT.MM.JJJJ, wie es in der Tabelle der Datei stand. */

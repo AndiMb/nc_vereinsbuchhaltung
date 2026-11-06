@@ -33,6 +33,15 @@
 					{{ t('Jetzt zuordnen') }}
 				</NcButton>
 			</div>
+			<!-- Auslagen, die noch nicht ausgezahlt, abgelehnt oder zurückgezogen sind -->
+			<div v-if="reimbursementSummary.count > 0" class="vbh-total vbh-total--warn">
+				<span>{{ t('Offene Auslagen') }}</span>
+				<strong>{{ n('%n Antrag', '%n Anträge', reimbursementSummary.count) }} · {{ formatMoney(reimbursementSummary.totalCents / 100) }}</strong>
+				<small>{{ reimbursementDetail }}</small>
+				<NcButton variant="primary" size="small" @click="$emit('go-reimbursements')">
+					{{ t('Ansehen') }}
+				</NcButton>
+			</div>
 			<div v-if="overdueOpenItemsCount > 0" class="vbh-total vbh-total--warn">
 				<span>{{ t('Überfällige offene Posten') }}</span>
 				<strong>{{ overdueOpenItemsCount }}</strong>
@@ -277,15 +286,6 @@
 
 <script>
 import { mdiPaperclip } from '@mdi/js'
-import {
-	BarController,
-	BarElement,
-	CategoryScale,
-	Chart,
-	Legend,
-	LinearScale,
-	Tooltip,
-} from 'chart.js'
 import { toRefs } from 'vue'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcEmptyContent from '@nextcloud/vue/components/NcEmptyContent'
@@ -301,12 +301,11 @@ import { useJournal } from '../composables/useJournal.js'
 import { useOpenItems } from '../composables/useOpenItems.js'
 import { usePeriods } from '../composables/usePeriods.js'
 import { usePermissions } from '../composables/usePermissions.js'
+import { loadChart } from '../lib/chartLoader.js'
 import { chartTheme, onThemeChange, withAlpha } from '../lib/chartTheme.js'
 import { bookingFlow, flowClass, flowLabel, formatFlowMoney } from '../lib/flow.js'
 import { formatDate, formatMoney } from '../lib/format.js'
 import { levelIcon, suggestionTitle } from '../lib/receiptSuggestions.js'
-
-Chart.register(BarController, BarElement, CategoryScale, LinearScale, Tooltip, Legend)
 
 /**
  * Monatszahl 1..12 aus einem Schlüssel „JJJJ-MM" (NaN, wenn er nicht passt).
@@ -333,6 +332,8 @@ export default {
 		// steuert, ob die SetupChecklist schon urteilsfaehig ist (siehe SetupChecklist.vue)
 		setupReady: { type: Boolean, required: true },
 		attachmentCountMap: { type: Object, required: true },
+		// Zählt Änderungen an Belegen (App.vue: afterAttachmentsChanged); Anlass, die Vorschläge nachzuladen.
+		attachmentsRevision: { type: Number, default: 0 },
 		// haengt vom Sortierzustand der Journal-Tabelle im Buchungen-Tab ab
 		// (sortedJournalRows), daher weiterhin von App.vue berechnet/uebergeben.
 		recentJournal: { type: Array, required: true },
@@ -343,7 +344,7 @@ export default {
 		watchMode: { type: Boolean, default: false },
 	},
 
-	emits: ['go-open-items', 'go-unassigned', 'help', 'navigate', 'open-inbox', 'open-wizard', 'show-all-bookings'],
+	emits: ['go-open-items', 'go-reimbursements', 'go-unassigned', 'help', 'navigate', 'open-inbox', 'open-wizard', 'show-all-bookings'],
 
 	setup() {
 		const auth = useAuth()
@@ -355,7 +356,9 @@ export default {
 		const openItems = useOpenItems()
 		return {
 			canWrite: auth.canWrite,
+			canRead: auth.canRead,
 			isAdmin: auth.isAdmin,
+			reimbursementsStaffVisible: auth.reimbursementsStaffVisible,
 			...toRefs(periods.state),
 			selectedPeriod: periods.selectedPeriod,
 			previousOf: periods.previousOf,
@@ -378,10 +381,22 @@ export default {
 			suggestionItems: {},
 			suggestionNames: {},
 			suggestionRequest: 0,
+			// Zahlen für die Kachel „Offene Auslagen“ (nur Verwaltungssicht)
+			reimbursementSummary: { count: 0, totalCents: 0, awaitingApproval: 0, toTransfer: 0, awaitingBooking: 0 },
 		}
 	},
 
 	computed: {
+		/** „2 warten auf Freigabe, 1 zu überweisen, 1 wartet auf den Kontoumsatz“ - nur die Teile, die es gibt. */
+		reimbursementDetail() {
+			const { awaitingApproval, toTransfer, awaitingBooking } = this.reimbursementSummary
+			return [
+				awaitingApproval > 0 && this.tRaw('{n} warten auf Freigabe', { n: awaitingApproval }),
+				toTransfer > 0 && this.tRaw('{n} zu überweisen', { n: toTransfer }),
+				awaitingBooking > 0 && this.tRaw('{n} warten auf den Kontoumsatz', { n: awaitingBooking }),
+			].filter(Boolean).join(', ')
+		},
+
 		suggestionsActive() { return this.canWrite && this.watchMode && !!this.editBooking },
 
 		/**
@@ -462,6 +477,7 @@ export default {
 				if (!v) { return }
 				this.$nextTick(() => this.renderMonthlyChart())
 				this.loadReceiptSuggestions()
+				this.loadReimbursements()
 			},
 		},
 
@@ -473,7 +489,8 @@ export default {
 			this.loadReceiptSuggestions()
 		},
 
-		attachmentCountMap() { if (this.isActive) { this.loadReceiptSuggestions() } },
+		// Nur nach Änderungen an Belegen, nicht bei jedem Nachladen des Journals.
+		attachmentsRevision() { if (this.isActive) { this.loadReceiptSuggestions() } },
 		suggestionsActive() { this.loadReceiptSuggestions() },
 	},
 
@@ -485,12 +502,15 @@ export default {
 	},
 
 	mounted() {
-		this.$nextTick(() => setTimeout(() => this.renderMonthlyChart(), 50))
-		if (this.isActive) { this.loadReceiptSuggestions() }
+		if (this.isActive) { this.$nextTick(() => setTimeout(() => this.renderMonthlyChart(), 50)) }
+		if (this.isActive) {
+			this.loadReceiptSuggestions()
+			this.loadReimbursements()
+		}
 		// Chart.js malt die Farben einmal ins Canvas; ohne Neuzeichnen bliebe
 		// nach einem Designwechsel das alte Bild stehen.
 		this.stopThemeWatch = onThemeChange(() => {
-			if (this.isActive) { this.renderMonthlyChart() }
+			if (this.isActive) { this.renderMonthlyChart(true) }
 		})
 	},
 
@@ -503,6 +523,16 @@ export default {
 		formatMoney,
 		formatDate,
 		levelIcon,
+
+		async loadReimbursements() {
+			if (!this.canRead || !this.reimbursementsStaffVisible) { return }
+			try {
+				const { data } = await api.reimbursementsSummary()
+				this.reimbursementSummary = data
+			} catch {
+				// Die Kachel ist eine Zugabe: ohne sie bleibt die Übersicht, wie sie war.
+			}
+		},
 
 		async loadReceiptSuggestions() {
 			if (!this.suggestionsActive) {
@@ -587,13 +617,19 @@ export default {
 			}
 		},
 
-		renderMonthlyChart() {
+		/**
+		 * @param {boolean} [rebuild] Instanz neu bauen statt aktualisieren (Designwechsel: die Farben stecken in den Optionen und Zeichnungen)
+		 */
+		async renderMonthlyChart(rebuild = false) {
+			if (!this.$refs.monthlyChart) { return }
+			const Chart = await loadChart()
+			// Waehrend des Nachladens kann der Tab verlassen oder ein zweiter
+			// Zeichenauftrag gestartet worden sein: Zustand neu pruefen.
 			const canvas = this.$refs.monthlyChart
 			if (!canvas) { return }
-			this.destroyChart('monthly')
 			const { labels, income, expense } = this.monthlyChartData
 			const theme = chartTheme()
-			this.chartInstances.monthly = new Chart(canvas, {
+			const config = {
 				type: 'bar',
 				data: {
 					labels,
@@ -645,7 +681,19 @@ export default {
 						},
 					},
 				},
-			})
+			}
+
+			// Vorhandene Instanz nur mit neuen Daten aktualisieren (ohne Animation); neu gebaut
+			// wird ohne Instanz, bei einem Designwechsel oder wenn die Zeichenfläche eine andere ist.
+			const chart = this.chartInstances.monthly
+			if (chart && !rebuild && chart.canvas === canvas) {
+				chart.data = config.data
+				chart.options = config.options
+				chart.update('none')
+				return
+			}
+			this.destroyChart('monthly')
+			this.chartInstances.monthly = new Chart(canvas, config)
 		},
 	},
 }

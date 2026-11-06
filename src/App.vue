@@ -107,7 +107,11 @@
 
 		<main v-show="canRead || myAreaAvailable" class="vbh-main">
 			<!-- ============ ÜBERSICHT (DASHBOARD) ============ -->
-			<section v-show="activeTab === 'dashboard'" class="vbh-section scroll" :class="{ 'vbh-fadein': sectionFade }">
+			<section
+				v-if="visitedTabs.dashboard"
+				v-show="activeTab === 'dashboard'"
+				class="vbh-section scroll"
+				:class="{ 'vbh-fadein': sectionFade }">
 				<DashboardTab
 					:isActive="activeTab === 'dashboard'"
 					:isMobile="isMobile"
@@ -116,6 +120,7 @@
 					:clubName="clubName"
 					:setupReady="setupReady"
 					:attachmentCountMap="attachmentCountMap"
+					:attachmentsRevision="attachmentsRevision"
 					:recentJournal="recentJournal"
 					:clickPaperclip="clickPaperclip"
 					:openBookingCard="openBookingCard"
@@ -126,12 +131,17 @@
 					@help="openHelp"
 					@goUnassigned="goToUnassigned"
 					@goOpenItems="goToOpenItems"
+					@goReimbursements="goToReimbursements"
 					@openInbox="openInbox"
 					@showAllBookings="activeTab = 'bookings'" />
 			</section>
 
 			<!-- ============ BUCHUNGEN (JOURNAL + TRANSAKTIONEN) ============ -->
-			<section v-show="activeTab === 'bookings'" class="vbh-section vbh-flex-col" :class="{ 'vbh-fadein': sectionFade }">
+			<section
+				v-if="visitedTabs.bookings"
+				v-show="activeTab === 'bookings'"
+				class="vbh-section vbh-flex-col"
+				:class="{ 'vbh-fadein': sectionFade }">
 				<BookingsTab
 					:isMobile="isMobile"
 					:amountDisplay="amountDisplay"
@@ -139,6 +149,7 @@
 					:membershipActive="membershipActive"
 					:invoicesActive="invoicesActive"
 					:attachmentCountMap="attachmentCountMap"
+					:attachmentsRevision="attachmentsRevision"
 					:suggestionsById="suggestionsById"
 					:openImport="openImport"
 					:clickPaperclip="clickPaperclip"
@@ -161,13 +172,14 @@
 					@update:bookingView="bookingView = $event"
 					@attachmentsChanged="afterAttachmentsChanged"
 					@goClaims="goToClaims"
-					@invoicePaid="onInvoicesChanged"
+					@invoicePaid="onInvoicesChanged({ bookings: true })"
+					@reimbursementBookingChanged="onReimbursementBookingChanged"
 					@help="openHelp('bookings')" />
 			</section>
 
 			<!-- ============ RECHNUNGEN ============ -->
 			<section
-				v-if="canRead && invoicesActive"
+				v-if="visitedTabs.invoices && canRead && invoicesActive"
 				v-show="activeTab === 'invoices'"
 				class="vbh-section vbh-flex-col"
 				:class="{ 'vbh-fadein': sectionFade }">
@@ -178,12 +190,17 @@
 					:accounts="accountsSorted"
 					:reloadKey="invoicesReloadKey"
 					:newRequest="invoiceRequest"
+					@requestHandled="invoiceRequest = { kind: null, n: 0 }"
 					@editing="invoiceEditing = $event"
 					@changed="onInvoicesChanged" />
 			</section>
 
 			<!-- ============ KONTEN ============ -->
-			<section v-show="activeTab === 'accounts'" class="vbh-section split" :class="{ 'vbh-fadein': sectionFade, 'vbh-drill': isMobile }">
+			<section
+				v-if="visitedTabs.accounts"
+				v-show="activeTab === 'accounts'"
+				class="vbh-section split"
+				:class="{ 'vbh-fadein': sectionFade, 'vbh-drill': isMobile }">
 				<AccountsTab
 					v-model:statementIncludeChildren="statementIncludeChildren"
 					v-model:openingForm="openingForm"
@@ -207,7 +224,11 @@
 			</section>
 
 			<!-- ============ BERICHTE (AUSWERTUNG + KOSTENSTELLEN + FINANZPLAN) ============ -->
-			<section v-show="activeTab === 'reports'" class="vbh-section vbh-flex-col" :class="{ 'vbh-fadein': sectionFade }">
+			<section
+				v-if="visitedTabs.reports"
+				v-show="activeTab === 'reports'"
+				class="vbh-section vbh-flex-col"
+				:class="{ 'vbh-fadein': sectionFade }">
 				<ReportsTab
 					:isActive="activeTab === 'reports'"
 					:isMobile="isMobile"
@@ -250,7 +271,7 @@
 
 			<!-- ============ BEITRÄGE (MITGLIEDER + SEPA-SAMMELEINZUG) ============ -->
 			<section
-				v-if="canRead && membershipActive"
+				v-if="visitedTabs.contributions && canRead && membershipActive"
 				v-show="activeTab === 'contributions'"
 				class="vbh-section vbh-flex-col"
 				:class="{ 'vbh-fadein': sectionFade }">
@@ -259,12 +280,13 @@
 					:isMobile="isMobile"
 					:canWrite="canWrite"
 					:newMemberRequest="memberRequest"
+					@requestHandled="memberRequest = { n: 0 }"
 					@update:contribView="contribView = $event" />
 			</section>
 
 			<!-- ============ MEIN BEREICH (SELF-SERVICE: BEITRAG + AUSLAGEN) ============ -->
 			<section
-				v-if="myAreaAvailable"
+				v-if="visitedTabs.self && myAreaAvailable"
 				v-show="activeTab === 'self'"
 				class="vbh-section scroll"
 				:class="{ 'vbh-fadein': sectionFade }">
@@ -291,6 +313,7 @@
 
 		<!-- ============ IMPORT-DIALOG (CSV-CAMT) ============ -->
 		<ImportDialog
+			v-if="showImport"
 			v-model:busy="busy"
 			:show="showImport"
 			@update:show="showImport = $event"
@@ -388,6 +411,7 @@
 
 		<!-- ============ HILFE ============ -->
 		<HelpModal
+			v-if="showHelp"
 			:show="showHelp"
 			:topic="helpTopic"
 			:currentVersion="whatsNewCurrentVersion"
@@ -397,6 +421,7 @@
 
 		<!-- ============ SETUP-ASSISTENT (erster Verwalter-Login) ============ -->
 		<SetupWizard
+			v-if="showSetupWizard"
 			:show="showSetupWizard"
 			@close="closeSetupWizard"
 			@update:show="showSetupWizard = $event"
@@ -404,6 +429,7 @@
 
 		<!-- ============ WAS IST NEU (Splash-Screen nach Updates) ============ -->
 		<WhatsNewDialog
+			v-if="whatsNewShow"
 			:show="whatsNewShow"
 			:entries="whatsNewEntries"
 			@close="whatsNewShow = false"
@@ -427,7 +453,7 @@
 import { mdiAccountCashOutline, mdiAccountPlusOutline, mdiCardAccountDetailsOutline, mdiChartBar, mdiFileDocumentOutline, mdiFileTreeOutline, mdiHelpCircleOutline, mdiPlus, mdiPrinter, mdiSwapHorizontal, mdiViewDashboardOutline } from '@mdi/js'
 import { showError, showInfo, showSuccess, showUndo } from '@nextcloud/dialogs'
 import { generateUrl } from '@nextcloud/router'
-import { toRefs } from 'vue'
+import { defineAsyncComponent, toRefs } from 'vue'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcDialog from '@nextcloud/vue/components/NcDialog'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
@@ -439,19 +465,11 @@ import AttachmentFolderDialog from './components/AttachmentFolderDialog.vue'
 import BookingDialog from './components/BookingDialog.vue'
 import BookingsTab from './components/BookingsTab.vue'
 import BudgetSnapshotModal from './components/BudgetSnapshotModal.vue'
-import ContributionsTab from './components/ContributionsTab.vue'
 import DashboardTab from './components/DashboardTab.vue'
-import HelpModal from './components/HelpModal.vue'
-import ImportDialog from './components/ImportDialog.vue'
-import InvoicesTab from './components/InvoicesTab.vue'
 import MobileNav from './components/MobileNav.vue'
-import MyAreaTab from './components/MyAreaTab.vue'
 import NewMenu from './components/NewMenu.vue'
-import ReportsTab from './components/ReportsTab.vue'
-import SetupWizard from './components/SetupWizard.vue'
 import SplitAssignDialog from './components/SplitAssignDialog.vue'
 import TasksFlyout from './components/TasksFlyout.vue'
-import WhatsNewDialog from './components/WhatsNewDialog.vue'
 import api from './api.js'
 import { buildAccountOptions, useAccounts } from './composables/useAccounts.js'
 import { useAttachmentInbox } from './composables/useAttachmentInbox.js'
@@ -470,17 +488,38 @@ import { useSort } from './composables/useSort.js'
 import { useSync } from './composables/useSync.js'
 import { useTasks } from './composables/useTasks.js'
 import { buildWhatsNewEntries, filterWhatsNewEntries } from './data/whatsNew.js'
+import { takeBootState } from './lib/bootState.js'
+import { clubToday, setClubTimeZone } from './lib/clubTime.js'
 import { amountClass, budgetDiffClass, errMsg, formatDate, formatDateTime, formatMoney, typeLabel } from './lib/format.js'
+import { createLatestRequest } from './lib/latestRequest.js'
+import { withPasswordConfirmation } from './lib/passwordGate.js'
 import { linkFilesToBookings } from './lib/receiptBatch.js'
 import { bookingsContext, txContext } from './lib/receiptPreview.js'
 import { reimbursementBookingPrefill } from './lib/reimbursements.js'
+import { newUid } from './lib/rowKeys.js'
 import { splitBalanced, splitRemainder, splitSideOf } from './lib/split.js'
+
+// Selten gebrauchte Reiter und Dialoge sind eigene Webpack-Chunks und werden erst
+// beim ersten Anzeigen geladen (Sichtbarkeit steuern v-if / visitedTabs).
+const ReportsTab = defineAsyncComponent(() => import(/* webpackChunkName: "vbh-reportstab" */ './components/ReportsTab.vue'))
+const InvoicesTab = defineAsyncComponent(() => import(/* webpackChunkName: "vbh-invoicestab" */ './components/InvoicesTab.vue'))
+const ContributionsTab = defineAsyncComponent(() => import(/* webpackChunkName: "vbh-contributionstab" */ './components/ContributionsTab.vue'))
+const MyAreaTab = defineAsyncComponent(() => import(/* webpackChunkName: "vbh-myareatab" */ './components/MyAreaTab.vue'))
+const SetupWizard = defineAsyncComponent(() => import(/* webpackChunkName: "vbh-setupwizard" */ './components/SetupWizard.vue'))
+const HelpModal = defineAsyncComponent(() => import(/* webpackChunkName: "vbh-helpmodal" */ './components/HelpModal.vue'))
+const WhatsNewDialog = defineAsyncComponent(() => import(/* webpackChunkName: "vbh-whatsnewdialog" */ './components/WhatsNewDialog.vue'))
+const ImportDialog = defineAsyncComponent(() => import(/* webpackChunkName: "vbh-importdialog" */ './components/ImportDialog.vue'))
 
 // Abstand zwischen zwei Abgleichen mit dem Server. Die Frist, in der eine
 // erkannte Änderung noch als *eigene* gilt, haengt daran (siehe checkRevision):
 // war sie kuerzer als dieser Abstand, meldete die App die eigene Buchung als
 // "von einer anderen Person geaendert" - je nachdem, wann der Abgleich fiel.
 const SYNC_INTERVALL = 20000
+// Beim Fensterfokus die Wächter-Ordner-Kacheln nur nachfragen, wenn der letzte
+// Abruf so lange zurückliegt – jeder Abruf kostet einen Ordnerscan.
+const INBOX_FOCUS_MIN_AGE = 60000
+// Nur die zuletzt gestartete Abfrage der Belegzähler schreibt (siehe loadAttachmentCounts).
+const startAttachmentCountsLoad = createLatestRequest()
 
 // Belege: Grenzen aus AttachmentController (MAX_SIZE, ALLOWED_MIMES). Die
 // Oberflaeche prueft sie schon bei der Auswahl - beim Anlegen einer Buchung
@@ -628,6 +667,9 @@ export default {
 	data() {
 		return {
 			activeTab: 'dashboard',
+			// Reiter, die schon einmal offen waren: ihre Sektion wird erst beim ersten
+			// Besuch aufgebaut (und samt Ladern angestossen), danach nur noch ein-/ausgeblendet.
+			visitedTabs: { dashboard: true },
 			allTabs: [
 				{ id: 'dashboard', label: this.t('Übersicht'), need: 'read', icon: mdiViewDashboardOutline },
 				{ id: 'bookings', label: this.t('Buchungen'), need: 'read', icon: mdiSwapHorizontal },
@@ -693,6 +735,12 @@ export default {
 			mdiSwapHorizontal,
 			bookingAttachments: [],
 			attachmentCountMap: {},
+			// Zählt jede Änderung an Belegen (Anhängen, Verknüpfen, Lösen). Die
+			// Belegvorschläge laden daran nach – nicht an attachmentCountMap, die
+			// jedes Nachladen des Journals neu anlegt.
+			attachmentsRevision: 0,
+			// Start des letzten inbox-summary-Abrufs, für die Mindestpause beim Fensterfokus.
+			lastInboxAt: 0,
 			// Belegvorschlag in der Buchungsliste angeklickt: Seitenleiste des Dialogs geht auf.
 			bookingForceFolderPanel: false,
 			// Kollaboration: Poll-Timer (Änderungsstand selbst kommt aus useSync)
@@ -991,12 +1039,11 @@ export default {
 		// Frühere Zuordnungen je Zahlungspartner (für Vorschläge)
 		assignmentHistory() {
 			const map = {}
-			for (const tx of this.transactions) {
-				if (tx.status === 'assigned' && tx.contraAccountId && tx.counterparty) {
-					const key = tx.counterparty.trim().toLowerCase()
-					if (!map[key]) { map[key] = {} }
-					map[key][tx.contraAccountId] = (map[key][tx.contraAccountId] || 0) + 1
-				}
+			for (const h of this.txContext.history) {
+				const key = (h.counterparty || '').trim().toLowerCase()
+				if (!key) { continue }
+				if (!map[key]) { map[key] = {} }
+				map[key][h.contraAccountId] = (map[key][h.contraAccountId] || 0) + h.count
 			}
 			return map
 		},
@@ -1137,6 +1184,7 @@ export default {
 
 	watch: {
 		activeTab(tab) {
+			if (!this.visitedTabs[tab]) { this.visitedTabs[tab] = true }
 			this.loadTab(tab)
 			// Einblend-Animation der Sektion neu starten
 			this.sectionFade = false
@@ -1201,7 +1249,7 @@ export default {
 			this.budgetCompareBasis = 'actual'
 			this.busy = true
 			try {
-				const jobs = [this.loadBalances(), this.loadJournal(), this.loadSphereReport()]
+				const jobs = [this.loadBalances(), this.loadJournal(), this.loadSphereReport(), this.loadTransactions(this.selectedPeriodId)]
 				const tab = this.activeTab
 				if (tab === 'accounts') {
 					jobs.push(this.loadAccounts())
@@ -1234,7 +1282,7 @@ export default {
 				this.loadAccounts(),
 				this.loadBalances(),
 				this.loadJournal(),
-				this.loadTransactions(),
+				this.loadTransactions(this.selectedPeriodId),
 				this.loadRules(),
 				this.loadSphereReport(),
 				this.loadOpenItems(),
@@ -1481,6 +1529,11 @@ export default {
 			this.bookingView = 'openitems'
 		},
 
+		goToReimbursements() {
+			this.activeTab = 'bookings'
+			this.bookingView = 'reimbursements'
+		},
+
 		/**
 		 * Sprung aus Buchungen → Offene Posten (BookingsTab.vue) von einer Forderung
 		 * des Beitragsmoduls in den Einzug-Unterreiter, Segment „Forderungen“, auf
@@ -1499,8 +1552,10 @@ export default {
 		onWindowFocus() {
 			this.checkRevision()
 			// Eine neu abgelegte Datei im Wächter-Ordner ändert den Änderungsstand
-			// nicht – die Kachel soll trotzdem stimmen, wenn man zurückkommt.
-			this.refreshInbox()
+			// nicht – die Kachel soll trotzdem stimmen, wenn man zurückkommt. Der
+			// Fokus wechselt aber oft (Dateidialog, Viewer, anderer Tab): höchstens
+			// einmal je INBOX_FOCUS_MIN_AGE nachfragen, wie die Aufgaben in useTasks.
+			if (Date.now() - this.lastInboxAt >= INBOX_FOCUS_MIN_AGE) { this.refreshInbox() }
 		},
 
 		async checkRevision(init = false) {
@@ -1532,15 +1587,16 @@ export default {
 			// trügen sie noch die tote ID und meldeten reihenweise 404 – so wie
 			// es mounted() aus demselben Grund schon macht.
 			await this.loadPeriods()
-			const jobs = [this.loadAccounts(), this.loadBalances(), this.loadJournal(), this.loadTransactions(), this.loadSphereReport(), this.loadOpenItems(), this.loadCostCenters()]
+			const jobs = [this.loadAccounts(), this.loadBalances(), this.loadJournal(), this.loadTransactions(this.selectedPeriodId), this.loadSphereReport(), this.loadOpenItems(), this.loadCostCenters()]
 			this.refreshInbox()
-			// Aufgaben-Flyout: eine Aenderung anderer Personen kann Aufgaben loesen/schaffen.
-			if (this.canWrite && this.membershipActive) { jobs.push(this.loadTasks()) }
 			if (this.activeTab === 'accounts' && this.selectedAccountId) { jobs.push(this.loadStatement(this.selectedAccountId)) }
 			if (this.activeTab === 'reports') {
 				if (this.reportView === 'costcenters') { jobs.push(this.loadReport()) } else if (this.reportView === 'budget') { jobs.push(this.loadBudget()) } else if (this.reportView === 'structure') { this.structuredRefreshKey++ }
 			}
 			try { await Promise.all(jobs) } catch { /* nächster Poll versucht es erneut */ }
+			// Aufgaben-Flyout (useTasks): eine Änderung anderer Personen kann Aufgaben lösen oder
+			// schaffen. Das Ereignis ersetzt den früheren Fokus-Listener; useTasks hört darauf.
+			window.dispatchEvent(new CustomEvent('vbh:remote-change'))
 		},
 
 		/**
@@ -1564,11 +1620,13 @@ export default {
 		// demoActive/membershipActive.
 		async loadStorageSettings() {
 			try {
-				const { data } = await api.getSettings()
+				// Beim Start bringt die Seite die Einstellungen mit (Initial State, Issue #264).
+				const data = takeBootState('settings') ?? (await api.getSettings()).data
 				this.costCenterMode = data.cost_center_mode || 'group'
 				this.amountDisplay = data.amount_display === 'signed' ? 'signed' : 'plain'
 				this.storageMode = data.storage_mode || 'appdata'
 				this.clubName = data.club_name || ''
+				setClubTimeZone(data.club_time_zone)
 				this.demoActive = !!data.demo_active
 				this.membershipActive = !!data.membership_active
 				this.invoicesActive = !!data.invoice_module_active
@@ -1611,7 +1669,7 @@ export default {
 			return {
 				id: null,
 				entryNo: null,
-				date: new Date().toISOString().slice(0, 10),
+				date: clubToday(),
 				documentRef: '',
 				amount: null,
 				debitAccountId: null,
@@ -1770,6 +1828,8 @@ export default {
 			try {
 				await api.reassignBooking(row.journalId, fromAccountId, toAccountId, row.updatedAt)
 				showSuccess(this.tRaw('Buchung #{n} auf {account} umgebucht.', { n: row.entryNo, account: this.accountLabel(toAccountId) }))
+				// Eigene Buchungsänderung: Belegvorschläge mitziehen.
+				this.afterOwnJournalWrite(this.attachmentsRevision)
 				await Promise.all([this.reloadStatement(), this.loadBalances(), this.loadJournal(), this.loadSphereReport()])
 				return true
 			} catch (e) {
@@ -1840,26 +1900,36 @@ export default {
 			this.bookingView = 'unassigned'
 		},
 
-		async onImported() { await this.loadBalances(); await this.loadTransactions() },
+		async onImported() { await Promise.all([this.loadBalances(), this.loadTransactions(this.selectedPeriodId)]) },
 
 		// Zahlungen zu Rechnungen buchen und lösen Bankumsätze, Buchungen und Salden (Epic #168).
-		async onInvoicesChanged() {
-			await Promise.all([this.loadTransactions(), this.loadBalances(), this.loadJournal(), this.loadOpenItems(), this.loadPeriods()])
+		// `info.bookings`: der Server hat dabei eine Buchung angelegt oder zurückgenommen
+		// (Zahlung gebucht/zurückgenommen) – dann brauchen auch die Belegvorschläge den neuen Stand.
+		/** Zuordnung oder Rücknahme einer Auszahlung: Buchungen neu laden, die Auslagenliste auch. */
+		async onReimbursementBookingChanged() {
+			this.reimbursementsReloadKey++
+			await this.onInvoicesChanged({ bookings: true })
+		},
+
+		async onInvoicesChanged(info) {
+			if (info?.bookings) { this.afterOwnJournalWrite(this.attachmentsRevision) }
+			await Promise.all([this.loadTransactions(this.selectedPeriodId), this.loadBalances(), this.loadJournal(), this.loadOpenItems(), this.loadPeriods()])
 		},
 
 		async resetAll() {
 			if (!await this.askConfirm(this.t('Alle Daten löschen'), this.t('Wirklich ALLE Konten, Buchungen und Importe sowie den Einzug (Läufe, Rücklastschriften, Mahnstufen) löschen? Mitglieder, Mandate, Beitragsgruppen und Zuweisungen bleiben bestehen.'))) { return }
+			if (!await withPasswordConfirmation()) { return }
 			this.busy = true
 			try {
 				await api.reset(); showSuccess(this.t('Alle Daten gelöscht.'))
-				this.selectedAccountId = null; this.statement = null; this.journalData = []; this.transactions = []
+				this.selectedAccountId = null; this.statement = null; this.journalData = []; this.transactions = []; this.txContext = { history: [], progress: { total: 0, assigned: 0 }, byJournal: {} }
 				// Auswahl auf Anfang: loadPeriods() setzt die Vorgabe nur beim
 				// ersten Mal, deshalb auch das Flag zurück – sonst bliebe nach
 				// dem Löschen „alle Zeiträume" stehen.
 				this.selectedPeriodId = null
 				this.initialised = false
 				this.demoActive = false
-				await this.loadPeriods(); await this.loadAccounts(); await this.loadBalances(); await this.loadCostCenters()
+				await this.loadPeriods(); await Promise.all([this.loadAccounts(), this.loadBalances(), this.loadCostCenters()])
 			} catch (e) { showError(this.errMsg(e, this.t('Zurücksetzen fehlgeschlagen'))) } finally { this.busy = false }
 		},
 
@@ -1869,7 +1939,7 @@ export default {
 			try {
 				await api.seedDemo()
 				this.demoActive = true
-				await Promise.all([this.loadPeriods(), this.loadAccounts(), this.loadBalances(), this.loadJournal(), this.loadTransactions()])
+				await Promise.all([this.loadPeriods(), this.loadAccounts(), this.loadBalances(), this.loadJournal(), this.loadTransactions(this.selectedPeriodId)])
 				showSuccess(this.t('Beispielverein angelegt – schauen Sie sich gern um. Zum Starten mit echten Daten: Zurücksetzen.'))
 			} catch (e) { showError(this.errMsg(e, this.t('Beispieldaten konnten nicht angelegt werden'))) } finally { this.busy = false }
 		},
@@ -1934,7 +2004,7 @@ export default {
 		// loadTransactions kommt aus setup() (useJournal).
 		// loadRules kommt aus setup() (useRules); die Pflege der Regeln selbst
 		// steht in RulesPanel.vue (Unterreiter „Regeln" von BookingsTab.vue).
-		async onSpheresChanged() { await this.loadAccounts(); await this.loadSphereReport() },
+		async onSpheresChanged() { await Promise.all([this.loadAccounts(), this.loadSphereReport()]) },
 		// Kostenstellen: die Zuordnung haengt am Konto, deshalb muessen die
 		// Konten mit nachgeladen werden; der Bericht nur, wenn er offen ist.
 		async onCostCentersChanged() {
@@ -1944,6 +2014,7 @@ export default {
 
 		async onAssign(tx, value) {
 			const prevContra = tx.contraAccountId
+			const revision = this.attachmentsRevision
 			try {
 				if (value === '') {
 					await api.unassignTransaction(tx.id)
@@ -1951,7 +2022,8 @@ export default {
 						showUndo(this.t('Zuordnung entfernt'), async () => {
 							try {
 								await api.assignTransaction(tx.id, prevContra)
-								await this.loadTransactions(); await this.loadBalances(); await this.loadJournal(); await this.loadSphereReport(); await this.loadPeriods()
+								this.afterOwnJournalWrite(this.attachmentsRevision)
+								await Promise.all([this.loadTransactions(this.selectedPeriodId), this.loadBalances(), this.loadJournal(), this.loadSphereReport(), this.loadPeriods()])
 							} catch (e) { showError(this.errMsg(e, this.t('Wiederherstellen fehlgeschlagen'))) }
 						})
 					}
@@ -1959,10 +2031,11 @@ export default {
 					const { data } = await api.assignTransaction(tx.id, Number(value))
 					await this.linkTxPendingFiles(tx.id, data && data.journalId)
 				}
+				this.afterOwnJournalWrite(revision)
 				// loadPeriods() muss mit: eine Zuordnung legt eine Buchung an (bzw.
 				// loest sie wieder auf), und periods[].bookings speist die
 				// "Erste Schritte"-Karte auf der Uebersicht (Issue #60).
-				await this.loadTransactions(); await this.loadBalances(); await this.loadJournal(); await this.loadSphereReport(); await this.loadPeriods()
+				await Promise.all([this.loadTransactions(this.selectedPeriodId), this.loadBalances(), this.loadJournal(), this.loadSphereReport(), this.loadPeriods()])
 			} catch (e) { showError(this.errMsg(e, this.t('Zuordnung fehlgeschlagen'))) }
 		},
 
@@ -1970,7 +2043,7 @@ export default {
 			if (!await this.askConfirm(this.t('Umsatz löschen'), this.tRaw('Umsatz über {amount} von/an „{counterparty}" endgültig löschen?', { amount: formatMoney(tx.amount), counterparty: tx.counterparty || '' }))) { return }
 			try {
 				await api.deleteTransaction(tx.id)
-				await this.loadTransactions(); await this.loadBalances()
+				await Promise.all([this.loadTransactions(this.selectedPeriodId), this.loadBalances()])
 			} catch (e) { showError(this.errMsg(e, this.t('Löschen fehlgeschlagen'))) }
 		},
 
@@ -1984,8 +2057,8 @@ export default {
 				open: true,
 				tx,
 				parts: [
-					{ accountId: suggestion ? suggestion.accountId : null, amount: null },
-					{ accountId: null, amount: null },
+					{ uid: newUid(), accountId: suggestion ? suggestion.accountId : null, amount: null },
+					{ uid: newUid(), accountId: null, amount: null },
 				],
 			}
 		},
@@ -2010,13 +2083,15 @@ export default {
 				return
 			}
 			try {
+				const revision = this.attachmentsRevision
 				const { data } = await api.assignTransactionParts(tx.id, rows.map((p) => ({ accountId: p.accountId, amount: Number(p.amount) })))
 				showSuccess(this.t('Umsatz aufgeteilt zugeordnet.'))
 				this.closeSplitAssign()
 				await this.linkTxPendingFiles(tx.id, data && data.journalId)
+				this.afterOwnJournalWrite(revision)
 				// loadPeriods() muss mit: die Aufteilung legt Buchungen an, und
 				// periods[].bookings speist die "Erste Schritte"-Karte (Issue #60).
-				await this.loadTransactions(); await this.loadBalances(); await this.loadJournal(); await this.loadSphereReport(); await this.loadPeriods()
+				await Promise.all([this.loadTransactions(this.selectedPeriodId), this.loadBalances(), this.loadJournal(), this.loadSphereReport(), this.loadPeriods()])
 			} catch (e) { showError(this.errMsg(e, this.t('Zuordnung fehlgeschlagen'))) }
 		},
 
@@ -2061,23 +2136,45 @@ export default {
 		// Eigener Wrapper um useJournal.loadJournal (journalLoad), da hier
 		// zusätzlich die Beleg-Zähler nachgeladen werden.
 		async loadJournal() {
-			await this.journalLoad()
-			this.loadAttachmentCounts()
+			// Die Belegzähler hängen nicht am Journal: gleichzeitig anfragen.
+			await Promise.all([this.journalLoad(), this.loadAttachmentCounts()])
 		},
 
 		async loadAttachmentCounts() {
-			try { const { data } = await api.attachmentCounts(); this.attachmentCountMap = data } catch { /* ignorieren */ }
+			// Zähler hängen am Zeitraum: eine verspätete Antwort des vorigen
+			// darf die des gerade gewählten nicht überschreiben.
+			const isCurrent = startAttachmentCountsLoad()
+			try {
+				const { data } = await api.attachmentCounts(this.selectedPeriodId)
+				if (isCurrent()) { this.attachmentCountMap = data }
+			} catch { /* ignorieren */ }
 		},
 
 		/** Nach jedem Anhängen, Verknüpfen oder Lösen: Zähler und Übersichts-Kacheln nachziehen. */
 		afterAttachmentsChanged() {
+			this.attachmentsRevision++
 			this.loadAttachmentCounts()
 			this.refreshInbox()
 		},
 
+		/**
+		 * Nach einer eigenen Buchungsänderung (Anlegen, Bearbeiten, Löschen,
+		 * Umsatz zuordnen): Belegvorschläge einmal nachladen – eine neue Buchung
+		 * ohne Beleg braucht ihren Vorschlag. Hat afterAttachmentsChanged() im
+		 * selben Ablauf schon gezählt, nicht noch einmal. Abgleich mit fremden
+		 * Änderungen und Zeitraumwechsel laufen nicht hierüber.
+		 *
+		 * @param {number} revisionBefore attachmentsRevision zu Beginn des Ablaufs
+		 */
+		afterOwnJournalWrite(revisionBefore) {
+			if (this.attachmentsRevision === revisionBefore) { this.attachmentsRevision++ }
+		},
+
 		/** Die Kacheln des Wächter-Ordners – nur dort kostet der Aufruf einen Ordnerscan. */
 		refreshInbox() {
-			if (this.watchMode) { this.loadInboxSummary() }
+			if (!this.watchMode) { return }
+			this.lastInboxAt = Date.now()
+			this.loadInboxSummary()
 		},
 
 		async loadAttachments(journalId) {
@@ -2336,7 +2433,7 @@ export default {
 		 */
 		openBookingForReimbursement(item) {
 			this.openNewBooking()
-			const prefill = reimbursementBookingPrefill(item, new Date().toISOString().slice(0, 10))
+			const prefill = reimbursementBookingPrefill(item, clubToday())
 			Object.assign(this.bookingForm, prefill)
 			this.reimbursementPayment = item
 		},
@@ -2512,10 +2609,11 @@ export default {
 				await api.deleteBooking(id)
 				this.closeBooking()
 				this.refreshInbox()
+				this.afterOwnJournalWrite(this.attachmentsRevision)
 				// Umsätze mitladen – siehe removeBooking().
 				// loadPeriods() wie beim Speichern: periods[].bookings speist die
 				// "Erste Schritte"-Karte (Issue #60).
-				await this.loadJournal(); await this.loadTransactions(); await this.loadBalances(); await this.loadPeriods(); await this.reloadStatement()
+				await Promise.all([this.loadJournal(), this.loadTransactions(this.selectedPeriodId), this.loadBalances(), this.loadPeriods(), this.reloadStatement()])
 			} catch (e) { showError(this.errMsg(e, this.t('Löschen fehlgeschlagen'))) }
 		},
 
@@ -2556,6 +2654,7 @@ export default {
 			f.splitMode = true
 			f.splitSide = side
 			f.splitLines = parts.map((l) => ({
+				uid: newUid(),
 				accountId: l.accountId,
 				amount: (side === 'credit' ? l.creditCents : l.debitCents) / 100,
 			}))
@@ -2635,11 +2734,14 @@ export default {
 			const payload = commentOnly ? null : (f.splitMode ? this.buildSplitPayload() : this.buildSimplePayload())
 			if (!commentOnly && !payload) { return }
 			this.bookingSaving = true
+			const revision = this.attachmentsRevision
+			let wrote = false
 			try {
 				if (commentOnly) {
 					await this.saveBookingComment(f.id, f.updatedAt)
 				} else if (f.id) {
 					const { data } = await api.updateBooking(f.id, { ...payload, updatedAt: f.updatedAt || null })
+					wrote = true
 					// Neuer Stand sofort ins Formular: scheitert der Kommentar, soll
 					// ein erneuter Klick nicht an der eigenen Aenderung (409) haengen.
 					f.updatedAt = data.updatedAt || null
@@ -2653,15 +2755,16 @@ export default {
 					const uploadFailed = this.pendingFiles.length ? await this.uploadPendingFiles(f.id) : 0
 					if (removeFailed || uploadFailed) {
 						await this.loadAttachments(f.id)
-						await this.loadJournal(); await this.loadBalances(); await this.loadPeriods(); await this.loadSphereReport(); await this.reloadStatement()
+						await Promise.all([this.loadJournal(), this.loadBalances(), this.loadPeriods(), this.loadSphereReport(), this.reloadStatement()])
 						return
 					}
 					if (!await this.recordReimbursementPayout(f)) {
-						await this.loadJournal(); await this.loadBalances(); await this.loadPeriods(); await this.loadSphereReport(); await this.reloadStatement()
+						await Promise.all([this.loadJournal(), this.loadBalances(), this.loadPeriods(), this.loadSphereReport(), this.reloadStatement()])
 						return
 					}
 				} else {
 					const { data } = await api.createBooking(payload)
+					wrote = true
 					// Ab hier existiert die Buchung: scheitert danach Kommentar oder
 					// Beleg-Upload, macht ein erneuter Klick daraus ein Bearbeiten
 					// statt einer zweiten Buchung.
@@ -2674,14 +2777,14 @@ export default {
 						// Dateien lassen sich im offenen Dialog erneut hochladen.
 						this.bookingForm = { ...f }
 						await this.loadAttachments(data.id)
-						await this.loadJournal(); await this.loadBalances(); await this.loadPeriods(); await this.loadSphereReport(); await this.reloadStatement()
+						await Promise.all([this.loadJournal(), this.loadBalances(), this.loadPeriods(), this.loadSphereReport(), this.reloadStatement()])
 						return
 					}
 					// Die Buchung steht: scheitert der Vermerk am Antrag, wird aus dem Anlegen das
 					// Bearbeiten dieser Buchung - ein weiterer Klick legt keine zweite an.
 					if (!await this.recordReimbursementPayout(f)) {
 						this.bookingForm = { ...f }
-						await this.loadJournal(); await this.loadBalances(); await this.loadPeriods(); await this.loadSphereReport(); await this.reloadStatement()
+						await Promise.all([this.loadJournal(), this.loadBalances(), this.loadPeriods(), this.loadSphereReport(), this.reloadStatement()])
 						return
 					}
 				}
@@ -2691,16 +2794,19 @@ export default {
 				// bearbeitet, stuenden Beschreibung, Gegenkonto und laufender
 				// Saldo dort sonst bis zum naechsten Kontowechsel veraltet da.
 				// Ohne offenen Auszug tut der Aufruf nichts.
-				await this.loadJournal(); await this.loadBalances(); await this.loadPeriods(); await this.loadSphereReport(); await this.reloadStatement()
+				await Promise.all([this.loadJournal(), this.loadBalances(), this.loadPeriods(), this.loadSphereReport(), this.reloadStatement()])
 			} catch (e) {
 				if (e?.response?.status === 409) {
 					showError(this.t('Diese Buchung wurde zwischenzeitlich von einer anderen Person geändert. Die Ansicht wurde aktualisiert – bitte erneut bearbeiten.'))
 					this.closeBooking()
-					await this.loadJournal(); await this.loadBalances(); await this.reloadStatement()
+					await Promise.all([this.loadJournal(), this.loadBalances(), this.reloadStatement()])
 					return
 				}
 				showError(this.errMsg(e, this.t('Buchung konnte nicht gespeichert werden')))
-			} finally { this.bookingSaving = false }
+			} finally {
+				this.bookingSaving = false
+				if (wrote) { this.afterOwnJournalWrite(revision) }
+			}
 		},
 
 		/**
@@ -2729,7 +2835,7 @@ export default {
 			// loadPeriods() muss ebenfalls mit: periods[].bookings speist die
 			// "Erste Schritte"-Karte, die sonst die geloeschte Buchung
 			// weiterzaehlt (Issue #60).
-			try { await api.deleteBooking(r.id); this.refreshInbox(); await this.loadJournal(); await this.loadTransactions(); await this.loadBalances(); await this.loadSphereReport(); await this.loadPeriods(); await this.reloadStatement() } catch (e) { showError(this.errMsg(e, this.t('Löschen fehlgeschlagen'))) }
+			try { await api.deleteBooking(r.id); this.refreshInbox(); this.afterOwnJournalWrite(this.attachmentsRevision); await Promise.all([this.loadJournal(), this.loadTransactions(this.selectedPeriodId), this.loadBalances(), this.loadSphereReport(), this.loadPeriods(), this.reloadStatement()]) } catch (e) { showError(this.errMsg(e, this.t('Löschen fehlgeschlagen'))) }
 		},
 
 		// --- Konten ---
@@ -2835,7 +2941,7 @@ export default {
 				this.showAccount = false
 				this.accountEditId = null
 				this.newAccount = { number: '', name: '', type: 'income', category: '', isBank: false, countInTotal: true, parentId: null, sphere: '', reserveKind: '', iban: '', costCenterId: null }
-				await this.loadAccounts(); await this.loadBalances(); await this.loadSphereReport()
+				await Promise.all([this.loadAccounts(), this.loadBalances(), this.loadSphereReport()])
 				showSuccess(this.t('Konto gespeichert.'))
 			} catch (e) { showError(this.errMsg(e, this.t('Konto konnte nicht gespeichert werden'))) }
 		},
@@ -2845,7 +2951,7 @@ export default {
 			try {
 				await api.deleteAccount(acc.id)
 				if (this.selectedAccountId === acc.id) { this.selectedAccountId = null; this.statement = null }
-				await this.loadAccounts(); await this.loadBalances(); await this.loadSphereReport()
+				await Promise.all([this.loadAccounts(), this.loadBalances(), this.loadSphereReport()])
 			} catch (e) { showError(this.errMsg(e, this.t('Löschen fehlgeschlagen'))) }
 		},
 
@@ -2853,7 +2959,7 @@ export default {
 			const form = this.openingForm[acc.id] || { amount: 0, date: '' }
 			try {
 				await api.setOpening(acc.id, Number(form.amount) || 0, form.date || null)
-				await this.loadAccounts(); await this.loadBalances(); await this.loadSphereReport()
+				await Promise.all([this.loadAccounts(), this.loadBalances(), this.loadSphereReport()])
 				if (this.selectedAccountId === acc.id) { await this.loadStatement(acc.id) }
 				showSuccess(this.tRaw('Eröffnungssaldo für {name} gespeichert.', { name: acc.name }))
 			} catch (e) { showError(this.errMsg(e, this.t('Eröffnungssaldo konnte nicht gespeichert werden'))) }

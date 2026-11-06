@@ -15,6 +15,7 @@ use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\IL10N;
 use OCP\IRequest;
+use Psr\Log\LoggerInterface;
 
 /**
  * Willkommens-Mail (siehe {@see WelcomeMailService}): die Vorlage lesen darf, wer
@@ -23,10 +24,13 @@ use OCP\IRequest;
  */
 class WelcomeMailController extends Controller {
 
+	use InternalErrorResponder;
+
 	public function __construct(
 		IRequest $request,
 		private WelcomeMailService $service,
 		private IL10N $l10n,
+		private LoggerInterface $logger,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -59,7 +63,7 @@ class WelcomeMailController extends Controller {
 		} catch (\InvalidArgumentException $e) {
 			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
 		} catch (\RuntimeException $e) {
-			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_GATEWAY);
+			return $this->internalError($e, Http::STATUS_BAD_GATEWAY, $this->l10n->t('E-Mail konnte nicht versendet werden.'));
 		}
 		return new DataResponse(['sent' => true]);
 	}

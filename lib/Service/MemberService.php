@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Service;
 
 use OCA\Vereinsbuchhaltung\Db\AssignmentMapper;
-use OCA\Vereinsbuchhaltung\Db\Mandate;
 use OCA\Vereinsbuchhaltung\Db\MandateMapper;
 use OCA\Vereinsbuchhaltung\Db\Member;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
@@ -29,6 +28,7 @@ class MemberService {
 		private OpenItemMapper $openItemMapper,
 		private IUserManager $userManager,
 		private IL10N $l10n,
+		private ClubClock $clock,
 	) {
 	}
 
@@ -49,7 +49,7 @@ class MemberService {
 	public function create(array $data): Member {
 		$member = new Member();
 		$this->applyStammdaten($member, $data);
-		$member->setCreatedAt((new \DateTime())->format('Y-m-d H:i:s'));
+		$member->setCreatedAt((new \DateTime())->format('Y-m-d H:i:s')); // UTC-Zeitstempel (#263)
 		return $this->mapper->insert($member);
 	}
 
@@ -169,24 +169,14 @@ class MemberService {
 	 * @return array<int, string[]> member_id => Sperrgründe (leer = löschbar)
 	 */
 	public function blockingReasonsForIds(array $memberIds): array {
-		$activeMandateIds = [];
-		$anyMandateIds = [];
-		foreach ($this->mandateMapper->findAll() as $mandate) {
-			$anyMandateIds[$mandate->getMemberId()] = true;
-			if ($mandate->getStatus() === Mandate::STATUS_ACTIVE) {
-				$activeMandateIds[$mandate->getMemberId()] = true;
-			}
+		if ($memberIds === []) {
+			return [];
 		}
-		$anyAssignmentIds = [];
-		foreach ($this->assignmentMapper->findAll() as $assignment) {
-			$anyAssignmentIds[$assignment->getMemberId()] = true;
-		}
-		$anyClaimIds = [];
-		foreach ($this->openItemMapper->findClaims() as $claim) {
-			if ($claim->getMemberId() !== null) {
-				$anyClaimIds[$claim->getMemberId()] = true;
-			}
-		}
+		// Nur die IDs per DISTINCT, nicht alle Mandate/Zuweisungen/Forderungen.
+		$activeMandateIds = array_fill_keys($this->mandateMapper->memberIdsWithMandate($memberIds, true), true);
+		$anyMandateIds = array_fill_keys($this->mandateMapper->memberIdsWithMandate($memberIds, false), true);
+		$anyAssignmentIds = array_fill_keys($this->assignmentMapper->memberIdsWithAssignment($memberIds), true);
+		$anyClaimIds = array_fill_keys($this->openItemMapper->memberIdsWithClaims($memberIds), true);
 
 		$result = [];
 		foreach ($memberIds as $id) {
@@ -374,8 +364,8 @@ class MemberService {
 		$member->setFirstName($split['firstName']);
 		$member->setLastName($split['lastName']);
 		$member->setOrganizationName($split['organizationName']);
-		$member->setJoinedAt((new \DateTime())->format('Y-m-d'));
-		$member->setCreatedAt((new \DateTime())->format('Y-m-d H:i:s'));
+		$member->setJoinedAt($this->clock->today());
+		$member->setCreatedAt((new \DateTime())->format('Y-m-d H:i:s')); // UTC-Zeitstempel (#263)
 		return $member;
 	}
 
@@ -463,7 +453,7 @@ class MemberService {
 		$member->setCountry($this->normalizeCountry($data['country'] ?? null));
 		$member->setMemberNumber($this->normalizeMemberNumber($data['memberNumber'] ?? null, $member));
 		$member->setJoinedAt($this->requireDate(
-			(string)($data['joinedAt'] ?? (new \DateTime())->format('Y-m-d')),
+			(string)($data['joinedAt'] ?? $this->clock->today()),
 			$this->l10n->t('Ungültiges Beitrittsdatum (erwartet JJJJ-MM-TT).'),
 		));
 		$member->setInternalNote($this->nullIfEmpty($data['internalNote'] ?? null));

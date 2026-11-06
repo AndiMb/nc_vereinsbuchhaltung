@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Service\Sepa;
 
+use OCA\Vereinsbuchhaltung\Service\ClubClock;
+
 /**
  * Erzeugt und erkennt die Referenzen, die diese App selbst vergibt:
  * Mandatsreferenz, Message-ID eines Sammeleinzugs und End-to-End-ID einer
@@ -39,7 +41,7 @@ class SepaReference {
 	 * der Unique-Index auf der Spalte.
 	 */
 	public static function mandate(): string {
-		return 'M' . date('Ymd') . '-' . strtoupper(bin2hex(random_bytes(3)));
+		return 'M' . self::clubNow()->format('Ymd') . '-' . strtoupper(bin2hex(random_bytes(3)));
 	}
 
 	/** Message-ID der Einreichungsdatei (GrpHdr/MsgId). */
@@ -53,7 +55,12 @@ class SepaReference {
 	}
 
 	private static function withTimestamp(string $prefix): string {
-		return $prefix . '-' . date('Ymd-His') . '-' . strtoupper(bin2hex(random_bytes(4)));
+		return $prefix . '-' . self::clubNow()->format('Ymd-His') . '-' . strtoupper(bin2hex(random_bytes(4)));
+	}
+
+	/** Datum und Uhrzeit in den Kennungen sind Ortszeit des Vereins (#263). */
+	private static function clubNow(): \DateTimeImmutable {
+		return new \DateTimeImmutable('now', ClubClock::zone());
 	}
 
 	/** Erste Mandatsreferenz in einem Freitext (Verwendungszweck), oder null. */

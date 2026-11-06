@@ -16,7 +16,7 @@ use OCP\Files\IAppData;
 use OCP\Files\IRootFolder;
 use OCP\Files\SimpleFS\ISimpleFile;
 use OCP\Files\SimpleFS\ISimpleFolder;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IL10N;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -48,12 +48,12 @@ class AttachmentStorageServiceTest extends TestCase {
 
 	private IAppData&MockObject $appData;
 	private IRootFolder&MockObject $rootFolder;
-	private IConfig&MockObject $config;
+	private IAppConfig&MockObject $config;
 
 	protected function setUp(): void {
 		$this->appData = $this->createMock(IAppData::class);
 		$this->rootFolder = $this->createMock(IRootFolder::class);
-		$this->config = $this->createMock(IConfig::class);
+		$this->config = $this->createMock(IAppConfig::class);
 	}
 
 	/**
@@ -163,7 +163,7 @@ class AttachmentStorageServiceTest extends TestCase {
 	}
 
 	private function configureStorage(string $user, string $mode = ''): void {
-		$this->config->method('getAppValue')->willReturnCallback(
+		$this->config->method('getValueString')->willReturnCallback(
 			static function (string $app, string $key) use ($user, $mode): string {
 				self::assertSame(Application::APP_ID, $app);
 				return match ($key) {

@@ -20,7 +20,8 @@ use OCA\Vereinsbuchhaltung\Service\MandateLegalTextService;
 use OCA\Vereinsbuchhaltung\Service\MandateService;
 use OCA\Vereinsbuchhaltung\Service\MandateStateMachine;
 use OCA\Vereinsbuchhaltung\Service\RecipientL10n;
-use OCP\IConfig;
+use OCA\Vereinsbuchhaltung\Tests\Unit\Support\AppConfigStub;
+use OCP\IAppConfig;
 use OCP\IL10N;
 use OCP\IURLGenerator;
 use OCP\IUserManager;
@@ -46,7 +47,7 @@ class MandateActivationServiceTest extends TestCase {
 	private IUserManager&MockObject $userManager;
 	private IMailer&MockObject $mailer;
 	private IURLGenerator&MockObject $urlGenerator;
-	private IConfig&MockObject $config;
+	private IAppConfig&MockObject $config;
 
 	protected function setUp(): void {
 		$this->tokenMapper = $this->createMock(MandateActivationTokenMapper::class);
@@ -58,8 +59,7 @@ class MandateActivationServiceTest extends TestCase {
 		$this->userManager = $this->createMock(IUserManager::class);
 		$this->mailer = $this->createMock(IMailer::class);
 		$this->urlGenerator = $this->createMock(IURLGenerator::class);
-		$this->config = $this->createMock(IConfig::class);
-		$this->config->method('getAppValue')->willReturnCallback(static fn (string $app, string $key, string $default = '') => $default);
+		$this->config = AppConfigStub::create($this);
 	}
 
 	private function service(): MandateActivationService {

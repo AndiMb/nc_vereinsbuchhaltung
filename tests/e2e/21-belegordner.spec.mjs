@@ -285,6 +285,58 @@ test.describe('Wächter-Ordner für Belege', () => {
 		await expect(shown).toHaveText(order[1])
 	})
 
+	test('Belegvorschau: „Beleg übernehmen“ direkt in der Vorschau, Speichern ohne Beleg fragt nach (#281)', async ({ page, request }) => {
+		for (const name of ['direkt-a.png', 'direkt-b.png']) {
+			await dav.put(request, 'admin', `${FOLDER}/2026/${name}`, BELEG_PNG, 'image/png')
+		}
+
+		// Schmal: die Vorschau steht anstelle der Liste - genau der Fall aus dem Issue.
+		await page.setViewportSize({ width: 1366, height: 900 })
+		await openApp(page, USERS.verwalter)
+		await neuAnlegen(page)
+		const bookingDialog = page.getByRole('dialog', { name: 'Neue Buchung' })
+		await skipBookingTour(bookingDialog)
+		await bookingDialog.getByRole('button', { name: 'Aus Ordner wählen' }).click()
+		const folderDialog = bookingDialog.getByRole('complementary', { name: 'Beleg aus Ordner wählen' })
+		await folderDialog.getByPlaceholder(/Dateiname, Ordner/).fill('direkt-')
+		const names = folderDialog.locator('.vbh-folder-item .vbh-attachment-name')
+		await expect(names).toHaveCount(2)
+		const [first, second] = (await names.allTextContents()).map((n) => n.trim())
+
+		// Übernehmen ohne Umweg über die Liste; danach zeigt die Kopfzeile „übernommen“.
+		await names.first().click()
+		const preview = folderDialog.locator('.vbh-receipt-preview')
+		await expect(preview.locator('.vbh-receipt-preview-name')).toHaveText(first)
+		await preview.getByRole('button', { name: 'Beleg übernehmen' }).click()
+		await expect(preview.getByText('übernommen')).toBeVisible()
+		await expect(preview.getByRole('button', { name: 'Beleg übernehmen' })).toHaveCount(0)
+		await expect(bookingDialog.locator('.vbh-pending').getByText(first)).toBeVisible()
+
+		// Den übernommenen Beleg wieder entfernen: die Buchung ist ohne Beleg,
+		// in der Vorschau steht die nächste Datei, noch nicht übernommen.
+		await bookingDialog.locator('.vbh-pending li', { hasText: first }).getByRole('button', { name: 'Beleg entfernen' }).click()
+		await expect(bookingDialog.locator('.vbh-pending')).toHaveCount(0)
+		await preview.getByRole('button', { name: 'Nächste Datei' }).click()
+		await expect(preview.locator('.vbh-receipt-preview-name')).toHaveText(second)
+
+		await bookingDialog.getByRole('button', { name: 'Einnahme' }).click()
+		await bookingDialog.getByLabel('Betrag (€)', { exact: true }).fill('7')
+		await pickNcSelectOption(bookingDialog, '– Kategorie wählen –', 'Mitgliedsbeiträge')
+		await bookingDialog.locator('input[type="date"]').fill('2026-06-02')
+		await bookingDialog.getByPlaceholder('z. B. Mitgliedsbeitrag Max Mustermann').fill('Beleg aus der Vorschau')
+
+		// Buchen fragt nach, statt still ohne den angezeigten Beleg zu speichern.
+		await bookingDialog.getByRole('button', { name: 'Buchen', exact: true }).click()
+		await expect(bookingDialog.getByRole('alert').filter({ hasText: second })).toBeVisible()
+		await expect(bookingDialog.getByRole('button', { name: 'Ohne Beleg speichern' })).toBeVisible()
+		await bookingDialog.getByRole('button', { name: 'Übernehmen und speichern' }).click()
+		await expect(page.getByRole('dialog')).toBeHidden()
+
+		const booking = findBooking(await api.listJournal(request), 'Beleg aus der Vorschau')
+		const attachments = await api.listAttachments(request, booking.id)
+		expect(attachments.map((a) => a.fileName)).toEqual([second])
+	})
+
 	test('Beleg für markierte Buchungen: Übernehmen steht rechts unten im Dialog, nicht unter der Liste', async ({ page, request }) => {
 		await createBooking(request, 'Fußzeile im Ordner-Dialog', '2026-10-01')
 		const booking = findBooking(await api.listJournal(request), 'Fußzeile im Ordner-Dialog')

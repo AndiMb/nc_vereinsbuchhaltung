@@ -136,8 +136,11 @@ test.describe('Terminplan: Einzugstag als Satz, Termine als Datum', () => {
 		await expect(dialog.getByTestId('lead-days-summary')).toContainText('Forderungen entstehen')
 
 		// Turnusse ohne Mitglieder klappen direkt unter dem Knopf auf, im Blick statt darüber.
+		// Welcher Turnus zuerst kommt, hängt davon ab, welche Turnusse andere Specs belegt
+		// haben (ohne Mitglieder steht „monatlich“ mit zwölf Zeilen vor „zweimonatlich“),
+		// geprüft wird deshalb der erste aufgeklappte, nicht ein bestimmter.
 		await dialog.getByRole('button', { name: /^Turnusse ohne Mitglieder:/ }).click()
-		await expect(dialog.getByTestId('schedule-interval-2')).toBeInViewport()
+		await expect(dialog.locator('.vbh-schedule-more + [data-testid^="schedule-interval-"]')).toBeInViewport()
 
 		// Gespeichert wird über die Fußleiste, danach schließt der Dialog.
 		await dialog.getByRole('button', { name: 'Speichern', exact: true }).click()

@@ -14,8 +14,11 @@ use OCP\IDBConnection;
  * @extends QBMapper<DunningNotice>
  */
 class DunningNoticeMapper extends QBMapper {
-	public function __construct(IDBConnection $db) {
+	private ReadCache $readCache;
+
+	public function __construct(IDBConnection $db, ?ReadCache $readCache = null) {
 		parent::__construct($db, 'vbh_dunning_notices', DunningNotice::class);
+		$this->readCache = $readCache ?? new ReadCache();
 	}
 
 	/** @return DunningNotice[] alle bisher versendeten Stufen einer Forderung, aufsteigend. */
@@ -35,6 +38,20 @@ class DunningNoticeMapper extends QBMapper {
 	 * ereignisgetriebenen Trigger).
 	 */
 	public function findByOpenItemAndStage(int $openItemId, int $stage): ?DunningNotice {
+		// Im Lese-Puffer (Aufgabenliste) alle Stufen einmal laden statt je Forderung eine Abfrage.
+		// Gibt es je (Forderung, Stufe) mehr als eine Zeile, liefert die Abfrage unten null - der Index auch.
+		if ($this->readCache->isActive()) {
+			$index = $this->readCache->remember('dunningNotices.byItemAndStage', function (): array {
+				$index = [];
+				foreach ($this->findAll() as $notice) {
+					$key = $notice->getOpenItemId() . ':' . $notice->getStage();
+					$index[$key] = array_key_exists($key, $index) ? null : $notice;
+				}
+				return $index;
+			});
+			$hit = $index[$openItemId . ':' . $stage] ?? null;
+			return $hit === null ? null : clone $hit;
+		}
 		$qb = $this->db->getQueryBuilder();
 		$qb->select('*')
 			->from($this->getTableName())

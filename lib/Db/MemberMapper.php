@@ -13,19 +13,28 @@ use OCP\IDBConnection;
  * @extends QBMapper<Member>
  */
 class MemberMapper extends QBMapper {
-	public function __construct(IDBConnection $db) {
+	private ReadCache $readCache;
+
+	public function __construct(IDBConnection $db, ?ReadCache $readCache = null) {
 		parent::__construct($db, 'vbh_members', Member::class);
+		$this->readCache = $readCache ?? new ReadCache();
 	}
 
-	/** @return Member[] */
+	/**
+	 * Innerhalb eines {@see ReadCache::during()} nur einmal geladen.
+	 *
+	 * @return list<Member>
+	 */
 	public function findAll(): array {
-		$qb = $this->db->getQueryBuilder();
-		$qb->select('*')
-			->from($this->getTableName())
-			->orderBy('last_name', 'ASC')
-			->addOrderBy('organization_name', 'ASC')
-			->addOrderBy('id', 'ASC');
-		return $this->findEntities($qb);
+		return $this->readCache->entities('members.all', function (): array {
+			$qb = $this->db->getQueryBuilder();
+			$qb->select('*')
+				->from($this->getTableName())
+				->orderBy('last_name', 'ASC')
+				->addOrderBy('organization_name', 'ASC')
+				->addOrderBy('id', 'ASC');
+			return array_values($this->findEntities($qb));
+		});
 	}
 
 	/**
@@ -43,6 +52,10 @@ class MemberMapper extends QBMapper {
 	}
 
 	public function find(int $id): Member {
+		$cached = $this->readCache->byId('members.all', fn () => $this->findAll(), $id);
+		if ($cached instanceof Member) {
+			return $cached;
+		}
 		$qb = $this->db->getQueryBuilder();
 		$qb->select('*')
 			->from($this->getTableName())

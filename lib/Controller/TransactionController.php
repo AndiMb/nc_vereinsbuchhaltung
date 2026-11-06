@@ -7,6 +7,7 @@ namespace OCA\Vereinsbuchhaltung\Controller;
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\BankTransactionMapper;
 use OCA\Vereinsbuchhaltung\Service\BookingService;
+use OCA\Vereinsbuchhaltung\Service\PeriodService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http;
@@ -23,6 +24,7 @@ class TransactionController extends Controller {
 		IRequest $request,
 		private BankTransactionMapper $txMapper,
 		private BookingService $bookingService,
+		private PeriodService $periods,
 		private IL10N $l10n,
 	) {
 		parent::__construct(Application::APP_ID, $request);
@@ -32,6 +34,39 @@ class TransactionController extends Controller {
 	public function index(?string $status = null, int $limit = 10000, int $offset = 0): DataResponse {
 		$items = $this->txMapper->findFiltered($this->userId(), $status, $limit, $offset);
 		return new DataResponse($items);
+	}
+
+	/**
+	 * Kennzahlen zu den bereits zugeordneten Umsätzen (Issue #255).
+	 *
+	 * „Zuzuordnen" lädt nur noch offene Umsätze; was die Oberfläche von den
+	 * zugeordneten braucht, kommt hier verdichtet:
+	 *  - history: je Zahlungspartner und Gegenkonto die Zahl der bisherigen
+	 *    Zuordnungen (Grundlage der Vorschläge),
+	 *  - progress: zugeordnet von allen Umsätzen (Fortschrittsbalken),
+	 *  - byJournal: die Umsätze, aus denen Buchungen des Zeitraums entstanden
+	 *    sind, je Journal-ID (für „Regel anlegen" im Journal).
+	 */
+	#[NoAdminRequired]
+	public function context(?int $period = null): DataResponse {
+		$userId = $this->userId();
+		[$from, $to] = $this->periods->range($userId, $period);
+		$counts = $this->txMapper->statusCounts($userId);
+
+		$byJournal = [];
+		foreach ($this->txMapper->findAssignedInRange($userId, $from, $to) as $tx) {
+			$journalId = $tx->getJournalId();
+			if ($journalId && $tx->getCounterparty() && $tx->getContraAccountId()) {
+				$byJournal[$journalId] = $tx;
+			}
+		}
+
+		return new DataResponse([
+			'history' => $this->txMapper->counterpartyHistory($userId),
+			'progress' => ['total' => $counts['total'], 'assigned' => $counts['assigned']],
+			// Leer wäre in JSON ein Array statt eines Objekts.
+			'byJournal' => $byJournal === [] ? new \stdClass() : $byJournal,
+		]);
 	}
 
 	/**

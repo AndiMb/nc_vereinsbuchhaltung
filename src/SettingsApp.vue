@@ -147,7 +147,9 @@ import { useAccounts } from './composables/useAccounts.js'
 import { useConfirm } from './composables/useConfirm.js'
 import { usePeriods } from './composables/usePeriods.js'
 import { usePermissions } from './composables/usePermissions.js'
+import { setClubTimeZone } from './lib/clubTime.js'
 import { errMsg } from './lib/format.js'
+import { withPasswordConfirmation } from './lib/passwordGate.js'
 
 /**
  * Wurzelkomponente der Nextcloud-Einstellungsseite (Settings\AdminSettings /
@@ -250,6 +252,8 @@ export default {
 		async loadSettings() {
 			try {
 				const { data } = await api.getSettings()
+				// „Heute“ der Unterseiten in der Vereinszone (#263); diese Seite hat keinen Initial State.
+				setClubTimeZone(data.club_time_zone)
 				this.storageMode = data.storage_mode || 'appdata'
 				this.storageUser = data.storage_user || ''
 				this.storagePath = data.storage_path || 'Vereinsbuchhaltung/Belege'
@@ -309,6 +313,7 @@ export default {
 
 		async resetAll() {
 			if (!await this.askConfirm(this.t('Alle Daten löschen'), this.t('Wirklich ALLE Konten, Buchungen und Importe, alle Rechnungen samt PDF und E-Rechnung sowie den Einzug (Läufe, Rücklastschriften, Mahnstufen) löschen? Rechnungen sind acht Jahre aufzubewahren – haben Sie sie mit dem Beleg-ZIP gesichert? Mitglieder, Mandate, Beitragsgruppen und Zuweisungen bleiben bestehen.'))) { return }
+			if (!await withPasswordConfirmation()) { return }
 			this.busy = true
 			try {
 				await api.reset()

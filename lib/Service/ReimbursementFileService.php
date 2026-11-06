@@ -116,6 +116,30 @@ class ReimbursementFileService {
 	}
 
 	/**
+	 * Gegenstück zu {@see linkToJournal()}: legt die Belege, die bei der Auszahlung in die
+	 * Struktur der Buchung gewandert sind, wieder beim Antrag ab - bevor die Buchung samt ihren
+	 * Belegen verschwindet. Im Wächter-Ordner bleiben die Dateien liegen, dort ist nichts zu tun.
+	 */
+	public function restoreFromJournal(Reimbursement $reimbursement, int $journalId): void {
+		if ($this->storage->isWatchMode()) {
+			return;
+		}
+		$attachments = $this->attachmentMapper->findAllByJournal($journalId);
+		foreach ($this->mapper->findActive($reimbursement->getId()) as $file) {
+			if ($file->getFileId() !== null) {
+				continue;
+			}
+			foreach ($attachments as $i => $attachment) {
+				if ($attachment->getFileName() === $file->getFileName() && $attachment->getFileSize() === $file->getFileSize()) {
+					$this->storage->storeReimbursementFile($file, (int)substr($reimbursement->getExpenseDate(), 0, 4), $this->storage->contentOf($attachment));
+					unset($attachments[$i]);
+					break;
+				}
+			}
+		}
+	}
+
+	/**
 	 * Legt für jede Datei des Antrags den normalen Beleg-Eintrag an der Buchung
 	 * an (siehe {@see AttachmentStorageService::moveReimbursementFileToJournal()}).
 	 */
@@ -127,7 +151,7 @@ class ReimbursementFileService {
 			$attachment->setFileName($file->getFileName());
 			$attachment->setMimeType($file->getMimeType());
 			$attachment->setFileSize($file->getFileSize());
-			$attachment->setUploadedAt(new \DateTime());
+			$attachment->setUploadedAt(new \DateTime()); // UTC-Zeitstempel (#263)
 			$attachment = $this->attachmentMapper->insert($attachment);
 			$this->storage->moveReimbursementFileToJournal($file, $attachment);
 			$this->attachmentMapper->update($attachment);

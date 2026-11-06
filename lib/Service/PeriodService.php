@@ -13,7 +13,7 @@ use OCA\Vereinsbuchhaltung\Db\PeriodMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
 use OCA\Vereinsbuchhaltung\Exception\PeriodClosedException;
 use OCA\Vereinsbuchhaltung\Exception\PeriodNotFoundException;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IL10N;
 
 /**
@@ -67,8 +67,9 @@ class PeriodService {
 		private EntryNumberService $entryNumbers,
 		private TransactionRunner $transaction,
 		private AuditService $audit,
-		private IConfig $config,
+		private IAppConfig $config,
 		private IL10N $l10n,
+		private ClubClock $clock,
 	) {
 	}
 
@@ -86,7 +87,7 @@ class PeriodService {
 	 * @return array{preset:string, startDay:int, startMonth:int, lengthMonths:int}
 	 */
 	public function rule(): array {
-		$raw = $this->config->getAppValue(Application::APP_ID, self::SETTING_RULE, '');
+		$raw = $this->config->getValueString(Application::APP_ID, self::SETTING_RULE, '');
 		if ($raw === '') {
 			return PeriodRule::DEFAULT_RULE;
 		}
@@ -160,7 +161,7 @@ class PeriodService {
 
 	/** Die Periode, die den heutigen Tag enthält; wird bei Bedarf angelegt. */
 	public function current(string $userId): Period {
-		return $this->forDateOrCreate($userId, date('Y-m-d'));
+		return $this->forDateOrCreate($userId, $this->clock->today());
 	}
 
 	/** Die Periode davor, oder null wenn $period die erste ist. */
@@ -282,7 +283,7 @@ class PeriodService {
 
 			$renumbered = $this->entryNumbers->renumberPeriod($userId, $id);
 
-			$period->setClosedAt((new \DateTime())->format('Y-m-d H:i:s'));
+			$period->setClosedAt((new \DateTime())->format('Y-m-d H:i:s')); // UTC-Zeitstempel (#263)
 			$period->setClosedBy($uid);
 			$period = $this->mapper->update($period);
 			$this->touched($userId);
@@ -512,7 +513,7 @@ class PeriodService {
 			$plan = $this->planRuleChange($userId, $rule);
 			$old = $this->all($userId);
 
-			$this->config->setAppValue(Application::APP_ID, self::SETTING_RULE, json_encode($rule, JSON_THROW_ON_ERROR));
+			$this->config->setValueString(Application::APP_ID, self::SETTING_RULE, json_encode($rule, JSON_THROW_ON_ERROR));
 
 			// Ein Zeitraum, dessen Grenzen die neue Regel unverändert lässt,
 			// bleibt bestehen – samt ID, Bezeichnung, Buchungen und Planwerten.
@@ -747,7 +748,7 @@ class PeriodService {
 	 */
 	private function planRuleChange(string $userId, array $rule): array {
 		$old = $this->all($userId);
-		$today = date('Y-m-d');
+		$today = $this->clock->today();
 
 		// Die neue Kette muss alles abdecken, was Daten trägt: den Zeitraum der
 		// Buchungen und die Zeiträume mit Planwerten oder Plan-Ständen. Der

@@ -733,16 +733,54 @@ change the setting later, running requests keep the old value. If the app finds 
 same receipt in another request, the request shows a **duplicate hint**; nothing is
 blocked.
 
+**Claim number.** Every request gets a consecutive number when submitted, such as
+*AUSL-2026-0012* (restarting at 1 each year; existing requests received theirs
+retroactively). It appears in the request, in the list, in the payment reference
+of the transfer and for members under *My area → Expenses*; the search under
+*Bookings → Expenses* finds it. Change the pattern under *Settings → Expense
+reimbursement → Claim numbers* (placeholders as for invoice numbers); numbers
+already issued stay.
+
 **Paying out (bookkeeper and administrator).** The approved request also appears
-under *Bookings → Open items*, marked as "Expense – to be paid". Transfer the amount
-by hand as usual and choose **Book payout** in the request: the normal posting
-dialog opens, prefilled with amount, text and the reference *AUSL-number*. You pick
-the expense account, the money account and possibly a cost center; the usual rules
-of the fiscal year apply. On saving, the request becomes *Paid out*, the open item
-is settled, the receipts are attached to the posting and the member receives an
-email. The item does not count as a receivable (no "overdue" items, no dunning); an
-expense claim can only be settled through the request, not through *Paid* or
-*Cancel* in the list.
+under *Bookings → Open items*, marked as "Expense – to be paid". Choose
+**Prepare transfer** in the request: a window shows the **Girocode** (scan it with
+your banking app) and, next to it, recipient, IBAN, amount and payment reference
+to copy. The reference reads *AUSL-2026-0012 - <purpose>* and is shortened to 140
+characters if necessary. Once you have triggered the transfer, choose **Transfer
+completed**: the request notes this ("Transfer instructed") but stays approved.
+Booking happens when the bank transaction arrives. Clicked by mistake? **Revert
+note** undoes it.
+
+**Assigning the bank transaction.** After the import the transaction appears under
+*Bookings → To assign*. If the claim number is in the payment reference (or IBAN and
+amount match), the row shows the chip **"✓ Expense claim AUSL-…"**. For any other
+transfer, for example without the number in the text, choose **Assign to expense
+claim…** and pick the claim yourself; the amount must match. In both cases you
+choose the **expense account**. **Assign and book** books the transaction, the
+request becomes *Paid out*, the open item is settled, the receipts are attached to
+the posting and the member receives an email. This way the same payment never
+appears twice in the books. The item does not count as a receivable (no "overdue"
+items, no dunning); an expense claim can only be settled through the request, not
+through *Paid* or *Cancel* in the list.
+
+**Revert payout.** A paid-out request has a **Revert payout** button: the booking is
+deleted, an assigned bank transaction shows up again under *To assign*, the request
+is approved again, the item open, and the receipts are back with the request. The
+same happens if someone deletes the payout booking or unassigns the transaction. The
+history records it.
+
+**Without a bank transaction (cash).** If there is no bank transaction, choose
+**Book without bank transaction** in the request: the normal posting dialog opens,
+prefilled with amount, text and the claim number as reference. You pick the expense
+account, the money account and possibly a cost center; the usual rules of the fiscal
+year apply. On saving, the request becomes *Paid out*. Do not use this path for a
+transfer that will later show up on the bank statement, or you create a double
+booking.
+
+**Tile on the overview.** As long as requests are neither paid out nor rejected
+or withdrawn, the overview shows an **Open expense claims** tile with count, total
+and the split into "awaiting approval", "to be transferred" and "awaiting the bank transaction". *Ansehen* (View)
+leads to *Bookings → Expense claims*.
 
 **History.** Every request keeps a history that can only be appended to:
 submission, every approval (with "1 of 2"), rejection, withdrawal, receipts and

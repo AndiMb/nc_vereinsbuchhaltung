@@ -17,7 +17,7 @@ use OCA\Vereinsbuchhaltung\Service\ContributionPreNotificationService;
 use OCA\Vereinsbuchhaltung\Service\DirectDebitEligibilityResolver;
 use OCA\Vereinsbuchhaltung\Service\RecipientL10n;
 use OCP\AppFramework\Utility\ITimeFactory;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IL10N;
 use OCP\IUser;
 use OCP\IUserManager;
@@ -124,8 +124,8 @@ class ContributionPreNotificationServiceTest extends TestCase {
 	}
 
 	private function service(string $today, ?RecipientL10n $recipientL10n = null): ContributionPreNotificationService {
-		$config = $this->createMock(IConfig::class);
-		$config->method('getAppValue')->willReturnCallback(
+		$config = $this->createMock(IAppConfig::class);
+		$config->method('getValueString')->willReturnCallback(
 			fn (string $app, string $key, string $default = '') => array_key_exists($key, $this->configStore) ? $this->configStore[$key] : $default,
 		);
 		$l10n = $this->createMock(IL10N::class);

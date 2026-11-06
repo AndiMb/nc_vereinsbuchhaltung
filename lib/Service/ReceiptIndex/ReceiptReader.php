@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Service\ReceiptIndex;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
+use OCA\Vereinsbuchhaltung\Service\ClubClock;
 use OCA\Vereinsbuchhaltung\Service\EInvoice\EInvoiceException;
 use OCA\Vereinsbuchhaltung\Service\EInvoice\InvoiceSuiteEInvoiceWriter;
 use PrinsFrank\PdfParser\PdfParser;
@@ -39,7 +40,7 @@ class ReceiptReader {
 		?\Closure $today = null,
 		private ?LoggerInterface $logger = null,
 	) {
-		$this->today = $today ?? static fn (): \DateTimeImmutable => new \DateTimeImmutable('today');
+		$this->today = $today ?? static fn (): \DateTimeImmutable => new \DateTimeImmutable(ClubClock::todayFromSystemClock());
 	}
 
 	/**
@@ -137,6 +138,8 @@ class ReceiptReader {
 	 * @param list<string> $nameRefs
 	 */
 	private function readText(string $bytes, array $nameRefs): ReceiptFacts {
+		// pdfparser liegt in vendor/, das Nextcloud nicht selbst lädt (#265).
+		Application::loadComposerAutoloader();
 		$text = (new PdfParser())->parseString($bytes)->getText();
 		$text = mb_substr($text, 0, self::MAX_TEXT_CHARS);
 

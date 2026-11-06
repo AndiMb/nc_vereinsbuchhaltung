@@ -37,6 +37,19 @@
 			</template>
 			<span class="vbh-receipt-preview-name" :title="file.name">{{ file.name }}</span>
 			<span v-if="picked" class="vbh-folder-status vbh-folder-status--linked">{{ t('übernommen') }}</span>
+			<!-- Issue #281: übernehmen, ohne erst zur Liste zurückzumüssen. -->
+			<NcButton
+				v-else-if="pickable"
+				class="vbh-receipt-preview-pick"
+				variant="secondary"
+				size="small"
+				:disabled="pickBusy"
+				@click="$emit('pick', file)">
+				<template #icon>
+					<NcIconSvgWrapper :path="mdiPlus" :size="18" />
+				</template>
+				{{ t('Beleg übernehmen') }}
+			</NcButton>
 			<NcLoadingIcon v-if="loading || pending" :size="18" :name="t('Wird geladen…')" />
 			<NcButton
 				variant="tertiary"
@@ -86,7 +99,7 @@
 </template>
 
 <script>
-import { mdiArrowLeft, mdiChevronLeft, mdiChevronRight, mdiOpenInNew } from '@mdi/js'
+import { mdiArrowLeft, mdiChevronLeft, mdiChevronRight, mdiOpenInNew, mdiPlus } from '@mdi/js'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
@@ -105,7 +118,9 @@ const DEBOUNCE_MS = 250
  * AttachmentFolderDialog.vue).
  *
  * Mit showNav (die Vorschau steht anstelle der Liste, schmales Fenster)
- * kommen „Liste“ und Blättern dazu, ↑/↓ blättern dann auch hier.
+ * kommen „Liste“ und Blättern dazu, ↑/↓ blättern dann auch hier. Mit
+ * pickable steht daneben „Übernehmen“ (Issue #281) - die Datei meldet die
+ * Komponente nur per pick, was dann geschieht, entscheidet der Rahmen.
  *
  * Ein blockiertes iframe (Hoster mit eigener, strengerer CSP) meldet kein
  * Ereignis - deshalb steht „Im neuen Tab öffnen“ immer in der Kopfzeile.
@@ -125,9 +140,14 @@ export default {
 		// Die Datei wurde gerade übernommen (Kopfzeile zeigt das an).
 		picked: { type: Boolean, default: false },
 		showNav: { type: Boolean, default: false },
+		// Der Rahmen kann die Datei übernehmen (Issue #281): Knopf in der
+		// Kopfzeile, meldet pick mit der Datei. Ausgeblendet, solange picked.
+		pickable: { type: Boolean, default: false },
+		// Während der Rahmen speichert, ist Übernehmen gesperrt.
+		pickBusy: { type: Boolean, default: false },
 	},
 
-	emits: ['back', 'step'],
+	emits: ['back', 'pick', 'step'],
 
 	data() {
 		// shownUrl/shownKind: was gerade dargestellt wird. Beide wechseln
@@ -139,7 +159,7 @@ export default {
 		// Antworten, die erst nach einem weiteren Wechsel eintreffen. pending:
 		// die Kopfzeile nennt schon die neue Datei, zu sehen ist noch die alte
 		// (Ruhezeit) - Ladeanzeige und abgeblendeter Inhalt machen das kenntlich.
-		return { mdiArrowLeft, mdiChevronLeft, mdiChevronRight, mdiOpenInNew, shownUrl: '', shownKind: 'none', loading: false, failed: false, pending: false, timer: null, blobUrl: '', loadSeq: 0 }
+		return { mdiArrowLeft, mdiChevronLeft, mdiChevronRight, mdiOpenInNew, mdiPlus, shownUrl: '', shownKind: 'none', loading: false, failed: false, pending: false, timer: null, blobUrl: '', loadSeq: 0 }
 	},
 
 	computed: {

@@ -6,16 +6,14 @@ namespace OCA\Vereinsbuchhaltung\Tests\Unit;
 
 use OCA\Vereinsbuchhaltung\Controller\SettingsController;
 use OCA\Vereinsbuchhaltung\Db\AccountMapper;
-use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Service\AttachmentStorageService;
 use OCA\Vereinsbuchhaltung\Service\AttachmentWatchFolderService;
 use OCA\Vereinsbuchhaltung\Service\AuditService;
 use OCA\Vereinsbuchhaltung\Service\ContributionYearService;
-use OCA\Vereinsbuchhaltung\Service\DemoDataService;
 use OCA\Vereinsbuchhaltung\Service\DunningSettings;
 use OCA\Vereinsbuchhaltung\Service\FolderPathValidator;
+use OCA\Vereinsbuchhaltung\Service\FrontendStateService;
 use OCA\Vereinsbuchhaltung\Service\InvoiceSettings;
-use OCA\Vereinsbuchhaltung\Service\MandateDocumentService;
 use OCA\Vereinsbuchhaltung\Service\MandateExpirySettings;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
 use OCA\Vereinsbuchhaltung\Service\ReimbursementSettings;
@@ -23,7 +21,7 @@ use OCA\Vereinsbuchhaltung\Service\SepaDebtorAccountService;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\Files\Folder;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IL10N;
 use OCP\IRequest;
 use OCP\IUserManager;
@@ -66,10 +64,11 @@ class SettingsControllerForeignHomeTest extends TestCase {
 	}
 
 	private function controller(): SettingsController {
-		$config = $this->createMock(IConfig::class);
-		$config->method('getAppValue')->willReturnCallback(fn (string $app, string $key, string $default = '') => $this->store[$key] ?? $default);
-		$config->method('setAppValue')->willReturnCallback(function (string $app, string $key, string $value): void {
+		$config = $this->createMock(IAppConfig::class);
+		$config->method('getValueString')->willReturnCallback(fn (string $app, string $key, string $default = '') => $this->store[$key] ?? $default);
+		$config->method('setValueString')->willReturnCallback(function (string $app, string $key, string $value): bool {
 			$this->store[$key] = $value;
+			return true;
 		});
 		$l10n = $this->createMock(IL10N::class);
 		$l10n->method('t')->willReturnCallback(static fn (string $text, array $params = []) => vsprintf($text, $params));
@@ -79,23 +78,22 @@ class SettingsControllerForeignHomeTest extends TestCase {
 		$permissions->method('describeCurrent')->willReturn(['uid' => self::SELF]);
 		$users = $this->createMock(IUserManager::class);
 		$users->method('userExists')->willReturnCallback(static fn (string $uid) => in_array($uid, [self::SELF, self::FOREIGN], true));
-		$mandateDocuments = $this->createMock(MandateDocumentService::class);
-		$mandateDocuments->method('folderPath')->willReturn('SEPA-Mandate');
 		$contributionYear = $this->createMock(ContributionYearService::class);
 		$contributionYear->method('getStartMonth')->willReturn(1);
+		// Den Einstellungssatz der Antwort prüft SettingsControllerSepaTest; hier
+		// geht es nur um Status und gespeicherte Werte.
+		$frontendState = $this->createMock(FrontendStateService::class);
+		$frontendState->method('settings')->willReturn([]);
 
 		return new SettingsController(
 			$this->request,
 			$config,
 			$permissions,
-			$this->createMock(DemoDataService::class),
 			$this->createMock(AccountMapper::class),
-			$this->createMock(MemberMapper::class),
 			$users,
 			$this->createMock(SepaDebtorAccountService::class),
 			$this->storage,
 			$this->watch,
-			$mandateDocuments,
 			$contributionYear,
 			new FolderPathValidator($l10n),
 			new DunningSettings($config),
@@ -103,6 +101,7 @@ class SettingsControllerForeignHomeTest extends TestCase {
 			new InvoiceSettings($config, new FolderPathValidator($l10n)),
 			$this->createMock(ReimbursementSettings::class),
 			$l10n,
+			$frontendState,
 			$this->audit,
 		);
 	}

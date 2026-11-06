@@ -5,15 +5,20 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Controller;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
+use OCA\Vereinsbuchhaltung\Db\BankTransactionMapper;
+use OCA\Vereinsbuchhaltung\Db\NumberRange;
 use OCA\Vereinsbuchhaltung\Db\ReimbursementMapper;
 use OCA\Vereinsbuchhaltung\Exception\ForbiddenException;
 use OCA\Vereinsbuchhaltung\Http\ReceiptPreviewPolicy;
 use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
 use OCA\Vereinsbuchhaltung\Service\ActorContextService;
+use OCA\Vereinsbuchhaltung\Service\NumberRangeService;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
 use OCA\Vereinsbuchhaltung\Service\ReimbursementFileService;
+use OCA\Vereinsbuchhaltung\Service\ReimbursementMatchingService;
 use OCA\Vereinsbuchhaltung\Service\ReimbursementPresenter;
 use OCA\Vereinsbuchhaltung\Service\ReimbursementService;
+use OCA\Vereinsbuchhaltung\Service\ReimbursementTransferService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http;
@@ -34,6 +39,7 @@ use OCP\IRequest;
  * seinen eigenen Antrag - die Rolle allein reicht dafür nicht.
  */
 class ReimbursementController extends Controller {
+	use BookContext;
 
 	public function __construct(
 		IRequest $request,
@@ -43,6 +49,10 @@ class ReimbursementController extends Controller {
 		private ReimbursementPresenter $presenter,
 		private ReimbursementMapper $mapper,
 		private ReimbursementFileService $fileService,
+		private ReimbursementTransferService $transfer,
+		private ReimbursementMatchingService $matching,
+		private BankTransactionMapper $txMapper,
+		private NumberRangeService $numberRanges,
 		private IL10N $l10n,
 	) {
 		parent::__construct(Application::APP_ID, $request);
@@ -69,6 +79,45 @@ class ReimbursementController extends Controller {
 		]);
 	}
 
+	/** Zahlen für die Übersichtskachel „Offene Auslagen“. */
+	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_READ)]
+	public function summary(): DataResponse {
+		return new DataResponse($this->service->openSummary());
+	}
+
+	/**
+	 * Für „Zuzuordnen“: ob eine Auslage zu bezahlen ist (`payable`) und Zuordnungs-
+	 * vorschläge für die unzugeordneten Abgänge, als Objekt Umsatz-ID => Vorschläge.
+	 */
+	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_READ)]
+	public function suggestions(): DataResponse {
+		$approved = $this->mapper->findApproved();
+		if ($approved === []) {
+			return new DataResponse(['payable' => false, 'suggestions' => new \stdClass()]);
+		}
+		$txs = $this->txMapper->findFiltered($this->userId(), 'unassigned', 1000, 0);
+		return new DataResponse(['payable' => true, 'suggestions' => (object)$this->matching->suggestForMany($txs, $approved)]);
+	}
+
+	/** Der Nummernkreis der Auslagenanträge (Einstellungen → Auslagenerstattung). */
+	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_ADMIN)]
+	public function numberRange(): DataResponse {
+		return new DataResponse($this->numberRanges->ensure(NumberRange::KIND_REIMBURSEMENT));
+	}
+
+	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_ADMIN)]
+	public function updateNumberRange(string $prefixPattern, string $resetMode, ?int $nextNo = null): DataResponse {
+		try {
+			return new DataResponse($this->numberRanges->update(NumberRange::KIND_REIMBURSEMENT, $prefixPattern, $resetMode, $nextNo));
+		} catch (\InvalidArgumentException $e) {
+			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
+		}
+	}
+
 	#[NoAdminRequired]
 	#[RequiresRole(PermissionService::ROLE_READ)]
 	public function show(int $id): DataResponse {
@@ -90,6 +139,59 @@ class ReimbursementController extends Controller {
 	#[RequiresRole(PermissionService::ROLE_ADMIN)]
 	public function reject(int $id, string $reason = ''): DataResponse {
 		return $this->decide(fn () => $this->service->reject($id, $this->uid(), $reason));
+	}
+
+	/**
+	 * Überweisungsdaten mit GiroCode für eine freigegebene Auslage. Nur für
+	 * Buchhalter und Verwalter wie die Auszahlung selbst: die Antwort trägt die
+	 * volle IBAN.
+	 */
+	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_WRITE)]
+	public function transfer(int $id): DataResponse {
+		try {
+			return new DataResponse($this->transfer->prepare($id));
+		} catch (DoesNotExistException) {
+			return $this->notFound();
+		} catch (\InvalidArgumentException $e) {
+			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
+		}
+	}
+
+	/** Die Überweisung ist angewiesen; gebucht wird mit dem Kontoumsatz. */
+	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_WRITE)]
+	public function transferred(int $id): DataResponse {
+		return $this->decide(fn () => $this->service->markTransferred($id, $this->uid()));
+	}
+
+	/** Nimmt die Vormerkung „Überweisung angewiesen“ zurück. */
+	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_WRITE)]
+	public function notTransferred(int $id): DataResponse {
+		return $this->decide(fn () => $this->service->unmarkTransferred($id, $this->uid()));
+	}
+
+	/** Nimmt die Auszahlung zurück und löscht ihre Buchung. */
+	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_WRITE)]
+	public function revertPayment(int $id): DataResponse {
+		return $this->decide(fn () => $this->service->revertPayment($id));
+	}
+
+	/**
+	 * Ordnet einen Kontoumsatz der Auslage zu und bucht ihn gegen das gewählte
+	 * Aufwandskonto.
+	 */
+	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_WRITE)]
+	public function assignTransaction(int $id, int $bankTxId, int $contraAccountId): DataResponse {
+		return $this->decide(fn () => $this->service->payFromBankTransaction(
+			$id,
+			$this->txMapper->find($bankTxId, $this->userId()),
+			$contraAccountId,
+			$this->uid(),
+		));
 	}
 
 	/**

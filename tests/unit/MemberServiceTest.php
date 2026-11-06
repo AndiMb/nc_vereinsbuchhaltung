@@ -4,15 +4,14 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Tests\Unit;
 
-use OCA\Vereinsbuchhaltung\Db\Assignment;
 use OCA\Vereinsbuchhaltung\Db\AssignmentMapper;
 use OCA\Vereinsbuchhaltung\Db\Mandate;
 use OCA\Vereinsbuchhaltung\Db\MandateMapper;
 use OCA\Vereinsbuchhaltung\Db\Member;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
-use OCA\Vereinsbuchhaltung\Db\OpenItem;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
 use OCA\Vereinsbuchhaltung\Service\MemberService;
+use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubClockStub;
 use OCP\IL10N;
 use OCP\IUser;
 use OCP\IUserManager;
@@ -50,7 +49,7 @@ class MemberServiceTest extends TestCase {
 		$l10n->method('t')->willReturnCallback(
 			static fn (string $text, array $parameters = []): string => vsprintf(str_replace('%s', '%1$s', $text), $parameters),
 		);
-		return new MemberService($this->mapper, $this->mandateMapper, $this->assignmentMapper, $this->openItemMapper, $this->userManager, $l10n);
+		return new MemberService($this->mapper, $this->mandateMapper, $this->assignmentMapper, $this->openItemMapper, $this->userManager, $l10n, ClubClockStub::system());
 	}
 
 	// --- splitLabel(): reine Split-Heuristik (Spec §3.1 "Umbaupfad") ---
@@ -387,21 +386,34 @@ class MemberServiceTest extends TestCase {
 
 	// --- blockingReasons()/delete(): Löschsperre (Spec §3.1) ---
 
-	private function mandate(int $memberId, string $status = Mandate::STATUS_ACTIVE): Mandate {
-		$mandate = new Mandate();
-		$mandate->setMemberId($memberId);
-		$mandate->setStatus($status);
-		return $mandate;
+	/**
+	 * Stubbt memberIdsWithMandate: aktive Mandate zählen für beide Aufrufe,
+	 * nicht aktive nur für "irgendein Mandat".
+	 *
+	 * @param array<int, string> $statusByMember member_id => Mandatsstatus
+	 */
+	private function stubMandates(array $statusByMember): void {
+		$this->mandateMapper->method('memberIdsWithMandate')->willReturnCallback(
+			static function (array $ids, bool $activeOnly) use ($statusByMember): array {
+				$found = [];
+				foreach ($statusByMember as $memberId => $status) {
+					if (in_array($memberId, $ids, true) && (!$activeOnly || $status === Mandate::STATUS_ACTIVE)) {
+						$found[] = $memberId;
+					}
+				}
+				return $found;
+			}
+		);
 	}
 
 	public function testBlockingReasonsLeerWennNichtsVerweist(): void {
-		$this->mandateMapper->method('findAll')->willReturn([]);
+		$this->stubMandates([]);
 
 		$this->assertSame([], $this->service()->blockingReasons(1));
 	}
 
 	public function testBlockingReasonsAktivesMandatBlockiert(): void {
-		$this->mandateMapper->method('findAll')->willReturn([$this->mandate(1, Mandate::STATUS_ACTIVE)]);
+		$this->stubMandates([1 => Mandate::STATUS_ACTIVE]);
 
 		$reasons = $this->service()->blockingReasons(1);
 
@@ -416,7 +428,7 @@ class MemberServiceTest extends TestCase {
 	 * @dataProvider nichtAktiveMandatszustaende
 	 */
 	public function testBlockingReasonsNichtAktivesMandatBlockiertAuch(string $status): void {
-		$this->mandateMapper->method('findAll')->willReturn([$this->mandate(1, $status)]);
+		$this->stubMandates([1 => $status]);
 
 		$reasons = $this->service()->blockingReasons(1);
 
@@ -435,16 +447,14 @@ class MemberServiceTest extends TestCase {
 	}
 
 	public function testBlockingReasonsMandatEinesAnderenMitgliedsBlockiertNicht(): void {
-		$this->mandateMapper->method('findAll')->willReturn([$this->mandate(2, Mandate::STATUS_ACTIVE)]);
+		$this->stubMandates([2 => Mandate::STATUS_ACTIVE]);
 
 		$this->assertSame([], $this->service()->blockingReasons(1));
 	}
 
 	/** Issue #68: eine Zuweisung zu einer Beitragsgruppe blockiert die Löschung ebenso. */
 	public function testBlockingReasonsZuweisungBlockiert(): void {
-		$assignment = new Assignment();
-		$assignment->setMemberId(1);
-		$this->assignmentMapper->method('findAll')->willReturn([$assignment]);
+		$this->assignmentMapper->method('memberIdsWithAssignment')->willReturn([1]);
 
 		$reasons = $this->service()->blockingReasons(1);
 
@@ -454,10 +464,7 @@ class MemberServiceTest extends TestCase {
 
 	/** Issue #68: eine Forderung (Claim, auf vbh_open_items abgebildet) blockiert die Löschung ebenso. */
 	public function testBlockingReasonsForderungBlockiert(): void {
-		$claim = new OpenItem();
-		$claim->setMemberId(1);
-		$claim->setType(OpenItem::TYPE_CONTRIBUTION);
-		$this->openItemMapper->method('findClaims')->willReturn([$claim]);
+		$this->openItemMapper->method('memberIdsWithClaims')->willReturn([1]);
 
 		$reasons = $this->service()->blockingReasons(1);
 
@@ -465,26 +472,45 @@ class MemberServiceTest extends TestCase {
 		$this->assertStringContainsString('Forderung', $reasons[0]);
 	}
 
-	public function testBlockingReasonsForIdsBerechnetMehrereMitgliederInWenigenAbfragen(): void {
-		// Batch-Fall (MemberController::index()): genau eine findAll()-Abfrage
-		// je Mapper bedient beliebig viele Mitglieder, nicht eine je Mitglied.
-		$assignment = new Assignment();
-		$assignment->setMemberId(2);
-		$this->mandateMapper->expects($this->once())->method('findAll')->willReturn([$this->mandate(1, Mandate::STATUS_ACTIVE)]);
-		$this->assignmentMapper->expects($this->once())->method('findAll')->willReturn([$assignment]);
+	public function testBlockingReasonsForIdsFragtJeTabelleEinmalDistinct(): void {
+		// Batch-Fall (MemberController::index()): je Tabelle eine DISTINCT-Abfrage
+		// mit allen IDs bedient beliebig viele Mitglieder, und nichts wird ganz geladen.
+		$this->mandateMapper->expects($this->never())->method('findAll');
+		$this->assignmentMapper->expects($this->never())->method('findAll');
+		$this->openItemMapper->expects($this->never())->method('findClaims');
+		$mandateCalls = [];
+		$this->mandateMapper->expects($this->exactly(2))->method('memberIdsWithMandate')
+			->willReturnCallback(static function (array $ids, bool $activeOnly) use (&$mandateCalls): array {
+				$mandateCalls[] = [$ids, $activeOnly];
+				return $activeOnly ? [1] : [1, 4];
+			});
+		$this->assignmentMapper->expects($this->once())->method('memberIdsWithAssignment')->with([1, 2, 3, 4])->willReturn([2]);
+		$this->openItemMapper->expects($this->once())->method('memberIdsWithClaims')->with([1, 2, 3, 4])->willReturn([3]);
 
-		$reasons = $this->service()->blockingReasonsForIds([1, 2, 3]);
+		$reasons = $this->service()->blockingReasonsForIds([1, 2, 3, 4]);
 
-		$this->assertNotEmpty($reasons[1]);
-		$this->assertNotEmpty($reasons[2]);
-		$this->assertSame([], $reasons[3]);
+		$this->assertSame([[[1, 2, 3, 4], true], [[1, 2, 3, 4], false]], $mandateCalls);
+		$this->assertStringContainsString('aktives SEPA-Mandat', $reasons[1][0]);
+		$this->assertCount(1, $reasons[1]);
+		$this->assertStringContainsString('Zuweisung', $reasons[2][0]);
+		$this->assertStringContainsString('Forderung', $reasons[3][0]);
+		$this->assertCount(1, $reasons[4]);
+		$this->assertStringNotContainsString('aktives SEPA-Mandat', $reasons[4][0]);
+	}
+
+	public function testBlockingReasonsForIdsOhneIdsFragtNichts(): void {
+		$this->mandateMapper->expects($this->never())->method('memberIdsWithMandate');
+		$this->assignmentMapper->expects($this->never())->method('memberIdsWithAssignment');
+		$this->openItemMapper->expects($this->never())->method('memberIdsWithClaims');
+
+		$this->assertSame([], $this->service()->blockingReasonsForIds([]));
 	}
 
 	public function testDeleteWirftBeiBlockierendemGrund(): void {
 		$member = new Member();
 		$member->setId(3);
 		$this->mapper->method('find')->with(3)->willReturn($member);
-		$this->mandateMapper->method('findAll')->willReturn([$this->mandate(3, Mandate::STATUS_ACTIVE)]);
+		$this->stubMandates([3 => Mandate::STATUS_ACTIVE]);
 		$this->mapper->expects($this->never())->method('delete');
 
 		$this->expectException(\InvalidArgumentException::class);
@@ -495,7 +521,7 @@ class MemberServiceTest extends TestCase {
 		$member = new Member();
 		$member->setId(3);
 		$this->mapper->method('find')->with(3)->willReturn($member);
-		$this->mandateMapper->method('findAll')->willReturn([]);
+		$this->stubMandates([]);
 		$this->mapper->expects($this->once())->method('delete')->with($member);
 
 		$this->service()->delete(3);

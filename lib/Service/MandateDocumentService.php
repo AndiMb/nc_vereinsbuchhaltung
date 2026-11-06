@@ -6,10 +6,11 @@ namespace OCA\Vereinsbuchhaltung\Service;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\Mandate;
+use OCA\Vereinsbuchhaltung\Exception\UserFacingException;
 use OCP\Files\File;
 use OCP\Files\Folder;
 use OCP\Files\IRootFolder;
-use OCP\IConfig;
+use OCP\IAppConfig;
 use OCP\IL10N;
 
 /**
@@ -36,21 +37,21 @@ class MandateDocumentService {
 
 	public function __construct(
 		private IRootFolder $rootFolder,
-		private IConfig $config,
+		private IAppConfig $config,
 		private AttachmentStorageService $attachmentStorage,
 		private IL10N $l10n,
 	) {
 	}
 
 	public function folderPath(): string {
-		$path = trim($this->config->getAppValue(Application::APP_ID, self::SETTING_FOLDER, self::DEFAULT_FOLDER));
+		$path = trim($this->config->getValueString(Application::APP_ID, self::SETTING_FOLDER, self::DEFAULT_FOLDER));
 		$path = trim(str_replace('\\', '/', $path), '/');
 		return $path !== '' ? $path : self::DEFAULT_FOLDER;
 	}
 
 	/** Ob der abschaltbare Dauer-Hinweis „Mandat ohne Nachweis" grundsätzlich aktiv ist (Default an, Spec §3.2). */
 	public function showMissingDocumentWarning(): bool {
-		return $this->config->getAppValue(Application::APP_ID, self::SETTING_SHOW_MISSING_WARNING, '1') === '1';
+		return $this->config->getValueString(Application::APP_ID, self::SETTING_SHOW_MISSING_WARNING, '1') === '1';
 	}
 
 	/** Ob überhaupt ein Nutzer-Home als Ablageort eingerichtet ist. */
@@ -68,7 +69,7 @@ class MandateDocumentService {
 			if ($current->nodeExists($part)) {
 				$node = $current->get($part);
 				if (!($node instanceof Folder)) {
-					throw new \RuntimeException($this->l10n->t("Pfadkomponente '%s' ist kein Ordner", [$part]));
+					throw new UserFacingException($this->l10n->t("Pfadkomponente '%s' ist kein Ordner", [$part]));
 				}
 				$current = $node;
 			} else {
@@ -86,7 +87,7 @@ class MandateDocumentService {
 	 */
 	public function store(Mandate $mandate, string $fileName, string $content): int {
 		if (!$this->isConfigured()) {
-			throw new \RuntimeException($this->l10n->t('Für die Mandats-Nachweisablage ist noch kein Nextcloud-Nutzer eingerichtet (Einstellungen → Belegablage).'));
+			throw new UserFacingException($this->l10n->t('Für die Mandats-Nachweisablage ist noch kein Nextcloud-Nutzer eingerichtet (Einstellungen → Belegablage).'));
 		}
 		$folder = $this->ensureFolder($this->rootFolder->getUserFolder($this->owner()), $this->folderPath());
 		$name = $folder->getNonExistingName($mandate->getMandateReference() . '_' . SafeFileName::of($fileName, 150));

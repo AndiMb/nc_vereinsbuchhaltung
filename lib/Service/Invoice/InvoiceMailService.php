@@ -8,6 +8,7 @@ use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\Invoice;
 use OCA\Vereinsbuchhaltung\Db\InvoiceDocument;
 use OCA\Vereinsbuchhaltung\Db\InvoiceMapper;
+use OCA\Vereinsbuchhaltung\Exception\UserFacingException;
 use OCA\Vereinsbuchhaltung\Service\ClubMailBranding;
 use OCA\Vereinsbuchhaltung\Service\EmailValidator;
 use OCA\Vereinsbuchhaltung\Service\InvoiceService;
@@ -135,10 +136,10 @@ class InvoiceMailService {
 			$failed = $this->mailer->send($message);
 		} catch (\Throwable $e) {
 			$this->logger->warning('Rechnungsversand fehlgeschlagen: {message}', ['app' => Application::APP_ID, 'message' => $e->getMessage(), 'exception' => $e]);
-			throw new \RuntimeException($this->l10n->t('Die E-Mail konnte nicht versendet werden. Bitte prüfen Sie den Mailserver in den Nextcloud-Einstellungen.'), 0, $e);
+			throw new UserFacingException($this->l10n->t('Die E-Mail konnte nicht versendet werden. Bitte prüfen Sie den Mailserver in den Nextcloud-Einstellungen.'), 0, $e);
 		}
 		if ($failed !== []) {
-			throw new \RuntimeException($this->l10n->t('Die E-Mail wurde vom Mailserver nicht angenommen.'));
+			throw new UserFacingException($this->l10n->t('Die E-Mail wurde vom Mailserver nicht angenommen.'));
 		}
 		return $this->service->markSent($invoiceId);
 	}

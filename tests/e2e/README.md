@@ -7,7 +7,7 @@ Bundles, dieselbe API, dieselbe Rechteprüfung wie im Betrieb.
 
 ```bash
 npm run test:e2e:install      # einmalig: Chromium für Playwright
-npm run test:e2e:server       # Docker-Nextcloud (stable34) starten und einrichten
+npm run test:e2e:server       # Docker-Nextcloud (stable35) starten und einrichten
 npm run test:e2e:run          # Tests ausführen (beliebig oft wiederholbar)
 npm run test:e2e:server-stop  # Container wieder abräumen
 ```

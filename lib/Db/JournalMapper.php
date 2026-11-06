@@ -17,6 +17,66 @@ class JournalMapper extends QBMapper {
 		parent::__construct($db, 'vbh_journal', Journal::class);
 	}
 
+	/**
+	 * Datum der letzten Buchung, die zu einem Mitglied gehört – je Mitglied in
+	 * drei Sammelabfragen statt mehrerer Abfragen je Forderung, Auslage und
+	 * Lastschriftposten (Anonymisierungsfrist, siehe
+	 * {@see \OCA\Vereinsbuchhaltung\Service\AnonymizationCandidateService}).
+	 * Zugehörig sind: die Zahlung einer Forderung, die Auszahlung einer Auslage
+	 * und die Buchung einer Rücklastschrift auf einem seiner Mandate.
+	 *
+	 * @param list<int> $memberIds
+	 * @return array<int,string> Mitglieds-ID => Datum (Y-m-d); ohne Buchung fehlt das Mitglied
+	 */
+	public function lastMemberBookingDates(array $memberIds, string $userId): array {
+		$latest = [];
+		foreach (array_chunk(array_values(array_unique($memberIds)), 1000) as $chunk) {
+			$queries = [];
+
+			$qb = $this->db->getQueryBuilder();
+			$qb->select('oi.member_id')->selectAlias($qb->func()->max('j.date'), 'last_date')
+				->from('vbh_open_items', 'oi')
+				->innerJoin('oi', $this->getTableName(), 'j', $qb->expr()->eq('j.id', 'oi.paid_journal_id'))
+				->where($qb->expr()->in('oi.member_id', $qb->createNamedParameter($chunk, IQueryBuilder::PARAM_INT_ARRAY)))
+				->andWhere($qb->expr()->eq('j.user_id', $qb->createNamedParameter($userId)))
+				->groupBy('oi.member_id');
+			$queries[] = $qb;
+
+			$qb = $this->db->getQueryBuilder();
+			$qb->select('r.member_id')->selectAlias($qb->func()->max('j.date'), 'last_date')
+				->from('vbh_reimbursements', 'r')
+				->innerJoin('r', $this->getTableName(), 'j', $qb->expr()->eq('j.id', 'r.journal_id'))
+				->where($qb->expr()->in('r.member_id', $qb->createNamedParameter($chunk, IQueryBuilder::PARAM_INT_ARRAY)))
+				->andWhere($qb->expr()->eq('j.user_id', $qb->createNamedParameter($userId)))
+				->groupBy('r.member_id');
+			$queries[] = $qb;
+
+			$qb = $this->db->getQueryBuilder();
+			$qb->select('m.member_id')->selectAlias($qb->func()->max('j.date'), 'last_date')
+				->from('vbh_mandates', 'm')
+				->innerJoin('m', 'vbh_debit_items', 'd', $qb->expr()->eq('d.mandate_id', 'm.id'))
+				->innerJoin('d', 'vbh_returned_debits', 'rd', $qb->expr()->eq('rd.debit_item_id', 'd.id'))
+				->innerJoin('rd', $this->getTableName(), 'j', $qb->expr()->eq('j.id', 'rd.journal_id'))
+				->where($qb->expr()->in('m.member_id', $qb->createNamedParameter($chunk, IQueryBuilder::PARAM_INT_ARRAY)))
+				->andWhere($qb->expr()->eq('j.user_id', $qb->createNamedParameter($userId)))
+				->groupBy('m.member_id');
+			$queries[] = $qb;
+
+			foreach ($queries as $query) {
+				$result = $query->executeQuery();
+				while ($row = $result->fetch()) {
+					$memberId = (int)$row['member_id'];
+					$date = (string)$row['last_date'];
+					if ($date !== '' && (!isset($latest[$memberId]) || $date > $latest[$memberId])) {
+						$latest[$memberId] = $date;
+					}
+				}
+				$result->closeCursor();
+			}
+		}
+		return $latest;
+	}
+
 	public function find(int $id, string $userId): Journal {
 		$qb = $this->db->getQueryBuilder();
 		$qb->select('*')

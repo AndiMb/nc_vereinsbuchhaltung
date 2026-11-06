@@ -16,6 +16,7 @@ use OCA\Vereinsbuchhaltung\Service\ClubMailBranding;
 use OCA\Vereinsbuchhaltung\Service\Invoice\InvoiceDocumentService;
 use OCA\Vereinsbuchhaltung\Service\Invoice\InvoiceDunningService;
 use OCA\Vereinsbuchhaltung\Service\InvoiceSettings;
+use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubClockStub;
 use OCP\IL10N;
 use OCP\IUserSession;
 use OCP\Mail\IAttachment;
@@ -104,7 +105,7 @@ class InvoiceDunningServiceTest extends TestCase {
 		$l10n = $this->createMock(IL10N::class);
 		$l10n->method('t')->willReturnCallback(static fn (string $text, $params = []) => vsprintf($text, (array)$params));
 		$l10n->method('getLanguageCode')->willReturn('de');
-		return new InvoiceDunningService($this->mailer, $this->invoices, $openItems, $this->dunnings, $this->documents, $settings, $this->createMock(AuditService::class), $this->createMock(LoggerInterface::class), $this->createMock(IUserSession::class), $l10n, $this->createMock(ClubMailBranding::class));
+		return new InvoiceDunningService($this->mailer, $this->invoices, $openItems, $this->dunnings, $this->documents, $settings, $this->createMock(AuditService::class), $this->createMock(LoggerInterface::class), $this->createMock(IUserSession::class), $l10n, $this->createMock(ClubMailBranding::class), ClubClockStub::system());
 	}
 
 	private function row(): array {
@@ -168,6 +169,21 @@ class InvoiceDunningServiceTest extends TestCase {
 			'Entwurf' => [Invoice::STATUS_DRAFT, 15000, '2026-03-19', 'draft'],
 			'nicht fällig' => [Invoice::STATUS_SENT, 15000, '2026-04-01', 'not_due'],
 		];
+	}
+
+	/** Issue #263: die Frist der nächsten Stufe läuft ab dem Vereinstag der letzten Mahnung. */
+	public function testFristDerNaechstenStufeLaeuftAbDemVereinstagDesVersands(): void {
+		$sent = new InvoiceDunning();
+		$sent->setInvoiceId(1);
+		$sent->setLevel(1);
+		$sent->setSentAt('2026-06-30T22:30:00+00:00'); // in Berlin der 01.07.
+		$this->history = [$sent];
+
+		$notYet = $this->service()->annotate([$this->row()], '2026-07-14')[0]['dunning'];
+		$this->assertSame(2, $notYet['next']);
+		$this->assertSame('2026-07-15', $notYet['dueOn']);
+		$this->assertFalse($notYet['due']);
+		$this->assertTrue($this->service()->annotate([$this->row()], '2026-07-15')[0]['dunning']['due']);
 	}
 
 	public function testNachDerLetztenStufeGibtEsKeineWeitere(): void {

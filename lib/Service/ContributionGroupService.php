@@ -23,6 +23,8 @@ use OCP\IL10N;
  */
 class ContributionGroupService {
 
+	private ClubClock $clock;
+
 	public function __construct(
 		private ContributionGroupMapper $mapper,
 		private AssignmentMapper $assignmentMapper,
@@ -30,7 +32,9 @@ class ContributionGroupService {
 		private AssignmentService $assignmentService,
 		private ITimeFactory $time,
 		private IL10N $l10n,
+		?ClubClock $clock = null,
 	) {
+		$this->clock = $clock ?? new ClubClock($this->time);
 	}
 
 	/** @return ContributionGroup[] */
@@ -102,7 +106,7 @@ class ContributionGroupService {
 
 		$affected = [];
 		$unaffected = [];
-		$today = $this->time->getDateTime()->format('Y-m-d');
+		$today = $this->clock->today();
 		foreach ($this->assignmentMapper->findByGroup($id) as $assignment) {
 			// Auch eine erst künftig beginnende Zuweisung zählt: sie würde sonst unter der neuen Untergrenze starten.
 			if ($assignment->getValidTo() !== null && $assignment->getValidTo() < $today) {

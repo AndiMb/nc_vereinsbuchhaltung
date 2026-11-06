@@ -40,6 +40,8 @@ use OCP\IUserManager;
  */
 class SelfContributionService {
 
+	private ClubClock $clock;
+
 	public function __construct(
 		private ActorContextService $actorContext,
 		private AssignmentService $assignments,
@@ -50,7 +52,9 @@ class SelfContributionService {
 		private IUserManager $userManager,
 		private ITimeFactory $time,
 		private IL10N $l10n,
+		?ClubClock $clock = null,
 	) {
+		$this->clock = $clock ?? new ClubClock($this->time);
 	}
 
 	/** @return Assignment[] */
@@ -226,7 +230,7 @@ class SelfContributionService {
 	}
 
 	private function today(): string {
-		return $this->time->getDateTime()->format('Y-m-d');
+		return $this->clock->today();
 	}
 
 	private function requireMemberId(): int {

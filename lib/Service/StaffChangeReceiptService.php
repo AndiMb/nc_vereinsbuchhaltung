@@ -9,10 +9,12 @@ use OCA\Vereinsbuchhaltung\Db\Assignment;
 use OCA\Vereinsbuchhaltung\Db\ContributionGroupMapper;
 use OCA\Vereinsbuchhaltung\Db\Member;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
+use OCP\Config\IUserConfig;
 use OCP\IConfig;
 use OCP\IL10N;
 use OCP\IUserManager;
 use OCP\L10N\IFactory;
+use OCP\Server;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -37,6 +39,8 @@ class StaffChangeReceiptService {
 	/** Nichts hat sich geändert, also gibt es nichts zu bestätigen. */
 	public const NOT_NEEDED = 'not_needed';
 
+	private IUserConfig $userConfig;
+
 	public function __construct(
 		private SelfServiceReceiptMailService $receiptMail,
 		private MemberMapper $members,
@@ -46,7 +50,9 @@ class StaffChangeReceiptService {
 		private IFactory $l10nFactory,
 		private IL10N $l10n,
 		private LoggerInterface $logger,
+		?IUserConfig $userConfig = null,
 	) {
+		$this->userConfig = $userConfig ?? Server::get(IUserConfig::class);
 	}
 
 	/**
@@ -146,7 +152,7 @@ class StaffChangeReceiptService {
 	/** Sprache des Mitglieds: die seines Nextcloud-Kontos, sonst die Vorgabe der Instanz, sonst die der laufenden Anfrage. */
 	private function l10nFor(Member $member): IL10N {
 		$uid = $member->getNcUserId();
-		$language = $uid !== null ? (string)$this->config->getUserValue($uid, 'core', 'lang', '') : '';
+		$language = $uid !== null ? (string)$this->userConfig->getValueString($uid, 'core', 'lang', '') : '';
 		if ($language === '') {
 			$language = (string)$this->config->getSystemValue('default_language', '');
 		}

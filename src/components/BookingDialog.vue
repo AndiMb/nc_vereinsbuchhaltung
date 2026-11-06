@@ -178,7 +178,7 @@
 									</button>
 								</div>
 								<ul v-if="pendingFiles.length" class="vbh-attachment-list">
-									<li v-for="(pf, i) in pendingFiles" :key="i" class="vbh-attachment-item">
+									<li v-for="(pf, i) in pendingFiles" :key="pendingKey(pf)" class="vbh-attachment-item">
 										<NcIconSvgWrapper :path="pf.kind === 'link' ? mdiFolderOutline : mdiPaperclip" :size="14" class="vbh-attachment-icon" />
 										<span class="vbh-attachment-name">{{ pf.name }}</span>
 										<span class="vbh-attachment-size">{{ formatFileSize(pf.size) }}</span>
@@ -301,7 +301,7 @@
 							</span>
 						</div>
 						<ul class="vbh-split-list">
-							<li v-for="(line, i) in splitLines" :key="i" class="vbh-split-row">
+							<li v-for="(line, i) in splitLines" :key="line.uid ?? i" class="vbh-split-row">
 								<button
 									v-if="isMobile"
 									type="button"
@@ -490,7 +490,7 @@
 								<span class="vbh-pending-title">{{ t('Wird beim Speichern angehängt') }}</span>
 							</div>
 							<ul class="vbh-attachment-list">
-								<li v-for="(pf, i) in pendingFiles" :key="i" class="vbh-attachment-item">
+								<li v-for="(pf, i) in pendingFiles" :key="pendingKey(pf)" class="vbh-attachment-item">
 									<NcIconSvgWrapper :path="pf.kind === 'link' ? mdiFolderOutline : mdiPaperclip" :size="14" class="vbh-attachment-icon" />
 									<span class="vbh-attachment-name">{{ pf.name }}</span>
 									<span class="vbh-attachment-size">{{ formatFileSize(pf.size) }}</span>
@@ -527,8 +527,11 @@
 						ref="fallbackPreview"
 						:file="previewFile"
 						:picked="previewPicked"
+						:pickable="previewPickable"
+						:pickBusy="bookingSaving"
 						showNav
 						@back="backToList"
+						@pick="pickPreviewed"
 						@step="$refs.folderPanel.step($event)" />
 					<AttachmentFolderPanel
 						v-show="!previewInFolderColumn"
@@ -551,7 +554,12 @@
 				<!-- Breites Fenster: dritte Spalte, Formular und Liste bleiben
 				     daneben sichtbar - Rechnung und Buchung lassen sich vergleichen. -->
 				<aside v-if="isSplit3" class="vbh-booking-preview" :aria-label="t('Belegvorschau')">
-					<ReceiptPreview :file="previewFile" :picked="previewPicked" />
+					<ReceiptPreview
+						:file="previewFile"
+						:picked="previewPicked"
+						:pickable="previewPickable"
+						:pickBusy="bookingSaving"
+						@pick="pickPreviewed" />
 				</aside>
 			</div>
 
@@ -559,35 +567,62 @@
 			     als der Dialog; der Schatten zeigt, dass darunter noch Inhalt
 			     liegt (lib/stickyShadow.js). Mobil bei offener Belegauswahl
 			     ausgeblendet, die hat dann ihre eigenen Knoepfe. -->
-			<div v-show="!(isMobile && folderPanelOpen)" v-stickyShadow class="vbh-modal-actions vbh-modal-actions--sticky">
-				<NcButton v-if="isMobile && bookingForm.id && canWrite && !bookingLocked" variant="error" @click="$emit('delete')">
-					{{ t('Löschen') }}
-				</NcButton>
-				<NcButton variant="tertiary" :disabled="bookingSaving" @click="requestClose">
-					{{ bookingLocked ? t('Schließen') : t('Abbrechen') }}
-				</NcButton>
-				<!-- Waehrend des Speicherns gesperrt: daran haengt der Upload der
-				     gesammelten Belege, und ein zweiter Klick wuerde in dieser Zeit
-				     eine zweite Buchung anlegen (bookingForm.id ist noch leer). -->
-				<!-- Im abgeschlossenen Zeitraum bleibt nur der Kommentar aenderbar;
-				     der Knopf erscheint dort erst, wenn er geaendert wurde. -->
-				<NcButton
-					v-if="!bookingLocked || (canWrite && commentChanged)"
-					variant="primary"
-					:disabled="bookingSaving"
-					@click="$emit('save')">
-					<template v-if="bookingSaving" #icon>
-						<NcLoadingIcon :size="20" />
-					</template>
-					{{ bookingSaving ? t('Wird gespeichert…') : (bookingLocked ? t('Kommentar speichern') : (bookingForm.id ? t('Speichern') : t('Buchen'))) }}
-				</NcButton>
+			<div
+				v-show="!(isMobile && folderPanelOpen)"
+				v-stickyShadow
+				class="vbh-modal-actions vbh-modal-actions--sticky"
+				:class="{ 'vbh-save-receipt-prompt': saveReceiptPrompt }">
+				<!-- Issue #281: Speichern ohne Beleg, während eine noch nicht
+				     übernommene Datei in der Vorschau steht - dann fragen, statt
+				     still ohne sie zu speichern. Steht anstelle der Knöpfe, also
+				     genau dort, wo gerade geklickt wurde. -->
+				<template v-if="saveReceiptPrompt">
+					<p class="vbh-save-receipt-question" role="alert">
+						{{ tRaw('Der angezeigte Beleg „{name}“ ist noch nicht übernommen. Mit der Buchung speichern?', { name: previewFile ? previewFile.name : '' }) }}
+					</p>
+					<NcButton variant="tertiary" @click="saveReceiptPrompt = false">
+						{{ t('Zurück') }}
+					</NcButton>
+					<NcButton variant="secondary" @click="saveWithoutPreviewed">
+						{{ t('Ohne Beleg speichern') }}
+					</NcButton>
+					<NcButton ref="savePromptPrimary" variant="primary" @click="pickPreviewedAndSave">
+						<template #icon>
+							<NcIconSvgWrapper :path="mdiPlus" :size="20" />
+						</template>
+						{{ t('Übernehmen und speichern') }}
+					</NcButton>
+				</template>
+				<template v-else>
+					<NcButton v-if="isMobile && bookingForm.id && canWrite && !bookingLocked" variant="error" @click="$emit('delete')">
+						{{ t('Löschen') }}
+					</NcButton>
+					<NcButton variant="tertiary" :disabled="bookingSaving" @click="requestClose">
+						{{ bookingLocked ? t('Schließen') : t('Abbrechen') }}
+					</NcButton>
+					<!-- Waehrend des Speicherns gesperrt: daran haengt der Upload der
+					     gesammelten Belege, und ein zweiter Klick wuerde in dieser Zeit
+					     eine zweite Buchung anlegen (bookingForm.id ist noch leer). -->
+					<!-- Im abgeschlossenen Zeitraum bleibt nur der Kommentar aenderbar;
+					     der Knopf erscheint dort erst, wenn er geaendert wurde. -->
+					<NcButton
+						v-if="!bookingLocked || (canWrite && commentChanged)"
+						variant="primary"
+						:disabled="bookingSaving"
+						@click="requestSave">
+						<template v-if="bookingSaving" #icon>
+							<NcLoadingIcon :size="20" />
+						</template>
+						{{ bookingSaving ? t('Wird gespeichert…') : (bookingLocked ? t('Kommentar speichern') : (bookingForm.id ? t('Speichern') : t('Buchen'))) }}
+					</NcButton>
+				</template>
 			</div>
 		</div>
 	</NcModal>
 </template>
 
 <script>
-import { mdiAlertCircleOutline, mdiCamera, mdiDelete, mdiFolderOutline, mdiFolderSearchOutline, mdiLinkVariantOff, mdiPaperclip, mdiUndo } from '@mdi/js'
+import { mdiAlertCircleOutline, mdiCamera, mdiDelete, mdiFolderOutline, mdiFolderSearchOutline, mdiLinkVariantOff, mdiPaperclip, mdiPlus, mdiUndo } from '@mdi/js'
 import { ref, toRefs } from 'vue'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcCheckboxRadioSwitch from '@nextcloud/vue/components/NcCheckboxRadioSwitch'
@@ -607,6 +642,7 @@ import { autogrow } from '../lib/autogrow.js'
 import { onlyDefaultMoneyAccountAdded } from '../lib/bookingSnapshot.js'
 import { opensFolderPanel, readFolderPanelOpen, writeFolderPanelOpen } from '../lib/folderPanelMemory.js'
 import { formatFileSize, formatMoney } from '../lib/format.js'
+import { newUid } from '../lib/rowKeys.js'
 import { isSelectableOption } from '../lib/selectOptions.js'
 import { splitBalanced, splitRemainder, splitSideOf } from '../lib/split.js'
 import { stickyShadow } from '../lib/stickyShadow.js'
@@ -697,6 +733,7 @@ export default {
 			mdiFolderSearchOutline,
 			mdiLinkVariantOff,
 			mdiPaperclip,
+			mdiPlus,
 			mdiUndo,
 			folderPanelOpen: false,
 			// Von selbst aufgegangen (#230): dann greift das Suchfeld der Leiste
@@ -711,6 +748,8 @@ export default {
 			// Laeuft gerade die Rueckfrage "Verwerfen?" - NcModal meldet das
 			// Schliessen doppelt (close und update:show).
 			confirmingClose: false,
+			// Rückfrage beim Speichern: angezeigten Beleg übernehmen? (#281)
+			saveReceiptPrompt: false,
 		}
 	},
 
@@ -732,6 +771,14 @@ export default {
 		 */
 		previewPicked() {
 			return this.previewFile !== null && this.folderExcludeIds.includes(this.previewFile.fileId)
+		},
+
+		/**
+		 * Die Vorschau bietet „Übernehmen“ an (#281): wie das „+“ der Liste nur
+		 * mit Schreibrecht und in offenem Zeitraum. Mobil gibt es keine Vorschau.
+		 */
+		previewPickable() {
+			return this.canWrite && !this.bookingLocked && !this.isMobile && this.previewFile !== null
 		},
 
 		/** Schmales Fenster: Vorschau anstelle der Liste. */
@@ -904,8 +951,8 @@ export default {
 				const lines = this.splitLines.length
 					? this.splitLines
 					: [
-							{ accountId: first || null, amount: first ? (f.amount || null) : null },
-							{ accountId: null, amount: null },
+							{ uid: newUid(), accountId: first || null, amount: first ? (f.amount || null) : null },
+							{ uid: newUid(), accountId: null, amount: null },
 						]
 				this.updateForm({ splitMode: true, splitLines: lines })
 			},
@@ -964,6 +1011,11 @@ export default {
 		// jedes Mal nach oben.
 		bookingAttachments: { handler() { this.keepFocusInAttachments() }, flush: 'pre' },
 		pendingFiles: { handler() { this.keepFocusInAttachments() }, flush: 'pre' },
+
+		// Die Rückfrage (#281) gilt der gerade angezeigten Datei; mit einer
+		// anderen oder geschlossener Leiste ist sie gegenstandslos.
+		previewFile() { this.saveReceiptPrompt = false },
+		folderPanelOpen() { this.saveReceiptPrompt = false },
 
 		// Wird das Fenster schmaler, rueckt die Vorschau an die Stelle der Liste.
 		// Der Fokus wandert mit (Vorschau bzw. markierte Zeile), sonst laege er
@@ -1028,6 +1080,11 @@ export default {
 			this.patchSplitLine(index, { amount: (value === '' || value === null) ? null : Number(value) })
 		},
 
+		/** Schluessel einer Wartelisten-Zeile: Ordnerdatei nach ID, hochzuladende Datei nach Name, Groesse und Stand. */
+		pendingKey(pf) {
+			return pf.kind === 'link' ? 'l' + pf.fileId : pf.name + '|' + pf.size + '|' + pf.lastModified
+		},
+
 		patchSplitLine(index, patch) {
 			this.updateForm({
 				splitLines: this.splitLines.map((l, i) => (i === index ? { ...l, ...patch } : l)),
@@ -1035,7 +1092,7 @@ export default {
 		},
 
 		addSplitLine() {
-			this.updateForm({ splitLines: [...this.splitLines, { accountId: null, amount: null }] })
+			this.updateForm({ splitLines: [...this.splitLines, { uid: newUid(), accountId: null, amount: null }] })
 		},
 
 		removeSplitLine(index) {
@@ -1188,6 +1245,39 @@ export default {
 		async onFolderPick(files) {
 			if (this.isMobile) { this.folderPanelOpen = false }
 			await this.pickFolderFiles(files)
+		},
+
+		/** „Übernehmen“ in der Vorschau (#281): wie das „+“ der Liste. */
+		async pickPreviewed() {
+			if (!this.previewFile || this.previewPicked || this.bookingSaving) { return }
+			await this.onFolderPick([this.previewFile])
+		},
+
+		/**
+		 * Speichern. Hat die Buchung noch keinen Beleg, steht aber eine nicht
+		 * übernommene Datei in der Vorschau, wird vorher gefragt (#281) - wer
+		 * die Rechnung gerade ansieht, will sie meist auch anhängen.
+		 */
+		requestSave() {
+			if (this.bookingSaving) { return }
+			const noReceipt = this.bookingAttachments.length === 0 && this.pendingFiles.length === 0
+			if (noReceipt && this.previewPickable && !this.previewPicked) {
+				this.saveReceiptPrompt = true
+				this.$nextTick(() => this.$refs.savePromptPrimary?.$el?.focus())
+				return
+			}
+			this.$emit('save')
+		},
+
+		async pickPreviewedAndSave() {
+			this.saveReceiptPrompt = false
+			await this.pickPreviewed()
+			this.$emit('save')
+		},
+
+		saveWithoutPreviewed() {
+			this.saveReceiptPrompt = false
+			this.$emit('save')
 		},
 
 		/**

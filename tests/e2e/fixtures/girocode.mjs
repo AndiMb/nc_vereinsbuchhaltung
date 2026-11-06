@@ -29,8 +29,14 @@ require_once '/var/www/html/lib/base.php';
 
 /**
  * Selbstprüfung der Laufzeit: sind gd und die Bibliothek da, und erzeugt der
- * Dienst der App ein PNG? Liefert u. a. `gd`, `gdPng`, `library`, `generator`,
- * `png` (base64) oder `error`.
+ * Dienst der App ein PNG? Liefert u. a. `gd`, `gdPng`, `generator`,
+ * `libraryBefore` (Bibliothek schon vor der Erzeugung geladen), `library`
+ * (Bibliothek nach generatePng() ladbar), `png` (base64) oder `error`.
+ *
+ * Seit #265 lädt die App vendor/autoload.php nicht mehr in register(), sondern
+ * erst bei Bedarf (Application::loadComposerAutoloader() in generatePng() und
+ * den anderen Einstiegen der Bibliotheken). Vor der Erzeugung darf die
+ * Bibliothek also fehlen, danach muss sie da sein.
  */
 export function giroCodeRuntimeCheck(name, iban, purpose, options) {
 	return inNextcloud(String.raw`
@@ -38,7 +44,7 @@ $result = [
 	'php' => PHP_VERSION,
 	'gd' => extension_loaded('gd'),
 	'gdPng' => function_exists('gd_info') && !empty(gd_info()['PNG Support']),
-	'library' => class_exists(\chillerlan\QRCode\QRCode::class),
+	'libraryBefore' => class_exists(\chillerlan\QRCode\QRCode::class),
 	'generator' => class_exists(\OCA\Vereinsbuchhaltung\Service\EpcQrCodeGenerator::class),
 ];
 try {
@@ -47,19 +53,22 @@ try {
 } catch (\Throwable $e) {
 	$result['error'] = get_class($e) . ': ' . $e->getMessage();
 }
+$result['library'] = class_exists(\chillerlan\QRCode\QRCode::class);
 echo 'VBH-RESULT ' . json_encode($result);
 `, [name, iban, purpose], options)
 }
 
 /**
  * Liest die EPC-Zeilen hinter PNG-Bildern mit der Bibliothek der App im Container
- * (Dekoder auf GD-Basis, nicht Imagick).
+ * (Dekoder auf GD-Basis, nicht Imagick). Die Bibliothek lädt die App erst bei
+ * Bedarf (#265); der Dekoder holt sie deshalb über denselben Lader der App.
  *
  * @param {Buffer[]} pngs
  * @returns {Promise<string[][]>} je Bild die Zeilen der Nutzlast
  */
 export async function decodeGiroCodes(pngs, options) {
 	const decoded = await inNextcloud(String.raw`
+\OCA\Vereinsbuchhaltung\AppInfo\Application::loadComposerAutoloader();
 $reader = new \chillerlan\QRCode\QRCode(new \chillerlan\QRCode\QROptions(['readerUseImagickIfAvailable' => false]));
 $out = [];
 foreach (array_slice($argv, 1) as $b64) {

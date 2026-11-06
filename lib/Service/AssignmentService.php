@@ -30,6 +30,8 @@ use OCP\IL10N;
  */
 class AssignmentService {
 
+	private ClubClock $clock;
+
 	public function __construct(
 		private AssignmentMapper $mapper,
 		private AssignmentEventMapper $eventMapper,
@@ -42,7 +44,9 @@ class AssignmentService {
 		private DueDateScheduleService $dueDateSchedule,
 		private ITimeFactory $time,
 		private IL10N $l10n,
+		?ClubClock $clock = null,
 	) {
+		$this->clock = $clock ?? new ClubClock($this->time);
 	}
 
 	/** @return Assignment[] */
@@ -496,7 +500,7 @@ class AssignmentService {
 	}
 
 	private function today(): string {
-		return $this->time->getDateTime()->format('Y-m-d');
+		return $this->clock->today();
 	}
 
 	private function now(): string {

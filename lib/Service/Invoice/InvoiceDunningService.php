@@ -10,7 +10,9 @@ use OCA\Vereinsbuchhaltung\Db\InvoiceDunning;
 use OCA\Vereinsbuchhaltung\Db\InvoiceDunningMapper;
 use OCA\Vereinsbuchhaltung\Db\InvoiceMapper;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
+use OCA\Vereinsbuchhaltung\Exception\UserFacingException;
 use OCA\Vereinsbuchhaltung\Service\AuditService;
+use OCA\Vereinsbuchhaltung\Service\ClubClock;
 use OCA\Vereinsbuchhaltung\Service\ClubMailBranding;
 use OCA\Vereinsbuchhaltung\Service\EmailValidator;
 use OCA\Vereinsbuchhaltung\Service\InvoiceSettings;
@@ -55,6 +57,7 @@ class InvoiceDunningService {
 		private IUserSession $userSession,
 		private IL10N $l10n,
 		private ClubMailBranding $mailBranding,
+		private ClubClock $clock,
 	) {
 	}
 
@@ -71,7 +74,7 @@ class InvoiceDunningService {
 	public function annotate(array $rows, ?string $today = null): array {
 		$ids = array_values(array_map(static fn (array $r): int => (int)$r['id'], $rows));
 		$last = $this->dunnings->lastByInvoices($ids);
-		$today ??= date('Y-m-d');
+		$today ??= $this->clock->today();
 		foreach ($rows as &$row) {
 			$row['dunning'] = $this->stateFromRow($row, $last[(int)$row['id']] ?? null, $today);
 		}
@@ -88,7 +91,7 @@ class InvoiceDunningService {
 	public function forDetail(array $row, ?string $today = null): array {
 		$history = $this->dunnings->findByInvoice((int)$row['id']);
 		$last = $history === [] ? null : ['level' => max(array_map(static fn (InvoiceDunning $d): int => $d->getLevel(), $history)), 'sentAt' => end($history)->getSentAt()];
-		return ['state' => $this->stateFromRow($row, $last, $today ?? date('Y-m-d')), 'history' => $history];
+		return ['state' => $this->stateFromRow($row, $last, $today ?? $this->clock->today()), 'history' => $history];
 	}
 
 	/**
@@ -104,7 +107,7 @@ class InvoiceDunningService {
 			$state['blocked'] = $blocked;
 			return $state;
 		}
-		$next = InvoiceDunningSchedule::next((string)$row['dueDate'], $level, $last !== null ? substr($last['sentAt'], 0, 10) : null, $this->settings->dunningDays());
+		$next = InvoiceDunningSchedule::next((string)$row['dueDate'], $level, $last !== null ? ClubClock::localDate($last['sentAt']) : null, $this->settings->dunningDays());
 		if ($next !== null) {
 			$state['next'] = $next['level'];
 			$state['dueOn'] = $next['dueOn'];
@@ -143,8 +146,8 @@ class InvoiceDunningService {
 		return [
 			'level' => $level,
 			'to' => (string)($snapshot['email'] ?? ''),
-			'subject' => $this->fill($this->subjectTemplate(), $invoice, $level, $remaining, date('Y-m-d')),
-			'body' => $this->fill($this->bodyTemplate($level), $invoice, $level, $remaining, date('Y-m-d')),
+			'subject' => $this->fill($this->subjectTemplate(), $invoice, $level, $remaining, $this->clock->today()),
+			'body' => $this->fill($this->bodyTemplate($level), $invoice, $level, $remaining, $this->clock->today()),
 			'remainingCents' => $remaining,
 			'boardEmail' => (string)$this->settings->boardEmail(),
 			'copyBoard' => $this->defaultCopyBoard(),
@@ -170,7 +173,7 @@ class InvoiceDunningService {
 	 * @throws \RuntimeException wenn PDF oder Mailversand scheitern
 	 */
 	public function send(int $invoiceId, string $to, ?string $subject = null, ?string $body = null, ?int $level = null, bool $auto = false, ?string $today = null, ?bool $copyBoard = null): InvoiceDunning {
-		$today ??= date('Y-m-d');
+		$today ??= $this->clock->today();
 		[$invoice, $remaining] = $this->mahnable($invoiceId, $today);
 		$level ??= $this->nextLevel($invoiceId);
 		$this->assertLevel($invoiceId, $level);
@@ -218,16 +221,16 @@ class InvoiceDunningService {
 			$failed = $this->mailer->send($message);
 		} catch (\Throwable $e) {
 			$this->logger->warning('Mahnversand fehlgeschlagen: {message}', ['app' => Application::APP_ID, 'message' => $e->getMessage(), 'exception' => $e]);
-			throw new \RuntimeException($this->l10n->t('Die E-Mail konnte nicht versendet werden. Bitte prüfen Sie den Mailserver in den Nextcloud-Einstellungen.'), 0, $e);
+			throw new UserFacingException($this->l10n->t('Die E-Mail konnte nicht versendet werden. Bitte prüfen Sie den Mailserver in den Nextcloud-Einstellungen.'), 0, $e);
 		}
 		if ($failed !== []) {
-			throw new \RuntimeException($this->l10n->t('Die E-Mail wurde vom Mailserver nicht angenommen.'));
+			throw new UserFacingException($this->l10n->t('Die E-Mail wurde vom Mailserver nicht angenommen.'));
 		}
 
 		$dunning = new InvoiceDunning();
 		$dunning->setInvoiceId($invoiceId);
 		$dunning->setLevel($level);
-		$dunning->setSentAt((new \DateTimeImmutable())->format(\DateTimeInterface::ATOM));
+		$dunning->setSentAt((new \DateTimeImmutable())->format(\DateTimeInterface::ATOM)); // UTC-Zeitstempel (#263)
 		$dunning->setSentTo($to);
 		$dunning->setRemainingCents($remaining);
 		$dunning->setDocumentId((int)$doc->getId());
@@ -250,7 +253,7 @@ class InvoiceDunningService {
 		if (!$this->settings->dunningAuto()) {
 			return $result;
 		}
-		$today ??= date('Y-m-d');
+		$today ??= $this->clock->today();
 		$candidates = [];
 		foreach ([Invoice::STATUS_ISSUED, Invoice::STATUS_SENT] as $status) {
 			foreach ($this->invoices->findFiltered($status, null, null) as $invoice) {
@@ -303,7 +306,7 @@ class InvoiceDunningService {
 		$invoice = $this->invoices->find($invoiceId);
 		$item = $invoice->getOpenItemId() !== null ? ($this->openItems->findByIds([$invoice->getOpenItemId()])[$invoice->getOpenItemId()] ?? null) : null;
 		$remaining = $item?->remainingCents() ?? 0;
-		$reason = $this->blockReason($invoice->getKind(), $invoice->getStatus(), $remaining, $invoice->getDueDate(), $today ?? date('Y-m-d'));
+		$reason = $this->blockReason($invoice->getKind(), $invoice->getStatus(), $remaining, $invoice->getDueDate(), $today ?? $this->clock->today());
 		if ($reason !== null) {
 			throw new \InvalidArgumentException(match ($reason) {
 				'paid' => $this->l10n->t('Die Rechnung ist bezahlt.'),

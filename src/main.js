@@ -1,11 +1,12 @@
 import { createApp } from 'vue'
 import App from './App.vue'
 import { usePermissions } from './composables/usePermissions.js'
-import { loadAppTranslations, n, t, tc, tRaw } from './lib/l10n.js'
+import { n, t, tc, tRaw } from './lib/l10n.js'
 import { installModalEscape } from './lib/modalEscape.js'
 import { installStackTables } from './lib/stackTables.js'
 import router from './router.js'
 
+import './publicPath.js'
 import './toast-position.css'
 // Globale .vbh-* Utility-Styles (frueher scoped in App.vue). Global, damit auch
 // ausgelagerte Kindkomponenten sie nutzen koennen; alle Selektoren sind
@@ -43,13 +44,10 @@ installModalEscape()
 // Tabellen mit der Klasse vbh-stack bekommen ihre Spaltenbeschriftungen als data-label, damit sie schmal als Karten erscheinen.
 installStackTables()
 
-// Uebersetzungen fuer die aktuelle Sprache laden, bevor gemountet wird - sonst
-// blitzt beim ersten Render kurz der deutsche Quelltext auf und wird dann durch
-// die uebersetzte Fassung ersetzt.
-loadAppTranslations().finally(() => {
-	const app = createApp(App)
-	app.mixin({ methods: { t, n, tc, tRaw } })
-	app.config.errorHandler = (err) => recordUnexpectedError('vue-error-handler', err)
-	app.use(router)
-	app.mount('#vereinsbuchhaltung-app')
-})
+// Die Uebersetzungen sind schon da: Nextcloud bindet l10n/<sprache>.js vor
+// diesem Skript ein (siehe lib/l10n.js).
+const app = createApp(App)
+app.mixin({ methods: { t, n, tc, tRaw } })
+app.config.errorHandler = (err) => recordUnexpectedError('vue-error-handler', err)
+app.use(router)
+app.mount('#vereinsbuchhaltung-app')

@@ -111,13 +111,19 @@
 					<div class="vbh-tablecount">
 						{{ filteredJournalRows.length !== sortedJournalRows.length ? t('{n} von {total} Buchungssätze', { n: filteredJournalRows.length, total: sortedJournalRows.length }) : t('{n} Buchungssätze', { n: filteredJournalRows.length }) }}
 					</div>
-					<template v-for="g in journalCardGroups" :key="g.key">
-						<div class="vbh-monthdivider">
-							{{ g.label }}
+					<!-- Eine flache Liste statt Monatsgruppen: v-memo wirkt nur auf
+					     dem v-for selbst, nicht innerhalb eines weiteren v-for. Auf
+					     <template v-for> wertet der Vue-Compiler v-memo aus (withMemo je
+					     Eintrag), die ESLint-Regel kennt das nicht. -->
+					<!-- eslint-disable vue/no-useless-template-attributes -->
+					<template
+						v-for="{ r, divider } in journalCardItems"
+						:key="r.id"
+						v-memo="[r, divider, attachmentCountMap[r.id]?.count, suggestionFor(r)?.level, suggestionTitleFor(r), canWrite, amountDisplay]">
+						<div v-if="divider" class="vbh-monthdivider">
+							{{ divider }}
 						</div>
 						<BookingCard
-							v-for="r in g.rows"
-							:key="g.key + '-' + r.id"
 							:row="r"
 							:attachmentCount="attachmentCountMap[r.id] ? attachmentCountMap[r.id].count : 0"
 							:flow="cardFlow(r)"
@@ -128,13 +134,18 @@
 							@open="openBookingCard(r)"
 							@paperclip="clickPaperclip(r)" />
 					</template>
+					<!-- eslint-enable vue/no-useless-template-attributes -->
+					<div v-if="remainingJournalRows" class="vbh-loadmore">
+						<NcButton variant="secondary" @click="showMoreJournalRows">
+							{{ t('Weitere Buchungen anzeigen ({n} verbleibend)', { n: remainingJournalRows }) }}
+						</NcButton>
+					</div>
 				</div>
-				<!-- Desktop: die Tabelle bleibt gemountet, solange es überhaupt Buchungen
-				     gibt, und der Filter blendet Zeilen nur aus (hidden-Attribut, gesetzt
-				     in applyJournalVisibility()). So muss beim Tippen und Löschen keine
-				     Zeile samt Aktionsmenü neu aufgebaut oder gepatcht werden; v-memo
-				     überspringt alle Zeilen, deren Daten gleich bleiben. Strg+F findet
-				     weiter alle sichtbaren. -->
+				<!-- Desktop: Gefiltert wird vor dem Begrenzen, gezeigt werden höchstens
+				     journalLimit Zeilen (Issue #254), der Rest über „Weitere Buchungen
+				     anzeigen“. v-memo überspringt jede Zeile, deren Daten gleich bleiben:
+				     useJournal liefert unveränderte Buchungen als dasselbe Zeilenobjekt,
+				     alle übrigen Abhängigkeiten sind Primitive. -->
 				<div v-else-if="!isMobile && sortedJournalRows.length" class="vbh-tablecard">
 					<div v-show="filteredJournalRows.length" class="vbh-tablecount">
 						{{ filteredJournalRows.length !== sortedJournalRows.length ? t('{n} von {total} Buchungssätze', { n: filteredJournalRows.length, total: sortedJournalRows.length }) : t('{n} Buchungssätze', { n: filteredJournalRows.length }) }}
@@ -174,11 +185,11 @@
 								<th class="vbh-col-actions--wide" />
 							</tr>
 						</thead>
-						<tbody ref="journalBody">
+						<tbody>
 							<tr
-								v-for="r in sortedJournalRows"
+								v-for="r in pagedJournalRows"
 								:key="r.id"
-								v-memo="[r, attachmentCountMap[r.id], suggestionTitleFor(r), txByJournalId[r.id], canWrite, amountDisplay, accountsById, isDateClosed(r.date), bulkSelectable, bulkSelectable && selectedJournalIds.has(r.id)]"
+								v-memo="[r, attachmentCountMap[r.id]?.count, attachmentCountMap[r.id]?.firstId, suggestionTitleFor(r), txByJournalId[r.id]?.id, canWrite, amountDisplay, isDateClosed(r.date), bulkSelectable, bulkSelectable && selectedJournalIds.has(r.id)]"
 								:data-id="r.id">
 								<td v-if="bulkSelectable" class="vbh-col-check">
 									<input
@@ -265,6 +276,11 @@
 							</tr>
 						</tbody>
 					</table>
+					<div v-if="remainingJournalRows" class="vbh-loadmore">
+						<NcButton variant="secondary" @click="showMoreJournalRows">
+							{{ t('Weitere Buchungen anzeigen ({n} verbleibend)', { n: remainingJournalRows }) }}
+						</NcButton>
+					</div>
 				</div>
 				<NcEmptyContent v-else-if="sortedJournalRows.length" :name="t('Keine Treffer')" :description="t('Suchfilter anpassen oder löschen.')" />
 				<NcEmptyContent v-else :name="t('Noch keine Buchungssätze')" :description="t('Legen Sie mit ‛Neue Buchung\' einen ersten Buchungssatz an.')">
@@ -339,6 +355,25 @@
 								:title="invoiceChipTitle(s)"
 								@click="assignToInvoice(tx, s)">
 								{{ invoiceChipLabel(s) }}
+							</button>
+						</template>
+						<template v-if="canWrite && reimbursementsVisible && !isSplitAssigned(tx) && !tx.contraAccountId && !isDateClosed(tx.bookingDate)">
+							<button
+								v-for="s in reimbursementSuggestionsFor(tx)"
+								:key="'reimb' + s.reimbursementId"
+								type="button"
+								class="vbh-suggest-chip vbh-suggest-chip--invoice"
+								:disabled="!s.exact"
+								:title="reimbursementChipTitle(s)"
+								@click="assignToReimbursement(tx, s.reimbursementId)">
+								{{ reimbursementChipLabel(s) }}
+							</button>
+							<button
+								v-if="reimbursementsPayable && tx.amountCents < 0"
+								type="button"
+								class="vbh-suggest-chip"
+								@click="assignToReimbursement(tx, null)">
+								{{ t('Einer Auslage zuordnen…') }}
 							</button>
 						</template>
 						<button
@@ -476,6 +511,25 @@
 													:title="invoiceChipTitle(s)"
 													@click="assignToInvoice(tx, s)">
 													{{ invoiceChipLabel(s) }}
+												</button>
+											</template>
+											<template v-if="canWrite && reimbursementsVisible && !tx.contraAccountId && !isDateClosed(tx.bookingDate)">
+												<button
+													v-for="s in reimbursementSuggestionsFor(tx)"
+													:key="'reimb' + s.reimbursementId"
+													type="button"
+													class="vbh-suggest-chip vbh-suggest-chip--invoice"
+													:disabled="!s.exact"
+													:title="reimbursementChipTitle(s)"
+													@click="assignToReimbursement(tx, s.reimbursementId)">
+													{{ reimbursementChipLabel(s) }}
+												</button>
+												<button
+													v-if="reimbursementsPayable && tx.amountCents < 0"
+													type="button"
+													class="vbh-suggest-chip"
+													@click="assignToReimbursement(tx, null)">
+													{{ t('Einer Auslage zuordnen…') }}
 												</button>
 											</template>
 											<button
@@ -689,6 +743,7 @@
 				<ReimbursementsPanel
 					:canWrite="canWrite"
 					:reloadKey="reimbursementsReloadKey"
+					@bookingChanged="$emit('reimbursement-booking-changed')"
 					@pay="$emit('pay-reimbursement', $event)" />
 			</template>
 
@@ -701,6 +756,12 @@
 			v-model:show="showSuggestConfirm"
 			:pairs="surePairs"
 			@done="onSuggestionsLinked" />
+		<ReimbursementAssignDialog
+			v-if="reimbursementAssign"
+			:tx="reimbursementAssign.tx"
+			:suggestedId="reimbursementAssign.reimbursementId"
+			@close="reimbursementAssign = null"
+			@assigned="onReimbursementAssigned" />
 	</div>
 </template>
 
@@ -719,6 +780,7 @@ import AmountInput from './AmountInput.vue'
 import BookingCard from './BookingCard.vue'
 import CommentMark from './CommentMark.vue'
 import ReceiptSuggestionConfirmDialog from './ReceiptSuggestionConfirmDialog.vue'
+import ReimbursementAssignDialog from './ReimbursementAssignDialog.vue'
 import ReimbursementsPanel from './ReimbursementsPanel.vue'
 import RulesPanel from './RulesPanel.vue'
 import api from '../api.js'
@@ -738,9 +800,13 @@ import { levelIcon, suggestionTitle, sureSuggestionPairs } from '../lib/receiptS
 import { buildSearchIndex, journalSearch, matchesQuery, prepareQuery, transactionSearch } from '../lib/search.js'
 import { isSelectableOption } from '../lib/selectOptions.js'
 
+// So viele Buchungen zeigt das Journal auf einmal, jeder Klick auf „Weitere
+// Buchungen anzeigen“ so viele mehr (Issue #254).
+const JOURNAL_PAGE = 200
+
 export default {
 	name: 'BookingsTab',
-	components: { NcButton, NcActions, NcActionButton, NcSelect, NcEllipsisedOption, NcEmptyContent, NcIconSvgWrapper, AmountInput, BookingCard, CommentMark, ReceiptSuggestionConfirmDialog, ReimbursementsPanel, RulesPanel },
+	components: { NcButton, NcActions, NcActionButton, NcSelect, NcEllipsisedOption, NcEmptyContent, NcIconSvgWrapper, AmountInput, BookingCard, CommentMark, ReceiptSuggestionConfirmDialog, ReimbursementAssignDialog, ReimbursementsPanel, RulesPanel },
 	props: {
 		isMobile: { type: Boolean, required: true },
 		// 'plain' | 'signed': Vorzeichen und Farbe am Betrag, siehe lib/flow.js
@@ -751,6 +817,8 @@ export default {
 		// Ob das Rechnungsmodul eingeschaltet ist - dann kommen zu Zahlungseingängen Vorschläge für offene Rechnungen (Epic #168).
 		invoicesActive: { type: Boolean, default: false },
 		attachmentCountMap: { type: Object, required: true },
+		// Zählt Änderungen an Belegen (App.vue: afterAttachmentsChanged); Anlass, die Vorschläge nachzuladen.
+		attachmentsRevision: { type: Number, default: 0 },
 		// suggestionsById bleibt in App.vue berechnet (wird auch vom
 		// AccountPickerSheet-Flow dort gebraucht), hier nur als Prop gelesen.
 		suggestionsById: { type: Object, required: true },
@@ -779,7 +847,7 @@ export default {
 		reimbursementsReloadKey: { type: Number, default: 0 },
 	},
 
-	emits: ['attachments-changed', 'go-claims', 'help', 'invoice-paid', 'pay-reimbursement', 'update:booking-view'],
+	emits: ['attachments-changed', 'go-claims', 'help', 'invoice-paid', 'pay-reimbursement', 'reimbursement-booking-changed', 'update:booking-view'],
 
 	setup() {
 		const auth = useAuth()
@@ -825,6 +893,8 @@ export default {
 			bookingFilter: null,
 			bookingFilterSearch: '',
 			journalOnlyNoAttachment: false,
+			// Wie viele der gefilterten Buchungen gerade dargestellt werden.
+			journalLimit: JOURNAL_PAGE,
 			// Belegvorschläge (#229): Antwort von GET /attachments/suggestions
 			// für das gewählte Geschäftsjahr. items kann ein leeres Array sein.
 			suggestionItems: {},
@@ -839,10 +909,14 @@ export default {
 			lastSelectedId: null,
 			bulkBusy: false,
 			openItemForm: { debtor: '', description: '', amount: '', dueDate: '', accountId: null },
-			openItemFilter: 'open',
+			openItemFilter: this.openItemFilterKey,
 			// Umsatz-ID => Vorschläge offener Rechnungen (GET /api/invoices/suggestions)
 			invoiceSuggestions: {},
 			invoiceBusy: null,
+			// Auslagen: Vorschläge je Umsatz, ob eine zu bezahlen ist, und der offene Zuordnungsdialog
+			reimbursementSuggestions: {},
+			reimbursementsPayable: false,
+			reimbursementAssign: null,
 		}
 	},
 
@@ -920,18 +994,28 @@ export default {
 			return rows
 		},
 
-		visibleJournalIds() { return new Set(this.filteredJournalRows.map((r) => r.id)) },
+		// Die tatsächlich dargestellten Buchungen: erst gefiltert, dann begrenzt.
+		// Am Desktop in der Sortierung der Tabelle, mobil fest nach Datum
+		// absteigend wie die Karten.
+		pagedJournalRows() {
+			const rows = this.isMobile ? this.filteredCardRows : this.filteredJournalRows
+			return rows.slice(0, this.journalLimit)
+		},
+
+		remainingJournalRows() { return Math.max(0, this.filteredJournalRows.length - this.journalLimit) },
 
 		// Mehrfachauswahl nur am Desktop und nur, solange es eine Aktion dafür
 		// gibt: „Beleg zuordnen“ braucht den Wächter-Ordner.
 		bulkSelectable() { return !this.isMobile && this.watchMode && this.canWrite },
 		// Buchungen abgeschlossener Geschäftsjahre bekommen keinen Beleg mehr.
-		selectableVisibleRows() { return this.filteredJournalRows.filter((r) => !this.isDateClosed(r.date)) },
+		// „Sichtbar“ heißt dargestellt: Alle-auswählen und Umschalt-Klick
+		// erfassen keine Buchungen jenseits von „Weitere Buchungen anzeigen“.
+		selectableVisibleRows() { return this.pagedJournalRows.filter((r) => !this.isDateClosed(r.date)) },
 		selectedVisibleIds() { return this.selectableVisibleRows.filter((r) => this.selectedJournalIds.has(r.id)).map((r) => r.id) },
 		allVisibleSelected() { return this.selectableVisibleRows.length > 0 && this.selectedVisibleIds.length === this.selectableVisibleRows.length },
 
 		// Mobil: fest nach Datum absteigend – einmal je Datenstand sortiert,
-		// journalCardGroups filtert dann nur noch.
+		// filteredCardRows filtert dann nur noch.
 		journalRowsByDateDesc() {
 			return [...this.journalRows].sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')) || (b.entryNo || 0) - (a.entryNo || 0))
 		},
@@ -944,22 +1028,26 @@ export default {
 		// dienen dem Blättern durch eine lange Liste, nicht der Abgrenzung des
 		// Zeitraums. Das ist kein Rest der alten Jahres-Logik – bitte nicht auf
 		// die Geschäftsjahr-Grenzen umstellen.
-		journalCardGroups() {
-			const visible = this.visibleJournalIds
-			const rows = this.journalRowsByDateDesc.filter((r) => visible.has(r.id))
+		filteredCardRows() {
+			const visible = new Set(this.filteredJournalRows.map((r) => r.id))
+			return this.journalRowsByDateDesc.filter((r) => visible.has(r.id))
+		},
+
+		// Die dargestellten Karten; die erste Karte eines Monats trägt die
+		// Überschrift der Trennlinie davor.
+		journalCardItems() {
 			const names = [this.t('Januar'), this.t('Februar'), this.t('März'), this.t('April'), this.t('Mai'), this.t('Juni'), this.t('Juli'), this.t('August'), this.t('September'), this.t('Oktober'), this.t('November'), this.t('Dezember')]
-			const groups = []
-			let cur = null
-			for (const r of rows) {
+			let prev = null
+			return this.pagedJournalRows.map((r) => {
 				const key = String(r.date || '').slice(0, 7)
-				if (!cur || cur.key !== key) {
+				let divider = ''
+				if (key !== prev) {
 					const m = parseInt(key.slice(5, 7), 10)
-					cur = { key, label: (names[m - 1] || '?') + ' ' + key.slice(0, 4), rows: [] }
-					groups.push(cur)
+					divider = (names[m - 1] || '?') + ' ' + key.slice(0, 4)
+					prev = key
 				}
-				cur.rows.push(r)
-			}
-			return groups
+				return { r, divider }
+			})
 		},
 
 		// Kassenprüfung: fehlende/doppelte Buchungsnummern im gewählten Zeitraum
@@ -985,15 +1073,8 @@ export default {
 
 		// Verknüpft Journal-Zeilen mit ihrer bankstämmigen Buchung, damit in
 		// "Alle Buchungen" direkt eine Zuordnungsregel angelegt werden kann.
-		txByJournalId() {
-			const map = {}
-			for (const t of this.transactions) {
-				if (t.journalId && t.status === 'assigned' && t.counterparty && t.contraAccountId) {
-					map[t.journalId] = t
-				}
-			}
-			return map
-		},
+		// Kommt fertig gefiltert vom Server (Zeitraum, Zahlungspartner, Gegenkonto).
+		txByJournalId() { return this.txContext.byJournal },
 
 		unassignedTransactions() { return this.transactions.filter((t) => t.status === 'unassigned') },
 		transactionSearchIndex() { return buildSearchIndex(this.unassignedTransactions, transactionSearch.fields, transactionSearch.cents) },
@@ -1009,8 +1090,7 @@ export default {
 		},
 
 		assignProgress() {
-			const total = this.transactions.length
-			const done = this.transactions.filter((t) => t.status === 'assigned').length
+			const { total, assigned: done } = this.txContext.progress
 			return { total, done, pct: total ? Math.round((done / total) * 100) : 0 }
 		},
 
@@ -1023,15 +1103,16 @@ export default {
 		// (nur Forderungen) erscheinen erst, wenn es sie gibt. Der Reiter-Badge zählt
 		// genau die überfälligen; so lässt sich seine Zahl in der Liste nachvollziehen.
 		openItemFilterOptions() {
-			const count = (status) => this.openItems.filter((o) => o.status === status).length
-			const overdue = this.openItems.filter((o) => o.status === 'open' && o.overdue).length
+			// Die Zähler kommen aus der Datenbank (openItemCounts), nicht aus der geladenen Liste:
+			// diese enthält nur den gewählten Status.
+			const c = this.openItemCounts
 			return [
-				{ key: 'open', label: this.t('Offen'), count: count('open') },
-				...(overdue > 0 ? [{ key: 'overdue', label: this.t('Überfällig'), count: overdue }] : []),
-				{ key: 'paid', label: this.t('Bezahlt'), count: count('paid') },
-				...(count('waived') > 0 ? [{ key: 'waived', label: this.t('Erlassen'), count: count('waived') }] : []),
-				{ key: 'cancelled', label: this.t('Storniert'), count: count('cancelled') },
-				{ key: 'all', label: this.t('Alle'), count: this.openItems.length },
+				{ key: 'open', label: this.t('Offen'), count: c.open },
+				...(c.overdue > 0 ? [{ key: 'overdue', label: this.t('Überfällig'), count: c.overdue }] : []),
+				{ key: 'paid', label: this.t('Bezahlt'), count: c.paid },
+				...(c.waived > 0 ? [{ key: 'waived', label: this.t('Erlassen'), count: c.waived }] : []),
+				{ key: 'cancelled', label: this.t('Storniert'), count: c.cancelled },
+				{ key: 'all', label: this.t('Alle'), count: c.all },
 			]
 		},
 
@@ -1059,7 +1140,13 @@ export default {
 			if (this.$refs.searchField) { this.$refs.searchField.value = '' }
 			this.bookingSearch = ''
 			this.clearJournalSelection()
-			if (v === 'openitems') { this.loadOpenItems() }
+			if (v === 'openitems') { this.loadOpenItems(this.activeOpenItemFilter) }
+		},
+
+		// Ein Filterwechsel lädt den gewählten Status nach (auch der Rückfall auf „Offen“,
+		// wenn der gewählte Chip verschwindet). Nachladen nach Aktionen behält den Filter.
+		activeOpenItemFilter(key) {
+			if (this.bookingView === 'openitems') { this.loadOpenItems(key) }
 		},
 
 		// Eine Auswahl gilt für die Buchungen, die gerade auf dem Schirm sind:
@@ -1067,30 +1154,32 @@ export default {
 		selectedPeriodId() {
 			this.clearJournalSelection()
 			this.loadReceiptSuggestions()
+			this.journalLimit = JOURNAL_PAGE
 		},
 
-		// Nach jeder Änderung an Buchungen oder Belegen (App.vue lädt die Zähler
-		// dann neu) und beim Ein-/Ausschalten des Wächter-Ordners.
-		attachmentCountMap() { this.loadReceiptSuggestions() },
+		// Neue Auswahl, neue Liste: wieder mit den ersten JOURNAL_PAGE Buchungen.
+		bookingSearch() { this.journalLimit = JOURNAL_PAGE },
+		bookingFilter() { this.journalLimit = JOURNAL_PAGE },
+		journalOnlyNoAttachment() { this.journalLimit = JOURNAL_PAGE },
+
+		// Nach jeder Änderung an Belegen und beim Ein-/Ausschalten des
+		// Wächter-Ordners. Nicht an attachmentCountMap: die legt jedes Nachladen
+		// des Journals neu an, und jeder Abruf kostet einen Ordnerscan.
+		attachmentsRevision() { this.loadReceiptSuggestions() },
 		suggestionsActive() { this.loadReceiptSuggestions() },
 		bulkSelectable(v) { if (!v) { this.clearJournalSelection() } },
 
 		// Die Vorschläge für Rechnungen hängen an den unzugeordneten Umsätzen: neu holen, wenn sich die Liste ändert.
-		transactions() { this.loadInvoiceSuggestions() },
+		// Nur bei geaenderter Anzahl unzugeordneter Umsaetze, nicht bei jedem Nachladen.
+		unassignedCount() { this.loadInvoiceSuggestions(); this.loadReimbursementSuggestions() },
 		invoicesActive() { this.loadInvoiceSuggestions() },
 	},
 
 	mounted() {
 		this.loadReceiptSuggestions()
 		this.loadInvoiceSuggestions()
-		if (this.bookingView === 'openitems') { this.loadOpenItems() }
-		this.applyJournalVisibility()
-	},
-
-	// Nach jedem Rendern: neue oder umsortierte Zeilen bekommen ihre
-	// Sichtbarkeit. Jede Filteränderung rendert (Zähler), läuft also hier durch.
-	updated() {
-		this.applyJournalVisibility()
+		this.loadReimbursementSuggestions()
+		if (this.bookingView === 'openitems') { this.loadOpenItems(this.activeOpenItemFilter) }
 	},
 
 	beforeUnmount() {
@@ -1159,6 +1248,49 @@ export default {
 			}
 		},
 
+		// --- Auslagen: Kontoumsatz einer freigegebenen Auslage zuordnen ---------
+		async loadReimbursementSuggestions() {
+			if (!this.reimbursementsVisible || !this.canWrite) {
+				this.reimbursementSuggestions = {}
+				this.reimbursementsPayable = false
+				return
+			}
+			try {
+				const { data } = await api.reimbursementSuggestions()
+				this.reimbursementSuggestions = data.suggestions || {}
+				this.reimbursementsPayable = !!data.payable
+			} catch {
+				// Eine Hilfe, kein Muss: ohne sie bleibt das Zuordnen wie gewohnt.
+				this.reimbursementSuggestions = {}
+				this.reimbursementsPayable = false
+			}
+		},
+
+		reimbursementSuggestionsFor(tx) {
+			return tx.status === 'unassigned' ? (this.reimbursementSuggestions[tx.id] || []) : []
+		},
+
+		reimbursementChipLabel(s) {
+			const name = s.number || `#${s.reimbursementId}`
+			return s.exact ? this.t('✓ Auslage {number}', { number: name }) : this.t('Auslage {number}: Betrag weicht ab', { number: name })
+		},
+
+		reimbursementChipTitle(s) {
+			return this.tRaw('{name}, {amount}', { name: s.memberName, amount: formatMoney(s.amountCents / 100) })
+		},
+
+		/** Öffnet den Zuordnungsdialog; `reimbursementId` ist die erkannte Auslage, oder null zum Selberwählen. */
+		assignToReimbursement(tx, reimbursementId) {
+			this.reimbursementAssign = { tx, reimbursementId }
+		},
+
+		onReimbursementAssigned() {
+			this.reimbursementAssign = null
+			showSuccess(this.t('Der Umsatz wurde der Auslage zugeordnet.'))
+			this.$emit('reimbursement-booking-changed')
+			this.loadReimbursementSuggestions()
+		},
+
 		invoiceSuggestionsFor(tx) {
 			return tx.status === 'unassigned' ? (this.invoiceSuggestions[tx.id] || []) : []
 		},
@@ -1213,21 +1345,7 @@ export default {
 			this.searchTimer = setTimeout(() => { this.bookingSearch = v }, 150)
 		},
 
-		/**
-		 * Blendet die Zeilen der Journal-Tabelle direkt am DOM ein und aus.
-		 * Über die Vorlage (v-show) müsste Vue jede Zeile, deren Sichtbarkeit
-		 * wechselt, samt Knöpfen und Aktionsmenü patchen – bei einigen hundert
-		 * Zeilen spürbar. Das hidden-Attribut kennt Vue nicht und lässt es stehen.
-		 */
-		applyJournalVisibility() {
-			const body = this.$refs.journalBody
-			if (!body) { return }
-			const visible = this.visibleJournalIds
-			for (const tr of body.children) {
-				const hide = !visible.has(Number(tr.dataset.id))
-				if (tr.hidden !== hide) { tr.hidden = hide }
-			}
-		},
+		showMoreJournalRows() { this.journalLimit += JOURNAL_PAGE },
 
 		canAttachToTx(tx) {
 			return this.watchMode && this.canWrite && !this.isDateClosed(tx.bookingDate)

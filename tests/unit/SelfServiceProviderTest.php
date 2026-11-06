@@ -10,6 +10,7 @@ use OCA\Vereinsbuchhaltung\Service\SelfServiceMandateService;
 use OCP\Activity\Exceptions\UnknownActivityException;
 use OCP\Activity\IEvent;
 use OCP\IL10N;
+use OCP\IURLGenerator;
 use OCP\L10N\IFactory;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -30,7 +31,10 @@ class SelfServiceProviderTest extends TestCase {
 		);
 		$factory = $this->createMock(IFactory::class);
 		$factory->method('get')->with(Application::APP_ID, 'de')->willReturn($l10n);
-		return new SelfServiceProvider($factory);
+		$urlGenerator = $this->createMock(IURLGenerator::class);
+		$urlGenerator->method('imagePath')->with(Application::APP_ID, 'app-dark.svg')->willReturn('/apps/vereinsbuchhaltung/img/app-dark.svg');
+		$urlGenerator->method('getAbsoluteURL')->willReturnCallback(static fn (string $url): string => 'https://cloud.example' . $url);
+		return new SelfServiceProvider($factory, $urlGenerator);
 	}
 
 	private function event(string $subject, array $params, string $app = Application::APP_ID): IEvent&MockObject {
@@ -105,6 +109,15 @@ class SelfServiceProviderTest extends TestCase {
 	public function testFormatiertDasVerwerfenEinesMandatsEntwurfs(): void {
 		$event = $this->event(SelfServiceMandateService::SUBJECT_DRAFT_DISCARDED, []);
 		$event->expects($this->once())->method('setParsedSubject')->with('Mandats-Entwurf verworfen')->willReturnSelf();
+
+		$this->provider()->parse('de', $event);
+	}
+
+	/** Der Feed zeigt Icon und Rich-Subject (ohne Platzhalter), sonst bleibt der Eintrag in Clients ohne Plaintext-Fallback leer. */
+	public function testSetztRichSubjectUndIcon(): void {
+		$event = $this->event(SelfServiceProvider::SUBJECT_CONTACT_UPDATED, []);
+		$event->expects($this->once())->method('setRichSubject')->with('Kontaktdaten aktualisiert')->willReturnSelf();
+		$event->expects($this->once())->method('setIcon')->with('https://cloud.example/apps/vereinsbuchhaltung/img/app-dark.svg')->willReturnSelf();
 
 		$this->provider()->parse('de', $event);
 	}

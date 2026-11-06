@@ -20,6 +20,7 @@ return [
 
 		// Bank transactions
 		['name' => 'transaction#index', 'url' => '/api/transactions', 'verb' => 'GET'],
+		['name' => 'transaction#context', 'url' => '/api/transactions/context', 'verb' => 'GET'],
 		['name' => 'transaction#assign', 'url' => '/api/transactions/{id}/assign', 'verb' => 'POST'],
 		['name' => 'transaction#unassign', 'url' => '/api/transactions/{id}/assign', 'verb' => 'DELETE'],
 		['name' => 'transaction#destroy', 'url' => '/api/transactions/{id}', 'verb' => 'DELETE'],
@@ -29,6 +30,7 @@ return [
 		['name' => 'import#commit', 'url' => '/api/import/commit', 'verb' => 'POST'],
 		['name' => 'import#xbucPreview', 'url' => '/api/import/xbuc/preview', 'verb' => 'POST'],
 		['name' => 'import#xbucCommit', 'url' => '/api/import/xbuc', 'verb' => 'POST'],
+		['name' => 'import#xbucCommitWithReset', 'url' => '/api/import/xbuc/reset', 'verb' => 'POST'],
 		['name' => 'import#reset', 'url' => '/api/reset', 'verb' => 'POST'],
 
 		// Journal / reports
@@ -222,6 +224,7 @@ return [
 
 		// Offene Posten
 		['name' => 'openItem#index', 'url' => '/api/open-items', 'verb' => 'GET'],
+		['name' => 'openItem#counts', 'url' => '/api/open-items/counts', 'verb' => 'GET'],
 		['name' => 'openItem#create', 'url' => '/api/open-items', 'verb' => 'POST'],
 		['name' => 'openItem#markPaid', 'url' => '/api/open-items/{id}/pay', 'verb' => 'POST'],
 		['name' => 'openItem#cancel', 'url' => '/api/open-items/{id}/cancel', 'verb' => 'POST'],
@@ -239,9 +242,18 @@ return [
 		['name' => 'selfReimbursement#removeReceipt', 'url' => '/api/self/reimbursements/{id}/receipts/{fileId}', 'verb' => 'DELETE'],
 		['name' => 'selfReimbursement#receipt', 'url' => '/api/self/reimbursements/{id}/receipts/{fileId}/view', 'verb' => 'GET'],
 		['name' => 'reimbursement#index', 'url' => '/api/reimbursements', 'verb' => 'GET'],
+		['name' => 'reimbursement#summary', 'url' => '/api/reimbursements/summary', 'verb' => 'GET'],
+		['name' => 'reimbursement#suggestions', 'url' => '/api/reimbursements/suggestions', 'verb' => 'GET'],
+		['name' => 'reimbursement#numberRange', 'url' => '/api/reimbursements/number-range', 'verb' => 'GET'],
+		['name' => 'reimbursement#updateNumberRange', 'url' => '/api/reimbursements/number-range', 'verb' => 'PUT'],
 		['name' => 'reimbursement#show', 'url' => '/api/reimbursements/{id}', 'verb' => 'GET'],
 		['name' => 'reimbursement#approve', 'url' => '/api/reimbursements/{id}/approve', 'verb' => 'POST'],
 		['name' => 'reimbursement#reject', 'url' => '/api/reimbursements/{id}/reject', 'verb' => 'POST'],
+		['name' => 'reimbursement#transfer', 'url' => '/api/reimbursements/{id}/transfer', 'verb' => 'GET'],
+		['name' => 'reimbursement#transferred', 'url' => '/api/reimbursements/{id}/transferred', 'verb' => 'POST'],
+		['name' => 'reimbursement#notTransferred', 'url' => '/api/reimbursements/{id}/transferred', 'verb' => 'DELETE'],
+		['name' => 'reimbursement#revertPayment', 'url' => '/api/reimbursements/{id}/revert-payment', 'verb' => 'POST'],
+		['name' => 'reimbursement#assignTransaction', 'url' => '/api/reimbursements/{id}/assign', 'verb' => 'POST'],
 		['name' => 'reimbursement#pay', 'url' => '/api/reimbursements/{id}/pay', 'verb' => 'POST'],
 		['name' => 'reimbursement#receipt', 'url' => '/api/reimbursements/{id}/receipts/{fileId}/view', 'verb' => 'GET'],
 
@@ -394,11 +406,6 @@ return [
 		// Hilfe (Handbuch als lesbare Seite, druckfertige Kassenprüfer-Kurzanleitung)
 		['name' => 'help#handbuch', 'url' => '/api/help/handbuch', 'verb' => 'GET'],
 		['name' => 'help#pruefleitfaden', 'url' => '/api/help/pruefleitfaden', 'verb' => 'GET'],
-
-		// Übersetzungen der Oberfläche. Nextclouds .htaccess liefert keine
-		// .json-Dateien aus dem App-Verzeichnis aus, deshalb dieser Umweg –
-		// siehe L10nController.
-		['name' => 'l10n#bundle', 'url' => '/api/l10n/{lang}', 'verb' => 'GET'],
 
 		// Was ist neu (Splash-Screen nach Updates)
 		['name' => 'whatsNew#index', 'url' => '/api/whatsnew', 'verb' => 'GET'],

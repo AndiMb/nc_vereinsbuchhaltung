@@ -28,10 +28,12 @@ use OCP\AppFramework\Http\DataResponse;
 use OCP\IL10N;
 use OCP\IRequest;
 use OCP\IUserSession;
+use Psr\Log\LoggerInterface;
 
 class AttachmentController extends Controller {
 
 	use BookContext;
+	use InternalErrorResponder;
 
 	private const MAX_SIZE = 20 * 1024 * 1024; // 20 MB
 
@@ -46,6 +48,7 @@ class AttachmentController extends Controller {
 		private ReceiptSuggestionService $suggestions,
 		private IUserSession $userSession,
 		private IL10N $l10n,
+		private LoggerInterface $logger,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -79,8 +82,9 @@ class AttachmentController extends Controller {
 	}
 
 	#[NoAdminRequired]
-	public function counts(): DataResponse {
-		return new DataResponse($this->attachmentMapper->countByUser($this->userId()));
+	public function counts(?int $period = null): DataResponse {
+		[$from, $to] = $this->periods->range($this->userId(), $period);
+		return new DataResponse($this->attachmentMapper->countByUser($this->userId(), $from, $to));
 	}
 
 	private function openJournal(int $journalId): Journal|DataResponse {
@@ -130,14 +134,14 @@ class AttachmentController extends Controller {
 		$attachment->setFileName(basename($upload['name']));
 		$attachment->setMimeType($detectedMime);
 		$attachment->setFileSize((int)$upload['size']);
-		$attachment->setUploadedAt(new \DateTime());
+		$attachment->setUploadedAt(new \DateTime()); // UTC-Zeitstempel (#263)
 		$attachment = $this->attachmentMapper->insert($attachment);
 
 		try {
 			$attachment = $this->storageService->store($attachment, (int)substr((string)$journal->getDate(), 0, 4), $content);
 		} catch (\Throwable $e) {
 			$this->attachmentMapper->delete($attachment);
-			return new DataResponse(['message' => $this->l10n->t('Datei konnte nicht gespeichert werden: %s', [$e->getMessage()])], Http::STATUS_INTERNAL_SERVER_ERROR);
+			return $this->internalError($e, Http::STATUS_INTERNAL_SERVER_ERROR, $this->l10n->t('Datei konnte nicht gespeichert werden.'));
 		}
 
 		$this->audit->log('Beleg hinzugefügt', 'attachment', $attachment->getId(), [
@@ -159,7 +163,7 @@ class AttachmentController extends Controller {
 		try {
 			$attachment = $this->watchFolder->link($this->userId(), $journalId, $fileId);
 		} catch (\RuntimeException $e) {
-			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
+			return $this->internalError($e, Http::STATUS_BAD_REQUEST, $this->l10n->t('Der Beleg konnte nicht verknüpft werden.'));
 		}
 		$this->audit->log('Beleg verknüpft', 'attachment', $attachment->getId(), [
 			'journalId' => $journalId,
@@ -280,8 +284,10 @@ class AttachmentController extends Controller {
 		$ids = array_values(array_unique(array_map('intval', $fileIds)));
 		try {
 			$result = $this->watchFolder->move($this->userId(), $ids, $target);
-		} catch (\RuntimeException|\InvalidArgumentException $e) {
+		} catch (\InvalidArgumentException $e) {
 			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
+		} catch (\RuntimeException $e) {
+			return $this->internalError($e, Http::STATUS_BAD_REQUEST, $this->l10n->t('Die Belege konnten nicht verschoben werden.'));
 		}
 		if ($result['moved'] !== []) {
 			$this->audit->log('Belege verschoben', null, null, [

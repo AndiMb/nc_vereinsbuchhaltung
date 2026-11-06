@@ -51,7 +51,7 @@
 								{{ item.memberName }}
 							</td>
 							<td class="vbh-purpose vbh-stack-title">
-								<span class="vbh-clamp">{{ item.purpose }}</span>
+								<span class="vbh-clamp"><span v-if="item.number" class="vbh-reimb-number">{{ item.number }}</span> {{ item.purpose }}</span>
 							</td>
 							<td class="num strong">
 								{{ formatMoney(item.amountCents / 100) }}
@@ -61,6 +61,7 @@
 									<ReimbursementStatusTag :status="item.status" />
 									<span v-if="progressText(item)" class="vbh-reimb-progress">{{ progressText(item) }}</span>
 									<span v-if="item.canApprove" class="vbh-reimb-todo">{{ t('Ihre Freigabe') }}</span>
+									<span v-if="item.status === 'approved' && item.transferredAt" class="vbh-reimb-progress">{{ t('Überweisung angewiesen') }}</span>
 								</span>
 							</td>
 						</tr>
@@ -83,7 +84,7 @@
 			@update:show="detail = $event ? detail : null">
 			<div class="vbh-modal-inner">
 				<h2 id="vbh-modal-title-reimb-staff" class="vbh-modal-title">
-					{{ tRaw('Auslage #{id} von {name}', { id: detail.id, name: detail.memberName }) }}
+					{{ tRaw('Auslage {number} von {name}', { number: detail.number || `#${detail.id}`, name: detail.memberName }) }}
 				</h2>
 				<dl class="vbh-selfservice-fields">
 					<dt>{{ t('Betrag') }}</dt>
@@ -123,6 +124,9 @@
 					</template>
 				</dl>
 
+				<p v-if="detail.status === 'approved' && detail.transferredAt" class="vbh-hint vbh-hint--info" role="note">
+					{{ t('Die Überweisung ist angewiesen. Sobald der Kontoumsatz da ist, ordnen Sie ihn unter Buchungen → Zuzuordnen dieser Auslage zu; dort erscheint er mit dem Hinweis auf die Auslagennummer.') }}
+				</p>
 				<p v-if="detail.duplicateHint" class="vbh-hint vbh-hint--warning" role="note">
 					{{ t('Mindestens ein Beleg dieses Antrags liegt schon in einem anderen Antrag vor. Bitte prüfen, ob die Auslage doppelt eingereicht wurde.') }}
 				</p>
@@ -170,15 +174,45 @@
 						{{ t('Freigeben') }}
 					</NcButton>
 					<NcButton
-						v-if="detail.canPay && canWrite"
-						variant="primary"
+						v-if="detail.status === 'paid' && canWrite"
+						variant="tertiary"
 						:disabled="busy"
+						:title="t('Löscht die Buchung der Auszahlung. Ein zugeordneter Kontoumsatz erscheint wieder unter „Zuzuordnen“.')"
+						@click="revertPayment">
+						{{ t('Zahlung zurücknehmen') }}
+					</NcButton>
+					<NcButton
+						v-if="detail.canPay && canWrite && detail.transferredAt"
+						variant="tertiary"
+						:disabled="busy"
+						@click="unmarkTransferred">
+						{{ t('Vormerkung zurücknehmen') }}
+					</NcButton>
+					<NcButton
+						v-if="detail.canPay && canWrite"
+						variant="tertiary"
+						:disabled="busy"
+						:title="t('Für eine Barzahlung oder wenn es keinen Kontoumsatz gibt')"
 						@click="requestPay">
-						{{ t('Auszahlung buchen') }}
+						{{ t('Ohne Kontoumsatz buchen') }}
+					</NcButton>
+					<NcButton
+						v-if="detail.canPay && canWrite"
+						:variant="detail.transferredAt ? 'secondary' : 'primary'"
+						:disabled="busy"
+						@click="transferOpen = true">
+						{{ t('Überweisung vorbereiten') }}
 					</NcButton>
 				</div>
 			</div>
 		</NcModal>
+
+		<!-- Überweisung vorbereiten: Girocode, dann Auszahlung buchen -->
+		<ReimbursementTransferDialog
+			v-if="transferOpen"
+			:itemId="detail.id"
+			@close="transferOpen = false"
+			@done="markTransferred" />
 
 		<!-- Ablehnen -->
 		<NcModal
@@ -225,7 +259,9 @@ import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import NcModal from '@nextcloud/vue/components/NcModal'
 import ReimbursementHistory from './ReimbursementHistory.vue'
 import ReimbursementStatusTag from './ReimbursementStatusTag.vue'
+import ReimbursementTransferDialog from './ReimbursementTransferDialog.vue'
 import api from '../api.js'
+import { useConfirm } from '../composables/useConfirm.js'
 import { errMsg, formatDate, formatFileSize, formatMoney } from '../lib/format.js'
 import { formatIban } from '../lib/iban.js'
 import { focusOnOpen } from '../lib/modalFocus.js'
@@ -242,11 +278,12 @@ import {
  * Freigabe-Warteschlange, Auszahlung und Historie. Freigeben und Ablehnen
  * zeigt die Ansicht nur Verwaltern; ob jemand ausgerechnet diesen Antrag
  * freigeben darf (nicht den eigenen, nicht doppelt), sagt der Server mit
- * `canApprove`/`canReject`. Die Auszahlung öffnet den Buchungsdialog (App.vue).
+ * `canApprove`/`canReject`. Die Auszahlung beginnt mit „Überweisung vorbereiten“ (Girocode); gebucht wird
+ * mit dem Kontoumsatz unter „Zuzuordnen“. Nur ohne Kontoumsatz öffnet „Ohne Kontoumsatz buchen“ den Buchungsdialog (App.vue).
  */
 export default {
 	name: 'ReimbursementsPanel',
-	components: { NcButton, NcEmptyContent, NcLoadingIcon, NcModal, ReimbursementHistory, ReimbursementStatusTag },
+	components: { NcButton, NcEmptyContent, NcLoadingIcon, NcModal, ReimbursementHistory, ReimbursementStatusTag, ReimbursementTransferDialog },
 
 	props: {
 		canWrite: { type: Boolean, default: false },
@@ -254,7 +291,11 @@ export default {
 		reloadKey: { type: Number, default: 0 },
 	},
 
-	emits: ['pay'],
+	emits: ['booking-changed', 'pay'],
+
+	setup() {
+		return { askConfirm: useConfirm().askConfirm }
+	},
 
 	data() {
 		return {
@@ -263,6 +304,7 @@ export default {
 			search: '',
 			statusFilter: 'todo',
 			detail: null,
+			transferOpen: false,
 			busy: false,
 			error: '',
 			rejectOpen: false,
@@ -370,6 +412,26 @@ export default {
 			if (done) { this.rejectOpen = false }
 		},
 
+		/** Die Überweisung ist angewiesen; gebucht wird mit dem Kontoumsatz (Buchungen → Zuzuordnen). */
+		async markTransferred() {
+			this.transferOpen = false
+			await this.decide(() => api.markReimbursementTransferred(this.detail.id), this.t('Überweisung vorgemerkt.'), this.t('Die Überweisung ließ sich nicht vormerken.'))
+		},
+
+		/** Falsch angeklickt: der Antrag zeigt wieder „zu überweisen“. */
+		unmarkTransferred() {
+			return this.decide(() => api.unmarkReimbursementTransferred(this.detail.id), this.t('Vormerkung zurückgenommen.'), this.t('Die Vormerkung ließ sich nicht zurücknehmen.'))
+		},
+
+		/** Löscht die Buchung der Auszahlung; der Antrag ist danach wieder freigegeben, ein Kontoumsatz wieder zuzuordnen. */
+		async revertPayment() {
+			if (!await this.askConfirm(this.t('Zahlung zurücknehmen'), this.t('Die Buchung der Auszahlung wird gelöscht. Ein zugeordneter Kontoumsatz erscheint wieder unter „Zuzuordnen“, die Auslage ist wieder freigegeben.'), this.t('Zurücknehmen'), 'primary')) { return }
+			const done = await this.decide(() => api.revertReimbursementPayment(this.detail.id), this.t('Auszahlung zurückgenommen.'), this.t('Die Auszahlung ließ sich nicht zurücknehmen.'))
+			// Die Buchung ist weg: Journal und Umsätze in den Buchungen müssen nachziehen.
+			if (done) { this.$emit('booking-changed') }
+		},
+
+		/** Ohne Kontoumsatz (Barzahlung): der Buchungsdialog der Auszahlung. */
 		requestPay() {
 			const item = this.detail
 			this.detail = null
@@ -424,6 +486,11 @@ export default {
 	background-color: var(--color-primary-element-light);
 	color: var(--color-primary-element-light-text);
 	font-size: 0.82em;
+	font-weight: 600;
+	white-space: nowrap;
+}
+
+.vbh-reimb-number {
 	font-weight: 600;
 	white-space: nowrap;
 }
