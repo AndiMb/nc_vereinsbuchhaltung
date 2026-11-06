@@ -58,6 +58,65 @@ class ReimbursementMapper extends EncryptingMapper {
 		return $this->count($memberId, Reimbursement::STATUSES_PENDING);
 	}
 
+	/**
+	 * Anzahl und Summe der noch nicht abgeschlossenen Anträge je Status
+	 * (Übersichtskachel), ohne die Anträge selbst zu laden.
+	 *
+	 * @return array<string, array{count: int, cents: int}>
+	 */
+	public function pendingTotals(): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('status')
+			->selectAlias($qb->func()->count('*'), 'cnt')
+			->selectAlias($qb->func()->sum('amount_cents'), 'cents')
+			->from($this->getTableName())
+			->where($qb->expr()->in('status', $qb->createNamedParameter(Reimbursement::STATUSES_PENDING, IQueryBuilder::PARAM_STR_ARRAY)))
+			->groupBy('status');
+		$result = $qb->executeQuery();
+		$totals = [];
+		while ($row = $result->fetch()) {
+			$totals[(string)$row['status']] = ['count' => (int)$row['cnt'], 'cents' => (int)$row['cents']];
+		}
+		$result->closeCursor();
+		return $totals;
+	}
+
+	/** Freigegeben und schon als überwiesen vorgemerkt: wartet nur noch auf den Kontoumsatz. */
+	public function countTransferredApproved(): int {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select($qb->func()->count('*', 'cnt'))->from($this->getTableName())
+			->where($qb->expr()->eq('status', $qb->createNamedParameter(Reimbursement::STATUS_APPROVED)))
+			->andWhere($qb->expr()->isNotNull('transferred_at'));
+		$result = $qb->executeQuery();
+		$count = (int)$result->fetchOne();
+		$result->closeCursor();
+		return $count;
+	}
+
+	/** Die ausgezahlte Auslage, deren Auszahlung über diesen Buchungssatz lief; null, wenn es keine gibt. */
+	public function findPaidByJournal(int $journalId): ?Reimbursement {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('*')
+			->from($this->getTableName())
+			->where($qb->expr()->eq('journal_id', $qb->createNamedParameter($journalId, IQueryBuilder::PARAM_INT)))
+			->andWhere($qb->expr()->eq('status', $qb->createNamedParameter(Reimbursement::STATUS_PAID)));
+		try {
+			return $this->findEntity($qb);
+		} catch (\OCP\AppFramework\Db\DoesNotExistException) {
+			return null;
+		}
+	}
+
+	/** @return Reimbursement[] freigegeben, also zur Auszahlung bereit; neueste zuerst */
+	public function findApproved(): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('*')
+			->from($this->getTableName())
+			->where($qb->expr()->eq('status', $qb->createNamedParameter(Reimbursement::STATUS_APPROVED)))
+			->orderBy('id', 'DESC');
+		return $this->findEntities($qb);
+	}
+
 	public function countByMember(int $memberId): int {
 		return $this->count($memberId);
 	}

@@ -219,11 +219,11 @@ test.describe('Auslagenerstattung: Ansichten und Sprachen', () => {
 		await shot(page, '06-revisor-liste')
 
 		await visibleSection(page).locator('tr.vbh-reimb-row', { hasText: 'Youth camp supplies' }).click()
-		const dialog = page.getByRole('dialog', { name: /Auslage #\d+ von Emma English/ })
+		const dialog = page.getByRole('dialog', { name: /Auslage AUSL-\d{4}-\d{4} von Emma English/ })
 		await expect(dialog).toContainText('Freigegeben')
 		await expect(dialog).toContainText(/DE89[\s•]+30 00/)
 		await expect(dialog).not.toContainText(/DE89 3704/)
-		for (const name of ['Freigeben', 'Ablehnen', 'Auszahlung buchen']) {
+		for (const name of ['Freigeben', 'Ablehnen', 'Überweisung vorbereiten', 'Ohne Kontoumsatz buchen']) {
 			await expect(dialog.getByRole('button', { name }), `„${name}“ darf der Revisor nicht sehen`).toHaveCount(0)
 		}
 		// Die Historie nennt dem Revisor die Namen.
@@ -243,7 +243,7 @@ test.describe('Auslagenerstattung: Ansichten und Sprachen', () => {
 		await shot(page, '08-verwalter-liste')
 
 		await panel.locator('tr.vbh-reimb-row', { hasText: 'Offener Antrag für den Rundgang' }).click()
-		const dialog = page.getByRole('dialog', { name: /Auslage #\d+ von Erika Musterfrau/ })
+		const dialog = page.getByRole('dialog', { name: /Auslage AUSL-\d{4}-\d{4} von Erika Musterfrau/ })
 		await expect(dialog.getByRole('button', { name: 'Freigeben' })).toBeVisible()
 		await shot(page, '09-verwalter-detail')
 
@@ -270,7 +270,7 @@ test.describe('Auslagenerstattung: Ansichten und Sprachen', () => {
 		expect(overflow, 'Die Seite darf nicht breiter sein als das Fenster').toBeLessThanOrEqual(1)
 
 		await row.click()
-		const dialog = page.getByRole('dialog', { name: /Auslage #\d+ von Erika Musterfrau/ })
+		const dialog = page.getByRole('dialog', { name: /Auslage AUSL-\d{4}-\d{4} von Erika Musterfrau/ })
 		await expect(dialog).toBeVisible()
 		const box = await dialog.locator('.modal-container').boundingBox()
 		expect(box.width).toBeLessThanOrEqual(390)

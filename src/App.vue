@@ -131,6 +131,7 @@
 					@help="openHelp"
 					@goUnassigned="goToUnassigned"
 					@goOpenItems="goToOpenItems"
+					@goReimbursements="goToReimbursements"
 					@openInbox="openInbox"
 					@showAllBookings="activeTab = 'bookings'" />
 			</section>
@@ -172,6 +173,7 @@
 					@attachmentsChanged="afterAttachmentsChanged"
 					@goClaims="goToClaims"
 					@invoicePaid="onInvoicesChanged({ bookings: true })"
+					@reimbursementBookingChanged="onReimbursementBookingChanged"
 					@help="openHelp('bookings')" />
 			</section>
 
@@ -1527,6 +1529,11 @@ export default {
 			this.bookingView = 'openitems'
 		},
 
+		goToReimbursements() {
+			this.activeTab = 'bookings'
+			this.bookingView = 'reimbursements'
+		},
+
 		/**
 		 * Sprung aus Buchungen → Offene Posten (BookingsTab.vue) von einer Forderung
 		 * des Beitragsmoduls in den Einzug-Unterreiter, Segment „Forderungen“, auf
@@ -1898,6 +1905,12 @@ export default {
 		// Zahlungen zu Rechnungen buchen und lösen Bankumsätze, Buchungen und Salden (Epic #168).
 		// `info.bookings`: der Server hat dabei eine Buchung angelegt oder zurückgenommen
 		// (Zahlung gebucht/zurückgenommen) – dann brauchen auch die Belegvorschläge den neuen Stand.
+		/** Zuordnung oder Rücknahme einer Auszahlung: Buchungen neu laden, die Auslagenliste auch. */
+		async onReimbursementBookingChanged() {
+			this.reimbursementsReloadKey++
+			await this.onInvoicesChanged({ bookings: true })
+		},
+
 		async onInvoicesChanged(info) {
 			if (info?.bookings) { this.afterOwnJournalWrite(this.attachmentsRevision) }
 			await Promise.all([this.loadTransactions(this.selectedPeriodId), this.loadBalances(), this.loadJournal(), this.loadOpenItems(), this.loadPeriods()])

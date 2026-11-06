@@ -30,7 +30,11 @@ use OCP\AppFramework\Db\Entity;
 class NumberRange extends Entity implements \JsonSerializable {
 	public const KIND_INVOICE = 'rechnung';
 	public const KIND_CREDIT = 'storno';
-	public const KINDS = [self::KIND_INVOICE, self::KIND_CREDIT];
+	/** Auslagenanträge: `AUSL-{JJJJ}-{NNNN}`, vergeben beim Einreichen. */
+	public const KIND_REIMBURSEMENT = 'auslage';
+	/** Die Kreise der Rechnungsstellung (Einstellungen → Rechnungen). */
+	public const INVOICE_KINDS = [self::KIND_INVOICE, self::KIND_CREDIT];
+	public const KINDS = [self::KIND_INVOICE, self::KIND_CREDIT, self::KIND_REIMBURSEMENT];
 
 	public const RESET_YEARLY = 'yearly';
 	public const RESET_MONTHLY = 'monthly';

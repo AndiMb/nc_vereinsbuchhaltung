@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Service;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
+use OCA\Vereinsbuchhaltung\Db\BankTransaction;
 use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Db\Member;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
+use OCA\Vereinsbuchhaltung\Db\NumberRange;
 use OCA\Vereinsbuchhaltung\Db\OpenItem;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
 use OCA\Vereinsbuchhaltung\Db\Reimbursement;
@@ -65,6 +67,10 @@ class ReimbursementService {
 		private AuditService $audit,
 		private ITimeFactory $time,
 		private IL10N $l10n,
+		private NumberRangeService $numbers,
+		private BookingService $booking,
+		private JournalService $journalService,
+		private ReimbursementPaymentReverter $reverter,
 		?ClubClock $clock = null,
 	) {
 		$this->clock = $clock ?? new ClubClock($this->time);
@@ -133,6 +139,28 @@ class ReimbursementService {
 		return [
 			'approved' => min($approved, $reimbursement->getRequiredApprovals()),
 			'required' => $reimbursement->getRequiredApprovals(),
+		];
+	}
+
+	/**
+	 * Die noch nicht abgeschlossenen Anträge für die Übersichtskachel.
+	 *
+	 * `toTransfer` wartet auf die Überweisung, `awaitingBooking` ist überwiesen
+	 * und wartet auf den Kontoumsatz (oder eine andere Buchung).
+	 *
+	 * @return array{count: int, totalCents: int, awaitingApproval: int, toTransfer: int, awaitingBooking: int}
+	 */
+	public function openSummary(): array {
+		$totals = $this->mapper->pendingTotals();
+		$approved = $totals[Reimbursement::STATUS_APPROVED]['count'] ?? 0;
+		$awaitingBooking = $this->mapper->countTransferredApproved();
+		$count = array_sum(array_column($totals, 'count'));
+		return [
+			'count' => $count,
+			'totalCents' => array_sum(array_column($totals, 'cents')),
+			'awaitingApproval' => $count - $approved,
+			'toTransfer' => $approved - $awaitingBooking,
+			'awaitingBooking' => $awaitingBooking,
 		];
 	}
 
@@ -205,6 +233,8 @@ class ReimbursementService {
 		return $this->transaction->run(function () use ($member, $amountCents, $expenseDate, $purpose, $invoiceNumber, $supplier, $normalizedIban, $accountHolder, $declaration, $uploads, $actorUid, $required): Reimbursement {
 			$now = $this->now();
 			$reimbursement = new Reimbursement();
+			// In der Transaktion des Antrags: scheitert das Einreichen, rollt der Zähler mit zurück.
+			$reimbursement->setNumber($this->numbers->issue(NumberRange::KIND_REIMBURSEMENT, new \DateTimeImmutable($this->clock->today()))['number']);
 			$reimbursement->setMemberId($member->getId());
 			$reimbursement->setAmountCents($amountCents);
 			$reimbursement->setExpenseDate($expenseDate);
@@ -390,6 +420,122 @@ class ReimbursementService {
 	}
 
 	// --- Auszahlen ---------------------------------------------------------
+
+	/**
+	 * Vermerkt, dass die Überweisung angewiesen ist. Gebucht wird erst, wenn der
+	 * Kontoumsatz da ist ({@see payFromBankTransaction()}); bis dahin bleibt der
+	 * Antrag `approved` und zeigt „Überweisung angewiesen“.
+	 *
+	 * @throws \InvalidArgumentException wenn der Antrag nicht freigegeben ist
+	 */
+	public function markTransferred(int $id, string $actorUid): Reimbursement {
+		return $this->atomically(function () use ($id, $actorUid): Reimbursement {
+			$reimbursement = $this->mapper->find($id);
+			if ($reimbursement->getStatus() !== Reimbursement::STATUS_APPROVED) {
+				throw new \InvalidArgumentException($this->l10n->t('Nur ein freigegebener Antrag lässt sich als überwiesen vormerken.'));
+			}
+			if ($reimbursement->getTransferredAt() !== null) {
+				return $reimbursement;
+			}
+			$this->log->append($id, ReimbursementEvent::ACTION_TRANSFERRED, $actorUid, ReimbursementEvent::ROLE_STAFF, null, []);
+			$reimbursement->setTransferredAt($this->now());
+			$reimbursement = $this->mapper->update($reimbursement);
+			$this->audit->log('Auslage überwiesen (vorgemerkt)', 'reimbursement', $id, []);
+			return $reimbursement;
+		});
+	}
+
+	/**
+	 * Nimmt die Vormerkung „Überweisung angewiesen“ zurück (falsch angeklickt).
+	 *
+	 * @throws \InvalidArgumentException wenn der Antrag nicht freigegeben ist
+	 */
+	public function unmarkTransferred(int $id, string $actorUid): Reimbursement {
+		return $this->atomically(function () use ($id, $actorUid): Reimbursement {
+			$reimbursement = $this->mapper->find($id);
+			if ($reimbursement->getStatus() !== Reimbursement::STATUS_APPROVED) {
+				throw new \InvalidArgumentException($this->l10n->t('Nur bei einem freigegebenen Antrag lässt sich die Vormerkung zurücknehmen.'));
+			}
+			if ($reimbursement->getTransferredAt() === null) {
+				return $reimbursement;
+			}
+			$this->log->append($id, ReimbursementEvent::ACTION_TRANSFER_REVOKED, $actorUid, ReimbursementEvent::ROLE_STAFF, null, []);
+			$reimbursement->setTransferredAt(null);
+			$reimbursement = $this->mapper->update($reimbursement);
+			$this->audit->log('Auslage: Vormerkung der Überweisung zurückgenommen', 'reimbursement', $id, []);
+			return $reimbursement;
+		});
+	}
+
+	/**
+	 * Nimmt die Auszahlung zurück: löscht ihre Buchung. Ein zugeordneter Kontoumsatz
+	 * erscheint wieder unter „Zuzuordnen“. Antrag, offener Posten und Belege stellt
+	 * {@see ReimbursementPaymentReverter} wieder her, derselbe Haken, der auch greift,
+	 * wenn jemand die Buchung selbst löscht.
+	 *
+	 * @throws \InvalidArgumentException wenn der Antrag nicht ausgezahlt ist
+	 */
+	public function revertPayment(int $id): Reimbursement {
+		return $this->atomically(function () use ($id): Reimbursement {
+			$reimbursement = $this->mapper->find($id);
+			$journalId = $reimbursement->getJournalId();
+			if ($reimbursement->getStatus() !== Reimbursement::STATUS_PAID || $journalId === null) {
+				throw new \InvalidArgumentException($this->l10n->t('Nur eine ausgezahlte Auslage lässt sich zurücknehmen.'));
+			}
+			try {
+				$this->journalService->deleteBooking($journalId, Application::BOOK);
+			} catch (DoesNotExistException) {
+				// Die Buchung ist schon weg (älterer Stand): dann nur den Antrag zurücksetzen.
+				$this->reverter->revertForJournal($journalId);
+			}
+			return $this->mapper->find($id);
+		});
+	}
+
+	/**
+	 * Ordnet einen Kontoumsatz (Abgang) der freigegebenen Auslage zu: bucht ihn
+	 * gegen das gewählte Aufwandskonto und vermerkt die Auszahlung am Antrag.
+	 * Ohne diesen Weg stünde dieselbe Zahlung zweimal in den Büchern - einmal
+	 * als Auszahlung der Auslage, einmal als Umsatz unter „Zuzuordnen“.
+	 *
+	 * @throws \InvalidArgumentException wenn Antrag oder Umsatz nicht zusammenpassen
+	 */
+	public function payFromBankTransaction(int $id, BankTransaction $tx, int $contraAccountId, string $actorUid): Reimbursement {
+		return $this->atomically(function () use ($id, $tx, $contraAccountId, $actorUid): Reimbursement {
+			$reimbursement = $this->mapper->find($id);
+			if ($reimbursement->getStatus() !== Reimbursement::STATUS_APPROVED) {
+				throw new \InvalidArgumentException($this->l10n->t('Nur ein freigegebener Antrag lässt sich auszahlen.'));
+			}
+			if ($tx->getJournalId() !== null || $tx->getStatus() !== 'unassigned') {
+				throw new \InvalidArgumentException($this->l10n->t('Dieser Umsatz ist schon zugeordnet.'));
+			}
+			if ($tx->getAmountCents() >= 0) {
+				throw new \InvalidArgumentException($this->l10n->t('Einer Auslage lassen sich nur Abgänge zuordnen.'));
+			}
+			if (abs($tx->getAmountCents()) !== $reimbursement->getAmountCents()) {
+				throw new \InvalidArgumentException($this->l10n->t('Der Betrag des Umsatzes passt nicht zur Auslage.'));
+			}
+
+			$tx = $this->booking->assign($tx, $contraAccountId);
+			$journalId = (int)$tx->getJournalId();
+			$journal = $this->journalMapper->find($journalId, Application::BOOK);
+			$journal->setDescription($this->bookingText($reimbursement));
+			$journal->setDocumentRef($reimbursement->getNumber() !== null ? mb_substr($reimbursement->getNumber(), 0, 64) : null);
+			$this->journalMapper->update($journal);
+
+			return $this->markPaid($id, $journalId, (string)$tx->getBookingDate(), $actorUid);
+		});
+	}
+
+	private function bookingText(Reimbursement $reimbursement): string {
+		try {
+			$member = $this->memberMapper->find($reimbursement->getMemberId())->displayName();
+		} catch (DoesNotExistException) {
+			$member = '';
+		}
+		$text = ($reimbursement->getNumber() ?? '#' . $reimbursement->getId()) . ' ' . $reimbursement->getPurpose();
+		return $member !== '' ? $text . ' (' . $member . ')' : $text;
+	}
 
 	/**
 	 * Vermerkt die Überweisung: Der Antrag wird `paid`, der offene Posten

@@ -17,6 +17,12 @@ use OCP\AppFramework\Db\Entity;
  * `iban` liegt verschlüsselt (siehe {@see ReimbursementMapper}); die Entity
  * hält den Klartext.
  *
+ * `number` ist die Auslagennummer (`AUSL-2026-0012`), vergeben beim Einreichen;
+ * sie steht im Verwendungszweck der Überweisung und findet die Zahlung im
+ * Kontoauszug wieder. `transferredAt` vermerkt, dass die Verwaltung die
+ * Überweisung angewiesen hat; der Status bleibt `approved`, bis der Kontoumsatz
+ * der Auslage zugeordnet (oder die Auszahlung anders gebucht) ist.
+ *
  * `expenseDate` ist das Rechnungsdatum. Rechnungsnummer, Lieferant, Kontoinhaber
  * entsprechen den Feldern des Papierformulars; bei Anträgen aus der Zeit
  * davor sind sie leer. Mehrere Rechnungen sind mehrere Anträge.
@@ -56,6 +62,10 @@ use OCP\AppFramework\Db\Entity;
  * @method void setInvoiceNumber(?string $invoiceNumber)
  * @method string|null getSupplier()
  * @method void setSupplier(?string $supplier)
+ * @method string|null getNumber()
+ * @method void setNumber(?string $number)
+ * @method string|null getTransferredAt()
+ * @method void setTransferredAt(?string $transferredAt)
  * @method string|null getAccountHolder()
  * @method void setAccountHolder(?string $accountHolder)
  */
@@ -79,6 +89,8 @@ class Reimbursement extends Entity implements \JsonSerializable {
 	protected $invoiceNumber;
 	protected $supplier;
 	protected $accountHolder;
+	protected $number;
+	protected $transferredAt;
 
 	public const STATUS_SUBMITTED = 'submitted';
 	public const STATUS_PARTIALLY_APPROVED = 'partially_approved';
@@ -139,6 +151,8 @@ class Reimbursement extends Entity implements \JsonSerializable {
 			'submittedBy' => $this->submittedBy,
 			'submittedAt' => $this->submittedAt,
 			'decidedAt' => $this->decidedAt,
+			'number' => $this->number,
+			'transferredAt' => $this->transferredAt,
 			'paidAt' => $this->paidAt,
 			'rejectionReason' => $this->rejectionReason,
 			'openItemId' => $this->openItemId,

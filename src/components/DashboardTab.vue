@@ -33,6 +33,15 @@
 					{{ t('Jetzt zuordnen') }}
 				</NcButton>
 			</div>
+			<!-- Auslagen, die noch nicht ausgezahlt, abgelehnt oder zurückgezogen sind -->
+			<div v-if="reimbursementSummary.count > 0" class="vbh-total vbh-total--warn">
+				<span>{{ t('Offene Auslagen') }}</span>
+				<strong>{{ n('%n Antrag', '%n Anträge', reimbursementSummary.count) }} · {{ formatMoney(reimbursementSummary.totalCents / 100) }}</strong>
+				<small>{{ reimbursementDetail }}</small>
+				<NcButton variant="primary" size="small" @click="$emit('go-reimbursements')">
+					{{ t('Ansehen') }}
+				</NcButton>
+			</div>
 			<div v-if="overdueOpenItemsCount > 0" class="vbh-total vbh-total--warn">
 				<span>{{ t('Überfällige offene Posten') }}</span>
 				<strong>{{ overdueOpenItemsCount }}</strong>
@@ -335,7 +344,7 @@ export default {
 		watchMode: { type: Boolean, default: false },
 	},
 
-	emits: ['go-open-items', 'go-unassigned', 'help', 'navigate', 'open-inbox', 'open-wizard', 'show-all-bookings'],
+	emits: ['go-open-items', 'go-reimbursements', 'go-unassigned', 'help', 'navigate', 'open-inbox', 'open-wizard', 'show-all-bookings'],
 
 	setup() {
 		const auth = useAuth()
@@ -347,7 +356,9 @@ export default {
 		const openItems = useOpenItems()
 		return {
 			canWrite: auth.canWrite,
+			canRead: auth.canRead,
 			isAdmin: auth.isAdmin,
+			reimbursementsStaffVisible: auth.reimbursementsStaffVisible,
 			...toRefs(periods.state),
 			selectedPeriod: periods.selectedPeriod,
 			previousOf: periods.previousOf,
@@ -370,10 +381,22 @@ export default {
 			suggestionItems: {},
 			suggestionNames: {},
 			suggestionRequest: 0,
+			// Zahlen für die Kachel „Offene Auslagen“ (nur Verwaltungssicht)
+			reimbursementSummary: { count: 0, totalCents: 0, awaitingApproval: 0, toTransfer: 0, awaitingBooking: 0 },
 		}
 	},
 
 	computed: {
+		/** „2 warten auf Freigabe, 1 zu überweisen, 1 wartet auf den Kontoumsatz“ - nur die Teile, die es gibt. */
+		reimbursementDetail() {
+			const { awaitingApproval, toTransfer, awaitingBooking } = this.reimbursementSummary
+			return [
+				awaitingApproval > 0 && this.tRaw('{n} warten auf Freigabe', { n: awaitingApproval }),
+				toTransfer > 0 && this.tRaw('{n} zu überweisen', { n: toTransfer }),
+				awaitingBooking > 0 && this.tRaw('{n} warten auf den Kontoumsatz', { n: awaitingBooking }),
+			].filter(Boolean).join(', ')
+		},
+
 		suggestionsActive() { return this.canWrite && this.watchMode && !!this.editBooking },
 
 		/**
@@ -454,6 +477,7 @@ export default {
 				if (!v) { return }
 				this.$nextTick(() => this.renderMonthlyChart())
 				this.loadReceiptSuggestions()
+				this.loadReimbursements()
 			},
 		},
 
@@ -479,7 +503,10 @@ export default {
 
 	mounted() {
 		if (this.isActive) { this.$nextTick(() => setTimeout(() => this.renderMonthlyChart(), 50)) }
-		if (this.isActive) { this.loadReceiptSuggestions() }
+		if (this.isActive) {
+			this.loadReceiptSuggestions()
+			this.loadReimbursements()
+		}
 		// Chart.js malt die Farben einmal ins Canvas; ohne Neuzeichnen bliebe
 		// nach einem Designwechsel das alte Bild stehen.
 		this.stopThemeWatch = onThemeChange(() => {
@@ -496,6 +523,16 @@ export default {
 		formatMoney,
 		formatDate,
 		levelIcon,
+
+		async loadReimbursements() {
+			if (!this.canRead || !this.reimbursementsStaffVisible) { return }
+			try {
+				const { data } = await api.reimbursementsSummary()
+				this.reimbursementSummary = data
+			} catch {
+				// Die Kachel ist eine Zugabe: ohne sie bleibt die Übersicht, wie sie war.
+			}
+		},
 
 		async loadReceiptSuggestions() {
 			if (!this.suggestionsActive) {

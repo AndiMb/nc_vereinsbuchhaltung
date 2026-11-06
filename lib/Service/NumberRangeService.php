@@ -14,7 +14,8 @@ use OCP\IL10N;
 /**
  * Fortlaufende Rechnungsnummern (§ 14 Abs. 4 Nr. 4 UStG: einmalig, aus einer
  * oder mehreren Zahlenreihen). Pro Art gibt es einen Kreis: `rechnung`
- * (`RE-{JJJJ}-{NNNN}`) und `storno` (`ST-{JJJJ}-{NNNN}`).
+ * (`RE-{JJJJ}-{NNNN}`), `storno` (`ST-{JJJJ}-{NNNN}`) und `auslage`
+ * (`AUSL-{JJJJ}-{NNNN}`, Auslagenanträge).
  *
  * Muster: `{JJJJ}` ist das Jahr des Rechnungsdatums, `{JJ}` die letzten zwei
  * Stellen, `{MM}` der Monat (zweistellig), `{NNNN}` der Zähler. Die Anzahl der N bestimmt die Mindestbreite
@@ -38,6 +39,7 @@ class NumberRangeService {
 	public const DEFAULT_PATTERNS = [
 		NumberRange::KIND_INVOICE => 'RE-{JJJJ}-{NNNN}',
 		NumberRange::KIND_CREDIT => 'ST-{JJJJ}-{NNNN}',
+		NumberRange::KIND_REIMBURSEMENT => 'AUSL-{JJJJ}-{NNNN}',
 	];
 
 	private const MAX_ATTEMPTS = 5;
@@ -50,10 +52,10 @@ class NumberRangeService {
 	) {
 	}
 
-	/** @return NumberRange[] beide Kreise, fehlende werden mit dem Standardmuster angelegt */
+	/** @return NumberRange[] die Kreise der Rechnungsstellung, fehlende werden mit dem Standardmuster angelegt */
 	public function all(): array {
 		$ranges = [];
-		foreach (NumberRange::KINDS as $kind) {
+		foreach (NumberRange::INVOICE_KINDS as $kind) {
 			$ranges[] = $this->ensure($kind);
 		}
 		return $ranges;
