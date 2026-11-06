@@ -10,6 +10,7 @@ use OCA\Vereinsbuchhaltung\Db\MandateMapper;
 use OCA\Vereinsbuchhaltung\Db\Member;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
+use OCA\Vereinsbuchhaltung\Service\ClubClock;
 use OCA\Vereinsbuchhaltung\Service\MemberService;
 use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubClockStub;
 use OCP\IL10N;
@@ -44,12 +45,12 @@ class MemberServiceTest extends TestCase {
 		$this->userManager = $this->createMock(IUserManager::class);
 	}
 
-	private function service(): MemberService {
+	private function service(?ClubClock $clock = null): MemberService {
 		$l10n = $this->createMock(IL10N::class);
 		$l10n->method('t')->willReturnCallback(
 			static fn (string $text, array $parameters = []): string => vsprintf(str_replace('%s', '%1$s', $text), $parameters),
 		);
-		return new MemberService($this->mapper, $this->mandateMapper, $this->assignmentMapper, $this->openItemMapper, $this->userManager, $l10n, ClubClockStub::system());
+		return new MemberService($this->mapper, $this->mandateMapper, $this->assignmentMapper, $this->openItemMapper, $this->userManager, $l10n, $clock ?? ClubClockStub::system());
 	}
 
 	// --- splitLabel(): reine Split-Heuristik (Spec §3.1 "Umbaupfad") ---
@@ -200,7 +201,8 @@ class MemberServiceTest extends TestCase {
 	public function testCreatePersonSetztFelderUndDefaultJoinedAt(): void {
 		$this->mapper->method('insert')->willReturnArgument(0);
 
-		$member = $this->service()->create([
+		// 22:30 UTC ist in der Vereinszone (Europe/Berlin) schon der nächste Tag.
+		$member = $this->service(ClubClockStub::at('2026-06-30 22:30:00'))->create([
 			'memberType' => Member::TYPE_PERSON,
 			'firstName' => 'Katrin',
 			'lastName' => ' Brunner ',
@@ -211,7 +213,7 @@ class MemberServiceTest extends TestCase {
 		$this->assertSame('Katrin', $member->getFirstName());
 		$this->assertSame('Brunner', $member->getLastName());
 		$this->assertSame('k.brunner@example.org', $member->getEmail());
-		$this->assertSame((new \DateTime())->format('Y-m-d'), $member->getJoinedAt());
+		$this->assertSame('2026-07-01', $member->getJoinedAt());
 		$this->assertNotNull($member->getCreatedAt());
 	}
 
