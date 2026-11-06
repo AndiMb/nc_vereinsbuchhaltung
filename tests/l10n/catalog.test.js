@@ -17,6 +17,7 @@ const { keys } = extractAll()
 const en = readBundle('en').translations
 const de = readBundle('de').translations
 const deFormal = readBundle('de_DE').translations
+const nl = readBundle('nl').translations
 
 function where(key) {
 	const call = keys.get(key)?.[0]
@@ -27,6 +28,47 @@ function report(list, describe = (key) => `${where(key)}  ${JSON.stringify(print
 	return list.map(describe).join('\n')
 }
 
+// Platzhalter dürfen nicht dazukommen. Weglassen darf eine Übersetzung nur ein unbenanntes „%s" – etwa
+// das deutsche Pluralsuffix in „Buchungszeile%s", das es im Englischen nicht gibt.
+const unnamed = /^%[sd]$/
+
+function tokenProblem(source, translation) {
+	const rest = [...tokens(source)]
+	for (const token of tokens(translation)) {
+		const index = rest.indexOf(token)
+		if (index < 0) { return `„${token}" kommt im Quelltext nicht vor` }
+		rest.splice(index, 1)
+	}
+	const lost = rest.filter((token) => !unnamed.test(token))
+	return lost.length > 0 ? `fehlt: ${lost.join(' ')}` : null
+}
+
+/** [Schlüssel, Meldung] je Eintrag eines Bündels, dessen Platzhalter oder Tags nicht zum Quelltext passen. */
+function tokenMismatches(bundle) {
+	const mismatched = []
+	for (const [key, value] of Object.entries(bundle)) {
+		if (!keys.has(key)) { continue }
+		const pairs = key.startsWith('_') && key.includes('_::_') && Array.isArray(value)
+			? key.slice(1, -1).split('_::_').map((source, index) => [source, value[index]])
+			: [[key.split(CONTEXT_SEPARATOR).pop(), value]]
+		for (const [source, translation] of pairs) {
+			const message = typeof translation === 'string' ? tokenProblem(source, translation) : null
+			if (message) { mismatched.push([key, `${message} – ${JSON.stringify(translation)}`]) }
+		}
+	}
+	return mismatched
+}
+
+/** Einträge ohne gültige Übersetzung: leer, oder bei Pluralformen nicht genau zwei Texte. */
+function brokenEntries(bundle) {
+	return Object.entries(bundle).filter(([key, value]) => {
+		if (key.startsWith('_') && key.includes('_::_')) {
+			return !(Array.isArray(value) && value.length === 2 && value.every((v) => typeof v === 'string' && v.trim() !== ''))
+		}
+		return typeof value !== 'string' || value.trim() === ''
+	})
+}
+
 describe('en.json', () => {
 	it('enthält jeden Text, der im Code übersetzt wird', () => {
 		const missing = [...keys.keys()].filter((key) => !(key in en))
@@ -34,42 +76,13 @@ describe('en.json', () => {
 	})
 
 	it('hat zu jedem Eintrag eine nicht leere Übersetzung, bei Pluralformen zwei', () => {
-		const broken = Object.entries(en).filter(([key, value]) => {
-			if (key.startsWith('_') && key.includes('_::_')) {
-				return !(Array.isArray(value) && value.length === 2 && value.every((v) => typeof v === 'string' && v.trim() !== ''))
-			}
-			return typeof value !== 'string' || value.trim() === ''
-		})
-		expect(broken.map(([key]) => printable(key))).toEqual([])
+		expect(brokenEntries(en).map(([key]) => printable(key))).toEqual([])
 	})
 
 	it('behält in jeder Fassung die Platzhalter und Tags des Quelltexts', () => {
 		// Platzhalter dürfen nicht dazukommen. Weglassen darf eine Übersetzung nur ein unbenanntes „%s" – etwa
 		// das deutsche Pluralsuffix in „Buchungszeile%s", das es im Englischen nicht gibt.
-		const unnamed = /^%[sd]$/
-		function problem(source, translation) {
-			const sourceTokens = tokens(source)
-			const translated = tokens(translation)
-			const rest = [...sourceTokens]
-			for (const token of translated) {
-				const index = rest.indexOf(token)
-				if (index < 0) { return `„${token}" kommt im Quelltext nicht vor` }
-				rest.splice(index, 1)
-			}
-			const lost = rest.filter((token) => !unnamed.test(token))
-			return lost.length > 0 ? `fehlt: ${lost.join(' ')}` : null
-		}
-		const mismatched = []
-		for (const [key, value] of Object.entries(en)) {
-			if (!keys.has(key)) { continue }
-			const pairs = key.startsWith('_') && key.includes('_::_') && Array.isArray(value)
-				? key.slice(1, -1).split('_::_').map((source, index) => [source, value[index]])
-				: [[key.split(CONTEXT_SEPARATOR).pop(), value]]
-			for (const [source, translation] of pairs) {
-				const message = typeof translation === 'string' ? problem(source, translation) : null
-				if (message) { mismatched.push([key, `${message} – ${JSON.stringify(translation)}`]) }
-			}
-		}
+		const mismatched = tokenMismatches(en)
 		expect(report(mismatched, ([key, message]) => `${where(key)}  ${JSON.stringify(printable(key))}: ${message}`)).toBe('')
 	})
 
@@ -85,6 +98,25 @@ describe('en.json', () => {
 			}
 		}
 		expect(report(leftovers, ([key, text]) => `${where(key)}  ${JSON.stringify(text)}`)).toBe('')
+	})
+})
+
+// Niederländisch (Issue #279): erstellt aus der englischen und der deutschen
+// Fassung, gepflegt mit jedem Release. Fehlt ein Eintrag, zeigt Nextcloud den
+// deutschen Quelltext - deshalb gilt dieselbe Vollständigkeit wie für en.json.
+describe('nl.json', () => {
+	it('enthält jeden Text, der im Code übersetzt wird', () => {
+		const missing = [...keys.keys()].filter((key) => !(key in nl))
+		expect(report(missing), `${missing.length} Texte ohne niederländische Fassung (npm run l10n:check zeigt sie)`).toBe('')
+	})
+
+	it('hat zu jedem Eintrag eine nicht leere Übersetzung, bei Pluralformen zwei', () => {
+		expect(brokenEntries(nl).map(([key]) => printable(key))).toEqual([])
+	})
+
+	it('behält in jeder Fassung die Platzhalter und Tags des Quelltexts', () => {
+		const mismatched = tokenMismatches(nl)
+		expect(report(mismatched, ([key, message]) => `${where(key)}  ${JSON.stringify(printable(key))}: ${message}`)).toBe('')
 	})
 })
 

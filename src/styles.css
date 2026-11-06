@@ -1055,6 +1055,11 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 
 .vbh-modal-actions--sticky.is-stuck { border-top-color: var(--color-border); box-shadow: 0 -8px 12px -8px var(--color-box-shadow); }
 
+/* Rückfrage „Beleg übernehmen?“ beim Speichern (#281): Text über den Knöpfen, wenn der Platz nicht reicht. */
+.vbh-modal-actions.vbh-save-receipt-prompt { flex-wrap: wrap; align-items: center; }
+
+.vbh-save-receipt-question { flex: 1 1 24ch; margin: 0; font-weight: 600; }
+
 /* Belegauswahl als Seitenleiste neben dem Formular statt als zweiter Dialog
    darueber (BookingDialog.vue, .is-split nur am Desktop).
 
@@ -1132,6 +1137,8 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 .vbh-receipt-preview-head { display: flex; flex: 0 0 auto; gap: 4px; align-items: center; min-height: var(--default-clickable-area, 34px); margin-bottom: 4px; }
 
 .vbh-receipt-preview-name { overflow: hidden; flex: 1 1 auto; min-width: 0; font-weight: 600; white-space: nowrap; text-overflow: ellipsis; }
+
+.vbh-receipt-preview-pick { flex: 0 0 auto; }
 
 .vbh-receipt-preview-frame { flex: 1 1 auto; width: 100%; min-height: 0; border: 1px solid var(--color-border); border-radius: var(--border-radius); background: var(--color-background-dark); }
 

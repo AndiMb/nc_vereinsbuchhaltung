@@ -36,8 +36,10 @@
 						v-if="previewInList"
 						ref="fallbackPreview"
 						:file="previewFile"
+						:pickable="pick"
 						showNav
 						@back="backToList"
+						@pick="$emit('pick', [$event])"
 						@step="$refs.panel.step($event)" />
 					<AttachmentFolderPanel
 						v-show="!previewInList"
@@ -57,7 +59,7 @@
 						@openBooking="$emit('open-booking', $event)" />
 				</div>
 				<div v-if="!isMobile && isWide" class="vbh-folder-dialog-preview">
-					<ReceiptPreview :file="previewFile" />
+					<ReceiptPreview :file="previewFile" :pickable="pick" @pick="$emit('pick', [$event])" />
 				</div>
 			</div>
 
