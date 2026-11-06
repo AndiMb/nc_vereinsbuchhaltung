@@ -9,6 +9,7 @@ use OCA\Vereinsbuchhaltung\Db\AccountMapper;
 use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
 use OCA\Vereinsbuchhaltung\Service\AttachmentStorageService;
 use OCA\Vereinsbuchhaltung\Service\AttachmentWatchFolderService;
+use OCA\Vereinsbuchhaltung\Service\AuditService;
 use OCA\Vereinsbuchhaltung\Service\ContributionYearService;
 use OCA\Vereinsbuchhaltung\Service\DunningSettings;
 use OCA\Vereinsbuchhaltung\Service\FolderPathValidator;
@@ -58,6 +59,7 @@ class SettingsController extends Controller {
 		private ReimbursementSettings $reimbursementSettings,
 		private IL10N $l10n,
 		private FrontendStateService $frontendState,
+		private AuditService $audit,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -80,16 +82,37 @@ class SettingsController extends Controller {
 	}
 
 	/**
-	 * Prüft, ob ein neu gewählter Nextcloud-Nutzer existiert.
-	 *
 	 * Nutzer und Pfad müssen eng geführt werden: die App legt im
 	 * konfigurierten Ordner Dateien im Home eines echten Nextcloud-Nutzers an,
-	 * beim Wachordner liest sie sogar aus ihm und verschiebt die Dateien. Ohne
-	 * Prüfung könnte ein Verwalter der App – der kein Nextcloud-Administrator
-	 * sein muss – einen beliebigen fremden Nutzer und Pfad eintragen und so in
-	 * dessen Dateien schreiben oder sie auslesen. (Gelöscht werden beim
-	 * Zurücksetzen nur noch die bekannten Beleg-Dateien, siehe
-	 * AttachmentStorageService::deleteAllFiles() – die Pfadprüfung bleibt
+	 * beim Wachordner liest sie sogar aus ihm und verschiebt die Dateien, und
+	 * zwar mit den Rechten der App statt denen des Handelnden. Ein Verwalter
+	 * der App muss kein Nextcloud-Administrator sein und darf so nicht an die
+	 * Dateien anderer Nutzer kommen: einen fremden Ordner wählt oder ändert nur,
+	 * wer als Administrator ohnehin an fremde Homes herankommt.
+	 *
+	 * Aufgerufen wird das nur, wenn sich Nutzer, Pfad oder die Art der Ablage
+	 * tatsächlich ändern, und vor jeder Prüfung, die Nutzer oder Ordner
+	 * nachschlägt: deren Meldungen verrieten sonst, welche Nutzer und Ordner es
+	 * gibt. Ein unverändert gespeicherter Wert öffnet keinen fremden Ordner, der
+	 * nicht schon offen war, und die Einstellungsseite sendet immer den
+	 * vollständigen Feldsatz (siehe validateUser()).
+	 *
+	 * @return string|null Fehlermeldung oder null, wenn alles in Ordnung ist
+	 */
+	private function foreignHomeError(string $user): ?string {
+		if ($user === ''
+			|| $this->permissionService->isServerAdmin()
+			|| $user === ($this->permissionService->describeCurrent()['uid'] ?? null)) {
+			return null;
+		}
+		return $this->l10n->t('Nur Nextcloud-Administratoren dürfen einen Ordner im Home eines anderen Nutzers wählen.');
+	}
+
+	/**
+	 * Prüft, ob ein neu gewählter Nextcloud-Nutzer existiert.
+	 *
+	 * (Gelöscht werden beim Zurücksetzen nur noch die bekannten Beleg-Dateien,
+	 * siehe AttachmentStorageService::deleteAllFiles() – die Pfadprüfung bleibt
 	 * trotzdem die erste Verteidigungslinie.)
 	 *
 	 * Aufgerufen wird das nur für einen tatsächlich GEÄNDERTEN Nutzer. Ein
@@ -138,7 +161,8 @@ class SettingsController extends Controller {
 	/**
 	 * Unterordner im Home eines Nutzers – für die Ordnerwahl in den
 	 * Einstellungen (Belegablage, Wachordner für Kontoauszüge). Verwaltern
-	 * vorbehalten wie das Speichern der Einstellungen selbst.
+	 * vorbehalten wie das Speichern der Einstellungen selbst, für das Home eines
+	 * anderen Nutzers Nextcloud-Administratoren (siehe foreignHomeError()).
 	 */
 	#[NoAdminRequired]
 	#[RequiresRole(PermissionService::ROLE_ADMIN)]
@@ -146,7 +170,7 @@ class SettingsController extends Controller {
 		$user = trim($user);
 		$error = $user === ''
 			? $this->l10n->t('Für die Ablage im Nextcloud-Dateibaum muss ein Nutzer gewählt sein.')
-			: $this->validateUser($user, $this->l10n->t('Belegablage'));
+			: ($this->foreignHomeError($user) ?? $this->validateUser($user, $this->l10n->t('Belegablage')));
 		$error ??= $this->validatePath($path, $this->l10n->t('Ablagepfad'));
 		if ($error !== null) {
 			return new DataResponse(['message' => $error], Http::STATUS_BAD_REQUEST);
@@ -205,15 +229,26 @@ class SettingsController extends Controller {
 			} elseif ($storageUser === '') {
 				return new DataResponse(['message' => $this->l10n->t('Für die Ablage im Nextcloud-Dateibaum muss ein Nutzer gewählt sein.')], Http::STATUS_BAD_REQUEST);
 			}
-			// Der Nutzer nur, wenn er sich ändert – warum, steht an validateUser().
-			$storageError = $storageUser === $storedStorageUser ? null : $this->validateUser($storageUser, $this->l10n->t('Belegablage'));
-			$storageError ??= $this->validatePath($storagePath, $this->l10n->t('Ablagepfad'));
+			$storageError = $this->validatePath($storagePath, $this->l10n->t('Ablagepfad'));
 			if ($storageError !== null) {
 				return new DataResponse(['message' => $storageError], Http::STATUS_BAD_REQUEST);
 			}
 			$storagePath = trim(str_replace('\\', '/', $storagePath), '/');
 			if ($storagePath === '') {
 				$storagePath = AttachmentStorageService::DEFAULT_PATH;
+			}
+			$storedPathNormalized = trim($storedStoragePath, '/');
+			// Auch ein gespeicherter fremder Nutzer ist nicht frei: ein anderer Ordner
+			// oder der Wechsel zum Wächter-Ordner, der aus dem Home liest, öffnet mehr
+			// als bisher. Zurück auf die app-interne Ablage geht immer.
+			$storageChanged = $storageUser !== $storedStorageUser
+				|| $storagePath !== $storedPathNormalized
+				|| ($storageMode === AttachmentStorageService::MODE_WATCH && $storedMode !== AttachmentStorageService::MODE_WATCH);
+			$storageError = $storageChanged ? $this->foreignHomeError($storageUser) : null;
+			// Der Nutzer nur, wenn er sich ändert – warum, steht an validateUser().
+			$storageError ??= $storageUser === $storedStorageUser ? null : $this->validateUser($storageUser, $this->l10n->t('Belegablage'));
+			if ($storageError !== null) {
+				return new DataResponse(['message' => $storageError], Http::STATUS_BAD_REQUEST);
 			}
 			if ($storageMode === AttachmentStorageService::MODE_WATCH) {
 				// Der Ordner muss existieren: ein Tippfehler soll auffallen, nicht
@@ -241,6 +276,12 @@ class SettingsController extends Controller {
 			$this->config->setValueString($appId, AttachmentStorageService::SETTING_USER, $storageUser);
 			$this->config->setValueString($appId, AttachmentStorageService::SETTING_PATH, $storagePath);
 			$this->config->setValueString($appId, AttachmentStorageService::SETTING_MODE, $storageMode);
+			if ($storageUser !== $storedStorageUser || $storagePath !== $storedPathNormalized || $storageMode !== $storedMode) {
+				$this->audit->log('Belegablage geändert', 'settings', null, [
+					'von' => $storedMode . ': ' . $storedStorageUser . '/' . $storedPathNormalized,
+					'nach' => $storageMode . ': ' . $storageUser . '/' . $storagePath,
+				]);
+			}
 		}
 
 		if (array_key_exists('cost_center_mode', $params)) {
@@ -275,15 +316,18 @@ class SettingsController extends Controller {
 		// Wachordner (Paar): dieselbe Ergänzungslogik wie bei der Belegablage.
 		if (array_key_exists('statement_watch_user', $params) || array_key_exists('statement_watch_path', $params)) {
 			$storedWatchUser = $this->config->getValueString($appId, WatchFolderService::SETTING_USER, '');
+			$storedWatchPath = trim($this->config->getValueString($appId, WatchFolderService::SETTING_PATH, ''), '/');
 			$watchUser = trim((string)($params['statement_watch_user'] ?? $storedWatchUser));
-			$watchPath = trim(str_replace('\\', '/', (string)($params['statement_watch_path'] ?? $this->config->getValueString($appId, WatchFolderService::SETTING_PATH, ''))), '/');
+			$watchPath = trim(str_replace('\\', '/', (string)($params['statement_watch_path'] ?? $storedWatchPath)), '/');
 			// Nur beides zusammen ergibt einen Wachordner; halb ausgefüllt wäre er
 			// eingeschaltet, fände aber nie etwas. Dann gibt es auch nichts zu prüfen.
 			if ($watchUser === '' || $watchPath === '') {
 				$watchUser = '';
 				$watchPath = '';
 			} else {
-				$watchError = $watchUser === $storedWatchUser ? null : $this->validateUser($watchUser, $this->l10n->t('überwachten Ordner'));
+				$watchChanged = $watchUser !== $storedWatchUser || $watchPath !== $storedWatchPath;
+				$watchError = $watchChanged ? $this->foreignHomeError($watchUser) : null;
+				$watchError ??= $watchUser === $storedWatchUser ? null : $this->validateUser($watchUser, $this->l10n->t('überwachten Ordner'));
 				$watchError ??= $this->validatePath($watchPath, $this->l10n->t('Ordnerpfad'));
 				if ($watchError === null && $this->attachmentStorage->isWatchMode()) {
 					$watchError = $this->foldersOverlap($this->attachmentStorage->storageUser(), $this->attachmentStorage->storagePath(), $watchUser, $watchPath);
@@ -294,6 +338,12 @@ class SettingsController extends Controller {
 			}
 			$this->config->setValueString($appId, WatchFolderService::SETTING_USER, $watchUser);
 			$this->config->setValueString($appId, WatchFolderService::SETTING_PATH, $watchPath);
+			if ($watchUser !== $storedWatchUser || $watchPath !== $storedWatchPath) {
+				$this->audit->log('Wachordner geändert', 'settings', null, [
+					'von' => $storedWatchUser === '' ? '' : $storedWatchUser . '/' . $storedWatchPath,
+					'nach' => $watchUser === '' ? '' : $watchUser . '/' . $watchPath,
+				]);
+			}
 		}
 
 		if (array_key_exists('sepa_creditor_id', $params)) {

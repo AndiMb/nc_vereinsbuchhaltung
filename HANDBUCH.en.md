@@ -201,6 +201,11 @@ Folders and files whose name starts with a dot are skipped. The limit of
 renamed freely within the watch folder; receipts moved out of the watch
 folder count as missing.
 
+Only Nextcloud administrators may choose or change a folder in another
+user's home; this also applies to the watched folder from chapter 3.3.
+Administrators of the app without those rights choose their own home, and a
+foreign folder that is already set up stays valid.
+
 The watch folder has to exist beforehand and must not overlap with the
 watched folder for bank statements (chapter 3.3). As soon as a user is
 chosen, "Choose folder…" opens the folder tree of their home; click the
@@ -343,7 +348,8 @@ Anyone doing the same thing every month can skip the upload: gear icon →
 *Bank data* (administrators only). There you enter a Nextcloud user and a
 folder in their files, for example `Vereinsbuchhaltung/Kontoauszüge`.
 "Choose folder…" next to the path field opens the folder tree of the
-user's home; click the folder and "Apply".
+user's home; click the folder and "Apply". Only Nextcloud administrators may
+choose another user's home.
 
 From then on, it's enough to drop the statement downloaded from online
 banking into this folder – also from a phone or directly from the Nextcloud

@@ -204,6 +204,11 @@ Dateien dürfen innerhalb des Wächter-Ordners frei verschoben und umbenannt
 werden; wer sie aus dem Wächter-Ordner hinausschiebt, dessen Belege gelten
 als fehlend.
 
+Einen Ordner im Home eines anderen Nutzers wählen oder ändern dürfen nur
+Nextcloud-Administratoren, das gilt auch für den Wachordner aus Abschnitt 3.3.
+Verwalter ohne diese Rechte wählen ihr eigenes Home, ein bereits eingerichteter
+fremder Ordner bleibt gültig.
+
 Der Wächter-Ordner muss vorher existieren und darf sich nicht mit dem
 Wachordner für Kontoauszüge (Abschnitt 3.3) überschneiden. Sobald ein
 Nutzer gewählt ist, öffnet „Ordner wählen…" den Ordnerbaum seines Homes;
@@ -349,6 +354,7 @@ Wer jeden Monat dasselbe tut, kann sich den Upload sparen: Zahnrad →
 Nextcloud-Nutzer und ein Ordner in dessen Dateien eingetragen, zum Beispiel
 `Vereinsbuchhaltung/Kontoauszüge`. „Ordner wählen…" neben dem Pfadfeld
 öffnet den Ordnerbaum des Nutzer-Homes; Ordner anklicken und „Übernehmen".
+Das Home eines anderen Nutzers dürfen nur Nextcloud-Administratoren wählen.
 
 Ab dann genügt es, den im Onlinebanking heruntergeladenen Auszug in diesen
 Ordner zu legen – auch vom Handy oder direkt aus der Nextcloud-App heraus.
