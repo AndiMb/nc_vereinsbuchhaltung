@@ -69,6 +69,8 @@ class ReimbursementService {
 		private IL10N $l10n,
 		private NumberRangeService $numbers,
 		private BookingService $booking,
+		private JournalService $journalService,
+		private ReimbursementPaymentReverter $reverter,
 		?ClubClock $clock = null,
 	) {
 		$this->clock = $clock ?? new ClubClock($this->time);
@@ -440,6 +442,53 @@ class ReimbursementService {
 			$reimbursement = $this->mapper->update($reimbursement);
 			$this->audit->log('Auslage überwiesen (vorgemerkt)', 'reimbursement', $id, []);
 			return $reimbursement;
+		});
+	}
+
+	/**
+	 * Nimmt die Vormerkung „Überweisung angewiesen“ zurück (falsch angeklickt).
+	 *
+	 * @throws \InvalidArgumentException wenn der Antrag nicht freigegeben ist
+	 */
+	public function unmarkTransferred(int $id, string $actorUid): Reimbursement {
+		return $this->atomically(function () use ($id, $actorUid): Reimbursement {
+			$reimbursement = $this->mapper->find($id);
+			if ($reimbursement->getStatus() !== Reimbursement::STATUS_APPROVED) {
+				throw new \InvalidArgumentException($this->l10n->t('Nur bei einem freigegebenen Antrag lässt sich die Vormerkung zurücknehmen.'));
+			}
+			if ($reimbursement->getTransferredAt() === null) {
+				return $reimbursement;
+			}
+			$this->log->append($id, ReimbursementEvent::ACTION_TRANSFER_REVOKED, $actorUid, ReimbursementEvent::ROLE_STAFF, null, []);
+			$reimbursement->setTransferredAt(null);
+			$reimbursement = $this->mapper->update($reimbursement);
+			$this->audit->log('Auslage: Vormerkung der Überweisung zurückgenommen', 'reimbursement', $id, []);
+			return $reimbursement;
+		});
+	}
+
+	/**
+	 * Nimmt die Auszahlung zurück: löscht ihre Buchung. Ein zugeordneter Kontoumsatz
+	 * erscheint wieder unter „Zuzuordnen“. Antrag, offener Posten und Belege stellt
+	 * {@see ReimbursementPaymentReverter} wieder her, derselbe Haken, der auch greift,
+	 * wenn jemand die Buchung selbst löscht.
+	 *
+	 * @throws \InvalidArgumentException wenn der Antrag nicht ausgezahlt ist
+	 */
+	public function revertPayment(int $id): Reimbursement {
+		return $this->atomically(function () use ($id): Reimbursement {
+			$reimbursement = $this->mapper->find($id);
+			$journalId = $reimbursement->getJournalId();
+			if ($reimbursement->getStatus() !== Reimbursement::STATUS_PAID || $journalId === null) {
+				throw new \InvalidArgumentException($this->l10n->t('Nur eine ausgezahlte Auslage lässt sich zurücknehmen.'));
+			}
+			try {
+				$this->journalService->deleteBooking($journalId, Application::BOOK);
+			} catch (DoesNotExistException) {
+				// Die Buchung ist schon weg (älterer Stand): dann nur den Antrag zurücksetzen.
+				$this->reverter->revertForJournal($journalId);
+			}
+			return $this->mapper->find($id);
 		});
 	}
 

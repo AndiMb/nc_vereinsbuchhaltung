@@ -57,6 +57,10 @@ export function reimbursementEventText(event, staff) {
 			return t('Antrag zurückgezogen')
 		case 'transferred':
 			return t('Überweisung angewiesen')
+		case 'transfer_revoked':
+			return t('Vormerkung der Überweisung zurückgenommen')
+		case 'payment_reverted':
+			return t('Auszahlung zurückgenommen')
 		case 'paid':
 			return t('Erstattung überwiesen')
 		case 'receipt_added':
@@ -84,7 +88,7 @@ export function countByStatus(items) {
 export function matchesReimbursementSearch(item, query) {
 	const q = (query || '').trim().toLowerCase()
 	if (q === '') { return true }
-	const haystack = [item.purpose, item.memberName, String(item.id)].join(' ').toLowerCase()
+	const haystack = [item.purpose, item.memberName, item.number, String(item.id)].join(' ').toLowerCase()
 	return haystack.includes(q) || parseAmountQuery(q) === item.amountCents
 }
 

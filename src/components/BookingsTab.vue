@@ -743,6 +743,7 @@
 				<ReimbursementsPanel
 					:canWrite="canWrite"
 					:reloadKey="reimbursementsReloadKey"
+					@bookingChanged="$emit('reimbursement-booking-changed')"
 					@pay="$emit('pay-reimbursement', $event)" />
 			</template>
 
@@ -846,7 +847,7 @@ export default {
 		reimbursementsReloadKey: { type: Number, default: 0 },
 	},
 
-	emits: ['attachments-changed', 'go-claims', 'help', 'invoice-paid', 'pay-reimbursement', 'reimbursement-assigned', 'update:booking-view'],
+	emits: ['attachments-changed', 'go-claims', 'help', 'invoice-paid', 'pay-reimbursement', 'reimbursement-booking-changed', 'update:booking-view'],
 
 	setup() {
 		const auth = useAuth()
@@ -1255,9 +1256,9 @@ export default {
 				return
 			}
 			try {
-				const [suggestions, summary] = await Promise.all([api.reimbursementSuggestions(), api.reimbursementsSummary()])
-				this.reimbursementSuggestions = suggestions.data || {}
-				this.reimbursementsPayable = summary.data.toTransfer + summary.data.awaitingBooking > 0
+				const { data } = await api.reimbursementSuggestions()
+				this.reimbursementSuggestions = data.suggestions || {}
+				this.reimbursementsPayable = !!data.payable
 			} catch {
 				// Eine Hilfe, kein Muss: ohne sie bleibt das Zuordnen wie gewohnt.
 				this.reimbursementSuggestions = {}
@@ -1286,7 +1287,7 @@ export default {
 		onReimbursementAssigned() {
 			this.reimbursementAssign = null
 			showSuccess(this.t('Der Umsatz wurde der Auslage zugeordnet.'))
-			this.$emit('reimbursement-assigned')
+			this.$emit('reimbursement-booking-changed')
 			this.loadReimbursementSuggestions()
 		},
 

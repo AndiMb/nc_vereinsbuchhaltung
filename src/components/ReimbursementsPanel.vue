@@ -174,6 +174,21 @@
 						{{ t('Freigeben') }}
 					</NcButton>
 					<NcButton
+						v-if="detail.status === 'paid' && canWrite"
+						variant="tertiary"
+						:disabled="busy"
+						:title="t('Löscht die Buchung der Auszahlung. Ein zugeordneter Kontoumsatz erscheint wieder unter „Zuzuordnen“.')"
+						@click="revertPayment">
+						{{ t('Zahlung zurücknehmen') }}
+					</NcButton>
+					<NcButton
+						v-if="detail.canPay && canWrite && detail.transferredAt"
+						variant="tertiary"
+						:disabled="busy"
+						@click="unmarkTransferred">
+						{{ t('Vormerkung zurücknehmen') }}
+					</NcButton>
+					<NcButton
 						v-if="detail.canPay && canWrite"
 						variant="tertiary"
 						:disabled="busy"
@@ -246,6 +261,7 @@ import ReimbursementHistory from './ReimbursementHistory.vue'
 import ReimbursementStatusTag from './ReimbursementStatusTag.vue'
 import ReimbursementTransferDialog from './ReimbursementTransferDialog.vue'
 import api from '../api.js'
+import { useConfirm } from '../composables/useConfirm.js'
 import { errMsg, formatDate, formatFileSize, formatMoney } from '../lib/format.js'
 import { formatIban } from '../lib/iban.js'
 import { focusOnOpen } from '../lib/modalFocus.js'
@@ -275,7 +291,11 @@ export default {
 		reloadKey: { type: Number, default: 0 },
 	},
 
-	emits: ['pay'],
+	emits: ['booking-changed', 'pay'],
+
+	setup() {
+		return { askConfirm: useConfirm().askConfirm }
+	},
 
 	data() {
 		return {
@@ -396,6 +416,19 @@ export default {
 		async markTransferred() {
 			this.transferOpen = false
 			await this.decide(() => api.markReimbursementTransferred(this.detail.id), this.t('Überweisung vorgemerkt.'), this.t('Die Überweisung ließ sich nicht vormerken.'))
+		},
+
+		/** Falsch angeklickt: der Antrag zeigt wieder „zu überweisen“. */
+		unmarkTransferred() {
+			return this.decide(() => api.unmarkReimbursementTransferred(this.detail.id), this.t('Vormerkung zurückgenommen.'), this.t('Die Vormerkung ließ sich nicht zurücknehmen.'))
+		},
+
+		/** Löscht die Buchung der Auszahlung; der Antrag ist danach wieder freigegeben, ein Kontoumsatz wieder zuzuordnen. */
+		async revertPayment() {
+			if (!await this.askConfirm(this.t('Zahlung zurücknehmen'), this.t('Die Buchung der Auszahlung wird gelöscht. Ein zugeordneter Kontoumsatz erscheint wieder unter „Zuzuordnen“, die Auslage ist wieder freigegeben.'), this.t('Zurücknehmen'), 'primary')) { return }
+			const done = await this.decide(() => api.revertReimbursementPayment(this.detail.id), this.t('Auszahlung zurückgenommen.'), this.t('Die Auszahlung ließ sich nicht zurücknehmen.'))
+			// Die Buchung ist weg: Journal und Umsätze in den Buchungen müssen nachziehen.
+			if (done) { this.$emit('booking-changed') }
 		},
 
 		/** Ohne Kontoumsatz (Barzahlung): der Buchungsdialog der Auszahlung. */

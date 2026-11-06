@@ -243,37 +243,14 @@
 			<p class="vbh-hint">
 				{{ t('Rechnungsnummern müssen fortlaufend und einmalig sein. Platzhalter: {JJJJ} (Jahr), {JJ} (zweistelliges Jahr), {MM} (Monat) und {NNNN} (Zähler, die Zahl der N bestimmt die Stellen).') }}
 			</p>
-			<div v-for="range in ranges" :key="range.kind" class="vbh-inv-range">
-				<h5>{{ range.kind === 'storno' ? t('Stornorechnungen') : t('Rechnungen') }}</h5>
-				<div class="vbh-form">
-					<label>{{ t('Muster') }}
-						<input v-model="range.prefixPattern" maxlength="40">
-					</label>
-					<label>{{ t('Zähler') }}
-						<select v-model="range.resetMode">
-							<option value="yearly">{{ t('jedes Jahr bei 1 beginnen') }}</option>
-							<option value="monthly">{{ t('jeden Monat bei 1 beginnen') }}</option>
-							<option value="never">{{ t('fortlaufend, nie zurücksetzen') }}</option>
-						</select>
-					</label>
-					<label>{{ t('Nächste Nummer') }}
-						<input
-							v-model.number="range.nextNo"
-							class="vbh-short"
-							type="number"
-							min="1">
-					</label>
-					<NcButton variant="primary" :disabled="saving" @click="saveRange(range)">
-						{{ t('Speichern') }}
-					</NcButton>
-				</div>
-				<p class="vbh-hint">
-					{{ t('Vorschau: {number}', { number: preview(range) }) }}
-				</p>
-				<p v-if="rangeErrors[range.kind]" class="vbh-hint vbh-hint--error" role="alert">
-					{{ rangeErrors[range.kind] }}
-				</p>
-			</div>
+			<NumberRangeForm
+				v-for="(range, i) in ranges"
+				:key="range.kind"
+				v-model="ranges[i]"
+				:title="range.kind === 'storno' ? t('Stornorechnungen') : t('Rechnungen')"
+				:saving="saving"
+				:error="rangeErrors[range.kind] || ''"
+				@save="saveRange(ranges[i])" />
 		</div>
 
 		<SettingsInvoiceTemplates :accounts="accounts" />
@@ -402,12 +379,13 @@ import NcButton from '@nextcloud/vue/components/NcButton'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import CountrySelect from './CountrySelect.vue'
 import FolderPathField from './FolderPathField.vue'
+import NumberRangeForm from './NumberRangeForm.vue'
 import SettingsInvoiceTemplates from './SettingsInvoiceTemplates.vue'
 import SettingsTemplateField from './SettingsTemplateField.vue'
 import SettingsToggle from './SettingsToggle.vue'
 import api from '../api.js'
 import { errMsg } from '../lib/format.js'
-import { dunningLabel, formatNumberPattern } from '../lib/invoices.js'
+import { dunningLabel } from '../lib/invoices.js'
 
 const KEYS = [
 	'invoice_module_active',
@@ -462,7 +440,7 @@ const KEYS = [
  */
 export default {
 	name: 'SettingsInvoices',
-	components: { NcButton, NcLoadingIcon, CountrySelect, FolderPathField, SettingsInvoiceTemplates, SettingsTemplateField, SettingsToggle },
+	components: { NcButton, NcLoadingIcon, CountrySelect, FolderPathField, NumberRangeForm, SettingsInvoiceTemplates, SettingsTemplateField, SettingsToggle },
 
 	props: {
 		// Nutzer der Belegablage im Nextcloud-Dateibaum (SettingsApp.vue); leer = app-interne Ablage
@@ -540,10 +518,6 @@ export default {
 			this.form = form
 			this.missing = data.invoice_missing_issuer_fields || []
 			this.defaults = data.invoice_default_texts || {}
-		},
-
-		preview(range) {
-			return formatNumberPattern(range.prefixPattern, new Date(), range.nextNo || 1)
 		},
 
 		async store(keys, errorKey) {

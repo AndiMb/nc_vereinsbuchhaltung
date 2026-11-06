@@ -173,7 +173,7 @@
 					@attachmentsChanged="afterAttachmentsChanged"
 					@goClaims="goToClaims"
 					@invoicePaid="onInvoicesChanged({ bookings: true })"
-					@reimbursementAssigned="onReimbursementAssigned"
+					@reimbursementBookingChanged="onReimbursementBookingChanged"
 					@help="openHelp('bookings')" />
 			</section>
 
@@ -1905,8 +1905,8 @@ export default {
 		// Zahlungen zu Rechnungen buchen und lösen Bankumsätze, Buchungen und Salden (Epic #168).
 		// `info.bookings`: der Server hat dabei eine Buchung angelegt oder zurückgenommen
 		// (Zahlung gebucht/zurückgenommen) – dann brauchen auch die Belegvorschläge den neuen Stand.
-		/** Ein Kontoumsatz ist einer Auslage zugeordnet: Buchungen neu laden, die Auslagenliste auch. */
-		async onReimbursementAssigned() {
+		/** Zuordnung oder Rücknahme einer Auszahlung: Buchungen neu laden, die Auslagenliste auch. */
+		async onReimbursementBookingChanged() {
 			this.reimbursementsReloadKey++
 			await this.onInvoicesChanged({ bookings: true })
 		},

@@ -25,6 +25,15 @@ import { compareVersions, isNewerVersion } from '../lib/version.js'
 export function buildWhatsNewEntries() {
 	return [
 		{
+			version: '0.51.0',
+			roles: ['verwalter', 'buchhalter'],
+			items: [
+				t('Neu: Auslagennummer (AUSL-2026-0012) im Verwendungszweck der Überweisung. Der Kontoumsatz lässt sich unter „Zuzuordnen“ per Klick oder von Hand der Auslage zuordnen.'),
+				t('Neu: Zahlung und Vormerkung einer Auslage lassen sich zurücknehmen.'),
+				t('Neu: Kachel „Offene Auslagen“ auf der Übersicht.'),
+			],
+		},
+		{
 			version: '0.50.0',
 			roles: ['verwalter', 'buchhalter'],
 			items: [

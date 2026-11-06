@@ -40,14 +40,15 @@ class ReimbursementMatchingService {
 
 	/**
 	 * @param list<BankTransaction> $txs
+	 * @param list<Reimbursement>|null $candidates die freigegebenen Auslagen, wenn der Aufrufer sie schon hat
 	 * @return array<int, list<array{reimbursementId: int, number: ?string, memberName: string, amountCents: int, reason: string, exact: bool}>> Umsatz-ID => Vorschläge; nur Umsätze mit Treffer
 	 */
-	public function suggestForMany(array $txs): array {
+	public function suggestForMany(array $txs, ?array $candidates = null): array {
 		$outflows = array_values(array_filter($txs, static fn (BankTransaction $tx): bool => $tx->getAmountCents() < 0));
 		if ($outflows === []) {
 			return [];
 		}
-		$candidates = $this->reimbursements->findApproved();
+		$candidates ??= $this->reimbursements->findApproved();
 		if ($candidates === []) {
 			return [];
 		}

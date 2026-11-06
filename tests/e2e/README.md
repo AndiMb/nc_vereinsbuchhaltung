@@ -125,3 +125,16 @@ Oberfläche vorbereiten (Beispiel: 44-einzug-bankabgleich):
 Die Rücklastschrift löst eine Zahlungsaufforderung aus: dafür den Mail-Modus
 `null` setzen (siehe oben) und danach etwa vier Sekunden warten, weil sie aus
 einem Web-Request versandt wird und Apache `config.php` über opcache liest.
+
+## Upgrade-Test (Migrationen)
+
+Die E2E-Teile prüfen Migrationen nur gegen eine leere Installation. Der CI-Job
+„Migration (Upgrade von main)“ (`tests/e2e-migration/`, Konfiguration
+`playwright.migration.config.mjs`) legt dagegen mit dem App-Stand von `main` einen
+Bestand an (`seed`), spielt den Code des Pull Requests ein, lässt `occ upgrade`
+laufen (`upgrade.mjs`) und prüft das Ergebnis (`verify`). Die App-Version muss im
+Pull Request höher sein als auf `main`, sonst führt Nextcloud keine Migration aus.
+Er läuft nur bei Pull Requests; lokal geht derselbe Ablauf mit
+`npm run test:e2e:server`, den App-Verzeichnissen von `main` und den drei Schritten
+von Hand.
+

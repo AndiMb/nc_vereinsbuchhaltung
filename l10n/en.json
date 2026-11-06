@@ -4291,7 +4291,24 @@
         "Nur ein freigegebener Antrag lässt sich auszahlen.": "Only an approved request can be paid out.",
         "Dieser Umsatz ist schon zugeordnet.": "This transaction is already assigned.",
         "Einer Auslage lassen sich nur Abgänge zuordnen.": "Only outgoing payments can be assigned to an expense claim.",
-        "Der Betrag des Umsatzes passt nicht zur Auslage.": "The transaction amount does not match the expense claim."
+        "Der Betrag des Umsatzes passt nicht zur Auslage.": "The transaction amount does not match the expense claim.",
+        "Auslagennummer": "Claim number",
+        "Auslagennummern": "Claim numbers",
+        "Auszahlung zurückgenommen": "Payout reverted",
+        "Auszahlung zurückgenommen.": "Payout reverted.",
+        "Die Auszahlung ließ sich nicht zurücknehmen.": "The payout could not be reverted.",
+        "Die Buchung der Auszahlung wird gelöscht. Ein zugeordneter Kontoumsatz erscheint wieder unter „Zuzuordnen“, die Auslage ist wieder freigegeben.": "The payout booking is deleted. An assigned bank transaction shows up again under “To assign”, and the expense claim is approved again.",
+        "Die Vormerkung ließ sich nicht zurücknehmen.": "The note could not be reverted.",
+        "Jeder Antrag bekommt beim Einreichen eine fortlaufende Nummer. Sie steht im Verwendungszweck der Überweisung und ordnet den Kontoumsatz später der Auslage zu. Platzhalter: {JJJJ} (Jahr), {JJ} (zweistelliges Jahr), {MM} (Monat) und {NNNN} (Zähler, die Zahl der N bestimmt die Stellen). Bereits vergebene Nummern bleiben unverändert.": "Every request gets a consecutive number when submitted. It appears in the payment reference of the transfer and later links the bank transaction to the expense claim. Placeholders: {JJJJ} (year), {JJ} (two-digit year), {MM} (month) and {NNNN} (counter, the number of Ns sets the digits). Numbers already issued stay unchanged.",
+        "Löscht die Buchung der Auszahlung. Ein zugeordneter Kontoumsatz erscheint wieder unter „Zuzuordnen“.": "Deletes the payout booking. An assigned bank transaction shows up again under “To assign”.",
+        "Nur bei einem freigegebenen Antrag lässt sich die Vormerkung zurücknehmen.": "The note can only be reverted for an approved request.",
+        "Nur eine ausgezahlte Auslage lässt sich zurücknehmen.": "Only a paid-out expense claim can be reverted.",
+        "Vormerkung der Überweisung zurückgenommen": "Transfer note reverted",
+        "Vormerkung zurückgenommen.": "Note reverted.",
+        "Vormerkung zurücknehmen": "Revert note",
+        "Neu: Auslagennummer (AUSL-2026-0012) im Verwendungszweck der Überweisung. Der Kontoumsatz lässt sich unter „Zuzuordnen“ per Klick oder von Hand der Auslage zuordnen.": "New: expense claim number (AUSL-2026-0012) in the transfer's payment reference. Under “To assign”, the bank transaction can be assigned to the claim with a click or by hand.",
+        "Neu: Zahlung und Vormerkung einer Auslage lassen sich zurücknehmen.": "New: the payout and the transfer note of an expense claim can be reverted.",
+        "Neu: Kachel „Offene Auslagen“ auf der Übersicht.": "New: “Open expense claims” tile on the overview."
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

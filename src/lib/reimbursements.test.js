@@ -77,6 +77,14 @@ describe('reimbursements', () => {
 		})
 	})
 
+	it('findet eine Auslage über ihre Nummer, auch in Teilen', () => {
+		const item = { id: 7, number: 'AUSL-2026-0012', purpose: 'Material', memberName: 'Anna Musterfrau', amountCents: 1250 }
+		expect(matchesReimbursementSearch(item, 'AUSL-')).toBe(true)
+		expect(matchesReimbursementSearch(item, 'ausl-2026-0012')).toBe(true)
+		expect(matchesReimbursementSearch(item, '0012')).toBe(true)
+		expect(matchesReimbursementSearch({ ...item, number: null }, 'AUSL-')).toBe(false)
+	})
+
 	it('nimmt die Auslagennummer als Belegreferenz, wenn der Antrag eine hat', () => {
 		const item = { id: 7, number: 'AUSL-2026-0007', purpose: 'Material', memberName: 'Anna', amountCents: 1250 }
 		expect(reimbursementBookingPrefill(item, '2026-11-02').documentRef).toBe('AUSL-2026-0007')

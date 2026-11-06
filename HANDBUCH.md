@@ -746,8 +746,11 @@ Antrag einen **Dubletten-Hinweis**; blockiert wird nichts.
 
 **Auslagennummer.** Jeder Antrag bekommt beim Einreichen eine fortlaufende Nummer
 wie *AUSL-2026-0012* (je Jahr von 1 an; bestehende Anträge bekamen sie
-nachträglich). Sie steht im Antrag, in der Liste und im Verwendungszweck der
-Überweisung.
+nachträglich). Sie steht im Antrag, in der Liste, im Verwendungszweck der
+Überweisung und bei den Mitgliedern unter *Mein Bereich → Auslagen*; die Suche in
+*Buchungen → Auslagen* findet sie. Das Muster ändern Sie unter *Einstellungen →
+Auslagenerstattung → Auslagennummern* (Platzhalter wie bei den
+Rechnungsnummern); schon vergebene Nummern bleiben.
 
 **Auszahlen (Buchhalter und Verwalter).** Der freigegebene Antrag steht auch
 unter *Buchungen → Offene Posten*, gekennzeichnet als „Auslage – zu
@@ -757,7 +760,8 @@ Betrag und Verwendungszweck zum Kopieren. Der Verwendungszweck lautet
 *AUSL-2026-0012 - <Zweck>* und ist bei Bedarf auf 140 Zeichen gekürzt. Haben Sie
 die Überweisung ausgelöst, wählen Sie **Überweisung abgeschlossen**: Der Antrag
 merkt sich das („Überweisung angewiesen"), bleibt aber freigegeben. Gebucht wird
-erst, wenn der Kontoumsatz da ist.
+erst, wenn der Kontoumsatz da ist. Falsch angeklickt? **Vormerkung zurücknehmen**
+macht es rückgängig.
 
 **Kontoumsatz zuordnen.** Der Umsatz erscheint nach dem Import unter *Buchungen →
 Zuzuordnen*. Steht die Auslagennummer im Verwendungszweck (oder stimmen IBAN und
@@ -770,6 +774,13 @@ an der Buchung, und das Mitglied bekommt eine Mail. So steht dieselbe Zahlung
 nie zweimal in den Büchern. Der Posten zählt nicht als Forderung (keine
 „überfälligen" Posten, keine Mahnung); eine Auslage lässt sich nur über den
 Antrag erledigen, nicht über *Bezahlt* oder *Stornieren* in der Liste.
+
+**Zahlung zurücknehmen.** Ein ausgezahlter Antrag hat den Knopf **Zahlung
+zurücknehmen**: Die Buchung wird gelöscht, ein zugeordneter Kontoumsatz erscheint
+wieder unter *Zuzuordnen*, der Antrag ist wieder freigegeben, der Posten offen,
+und die Belege liegen wieder beim Antrag. Dasselbe passiert, wenn jemand die
+Buchung der Auszahlung selbst löscht oder die Zuordnung des Umsatzes aufhebt. Die
+Historie hält es fest.
 
 **Ohne Kontoumsatz (Barzahlung).** Gibt es keinen Kontoumsatz, wählen Sie im Antrag
 **Ohne Kontoumsatz buchen**: Es öffnet sich der normale Buchungsdialog, vorbelegt

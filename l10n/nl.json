@@ -4291,7 +4291,24 @@
         "Einer Auslage lassen sich nur Abgänge zuordnen.": "Aan een declaratie kunnen alleen afschrijvingen worden toegewezen.",
         "Der Betrag des Umsatzes passt nicht zur Auslage.": "Het bedrag van de transactie komt niet overeen met de declaratie.",
         "Nur eine freigegebene Auslage lässt sich überweisen.": "Alleen een goedgekeurde declaratie kan worden overgemaakt.",
-        "Zu diesem Antrag ist keine IBAN gespeichert.": "Bij deze aanvraag is geen IBAN opgeslagen."
+        "Zu diesem Antrag ist keine IBAN gespeichert.": "Bij deze aanvraag is geen IBAN opgeslagen.",
+        "Auslagennummer": "Declaratienummer",
+        "Auslagennummern": "Declaratienummers",
+        "Auszahlung zurückgenommen": "Uitbetaling teruggedraaid",
+        "Auszahlung zurückgenommen.": "Uitbetaling teruggedraaid.",
+        "Die Auszahlung ließ sich nicht zurücknehmen.": "De uitbetaling kon niet worden teruggedraaid.",
+        "Die Buchung der Auszahlung wird gelöscht. Ein zugeordneter Kontoumsatz erscheint wieder unter „Zuzuordnen“, die Auslage ist wieder freigegeben.": "De boeking van de uitbetaling wordt verwijderd. Een toegewezen banktransactie verschijnt weer onder „Toe te wijzen”, en de declaratie is weer goedgekeurd.",
+        "Die Vormerkung ließ sich nicht zurücknehmen.": "De notitie kon niet worden teruggedraaid.",
+        "Jeder Antrag bekommt beim Einreichen eine fortlaufende Nummer. Sie steht im Verwendungszweck der Überweisung und ordnet den Kontoumsatz später der Auslage zu. Platzhalter: {JJJJ} (Jahr), {JJ} (zweistelliges Jahr), {MM} (Monat) und {NNNN} (Zähler, die Zahl der N bestimmt die Stellen). Bereits vergebene Nummern bleiben unverändert.": "Elke aanvraag krijgt bij het indienen een doorlopend nummer. Het staat in de omschrijving van de overschrijving en koppelt de banktransactie later aan de declaratie. Plaatshouders: {JJJJ} (jaar), {JJ} (jaar in twee cijfers), {MM} (maand) en {NNNN} (teller, het aantal N bepaalt het aantal cijfers). Reeds toegekende nummers blijven ongewijzigd.",
+        "Löscht die Buchung der Auszahlung. Ein zugeordneter Kontoumsatz erscheint wieder unter „Zuzuordnen“.": "Verwijdert de boeking van de uitbetaling. Een toegewezen banktransactie verschijnt weer onder „Toe te wijzen”.",
+        "Nur bei einem freigegebenen Antrag lässt sich die Vormerkung zurücknehmen.": "De notitie kan alleen bij een goedgekeurde aanvraag worden teruggedraaid.",
+        "Nur eine ausgezahlte Auslage lässt sich zurücknehmen.": "Alleen een uitbetaalde declaratie kan worden teruggedraaid.",
+        "Vormerkung der Überweisung zurückgenommen": "Notitie van de overschrijving teruggedraaid",
+        "Vormerkung zurückgenommen.": "Notitie teruggedraaid.",
+        "Vormerkung zurücknehmen": "Notitie terugdraaien",
+        "Neu: Auslagennummer (AUSL-2026-0012) im Verwendungszweck der Überweisung. Der Kontoumsatz lässt sich unter „Zuzuordnen“ per Klick oder von Hand der Auslage zuordnen.": "Nieuw: declaratienummer (AUSL-2026-0012) in de omschrijving van de overschrijving. Onder „Toe te wijzen” kan de banktransactie met een klik of handmatig aan de declaratie worden toegewezen.",
+        "Neu: Zahlung und Vormerkung einer Auslage lassen sich zurücknehmen.": "Nieuw: de uitbetaling en de notitie van een declaratie kunnen worden teruggedraaid.",
+        "Neu: Kachel „Offene Auslagen“ auf der Übersicht.": "Nieuw: tegel „Openstaande declaraties” op het overzicht."
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

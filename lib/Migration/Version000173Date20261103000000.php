@@ -14,7 +14,8 @@ use OCP\Migration\IOutput;
 use OCP\Migration\SimpleMigrationStep;
 
 /**
- * Auslagennummer (`AUSL-2026-0012`) und Vermerk „Überweisung angewiesen“.
+ * Auslagennummer (`AUSL-2026-0012`), Vermerk „Überweisung angewiesen“ und ein Index auf
+ * der Buchungsnummer der Auszahlung (`journal_id`).
  *
  * Die Nummer steht im Verwendungszweck der Überweisung; über sie ordnet die App
  * den Kontoumsatz der Auslage zu. Bestehende Anträge bekommen ihre Nummer
@@ -46,6 +47,11 @@ class Version000173Date20261103000000 extends SimpleMigrationStep {
 		}
 		if (!$table->hasIndex('vbh_reimb_number')) {
 			$table->addUniqueIndex(['number'], 'vbh_reimb_number');
+			$changed = true;
+		}
+		// Jeder gelöschte Buchungssatz fragt nach der Auslage, die über ihn ausgezahlt wurde.
+		if (!$table->hasIndex('vbh_reimb_journal')) {
+			$table->addIndex(['journal_id'], 'vbh_reimb_journal');
 			$changed = true;
 		}
 		return $changed ? $schema : null;

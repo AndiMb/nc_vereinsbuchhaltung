@@ -144,7 +144,11 @@ Gebucht wird **erst bei der Auszahlung**, und zwar mit dem Kontoumsatz:
    Aufwandskonto. Die Zuordnung bucht den Umsatz, verknüpft Buchung und
    offenen Posten, setzt den Antrag auf `paid` und hängt die Belege an. So steht
    dieselbe Zahlung nie zweimal in den Büchern.
-4. Ohne Kontoumsatz (Barzahlung): „Ohne Kontoumsatz buchen“ öffnet den normalen
+4. „Zahlung zurücknehmen“ löscht die Buchung; derselbe Haken
+   (`ReimbursementPaymentReverter`) greift, wenn der Buchungssatz anders verschwindet.
+   Antrag wieder `approved`, Posten offen, Belege zurück beim Antrag, Ereignis
+   `payment_reverted`. „Vormerkung zurücknehmen“ schreibt `transfer_revoked`.
+5. Ohne Kontoumsatz (Barzahlung): „Ohne Kontoumsatz buchen“ öffnet den normalen
    Buchungsdialog, vorbelegt mit Betrag, Datum und Zweck.
 
 Die normalen Perioden-/Abschlussregeln gelten. Kein Verbindlichkeitskonto.

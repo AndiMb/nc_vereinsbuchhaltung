@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Tests\Unit;
 
+use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\BankTransaction;
 use OCA\Vereinsbuchhaltung\Db\Journal;
 use OCA\Vereinsbuchhaltung\Db\JournalMapper;
@@ -22,10 +23,12 @@ use OCA\Vereinsbuchhaltung\Exception\ForbiddenException;
 use OCA\Vereinsbuchhaltung\Service\AuditService;
 use OCA\Vereinsbuchhaltung\Service\BookingService;
 use OCA\Vereinsbuchhaltung\Service\IbanValidator;
+use OCA\Vereinsbuchhaltung\Service\JournalService;
 use OCA\Vereinsbuchhaltung\Service\NumberRangeService;
 use OCA\Vereinsbuchhaltung\Service\ReimbursementEventLog;
 use OCA\Vereinsbuchhaltung\Service\ReimbursementFileService;
 use OCA\Vereinsbuchhaltung\Service\ReimbursementMailService;
+use OCA\Vereinsbuchhaltung\Service\ReimbursementPaymentReverter;
 use OCA\Vereinsbuchhaltung\Service\ReimbursementService;
 use OCA\Vereinsbuchhaltung\Service\ReimbursementSettings;
 use OCP\AppFramework\Db\DoesNotExistException;
@@ -62,6 +65,8 @@ class ReimbursementServiceTest extends TestCase {
 	private JournalMapper&MockObject $journals;
 	private AuditService&MockObject $audit;
 	private BookingService&MockObject $booking;
+	private JournalService&MockObject $journalService;
+	private ReimbursementPaymentReverter&MockObject $reverter;
 	private int $numberCounter = 0;
 
 	/** @var list<string> Verwalter, die nach Einstellung freigeben dürfen */
@@ -99,6 +104,8 @@ class ReimbursementServiceTest extends TestCase {
 		$this->journals->method('find')->willReturn(new Journal());
 		$this->audit = $this->createMock(AuditService::class);
 		$this->booking = $this->createMock(BookingService::class);
+		$this->journalService = $this->createMock(JournalService::class);
+		$this->reverter = $this->createMock(ReimbursementPaymentReverter::class);
 		$this->numberCounter = 0;
 	}
 
@@ -189,6 +196,8 @@ class ReimbursementServiceTest extends TestCase {
 			$l10n,
 			$numbers,
 			$this->booking,
+			$this->journalService,
+			$this->reverter,
 		);
 	}
 
@@ -816,6 +825,55 @@ class ReimbursementServiceTest extends TestCase {
 			'Eingang statt Abgang' => [1250, 'unassigned'],
 			'schon zugeordnet' => [-1250, 'assigned'],
 		];
+	}
+
+	public function testVormerkungLaesstSichZuruecknehmen(): void {
+		$service = $this->service();
+		$r = $service->markTransferred($this->approved($service)->getId(), 'berta');
+
+		$r = $service->unmarkTransferred($r->getId(), 'berta');
+
+		$this->assertNull($r->getTransferredAt());
+		$this->assertSame(Reimbursement::STATUS_APPROVED, $r->getStatus());
+		$this->assertSame(ReimbursementEvent::ACTION_TRANSFER_REVOKED, $service->history($r->getId())[4]->getAction());
+		$this->assertChainIsValid($service, $r->getId());
+		// ohne Vormerkung passiert nichts
+		$service->unmarkTransferred($r->getId(), 'berta');
+		$this->assertCount(5, $service->history($r->getId()));
+	}
+
+	public function testVormerkungNurBeiFreigegebenemAntragZuruecknehmen(): void {
+		$service = $this->service();
+		$r = $this->submit($service);
+
+		$this->expectException(\InvalidArgumentException::class);
+		$service->unmarkTransferred($r->getId(), 'berta');
+	}
+
+	public function testZahlungZuruecknehmenLoeschtDieBuchung(): void {
+		$service = $this->service();
+		$r = $service->markPaid($this->approved($service)->getId(), 42, '2026-11-01', 'berta');
+		$this->journalService->expects($this->once())->method('deleteBooking')->with(42, Application::BOOK);
+		$this->reverter->expects($this->never())->method('revertForJournal');
+
+		$service->revertPayment($r->getId());
+	}
+
+	public function testZahlungOhneVorhandeneBuchungWirdDirektZurueckgesetzt(): void {
+		$service = $this->service();
+		$r = $service->markPaid($this->approved($service)->getId(), 42, '2026-11-01', 'berta');
+		$this->journalService->method('deleteBooking')->willThrowException(new DoesNotExistException('weg'));
+		$this->reverter->expects($this->once())->method('revertForJournal')->with(42);
+
+		$service->revertPayment($r->getId());
+	}
+
+	public function testNurEineAusgezahlteAuslageLaesstSichZuruecknehmen(): void {
+		$service = $this->service();
+		$r = $this->approved($service);
+
+		$this->expectException(\InvalidArgumentException::class);
+		$service->revertPayment($r->getId());
 	}
 
 	public function testOpenSummaryZaehltNurNichtAbgeschlossene(): void {

@@ -729,8 +729,11 @@ blocked.
 
 **Claim number.** Every request gets a consecutive number when submitted, such as
 *AUSL-2026-0012* (restarting at 1 each year; existing requests received theirs
-retroactively). It appears in the request, in the list and in the payment reference
-of the transfer.
+retroactively). It appears in the request, in the list, in the payment reference
+of the transfer and for members under *My area → Expenses*; the search under
+*Bookings → Expenses* finds it. Change the pattern under *Settings → Expense
+reimbursement → Claim numbers* (placeholders as for invoice numbers); numbers
+already issued stay.
 
 **Paying out (bookkeeper and administrator).** The approved request also appears
 under *Bookings → Open items*, marked as "Expense – to be paid". Choose
@@ -739,7 +742,8 @@ your banking app) and, next to it, recipient, IBAN, amount and payment reference
 to copy. The reference reads *AUSL-2026-0012 - <purpose>* and is shortened to 140
 characters if necessary. Once you have triggered the transfer, choose **Transfer
 completed**: the request notes this ("Transfer instructed") but stays approved.
-Booking happens when the bank transaction arrives.
+Booking happens when the bank transaction arrives. Clicked by mistake? **Revert
+note** undoes it.
 
 **Assigning the bank transaction.** After the import the transaction appears under
 *Bookings → To assign*. If the claim number is in the payment reference (or IBAN and
@@ -752,6 +756,12 @@ the posting and the member receives an email. This way the same payment never
 appears twice in the books. The item does not count as a receivable (no "overdue"
 items, no dunning); an expense claim can only be settled through the request, not
 through *Paid* or *Cancel* in the list.
+
+**Revert payout.** A paid-out request has a **Revert payout** button: the booking is
+deleted, an assigned bank transaction shows up again under *To assign*, the request
+is approved again, the item open, and the receipts are back with the request. The
+same happens if someone deletes the payout booking or unassigns the transaction. The
+history records it.
 
 **Without a bank transaction (cash).** If there is no bank transaction, choose
 **Book without bank transaction** in the request: the normal posting dialog opens,
