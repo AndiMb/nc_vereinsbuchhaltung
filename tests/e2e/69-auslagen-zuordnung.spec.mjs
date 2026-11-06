@@ -43,7 +43,8 @@ async function openAntrag(page, purpose) {
 async function openZuzuordnen(page, user) {
 	await openApp(page, user, { booted: true })
 	await switchTab(page, 'Buchungen')
-	await visibleSection(page).getByRole('button', { name: 'Zuzuordnen', exact: true }).click()
+	// Der Reiter trägt die Zahl der offenen Umsätze im Namen („Zuzuordnen 1“).
+	await visibleSection(page).locator('.vbh-subtabs').getByRole('button', { name: /^Zuzuordnen/ }).click()
 }
 
 test.describe('Auslagen: Nummer, Vormerken, Kontoumsatz zuordnen', () => {

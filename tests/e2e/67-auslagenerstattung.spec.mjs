@@ -135,11 +135,11 @@ test.describe('Auslagenerstattung', () => {
 		await expect(approvals).toHaveValue('2')
 
 		await approvals.fill('5')
-		await section.getByRole('button', { name: 'Speichern' }).click()
+		await section.getByRole('button', { name: 'Speichern' }).first().click()
 		await expect(section.getByRole('alert')).toContainText('mindestens 6 Verwalter')
 
 		await approvals.fill('1')
-		await section.getByRole('button', { name: 'Speichern' }).click()
+		await section.getByRole('button', { name: 'Speichern' }).first().click()
 		await expect(page.getByRole('status').filter({ hasText: 'Einstellungen gespeichert' }).first()).toBeVisible()
 		expect((await api.getSettings(request)).reimbursement_required_approvals).toBe(1)
 
