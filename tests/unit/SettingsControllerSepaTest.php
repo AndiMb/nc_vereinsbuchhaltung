@@ -9,6 +9,7 @@ use OCA\Vereinsbuchhaltung\Db\AccountMapper;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Service\AttachmentStorageService;
 use OCA\Vereinsbuchhaltung\Service\AttachmentWatchFolderService;
+use OCA\Vereinsbuchhaltung\Service\AuditService;
 use OCA\Vereinsbuchhaltung\Service\ContributionYearService;
 use OCA\Vereinsbuchhaltung\Service\DemoDataService;
 use OCA\Vereinsbuchhaltung\Service\DunningSettings;
@@ -54,6 +55,7 @@ class SettingsControllerSepaTest extends TestCase {
 		$l10n->method('t')->willReturnCallback(static fn (string $text, array $params = []) => vsprintf($text, $params));
 		$permissions = $this->createMock(PermissionService::class);
 		$permissions->method('getRole')->willReturn(PermissionService::ROLE_ADMIN);
+		$permissions->method('isServerAdmin')->willReturn(true);
 
 		if ($attachmentStorage === null) {
 			$attachmentStorage = $this->createMock(AttachmentStorageService::class);
@@ -84,6 +86,7 @@ class SettingsControllerSepaTest extends TestCase {
 			new InvoiceSettings($config, new FolderPathValidator($l10n)),
 			$this->createMock(ReimbursementSettings::class),
 			$l10n,
+			$this->createMock(AuditService::class),
 		);
 	}
 
