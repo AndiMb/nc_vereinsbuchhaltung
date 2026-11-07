@@ -31,9 +31,72 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 - **Revert payout:** restores request, open item and receipts; also applies
   when the booking is deleted.
 - **"Open expense claims" tile** on the overview.
+- **Dutch** ([#279](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/279)): the whole interface and emails to members.
+- **Receipt preview:** "Take over receipt" sits next to the file name
+  ([#281](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/281)). Saving without a receipt asks first while a file is still in the
+  preview: *Take over and save* · *Save without receipt* · *Back*.
+- **Nextcloud 35** is supported (Nextcloud 33 to 35).
 
 **Changed:**
 - "Book payout" is now "Book without bank transaction" (cash payments).
+- Emails to accounts in a language without a translation (e.g. French):
+  English instead of German. `de_AT` and `de_CH` stay German (formal).
+- Manual and audit guide: anyone whose language is not German gets the English
+  version.
+- The six daily background jobs may slip into the maintenance window.
+- "New" menu, colors and consent page follow Nextcloud standards
+  ([#265](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/265)); settings use `IAppConfig`/`IUserConfig` ([#262](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/262)).
+
+**Security:**
+- **Password required** for "Delete all data", granting or revoking roles, and
+  the xbuc import with "delete everything first" ([#260](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/260)).
+- **Another user's home:** receipt storage, watch folder and the folder picker
+  in another user's home can now only be chosen by a Nextcloud administrator.
+  Folders already saved stay valid; changes appear in the audit log.
+- **Error messages:** file paths, SQL and mail server texts go to the log
+  only; the browser shows a generic message ([#261](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/261)).
+- **Mandate consent page:** invalid and expired links are now actually
+  throttled ([#259](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/259)).
+
+**Fixed:**
+- **Package 0.50.0 incomplete** ([#269](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/269)): GiroCode, e-invoice and reading
+  receipt PDFs did nothing because library code was missing from the tarball.
+  The release now checks every autoloader reference.
+- **`occ` crash on Nextcloud 34** ([#268](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/268)): the bundled `symfony/console` 7.4
+  overrode the server's (failure in commands of other apps, e.g. Collabora).
+- **"Today" in club time instead of UTC** ([#263](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/263)): between 00:00 and 02:00
+  German time, "today" was still yesterday – in due dates, overdue status,
+  cut-off dates, default dates, mandate signature date and "Created on".
+  Dunning deadlines count from the club day of sending; the consent note shows
+  date, time and time zone.
+- **Account form:** Nextcloud settings for new accounts (required email,
+  generate ID, invitation) caused an error 500 after being toggled ([#262](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/262)).
+- **Switching periods quickly:** a late response overwrote the receipt counts
+  and transactions of the new period ([#255](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/255), [#256](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/256)).
+- **Receipt suggestions** stayed outdated after an invoice payment or a
+  re-booking in the account statement.
+- **Previews** (imports, bulk invoices, assignment, due-date plan) triggered
+  "changed by another person" in other open browsers ([#250](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/250)). Your own
+  change was loaded a second time after saving ([#251](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/251)).
+
+**Improved:**
+- **Startup:** main file 3.5 → 1.9 MB (−46 %); rarely used tabs, dialogs and
+  charts load only when opened. Initial values and translations arrive with the
+  page ([#257](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/257), [#264](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/264)).
+- **Booking list:** 200 rows per step ("Show more bookings"), unchanged rows
+  are not redrawn ([#254](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/254)).
+- **After saving:** journal, balances and periods reload in parallel instead of
+  one after another ([#251](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/251)).
+- **Open items:** only the selected status is loaded, counters come from the
+  database. **To assign:** only open transactions. **Account statement and
+  receipt counters:** only the selected period ([#255](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/255)).
+- **Task list:** 11 instead of 70 database queries per call (test instance); on
+  window focus at most once per minute ([#252](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/252)).
+- **Watch folder:** folder scan cached for up to 5 minutes, fewer PDF reads per
+  request ([#256](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/256)).
+
+**Update note:** migrations run automatically (numbers for existing expense
+claims, new database indexes).
 
 ## [0.50.0] – 2026-11-01
 

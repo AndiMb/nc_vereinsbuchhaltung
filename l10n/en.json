@@ -4312,6 +4312,12 @@
         "Neu: Auslagennummer (AUSL-2026-0012) im Verwendungszweck der Überweisung. Der Kontoumsatz lässt sich unter „Zuzuordnen“ per Klick oder von Hand der Auslage zuordnen.": "New: expense claim number (AUSL-2026-0012) in the transfer's payment reference. Under “To assign”, the bank transaction can be assigned to the claim with a click or by hand.",
         "Neu: Zahlung und Vormerkung einer Auslage lassen sich zurücknehmen.": "New: the payout and the transfer note of an expense claim can be reverted.",
         "Neu: Kachel „Offene Auslagen“ auf der Übersicht.": "New: “Open expense claims” tile on the overview.",
+        "Neu: Niederländische Übersetzung. Sprachen ohne Übersetzung bekommen Mails an Mitglieder und das Handbuch jetzt auf Englisch statt auf Deutsch.": "New: Dutch translation. Languages without a translation now get emails to members and the manual in English instead of German.",
+        "Neu: In der Belegvorschau übernimmt „Beleg übernehmen“ die Datei direkt. Speichern ohne Beleg fragt nach, solange noch eine Datei in der Vorschau steht.": "New: in the receipt preview, “Take over receipt” takes the file directly. Saving without a receipt asks first while a file is still in the preview.",
+        "Sicherheit: „Alle Daten löschen“, der Import mit Löschen und die Rollenvergabe verlangen jetzt Ihr Passwort. Ordner im Home anderer Nutzer wählen nur Nextcloud-Administratoren.": "Security: “Delete all data”, the import with deletion and granting roles now require your password. Only Nextcloud administrators can choose folders in another user’s home.",
+        "Behoben: GiroCode, E-Rechnung und das Lesen von Beleg-PDFs fehlten im Paket 0.50.0 und gehen jetzt wieder.": "Fixed: GiroCode, e-invoice and reading receipt PDFs were missing from package 0.50.0 and work again.",
+        "Behoben: Zwischen 0 und 2 Uhr galt noch der Vortag als „heute“. Fälligkeiten und Mahnfristen rechnen jetzt ab dem Vereinstag.": "Fixed: between 00:00 and 02:00 “today” was still yesterday. Due dates and dunning deadlines now count from the club day.",
+        "Schneller: Start, Buchungsliste, Offene Posten, „Zuzuordnen“ und Aufgaben laden deutlich weniger Daten.": "Faster: startup, booking list, open items, “To assign” and tasks load much less data.",
         "Der Text enthält ungültige Zeichen.": "The text contains invalid characters."
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"

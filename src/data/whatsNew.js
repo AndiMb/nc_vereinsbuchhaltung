@@ -31,6 +31,12 @@ export function buildWhatsNewEntries() {
 				t('Neu: Auslagennummer (AUSL-2026-0012) im Verwendungszweck der Überweisung. Der Kontoumsatz lässt sich unter „Zuzuordnen“ per Klick oder von Hand der Auslage zuordnen.'),
 				t('Neu: Zahlung und Vormerkung einer Auslage lassen sich zurücknehmen.'),
 				t('Neu: Kachel „Offene Auslagen“ auf der Übersicht.'),
+				t('Neu: Niederländische Übersetzung. Sprachen ohne Übersetzung bekommen Mails an Mitglieder und das Handbuch jetzt auf Englisch statt auf Deutsch.'),
+				t('Neu: In der Belegvorschau übernimmt „Beleg übernehmen“ die Datei direkt. Speichern ohne Beleg fragt nach, solange noch eine Datei in der Vorschau steht.'),
+				t('Sicherheit: „Alle Daten löschen“, der Import mit Löschen und die Rollenvergabe verlangen jetzt Ihr Passwort. Ordner im Home anderer Nutzer wählen nur Nextcloud-Administratoren.'),
+				t('Behoben: GiroCode, E-Rechnung und das Lesen von Beleg-PDFs fehlten im Paket 0.50.0 und gehen jetzt wieder.'),
+				t('Behoben: Zwischen 0 und 2 Uhr galt noch der Vortag als „heute“. Fälligkeiten und Mahnfristen rechnen jetzt ab dem Vereinstag.'),
+				t('Schneller: Start, Buchungsliste, Offene Posten, „Zuzuordnen“ und Aufgaben laden deutlich weniger Daten.'),
 			],
 		},
 		{
