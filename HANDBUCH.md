@@ -212,7 +212,9 @@ werden; wer sie aus dem Wächter-Ordner hinausschiebt, dessen Belege gelten
 als fehlend.
 
 Einen Ordner im Home eines anderen Nutzers wählen oder ändern dürfen nur
-Nextcloud-Administratoren, das gilt auch für den Wachordner aus Abschnitt 3.3.
+Nextcloud-Administratoren, das gilt auch für den Wachordner aus Abschnitt 3.3
+und für die Ordner der Mandats-Nachweise, der Rechnungen und der SEPA-XML-
+Dateien, die im Home des Belegablage-Nutzers liegen.
 Verwalter ohne diese Rechte wählen ihr eigenes Home, ein bereits eingerichteter
 fremder Ordner bleibt gültig.
 
@@ -2477,7 +2479,9 @@ kann das Mitglied verwerfen, aber nicht korrigieren (13.2).
 **Quittung und Spur.** Jede Änderung bestätigt die App dem Mitglied per Mail:
 was sich geändert hat, ab wann und welcher Einzug als erster betroffen ist – auch
 dann, wenn der Vorstand den Beitrag ändert (13.4; die Mail nennt ihn dann als
-Urheber). Die
+Urheber). Speichert das Mitglied seine Kontaktdaten unverändert, geht keine
+Mail hinaus; Kontaktdaten-Änderungen und Aktivierungslinks sind je Stunde
+begrenzt (20 bzw. 5). Die
 Mail ist die Kopie, eine eigene Ereignisliste gibt es im Bereich nicht. Zusätzlich
 erscheint ein Eintrag in der Nextcloud-**Aktivität** des Mitglieds (eigene Mail
 dazu verschickt Nextcloud nur beim Widerruf, sofern das Mitglied es nicht in

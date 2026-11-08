@@ -85,6 +85,7 @@ class DebitBatchServiceTest extends TestCase {
 		$this->xmlStorage->method('isEnabled')->willReturn(false);
 		$this->transaction = $this->createMock(TransactionRunner::class);
 		$this->transaction->method('run')->willReturnCallback(static fn (callable $fn) => $fn());
+		$this->transaction->method('runWithRetry')->willReturnCallback(static fn (callable $fn) => $fn());
 		$this->audit = $this->createMock(AuditService::class);
 		$this->config = $this->createMock(IAppConfig::class);
 		$this->returnedDebits = $this->createMock(ReturnedDebitMapper::class);
@@ -225,6 +226,8 @@ class DebitBatchServiceTest extends TestCase {
 
 		$this->assertNotNull($createdItem);
 		$this->assertSame(10, $createdItem->getOpenItemId());
+		// #301: der Unique-Index auf live_open_item_id hält die Forderung für diesen Lauf.
+		$this->assertSame(10, $createdItem->getLiveOpenItemId());
 		$this->assertSame(3, $createdItem->getMandateId());
 		$this->assertSame(4250, $createdItem->getAmountCents());
 		$this->assertSame('DE02120300000000202051', $createdItem->getIban());
@@ -265,6 +268,28 @@ class DebitBatchServiceTest extends TestCase {
 
 		$this->assertTrue($createdItem->getAmendmentIndicator());
 		$this->assertSame('SMNDA', $createdItem->getOriginalDebtorAccount());
+	}
+
+	/**
+	 * #301: Die Auswahl läuft innerhalb der wiederholbaren Transaktion. Verliert
+	 * die Freigabe den Wettlauf am Unique-Index, wählt der nächste Versuch neu –
+	 * und findet nichts mehr, statt dieselbe Forderung ein zweites Mal zu nehmen.
+	 */
+	public function testReleaseWaehltBeiWiederholungNeuAus(): void {
+		$this->configureBaseSettings();
+		$claim = $this->claim(10, 1, 4250, '2026-10-01', 'Vereinsbeitrag');
+		// Erster Versuch sieht die Forderung, der zweite (nach dem Commit des anderen Requests) nicht mehr.
+		$this->runQuery->expects($this->exactly(2))->method('preview')->willReturnOnConsecutiveCalls([$claim], []);
+		$this->mandateMapper->method('findLiveByMember')->willReturn([$this->mandate(3, 1)]);
+		$transaction = $this->createMock(TransactionRunner::class);
+		$transaction->method('runWithRetry')->willReturnCallback(static function (callable $fn) {
+			$fn(); // erster Versuch – angenommen, er scheitert beim Commit am Unique-Index
+			return $fn();
+		});
+		$this->transaction = $transaction;
+
+		$this->expectException(\InvalidArgumentException::class);
+		$this->service()->release('2026-10-01');
 	}
 
 	public function testReleaseWirftWennNichtsFaelligIst(): void {
@@ -429,6 +454,8 @@ class DebitBatchServiceTest extends TestCase {
 		$this->itemMapper->method('findByBatch')->with(1)->willReturn([$this->debitItem(10, 1, 3)]);
 		$this->itemMapper->expects($this->never())->method('update');
 		$this->itemMapper->expects($this->never())->method('delete');
+		// #301: die Posten bleiben, geben ihre Forderungen aber für einen neuen Lauf frei.
+		$this->itemMapper->expects($this->once())->method('releaseClaimsOfBatch')->with(1);
 
 		$discarded = $this->service()->discard(1, 'Falsches Faelligkeitsdatum erwischt');
 

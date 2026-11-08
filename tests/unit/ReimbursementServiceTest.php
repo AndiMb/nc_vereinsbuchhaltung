@@ -20,11 +20,13 @@ use OCA\Vereinsbuchhaltung\Db\ReimbursementFileMapper;
 use OCA\Vereinsbuchhaltung\Db\ReimbursementMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
 use OCA\Vereinsbuchhaltung\Exception\ForbiddenException;
+use OCA\Vereinsbuchhaltung\Exception\PeriodClosedException;
 use OCA\Vereinsbuchhaltung\Service\AuditService;
 use OCA\Vereinsbuchhaltung\Service\BookingService;
 use OCA\Vereinsbuchhaltung\Service\IbanValidator;
 use OCA\Vereinsbuchhaltung\Service\JournalService;
 use OCA\Vereinsbuchhaltung\Service\NumberRangeService;
+use OCA\Vereinsbuchhaltung\Service\PeriodService;
 use OCA\Vereinsbuchhaltung\Service\ReimbursementEventLog;
 use OCA\Vereinsbuchhaltung\Service\ReimbursementFileService;
 use OCA\Vereinsbuchhaltung\Service\ReimbursementMailService;
@@ -67,6 +69,8 @@ class ReimbursementServiceTest extends TestCase {
 	private BookingService&MockObject $booking;
 	private JournalService&MockObject $journalService;
 	private ReimbursementPaymentReverter&MockObject $reverter;
+	private PeriodService&MockObject $periods;
+	private ?Reimbursement $paidByJournal = null;
 	private int $numberCounter = 0;
 
 	/** @var list<string> Verwalter, die nach Einstellung freigeben dürfen */
@@ -106,6 +110,7 @@ class ReimbursementServiceTest extends TestCase {
 		$this->booking = $this->createMock(BookingService::class);
 		$this->journalService = $this->createMock(JournalService::class);
 		$this->reverter = $this->createMock(ReimbursementPaymentReverter::class);
+		$this->periods = $this->createMock(PeriodService::class);
 		$this->numberCounter = 0;
 	}
 
@@ -120,6 +125,7 @@ class ReimbursementServiceTest extends TestCase {
 			return $this->reimbursements[$id] ?? throw new DoesNotExistException('nope');
 		});
 		$mapper->method('update')->willReturnArgument(0);
+		$mapper->method('findPaidByJournal')->willReturnCallback(fn (): ?Reimbursement => $this->paidByJournal);
 		$mapper->method('countTransferredApproved')->willReturnCallback(fn (): int => count(array_filter(
 			$this->reimbursements,
 			static fn (Reimbursement $r): bool => $r->getStatus() === Reimbursement::STATUS_APPROVED && $r->getTransferredAt() !== null,
@@ -198,6 +204,7 @@ class ReimbursementServiceTest extends TestCase {
 			$this->booking,
 			$this->journalService,
 			$this->reverter,
+			$this->periods,
 		);
 	}
 
@@ -678,6 +685,39 @@ class ReimbursementServiceTest extends TestCase {
 		} catch (\InvalidArgumentException) {
 		}
 		$this->assertSame(Reimbursement::STATUS_APPROVED, $this->reimbursements[$r->getId()]->getStatus());
+	}
+
+	/** #304: in einem abgeschlossenen Jahr hängen keine Belege mehr an eine Buchung. */
+	public function testAuszahlenAnEineBuchungImAbgeschlossenenJahrGehtNicht(): void {
+		$journal = new Journal();
+		$journal->setDate('2012-12-31');
+		$this->journals = $this->createMock(JournalMapper::class);
+		$this->journals->method('find')->willReturn($journal);
+		$this->periods->method('assertOpen')->with(Application::BOOK, '2012-12-31')
+			->willThrowException(new PeriodClosedException('Das Geschäftsjahr 2012 ist abgeschlossen.'));
+		$service = $this->service();
+		$r = $this->approved($service);
+		$this->files->expects($this->never())->method('linkToJournal');
+
+		try {
+			$service->markPaid($r->getId(), 42, '2026-11-01', 'berta');
+			$this->fail('Eine Buchung im abgeschlossenen Jahr muss abgelehnt werden');
+		} catch (PeriodClosedException) {
+		}
+		$this->assertSame(Reimbursement::STATUS_APPROVED, $this->reimbursements[$r->getId()]->getStatus());
+	}
+
+	/** #304: eine Buchung, die schon eine andere Auslage belegt, lässt sich nicht noch einmal verwenden. */
+	public function testAuszahlenAnDieBuchungEinerAnderenAuslageGehtNicht(): void {
+		$other = new Reimbursement();
+		$other->setId(999);
+		$this->paidByJournal = $other;
+		$service = $this->service();
+		$r = $this->approved($service);
+		$this->files->expects($this->never())->method('linkToJournal');
+
+		$this->expectException(\InvalidArgumentException::class);
+		$service->markPaid($r->getId(), 42, '2026-11-01', 'berta');
 	}
 
 	public function testAuszahlungsdatumDarfNichtInDerZukunftLiegen(): void {

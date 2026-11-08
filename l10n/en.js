@@ -1,5 +1,5 @@
 OC.L10N.register("vereinsbuchhaltung", {
-	"Auswertungsgruppe in der Kontonummer": "Reporting group in the account number",
+	"Diese Buchung gehört schon zu einer anderen Auslage.": "This entry already belongs to another expense.",
 	"Bestätigung ausstehend": "Confirmation pending",
 	"Vorschlag {uid} verknüpfen": "Link suggestion {uid}",
 	"Bestätigungslink erneut senden": "Resend confirmation link",
@@ -4369,5 +4369,6 @@ OC.L10N.register("vereinsbuchhaltung", {
 	"Sicherheit: „Alle Daten löschen“, der Import mit Löschen und die Rollenvergabe verlangen jetzt Ihr Passwort. Ordner im Home anderer Nutzer wählen nur Nextcloud-Administratoren.": "Security: “Delete all data”, the import with deletion and granting roles now require your password. Only Nextcloud administrators can choose folders in another user’s home.",
 	"Behoben: GiroCode, E-Rechnung und das Lesen von Beleg-PDFs fehlten im Paket 0.50.0 und gehen jetzt wieder.": "Fixed: GiroCode, e-invoice and reading receipt PDFs were missing from package 0.50.0 and work again.",
 	"Behoben: Zwischen 0 und 2 Uhr galt noch der Vortag als „heute“. Fälligkeiten und Mahnfristen rechnen jetzt ab dem Vereinstag.": "Fixed: between 00:00 and 02:00 “today” was still yesterday. Due dates and dunning deadlines now count from the club day.",
-	"Schneller: Start, Buchungsliste, Offene Posten, „Zuzuordnen“ und Aufgaben laden deutlich weniger Daten.": "Faster: startup, booking list, open items, “To assign” and tasks load much less data."
+	"Schneller: Start, Buchungsliste, Offene Posten, „Zuzuordnen“ und Aufgaben laden deutlich weniger Daten.": "Faster: startup, booking list, open items, “To assign” and tasks load much less data.",
+	"Auswertungsgruppe in der Kontonummer": "Reporting group in the account number"
 }, "nplurals=2; plural=(n != 1);");
