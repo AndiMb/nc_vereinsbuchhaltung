@@ -2099,9 +2099,11 @@ button.vbh-dirtree-label.vbh-dirtree-label.is-selected { background-color: var(-
 
 	/* Unterreiter und Aktionen in einer Zeile: die Reiter scrollen waagerecht,
 	   die Aktionen stehen rechts daneben, nur als Symbol (der Text bleibt für
-	   Screenreader erhalten). */
-	.vbh-sectiontop { flex-wrap: nowrap; }
-	.vbh-sectiontop .vbh-subtabs { flex: 1 1 auto; }
+	   Screenreader erhalten). Die Reiterleiste behält mindestens 60 % der
+	   Breite; breitere Aktionen (Gruppierungswahl, Soll-Ist-Vergleich unter
+	   Berichte) rutschen in eine eigene Zeile, statt die Reiter auf ein paar
+	   Pixel zusammenzudrücken. */
+	.vbh-sectiontop .vbh-subtabs { flex: 1 1 0; min-width: 60%; }
 	.vbh-sectiontop-actions { flex: 0 0 auto; flex-wrap: nowrap; gap: 4px; }
 	.vbh-sectiontop-actions .button-vue:has(.button-vue__icon) { width: 44px; min-width: 44px; padding: 0; }
 	.vbh-sectiontop-actions .button-vue:has(.button-vue__icon) .button-vue__wrapper { justify-content: center; }
