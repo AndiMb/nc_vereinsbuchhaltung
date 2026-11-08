@@ -2142,6 +2142,10 @@ Solange die Datei **nicht eingereicht** ist, lässt sich der Lauf noch ändern:
   Lauf, die End-to-End-IDs werden nie wieder verwendet. Haben sich Mandatsdaten
   seit der Freigabe geändert, weist der Lauf darauf hin – verwerfen Sie ihn dann
   und geben Sie den Termin neu frei, die neue Datei enthält die aktuellen Daten.
+  Eigens nennt der Lauf Posten, deren Mandat seitdem widerrufen, gesperrt oder
+  beendet wurde: Die Datei zöge auch dort ein. „Eingereicht" bestätigen Sie
+  dann nur nach einer eigenen Rückfrage – etwa wenn die Datei schon bei der
+  Bank liegt.
 - **„Termin verschieben"** geht nur nach hinten (ein früherer Termin würde die
   Vorlauffristen unterschreiten); die Datei trägt dann den neuen Termin, Kennung
   und End-to-End-IDs bleiben. Laden Sie sie danach neu herunter.

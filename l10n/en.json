@@ -1,5 +1,6 @@
 {
     "translations": {
+        "Sie zieht auch von Mandaten ein, die nicht mehr einzugsfähig sind. Ist sie noch nicht bei der Bank, verwerfen Sie den Lauf besser und geben ihn neu frei.": "It also collects from mandates that are no longer collectible. If it is not at the bank yet, better discard the run and release it again.",
         "Bestätigung ausstehend": "Confirmation pending",
         "Vorschlag {uid} verknüpfen": "Link suggestion {uid}",
         "Bestätigungslink erneut senden": "Resend confirmation link",
@@ -4369,7 +4370,15 @@
         "Sicherheit: „Alle Daten löschen“, der Import mit Löschen und die Rollenvergabe verlangen jetzt Ihr Passwort. Ordner im Home anderer Nutzer wählen nur Nextcloud-Administratoren.": "Security: “Delete all data”, the import with deletion and granting roles now require your password. Only Nextcloud administrators can choose folders in another user’s home.",
         "Behoben: GiroCode, E-Rechnung und das Lesen von Beleg-PDFs fehlten im Paket 0.50.0 und gehen jetzt wieder.": "Fixed: GiroCode, e-invoice and reading receipt PDFs were missing from package 0.50.0 and work again.",
         "Behoben: Zwischen 0 und 2 Uhr galt noch der Vortag als „heute“. Fälligkeiten und Mahnfristen rechnen jetzt ab dem Vereinstag.": "Fixed: between 00:00 and 02:00 “today” was still yesterday. Due dates and dunning deadlines now count from the club day.",
-        "Schneller: Start, Buchungsliste, Offene Posten, „Zuzuordnen“ und Aufgaben laden deutlich weniger Daten.": "Faster: startup, booking list, open items, “To assign” and tasks load much less data."
+        "Schneller: Start, Buchungsliste, Offene Posten, „Zuzuordnen“ und Aufgaben laden deutlich weniger Daten.": "Faster: startup, booking list, open items, “To assign” and tasks load much less data.",
+        "_%n Posten hat kein einzugsfähiges Mandat mehr (widerrufen, gesperrt oder beendet)._::_%n Posten haben kein einzugsfähiges Mandat mehr (widerrufen, gesperrt oder beendet)._": [
+            "%n item no longer has a collectible mandate (revoked, suspended or ended).",
+            "%n items no longer have a collectible mandate (revoked, suspended or ended)."
+        ],
+        "_%n Posten des Laufs hat kein einzugsfähiges Mandat mehr. Laden Sie die Ansicht neu und prüfen Sie den Lauf: Verwerfen und neu freigeben nimmt den Posten heraus._::_%n Posten des Laufs haben kein einzugsfähiges Mandat mehr. Laden Sie die Ansicht neu und prüfen Sie den Lauf: Verwerfen und neu freigeben nimmt die Posten heraus._": [
+            "%n item of the run no longer has a collectible mandate. Reload the view and check the run: discarding and releasing again removes the item.",
+            "%n items of the run no longer have a collectible mandate. Reload the view and check the run: discarding and releasing again removes the items."
+        ]
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

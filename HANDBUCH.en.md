@@ -2102,7 +2102,10 @@ As long as the file has **not been submitted**, the run can still be changed:
   the items remain as history, the claims are free again and go into a new
   run, the end-to-end IDs are never used again. If mandate data has changed
   since the release, the run points this out – discard it then and release
-  the date again, the new file contains the current data.
+  the date again, the new file contains the current data. The run names
+  items whose mandate has since been revoked, suspended or ended separately:
+  the file would still collect from them. You then confirm "submitted" only
+  after an extra prompt – for example if the file is already at the bank.
 - **"Move date"** (*Termin verschieben*) only works to a later date (an
   earlier date would fall below the lead times); the file then carries the
   new date, identifier and end-to-end IDs stay. Download it again

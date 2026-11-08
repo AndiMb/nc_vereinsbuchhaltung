@@ -309,7 +309,7 @@ export default {
 	// Der XML-Download ist ein per Link geöffneter GET (Browser-Navigation, kein Axios);
 	// der Endpunkt trägt dafür #[NoCSRFRequired].
 	releaseDebitBatch: (dueDate) => axios.post(url('/debit-batches'), { dueDate }),
-	submitDebitBatch: (id) => axios.post(url(`/debit-batches/${id}/submit`)),
+	submitDebitBatch: (id, acknowledgeNonCollectible = false) => axios.post(url(`/debit-batches/${id}/submit`), { acknowledgeNonCollectible }),
 	discardDebitBatch: (id, reason) => axios.post(url(`/debit-batches/${id}/discard`), { reason }),
 	rescheduleDebitBatch: (id, dueDate) => axios.post(url(`/debit-batches/${id}/reschedule`), { dueDate }),
 	debitBatchXmlUrl: (id) => generateUrl(base + `/debit-batches/${id}/xml`),

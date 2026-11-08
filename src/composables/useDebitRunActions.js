@@ -69,7 +69,8 @@ export function useDebitRunActions() {
 
 	/** Schritt 2: „Datei ist bei der Bank eingereicht“ – terminal, kein Storno. */
 	function submitRun(run, onDone = null) {
-		return settle(async () => (await api.submitDebitBatch(run.id)).data, () => ({}), onDone)
+		// Die Rückfrage davor nennt die Posten ohne einzugsfähiges Mandat (#302); der Server will die Bestätigung dazu.
+		return settle(async () => (await api.submitDebitBatch(run.id, (run.nonCollectibleCount || 0) > 0)).data, () => ({}), onDone)
 	}
 
 	/** Anzahl freizugebender Forderungen je Termin, wie der Zeitstrahl sie gerade zeigt. */

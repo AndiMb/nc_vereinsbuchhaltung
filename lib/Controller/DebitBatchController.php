@@ -70,6 +70,10 @@ class DebitBatchController extends Controller {
 		$data['driftWarning'] = $batch->getStatus() === DebitBatch::STATUS_RELEASED
 			? $this->service->driftWarning((int)$batch->getId())
 			: null;
+		// Posten ohne einzugsfähiges Mandat (#302): die Einreichung verlangt dann eine Bestätigung.
+		$data['nonCollectibleCount'] = $batch->getStatus() === DebitBatch::STATUS_RELEASED
+			? $this->service->nonCollectibleCount((int)$batch->getId())
+			: 0;
 		// Anzeigenamen statt Konten-IDs für „wer/wann" im Einzug-Unterreiter
 		// (Issue #102) - die uid bleibt daneben unverändert erhalten.
 		$data['releasedByName'] = $this->displayNameOf($batch->getReleasedBy());
@@ -164,9 +168,9 @@ class DebitBatchController extends Controller {
 	/** Schritt 2 „Datei ist bei der Bank eingereicht" (Spec §3.5). */
 	#[NoAdminRequired]
 	#[RequiresRole(PermissionService::ROLE_WRITE)]
-	public function submit(int $id): DataResponse {
+	public function submit(int $id, bool $acknowledgeNonCollectible = false): DataResponse {
 		try {
-			return new DataResponse($this->decorate($this->service->submit($id)));
+			return new DataResponse($this->decorate($this->service->submit($id, $acknowledgeNonCollectible)));
 		} catch (\InvalidArgumentException $e) {
 			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
 		} catch (DoesNotExistException) {
