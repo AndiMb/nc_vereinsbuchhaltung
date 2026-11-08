@@ -296,6 +296,11 @@ class BookingService {
 		} catch (\Throwable) {
 			return;
 		}
+		// Der Buchungssatz kann in einem anderen Geschäftsjahr liegen als der
+		// Umsatz (das Datum lässt sich verschieben). Geprüft wird deshalb auch
+		// sein eigenes Datum – sonst ließe sich über den Umsatz eine Buchung
+		// in einem abgeschlossenen Jahr löschen und neu nummerieren (#297).
+		$this->periods->assertOpen($userId, (string)$journal->getDate());
 		$periodId = (int)$journal->getPeriodId();
 		// Lief eine Rechnungszahlung über diesen Buchungssatz, wird sie zurückgenommen.
 		$this->invoicePayments?->revertForJournal($journal->getId());
