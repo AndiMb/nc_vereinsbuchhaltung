@@ -71,7 +71,11 @@ class SelfServiceService {
 			return null;
 		}
 		$member = $this->memberMapper->findByNcUserId($user->getUID());
-		return $member !== null && $member->isNcLinkConfirmed() ? $member : null;
+		// Nur eine vom Mitglied bestätigte Verknüpfung zählt (#295). Ein anonymisiertes
+		// Mitglied hat keinen Self-Service mehr (#296): es gibt nichts mehr zu sehen,
+		// und jede Änderung schriebe Personendaten zurück in den geschwärzten
+		// Datensatz. Die Kontoverknüpfung selbst bleibt (Spec §3.8).
+		return $member !== null && $member->isNcLinkConfirmed() && !$member->isRedacted() ? $member : null;
 	}
 
 	/** Ob der aktuelle Request in den Self-Service darf: Schalter UND Kontoverknüpfung. */

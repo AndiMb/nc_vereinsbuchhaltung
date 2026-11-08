@@ -53,7 +53,8 @@ class MemberAccountDeletionListener implements IEventListener {
 		$rescuedEmail = null;
 		// Nur aus einem bestätigten Konto (#295): die Adresse einer bloß
 		// ausstehenden Verknüpfung hat das Konto selbst gesetzt, nicht das Mitglied.
-		if ($member->isNcLinkConfirmed() && ($member->getEmail() === null || $member->getEmail() === '')
+		// Und nie in einen anonymisierten Datensatz (#296): die Adresse wäre sonst wieder da.
+		if ($member->isNcLinkConfirmed() && !$member->isRedacted() && ($member->getEmail() === null || $member->getEmail() === '')
 			&& $user->getEMailAddress() !== null && $user->getEMailAddress() !== '') {
 			$rescuedEmail = $user->getEMailAddress();
 			$member->setEmail($rescuedEmail);

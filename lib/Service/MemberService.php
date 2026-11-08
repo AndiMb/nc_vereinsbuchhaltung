@@ -95,6 +95,10 @@ class MemberService {
 	 */
 	public function updateOwnContactData(int $id, array $data): array {
 		$member = $this->mapper->find($id);
+		// Ein anonymisierter Datensatz bleibt leer (#296) – wie bei update().
+		if ($member->isRedacted()) {
+			throw new \InvalidArgumentException($this->l10n->t('Dieses Mitglied ist anonymisiert; Stammdaten können nicht mehr bearbeitet werden.'));
+		}
 		$oldEmail = $member->getEmail();
 
 		if ($member->getMemberType() === Member::TYPE_PERSON) {

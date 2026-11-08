@@ -2564,7 +2564,10 @@ schwärzt die App deshalb die Person und lässt die Zahlen stehen:
 Ein gelöschtes Nextcloud-Konto löst die Anonymisierung nicht aus, und die
 Anonymisierung löst die Kontoverknüpfung nicht: beides ist voneinander
 unabhängig (bei einem gelöschten Konto bleibt das Mitglied, die Mailadresse wird
-übernommen und eine Aufgabe bittet um Prüfung, 13.9).
+übernommen und eine Aufgabe bittet um Prüfung, 13.9). Ist das Mitglied schon
+anonymisiert, bleibt die Akte leer: Das verknüpfte Konto hat **keinen
+Self-Service** mehr, kann also auch keine Kontaktdaten zurückschreiben, und beim
+Löschen des Kontos wird keine Mailadresse übernommen.
 
 **Verschlüsselte Bankverbindungen.** Die IBANs der Mitglieder und Zahler – am
 Mandat, in den Einzugsposten und in den Bankumsätzen – und die Suchwerte der

@@ -683,6 +683,10 @@ vollständige Texte in [§3.11](#311-textbausteine--t31-t34).
   unter „Meine Daten" — deckt Art. 15 DSGVO. **Kein** strukturierter Export (Art. 20) in v1.
 - NC-Konto-Löschung bleibt vollständig entkoppelt vom Anonymisierungs-Zeitpunkt (der
   T09-Zielkonflikt ist durch T16s Stellvertretungslösung bereits aufgelöst).
+- **Geschwärzt bleibt geschwärzt (#296):** kein Weg schreibt Personendaten zurück in ein
+  anonymisiertes Mitglied. Self-Service gibt es dafür nicht mehr (die Verknüpfung bleibt,
+  liefert aber kein Mitglied), `updateOwnContactData()` lehnt ab wie `update()`, und beim
+  Löschen des Kontos wird keine Mailadresse übernommen.
 - **Zurücksetzen („Alle Daten löschen", Issue #123):** löscht in *einer* Transaktion neben
   Buchungen und offenen Posten (= Forderungen, §2.2) alles, was an den Forderungen hängt —
   Lastschriftläufe, Einzugsposten (IBAN im Klartext), Rücklastschriften, Mahnversand — und die
