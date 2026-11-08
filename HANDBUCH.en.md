@@ -209,7 +209,9 @@ renamed freely within the watch folder; receipts moved out of the watch
 folder count as missing.
 
 Only Nextcloud administrators may choose or change a folder in another
-user's home; this also applies to the watched folder from chapter 3.3.
+user's home; this also applies to the watched folder from chapter 3.3 and to
+the folders for mandate documents, invoices and SEPA XML files, which live in
+the home of the receipt-storage user.
 Administrators of the app without those rights choose their own home, and a
 foreign folder that is already set up stays valid.
 
@@ -1334,11 +1336,16 @@ account type, bank-account flag, sphere, reserve type and reporting group. This
 only affects accounts that actually have postings in the closed year. The
 reason: turning an income account into an expense account flips the sign in
 every report – the treasurer's report of the closed year would look
-different afterwards, without anyone having touched a posting. **Freely
-changeable remain** the number, name, category, parent account and the
-active toggle; they only change the label and sorting. Anyone who still
-needs to change a locked property reopens the year (chapter 8.4) and closes
-it again afterwards.
+different afterwards, without anyone having touched a posting. This also
+applies to **assigning and removing accounts in the reporting groups
+overview** and to **deleting a group** that such an account belongs to.
+**Freely changeable remain** the number, name, category, parent account and
+the active toggle; they only change the label and sorting. One exception for
+the number: if the reporting groups are derived from the account number
+(second group of digits), that group of digits can no longer be changed –
+otherwise the account would move to another group. Anyone who still needs to
+change a locked property reopens the year (chapter 8.4) and closes it again
+afterwards.
 
 > **For the watch folder, this means:** if someone drops a statement that
 > falls into a closed year, the transactions are read in but stay
@@ -2449,7 +2456,8 @@ but not corrected (13.2).
 **Receipt and trail.** The app confirms every change to the member by email:
 what changed, from when, and which collection is the first one affected – also
 when the board changes the fee (13.4; the email then names it as the
-originator). The
+originator). Saving the contact details unchanged sends no email; contact
+changes and activation links are limited per hour (20 and 5). The
 email is the copy; the area has no event list of its own. In addition, an entry
 appears in the member's Nextcloud **Activity** (Nextcloud only sends an email for
 it on revocation, unless the member turned that off in their personal

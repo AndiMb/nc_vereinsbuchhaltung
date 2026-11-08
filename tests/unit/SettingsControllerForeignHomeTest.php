@@ -12,6 +12,7 @@ use OCA\Vereinsbuchhaltung\Service\AuditService;
 use OCA\Vereinsbuchhaltung\Service\ContributionYearService;
 use OCA\Vereinsbuchhaltung\Service\DunningSettings;
 use OCA\Vereinsbuchhaltung\Service\FolderPathValidator;
+use OCA\Vereinsbuchhaltung\Service\ForeignHomeGuard;
 use OCA\Vereinsbuchhaltung\Service\FrontendStateService;
 use OCA\Vereinsbuchhaltung\Service\InvoiceSettings;
 use OCA\Vereinsbuchhaltung\Service\MandateExpirySettings;
@@ -55,6 +56,7 @@ class SettingsControllerForeignHomeTest extends TestCase {
 		$this->storage = $this->createMock(AttachmentStorageService::class);
 		$this->storage->method('mode')->willReturnCallback(fn () => $this->store['storage_mode'] ?? AttachmentStorageService::MODE_APPDATA);
 		$this->storage->method('subfoldersAt')->willReturn([]);
+		$this->storage->method('storageUser')->willReturnCallback(fn () => $this->store['storage_user'] ?? '');
 		$this->storage->method('folderAt')->willReturn($this->createMock(Folder::class));
 		$this->watch = $this->createMock(AttachmentWatchFolderService::class);
 		$this->audit = $this->createMock(AuditService::class);
@@ -103,6 +105,7 @@ class SettingsControllerForeignHomeTest extends TestCase {
 			$l10n,
 			$frontendState,
 			$this->audit,
+			new ForeignHomeGuard($permissions, $this->storage, $l10n),
 		);
 	}
 
@@ -280,6 +283,54 @@ class SettingsControllerForeignHomeTest extends TestCase {
 	}
 
 	// Änderungsprotokoll: bisher blieb nicht nachvollziehbar, wer die Ordner umgestellt hat.
+
+	// Unterordner im Home des Belegablage-Nutzers (#307)
+
+	public function testMandatsOrdnerImFremdenHomeLaesstSichNichtUmstellen(): void {
+		$this->storeForeignStorage();
+		$this->store['mandate_document_folder'] = 'SEPA-Mandate';
+
+		$this->assertRejected($this->update(['mandate_document_folder' => 'Privat']));
+		$this->assertSame('SEPA-Mandate', $this->store['mandate_document_folder']);
+	}
+
+	public function testRechnungsOrdnerImFremdenHomeLaesstSichNichtUmstellen(): void {
+		$this->storeForeignStorage();
+
+		$this->assertRejected($this->update(['invoice_folder' => 'Privat']));
+		$this->assertArrayNotHasKey('invoice_folder', $this->store);
+	}
+
+	public function testAbgelehnterOrdnerHinterlaesstNichtsHalbGespeichertes(): void {
+		$this->storeForeignStorage();
+
+		$this->assertRejected($this->update(['club_name' => 'Neuer Name', 'invoice_folder' => 'Privat']));
+		$this->assertArrayNotHasKey('club_name', $this->store);
+	}
+
+	public function testUnveraenderteOrdnerImFremdenHomeBleibenSpeicherbar(): void {
+		$this->storeForeignStorage();
+		$this->store['mandate_document_folder'] = 'SEPA-Mandate';
+
+		// Die Einstellungsseite schickt immer den vollständigen Feldsatz – auch die Vorgabe als leeren Wert.
+		$response = $this->update(['mandate_document_folder' => '/SEPA-Mandate/', 'invoice_folder' => '']);
+
+		$this->assertSame(Http::STATUS_OK, $response->getStatus());
+	}
+
+	public function testOrdnerImEigenenHomeBleibenFrei(): void {
+		$this->store['storage_user'] = self::SELF;
+		$this->store['storage_mode'] = AttachmentStorageService::MODE_USER;
+		$this->assertSame(Http::STATUS_OK, $this->update(['mandate_document_folder' => 'Eigene/Mandate'])->getStatus());
+		$this->assertSame('Eigene/Mandate', $this->store['mandate_document_folder']);
+	}
+
+	public function testNextcloudAdminDarfOrdnerImFremdenHomeUmstellen(): void {
+		$this->storeForeignStorage();
+		$this->serverAdmin = true;
+		$this->assertSame(Http::STATUS_OK, $this->update(['invoice_folder' => 'Rechnungen/Neu'])->getStatus());
+		$this->assertSame('Rechnungen/Neu', $this->store['invoice_folder']);
+	}
 
 	public function testAenderungDerBelegablageStehtImProtokoll(): void {
 		$this->store['storage_user'] = self::SELF;

@@ -23,6 +23,7 @@ use OCA\Vereinsbuchhaltung\Service\SelfServiceMandateService;
 use OCA\Vereinsbuchhaltung\Service\SelfServiceService;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http;
+use OCP\AppFramework\Http\Attribute\UserRateLimit;
 use OCP\AppFramework\Http\DataDisplayResponse;
 use OCP\IL10N;
 use OCP\IRequest;
@@ -536,5 +537,16 @@ class SelfControllerTest extends TestCase {
 
 		$this->expectException(ForbiddenException::class);
 		$this->controller()->returnedDebits();
+	}
+
+	/** #305: Endpunkte, die Mails verschicken, sind je Nutzer gedrosselt. */
+	public function testMailVerschickendeEndpunkteHabenUserRateLimit(): void {
+		foreach (['updateMe' => 20, 'requestMandateActivationLink' => 5] as $method => $limit) {
+			$attributes = (new \ReflectionMethod(SelfController::class, $method))->getAttributes(UserRateLimit::class);
+			$this->assertCount(1, $attributes, $method);
+			$instance = $attributes[0]->newInstance();
+			$this->assertSame($limit, $instance->getLimit(), $method);
+			$this->assertSame(3600, $instance->getPeriod(), $method);
+		}
 	}
 }
