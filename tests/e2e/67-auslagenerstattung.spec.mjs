@@ -429,7 +429,7 @@ test.describe('Auslagenerstattung', () => {
 		expect(twice.status()).toBe(403)
 
 		// Selbstfreigabe: test1 ist selbst Mitglied und reicht ein – freigeben können es nur die anderen.
-		const verwalterMember = await api.createMember(request, { firstName: 'Viktor', lastName: 'Verwalter' })
+		const verwalterMember = await api.createMember(request, { firstName: 'Viktor', lastName: 'Verwalter', email: 'viktor.verwalter@example.org' })
 		ownMemberIds.push(verwalterMember.id)
 		await api.linkMember(request, verwalterMember.id, USERS.verwalter)
 		const own = await (await api.submitReimbursement(request, { user: USERS.verwalter, purpose: 'Eigener Antrag eines Verwalters' })).json()
@@ -443,7 +443,7 @@ test.describe('Auslagenerstattung', () => {
 		expect((await mailsTo(EMAILS[USERS.verwalter])).filter((m) => /Verwalter/.test(m.text) && /Eigener Antrag/.test(m.text))).toHaveLength(0)
 
 		// Fremde Anträge: ein anderes verknüpftes Mitglied bekommt 404, nicht „verboten" (kein Hinweis auf die Existenz).
-		const other = await api.createMember(request, { firstName: 'Rita', lastName: 'Revisor' })
+		const other = await api.createMember(request, { firstName: 'Rita', lastName: 'Revisor', email: 'rita.revisor@example.org' })
 		ownMemberIds.push(other.id)
 		await api.linkMember(request, other.id, USERS.revisor)
 		expect((await api.selfReimbursement(request, pending.id, { user: USERS.revisor, expectOk: false })).status()).toBe(404)

@@ -1,12 +1,13 @@
 <template>
-	<span v-if="member.ncUserId" :title="linkedAccountText(member.ncUserId)">{{ t('Ja') }}</span>
+	<span v-if="member.ncUserId && member.ncLinkConfirmed" :title="linkedAccountText(member.ncUserId)">{{ t('Ja') }}</span>
+	<span v-else-if="member.ncUserId" :title="pendingAccountText(member.ncUserId)">{{ t('Bestätigung ausstehend') }}</span>
 	<button
 		v-else-if="suggestions.length === 1"
 		type="button"
 		class="vbh-linkbtn vbh-linkbtn--plain"
 		:disabled="busy"
 		@click="$emit('link')">
-		{{ tRaw('Vorschlag {email} verknüpfen', { email: suggestions[0].email || member.email || '' }) }}
+		{{ tRaw('Vorschlag {uid} verknüpfen', { uid: suggestions[0].uid }) }}
 	</button>
 	<button
 		v-else-if="suggestions.length > 1"
@@ -19,11 +20,11 @@
 </template>
 
 <script>
-import { linkedAccountText } from '../lib/memberAccount.js'
+import { linkedAccountText, pendingAccountText } from '../lib/memberAccount.js'
 
 /**
  * Spalte „Nextcloud-Konto?“ der Mitgliederliste (Tabelle und Karte): „Ja“, wenn ein Konto
- * verknüpft ist; sonst der Vorschlag zum Verknüpfen (genau ein Konto mit der Mailadresse des
+ * verknüpft und die Verknüpfung vom Mitglied bestätigt ist, „Bestätigung ausstehend“ davor (#295); sonst der Vorschlag zum Verknüpfen (genau ein Konto mit der Mailadresse des
  * Mitglieds), der Weg in die Akte bei mehreren Treffern, oder „Nein“.
  */
 export default {
@@ -39,6 +40,6 @@ export default {
 
 	emits: ['link', 'open'],
 
-	methods: { linkedAccountText },
+	methods: { linkedAccountText, pendingAccountText },
 }
 </script>

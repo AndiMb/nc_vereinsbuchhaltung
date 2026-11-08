@@ -238,6 +238,8 @@ class ContributionPreNotificationServiceTest extends TestCase {
 		$this->openItems->method('findClaimsAwaitingPrenotification')->willReturn([$this->claim(1, 7, '2026-01-15')]);
 		$member = $this->member();
 		$member->setNcUserId($accountLanguage === null ? null : 'anna');
+		// Bestätigte Verknüpfung (#295): nur sie zählt für Mail, Sprache und Activity.
+		$member->setNcLinkConfirmedAt('2026-01-01 00:00:00');
 		$this->members->method('findOrNull')->with(7)->willReturn($member);
 
 		$bodies = [];

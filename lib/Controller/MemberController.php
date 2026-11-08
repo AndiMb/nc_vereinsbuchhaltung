@@ -6,9 +6,11 @@ namespace OCA\Vereinsbuchhaltung\Controller;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\Member;
+use OCA\Vereinsbuchhaltung\Exception\UserFacingException;
 use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
 use OCA\Vereinsbuchhaltung\Service\AnonymizationCandidateService;
 use OCA\Vereinsbuchhaltung\Service\MemberAnonymizationService;
+use OCA\Vereinsbuchhaltung\Service\MemberLinkConfirmationService;
 use OCA\Vereinsbuchhaltung\Service\MemberService;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
 use OCP\AppFramework\Controller;
@@ -33,6 +35,7 @@ class MemberController extends Controller {
 		private MemberService $service,
 		private AnonymizationCandidateService $anonymizationCandidates,
 		private MemberAnonymizationService $anonymization,
+		private MemberLinkConfirmationService $linkConfirmation,
 		private IL10N $l10n,
 	) {
 		parent::__construct(Application::APP_ID, $request);
@@ -196,13 +199,42 @@ class MemberController extends Controller {
 		}
 	}
 
-	/** Verknüpft erst nach dieser ausdrücklichen, menschlichen Bestätigung. */
+	/**
+	 * Verknüpft erst nach dieser ausdrücklichen, menschlichen Bestätigung – und
+	 * auch dann nur ausstehend: der Bestätigungslink geht sofort an die
+	 * Mailadresse des Mitglieds, erst seine Bestätigung macht die Verknüpfung
+	 * wirksam (#295). Scheitert nur der Mailversand, bleibt die Verknüpfung
+	 * ausstehend und die Antwort trägt den Grund in `linkMailError`.
+	 */
 	#[NoAdminRequired]
 	#[RequiresRole(PermissionService::ROLE_WRITE)]
 	public function link(int $id, string $ncUserId): DataResponse {
 		try {
-			return new DataResponse($this->decorate($this->service->link($id, $ncUserId)));
+			$member = $this->service->link($id, $ncUserId);
+			$mailError = null;
+			if (!$member->isNcLinkConfirmed()) {
+				try {
+					$this->linkConfirmation->send($member);
+				} catch (UserFacingException|\InvalidArgumentException $e) {
+					$mailError = $e->getMessage();
+				}
+			}
+			return new DataResponse($this->decorate($this->service->find($id)) + ['linkMailError' => $mailError]);
 		} catch (\InvalidArgumentException $e) {
+			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
+		} catch (DoesNotExistException) {
+			return new DataResponse(['message' => $this->l10n->t('Mitglied nicht gefunden')], Http::STATUS_NOT_FOUND);
+		}
+	}
+
+	/** Schickt den Bestätigungslink einer ausstehenden Verknüpfung erneut (#295); ein älterer verfällt. */
+	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_WRITE)]
+	public function resendLinkConfirmation(int $id): DataResponse {
+		try {
+			$sent = $this->linkConfirmation->send($this->service->find($id));
+			return new DataResponse($this->decorate($this->service->find($id)) + ['linkMailSentTo' => $sent['email']]);
+		} catch (\InvalidArgumentException|UserFacingException $e) {
 			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
 		} catch (DoesNotExistException) {
 			return new DataResponse(['message' => $this->l10n->t('Mitglied nicht gefunden')], Http::STATUS_NOT_FOUND);

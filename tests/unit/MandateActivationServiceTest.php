@@ -107,6 +107,8 @@ class MandateActivationServiceTest extends TestCase {
 		$m->setLastName('Brunner');
 		$m->setEmail($email);
 		$m->setNcUserId($ncUserId);
+		// Bestätigte Verknüpfung (#295): nur sie zählt für Mail, Sprache und Activity.
+		$m->setNcLinkConfirmedAt('2026-01-01 00:00:00');
 		return $m;
 	}
 

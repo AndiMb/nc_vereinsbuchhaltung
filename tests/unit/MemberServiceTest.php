@@ -627,8 +627,16 @@ class MemberServiceTest extends TestCase {
 		$this->assertSame([1, 2, 3], array_keys($result), 'Alle drei Mitglieder bekommen denselben Vorschlag.');
 	}
 
+	/** Ein Mitglied mit Mailadresse – ohne sie gibt es keine Verknüpfung (#295). */
+	private function memberWithEmail(int $id = 1): Member {
+		$member = new Member();
+		$member->setId($id);
+		$member->setEmail('katrin@example.org');
+		return $member;
+	}
+
 	public function testLinkOhneExistierendesKontoSchlaegtFehl(): void {
-		$this->mapper->method('find')->willReturn(new Member());
+		$this->mapper->method('find')->willReturn($this->memberWithEmail());
 		$this->userManager->method('userExists')->willReturn(false);
 
 		$this->expectException(\InvalidArgumentException::class);
@@ -636,9 +644,7 @@ class MemberServiceTest extends TestCase {
 	}
 
 	public function testLinkAnderesMitgliedSchonVerknuepftSchlaegtFehl(): void {
-		$member = new Member();
-		$member->setId(1);
-		$this->mapper->method('find')->willReturn($member);
+		$this->mapper->method('find')->willReturn($this->memberWithEmail());
 		$this->userManager->method('userExists')->willReturn(true);
 		$other = new Member();
 		$other->setId(2);
@@ -649,9 +655,7 @@ class MemberServiceTest extends TestCase {
 	}
 
 	public function testLinkSetztNcUserIdNachBestaetigung(): void {
-		$member = new Member();
-		$member->setId(1);
-		$this->mapper->method('find')->willReturn($member);
+		$this->mapper->method('find')->willReturn($this->memberWithEmail());
 		$this->userManager->method('userExists')->willReturn(true);
 		$this->mapper->method('findByNcUserId')->willReturn(null);
 		$this->mapper->method('update')->willReturnArgument(0);
@@ -659,17 +663,61 @@ class MemberServiceTest extends TestCase {
 		$result = $this->service()->link(1, 'katrin');
 
 		$this->assertSame('katrin', $result->getNcUserId());
+		// #295: erst die Bestätigung durch das Mitglied macht die Verknüpfung wirksam.
+		$this->assertFalse($result->isNcLinkConfirmed());
+		$this->assertNull($result->confirmedNcUserId());
+	}
+
+	public function testLinkAufAnderesKontoSetztDieBestaetigungZurueck(): void {
+		$member = $this->memberWithEmail();
+		$member->setNcUserId('alt');
+		$member->setNcLinkConfirmedAt('2026-01-01 00:00:00');
+		$this->mapper->method('find')->willReturn($member);
+		$this->userManager->method('userExists')->willReturn(true);
+		$this->mapper->method('findByNcUserId')->willReturn(null);
+		$this->mapper->method('update')->willReturnArgument(0);
+
+		$result = $this->service()->link(1, 'neu');
+
+		$this->assertSame('neu', $result->getNcUserId());
+		$this->assertNull($result->getNcLinkConfirmedAt());
+	}
+
+	public function testLinkOhneMailadresseSchlaegtFehl(): void {
+		$member = new Member();
+		$member->setId(1);
+		$this->mapper->method('find')->willReturn($member);
+		$this->userManager->method('userExists')->willReturn(true);
+		$this->mapper->expects($this->never())->method('update');
+
+		$this->expectException(\InvalidArgumentException::class);
+		$this->service()->link(1, 'katrin');
+	}
+
+	public function testLinkAnonymisiertesMitgliedSchlaegtFehl(): void {
+		$member = $this->memberWithEmail();
+		$member->setRedactedAt('2026-01-01 00:00:00');
+		$this->mapper->method('find')->willReturn($member);
+		$this->userManager->method('userExists')->willReturn(true);
+		$this->mapper->expects($this->never())->method('update');
+
+		$this->expectException(\InvalidArgumentException::class);
+		$this->service()->link(1, 'katrin');
 	}
 
 	public function testUnlinkLeertNcUserId(): void {
 		$member = new Member();
 		$member->setNcUserId('katrin');
+		$member->setNcLinkConfirmedAt('2026-01-01 00:00:00');
+		$member->setNcLinkTokenHash(str_repeat('a', 64));
 		$this->mapper->method('find')->willReturn($member);
 		$this->mapper->method('update')->willReturnArgument(0);
 
 		$result = $this->service()->unlink(1);
 
 		$this->assertNull($result->getNcUserId());
+		$this->assertNull($result->getNcLinkConfirmedAt());
+		$this->assertNull($result->getNcLinkTokenHash());
 	}
 
 	// --- findOrCreateByNcUserId()/createFromLabel(): Migration & CSV-Import ---

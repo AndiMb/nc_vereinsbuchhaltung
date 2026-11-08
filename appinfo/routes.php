@@ -164,6 +164,7 @@ return [
 		['name' => 'member#allLinkSuggestions', 'url' => '/api/member-link-suggestions', 'verb' => 'GET'],
 		['name' => 'member#link', 'url' => '/api/members/{id}/link', 'verb' => 'POST'],
 		['name' => 'member#unlink', 'url' => '/api/members/{id}/unlink', 'verb' => 'POST'],
+		['name' => 'member#resendLinkConfirmation', 'url' => '/api/members/{id}/link/resend', 'verb' => 'POST'],
 		// Willkommens-Mail an die Mailadresse der Akte, unabhängig vom Nextcloud-Konto: Vorlage in den
 		// Einstellungen, beim Aufnehmen für den einzelnen Fall überschreibbar.
 		['name' => 'welcomeMail#template', 'url' => '/api/welcome-mail/template', 'verb' => 'GET'],
@@ -221,6 +222,10 @@ return [
 		// PermissionMiddleware), die Absicherung übernimmt allein der Token.
 		['name' => 'mandateConsent#show', 'url' => '/mandate-consent/{token}', 'verb' => 'GET'],
 		['name' => 'mandateConsent#accept', 'url' => '/mandate-consent/{token}', 'verb' => 'POST'],
+		// Bestätigung der Kontoverknüpfung durch das Mitglied (#295): angemeldet, aber ohne Rolle;
+		// die Middleware überspringt den Controller, die Absicherung sind Token und angemeldetes Konto.
+		['name' => 'memberLink#show', 'url' => '/link-account/{token}', 'verb' => 'GET'],
+		['name' => 'memberLink#confirm', 'url' => '/link-account/{token}', 'verb' => 'POST'],
 
 		// Offene Posten
 		['name' => 'openItem#index', 'url' => '/api/open-items', 'verb' => 'GET'],

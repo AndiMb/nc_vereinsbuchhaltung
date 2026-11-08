@@ -120,6 +120,8 @@ class ReimbursementMailServiceTest extends TestCase {
 		$member->setLastName('Musterfrau');
 		$member->setEmail($email);
 		$member->setNcUserId($ncUser);
+		// Bestätigte Verknüpfung (#295): nur sie zählt für Mail, Sprache und Activity.
+		$member->setNcLinkConfirmedAt('2026-01-01 00:00:00');
 		return $member;
 	}
 

@@ -196,6 +196,7 @@ import { clubToday } from '../lib/clubTime.js'
 import { deCollator } from '../lib/collator.js'
 import { errMsg, formatDate, formatMoney } from '../lib/format.js'
 import { createMandateForMember } from '../lib/mandateCreate.js'
+import { linkConfirmText, linkMailMessage } from '../lib/memberAccount.js'
 import { collectEmails, EMAIL_SEPARATOR } from '../lib/memberEmails.js'
 import { buildMemberRow, isLiveAssignment, nextDueDates } from '../lib/memberRow.js'
 import { confirmAccountCreation, createAndLinkAccount } from '../lib/nextcloudAccount.js'
@@ -574,19 +575,16 @@ export default {
 			if (!suggestion || this.linkingMemberId !== null) { return }
 			const confirmed = await this.askConfirm(
 				this.t('Mit Nextcloud-Konto verknüpfen'),
-				this.tRaw('{name} mit dem Nextcloud-Konto „{konto}" ({email}) verknüpfen? Das Konto gilt danach als dieses Mitglied.', {
-					name: member.displayName,
-					konto: suggestion.displayName,
-					email: suggestion.email || '',
-				}),
+				linkConfirmText(member.displayName, suggestion),
 				this.t('Verknüpfen'),
 				'primary',
 			)
 			if (!confirmed) { return }
 			this.linkingMemberId = member.id
 			try {
-				await api.linkMember(member.id, suggestion.uid)
-				showSuccess(this.t('Verknüpft.'))
+				const { data } = await api.linkMember(member.id, suggestion.uid)
+				const message = linkMailMessage(data)
+				if (message.ok) { showSuccess(message.text) } else { showError(message.text) }
 				await this.reload()
 			} catch (e) {
 				showError(this.errMsg(e, this.t('Verknüpfen fehlgeschlagen')))

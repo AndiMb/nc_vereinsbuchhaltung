@@ -134,7 +134,7 @@ class StaffChangeReceiptService {
 		if ($member->getEmail() !== null && $member->getEmail() !== '') {
 			return $member->getEmail();
 		}
-		$user = $member->getNcUserId() !== null ? $this->userManager->get($member->getNcUserId()) : null;
+		$user = $member->confirmedNcUserId() !== null ? $this->userManager->get($member->confirmedNcUserId()) : null;
 		$accountEmail = $user?->getEMailAddress();
 		return ($user !== null && $accountEmail !== null && $accountEmail !== '') ? $accountEmail : null;
 	}
@@ -151,7 +151,7 @@ class StaffChangeReceiptService {
 
 	/** Sprache des Mitglieds: die seines Nextcloud-Kontos, sonst die Vorgabe der Instanz, sonst die der laufenden Anfrage. */
 	private function l10nFor(Member $member): IL10N {
-		$uid = $member->getNcUserId();
+		$uid = $member->confirmedNcUserId();
 		$language = $uid !== null ? (string)$this->userConfig->getValueString($uid, 'core', 'lang', '') : '';
 		if ($language === '') {
 			$language = (string)$this->config->getSystemValue('default_language', '');

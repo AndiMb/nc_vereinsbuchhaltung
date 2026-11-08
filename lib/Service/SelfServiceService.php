@@ -60,6 +60,10 @@ class SelfServiceService {
 	 * Das per `nc_user_id` verknüpfte Mitglied des angemeldeten Kontos, falls
 	 * vorhanden – unabhängig von {@see isEnabled()}, damit hasAccess() beide
 	 * Bedingungen unabhängig voneinander prüfen kann.
+	 *
+	 * Nur eine bestätigte Verknüpfung zählt (#295): solange das Konto den
+	 * Einmal-Link an die Mailadresse des Mitglieds nicht bestätigt hat, ist es
+	 * nicht dieses Mitglied.
 	 */
 	public function currentMember(): ?Member {
 		$user = $this->userSession->getUser();
@@ -67,11 +71,11 @@ class SelfServiceService {
 			return null;
 		}
 		$member = $this->memberMapper->findByNcUserId($user->getUID());
-		// Ein anonymisiertes Mitglied hat keinen Self-Service mehr (#296): es gibt
-		// nichts mehr zu sehen, und jede Änderung schriebe Personendaten zurück
-		// in den geschwärzten Datensatz. Die Kontoverknüpfung selbst bleibt
-		// (Spec §3.8: Konto-Löschung und Anonymisierung sind entkoppelt).
-		return $member !== null && !$member->isRedacted() ? $member : null;
+		// Nur eine vom Mitglied bestätigte Verknüpfung zählt (#295). Ein anonymisiertes
+		// Mitglied hat keinen Self-Service mehr (#296): es gibt nichts mehr zu sehen,
+		// und jede Änderung schriebe Personendaten zurück in den geschwärzten
+		// Datensatz. Die Kontoverknüpfung selbst bleibt (Spec §3.8).
+		return $member !== null && $member->isNcLinkConfirmed() && !$member->isRedacted() ? $member : null;
 	}
 
 	/** Ob der aktuelle Request in den Self-Service darf: Schalter UND Kontoverknüpfung. */

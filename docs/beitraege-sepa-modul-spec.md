@@ -399,6 +399,15 @@ abgebildet), `DunningNotice`, `SettlementProposal`, `DebitBatch`, `DebitItem`,
   und (ohne Frequenz) `default_interval` der aufgelösten Gruppe (Spalte, sonst die einzige
   vorhandene); lässt sich keine Gruppe auflösen, entsteht kein Beitrag (Warnung). Ohne Startdatum
   bekommt eine Zeile nie ungefragt einen Beitrag. Eine vereinsweite Vorbelegung gibt es nicht.
+- **NC-Verknüpfung gilt erst nach Bestätigung durch das Mitglied (#295).** Die
+  Verwaltung verknüpft (nach Vorschlag oder per Auswahl), die Verknüpfung ist dann
+  *ausstehend*: ein Einmal-Link (7 Tage, nur Hash gespeichert) geht an die
+  Mailadresse **des Mitglieds**, bestätigen kann nur das angemeldete, verknüpfte
+  Konto. Erst dann zählt sie für Self-Service, Mail-Ersatzadresse, Sprache und
+  Activity. Grund: die NC-Profil-Mail setzt jedes Konto selbst und ungeprüft – ein
+  fremdes Konto könnte sich sonst als Mitglied ausgeben. Ohne Mailadresse im
+  Mitglied keine Verknüpfung. Bestandsverknüpfungen vor der Einführung gelten
+  als bestätigt.
 - **NC-Verknüpfung entsteht nur mit menschlicher Bestätigung.** Mailadresse ist
   Vorschlagsschlüssel, nie Vollzug — bei mehreren Treffern werden alle gezeigt, keiner
   vorausgewählt. Grund: Mailadressen sind in Vereinen nicht eindeutig (Familienadresse),

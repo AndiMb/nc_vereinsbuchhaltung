@@ -1,6 +1,7 @@
 import { getContainer, runOcc } from '@nextcloud/e2e-test-server'
 import { expect, test } from '@playwright/test'
 import { clearCapturedMails, startMailCapture, stopMailCapture, waitForMailsTo } from './fixtures/mail-capture.mjs'
+import { confirmMemberLink } from './fixtures/member-link.mjs'
 import { api, authHeaders, BANK_ACCOUNT, BANK_ACCOUNT_IBAN, BASE_URL, INCOME_ACCOUNT, openApp, returnEntry, switchTab, tabButton, USERS, visibleSection, waitForAppLoaded } from './fixtures/nextcloud.mjs'
 
 // Sichten und Rollen, die sich nur mit einem anderen Konto prüfen lassen
@@ -496,8 +497,11 @@ test.describe('Kontoverknüpfung in der Akte (Protokoll 3.6, 3.7)', () => {
 			await expect(suggestion).toBeVisible()
 			await expect(akte.getByText('Verknüpft mit')).toHaveCount(0)
 			await suggestion.getByRole('button', { name: 'Verknüpfen' }).click()
-			await expect(toast(page, 'Verknüpft.')).toBeVisible()
-			await expect(akte.getByText(`Verknüpft mit „${USERS.revisor}".`)).toBeVisible()
+			await page.getByRole('dialog', { name: 'Mit Nextcloud-Konto verknüpfen' }).getByRole('button', { name: 'Verknüpfen', exact: true }).click()
+			// Bis das Mitglied bestätigt (#295), wartet die Verknüpfung – bob hat noch keinen Self-Service.
+			await expect(akte.getByText(`Verknüpfung mit „${USERS.revisor}" wartet auf Bestätigung durch das Mitglied.`)).toBeVisible()
+			expect((await api.raw(request, 'GET', '/self/me', { user: USERS.revisor })).status()).toBe(403)
+			await confirmMemberLink(member.id)
 
 			// bob lädt neu: „Mein Beitrag“ steht neben „Beiträge“ und zeigt die Daten des Mitglieds; „Beiträge“ bleibt beim Einzug.
 			await bob.reload()

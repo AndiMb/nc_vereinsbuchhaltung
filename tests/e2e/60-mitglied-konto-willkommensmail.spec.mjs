@@ -119,7 +119,7 @@ test.describe('Nextcloud-Konto und Willkommens-Mail', () => {
 
 		await expect(accountCell(page, 'Jana Verknuepft')).toHaveText('Ja')
 		await expect(accountCell(page, 'Nils Ohnekonto')).toHaveText('Nein')
-		const suggestion = accountCell(page, 'Vera Vorschlag').getByRole('button', { name: 'Vorschlag spalte.vorschlag@example.org verknüpfen' })
+		const suggestion = accountCell(page, 'Vera Vorschlag').getByRole('button', { name: `Vorschlag ${USERS.ohneRolle} verknüpfen` })
 		await expect(suggestion).toBeVisible()
 
 		// Verknüpft wird erst nach Rückfrage – „Abbrechen" ändert nichts.
@@ -132,7 +132,8 @@ test.describe('Nextcloud-Konto und Willkommens-Mail', () => {
 
 		await suggestion.click()
 		await confirm.getByRole('button', { name: 'Verknüpfen', exact: true }).click()
-		await expect(accountCell(page, 'Vera Vorschlag')).toHaveText('Ja')
+		// Erst das Mitglied bestätigt die Verknüpfung (#295).
+		await expect(accountCell(page, 'Vera Vorschlag')).toHaveText('Bestätigung ausstehend')
 		expect((await api.listMembers(request)).find((m) => m.id === vorschlag.id).ncUserId).toBe(USERS.ohneRolle)
 
 		await api.unlinkMember(request, vorschlag.id)
@@ -173,7 +174,7 @@ test.describe('Nextcloud-Konto und Willkommens-Mail', () => {
 		expect(info).toBeTruthy()
 		expect(info.email).toBe('mona.konto@example.org')
 		expect(info.displayname ?? info['display-name']).toBe('Mona Konto')
-		await expect(accountCell(page, 'Mona Konto')).toHaveText('Ja')
+		await expect(accountCell(page, 'Mona Konto')).toHaveText('Bestätigung ausstehend')
 
 		const welcome = await waitForSubject('mona.konto@example.org', `Hallo Mona, willkommen bei ${CLUB_NAME}`)
 		expect(welcome.text).toContain('Guten Tag Mona Konto,')
@@ -226,7 +227,7 @@ test.describe('Nextcloud-Konto und Willkommens-Mail', () => {
 		await account.getByRole('textbox', { name: 'Kontoname', exact: true }).fill('e2e.nachholer')
 		await account.getByLabel('Passwort (optional)').fill(PASSWORD)
 		await account.getByRole('button', { name: 'Konto anlegen und verknüpfen' }).click()
-		await expect(page.getByText('Nextcloud-Konto angelegt und verknüpft.').first()).toBeVisible()
+		await expect(page.getByText('Nextcloud-Konto angelegt. Die Verknüpfung gilt, sobald das Mitglied den Link in seiner Mail bestätigt.').first()).toBeVisible()
 		expect((await api.listMembers(request)).find((m) => m.id === member.id).ncUserId).toBe('e2e.nachholer')
 
 		await clearCapturedMails()

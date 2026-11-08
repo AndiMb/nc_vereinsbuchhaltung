@@ -248,7 +248,15 @@
 						{{ t('Nextcloud-Konto') }}
 					</h3>
 					<div v-if="member.ncUserId" class="vbh-form vbh-form--center">
-						<span>{{ linkedAccountText(member.ncUserId) }}</span>
+						<span v-if="member.ncLinkConfirmed">{{ linkedAccountText(member.ncUserId) }}</span>
+						<span v-else>{{ pendingAccountText(member.ncUserId) }}</span>
+						<NcButton
+							v-if="!member.ncLinkConfirmed && !member.redactedAt"
+							variant="secondary"
+							:disabled="linking || !member.email"
+							@click="doResendLink">
+							{{ t('Bestätigungslink erneut senden') }}
+						</NcButton>
 						<NcButton
 							variant="tertiary"
 							:disabled="linking"
@@ -269,12 +277,12 @@
 							</NcButton>
 							<ul v-if="suggestions.length" class="vbh-linksuggestions">
 								<li v-for="s in suggestions" :key="s.uid">
-									{{ s.displayName }} <span class="vbh-hint">({{ s.email }})</span>
+									{{ s.displayName }} <span class="vbh-hint">({{ tRaw('Benutzer-ID {uid}', { uid: s.uid }) }}, {{ s.email }})</span>
 									<NcButton
 										variant="primary"
 										size="small"
 										:disabled="linking"
-										@click="doLink(s.uid)">
+										@click="doLink(s)">
 										{{ t('Verknüpfen') }}
 									</NcButton>
 								</li>
@@ -475,7 +483,7 @@ import { clubToday } from '../lib/clubTime.js'
 import { defaultCountry } from '../lib/countryDefault.js'
 import { errMsg, formatDate, formatEuro } from '../lib/format.js'
 import { intervalLabel } from '../lib/frequency.js'
-import { linkedAccountText } from '../lib/memberAccount.js'
+import { linkConfirmText, linkedAccountText, linkMailMessage, pendingAccountText } from '../lib/memberAccount.js'
 import { focusOnOpen } from '../lib/modalFocus.js'
 
 function emptyForm(member) {
@@ -710,6 +718,7 @@ export default {
 		errMsg,
 		formatDate,
 		linkedAccountText,
+		pendingAccountText,
 
 		/**
 		 * Springt zum Mandat-Bereich (Aktion „Mandat verwalten“ der Mitgliederliste). NcModal zeigt seinen
@@ -880,13 +889,24 @@ export default {
 			} catch (e) { showError(this.errMsg(e, this.t('Vorschläge konnten nicht geladen werden'))) } finally { this.linking = false }
 		},
 
-		async doLink(ncUserId) {
+		async doLink(account) {
+			if (!await this.askConfirm(this.t('Mit Nextcloud-Konto verknüpfen'), linkConfirmText(this.member.displayName, account), this.t('Verknüpfen'), 'primary')) { return }
 			this.linking = true
 			try {
-				await api.linkMember(this.member.id, ncUserId)
-				showSuccess(this.t('Verknüpft.'))
+				const { data } = await api.linkMember(this.member.id, account.uid)
+				const message = linkMailMessage(data)
+				if (message.ok) { showSuccess(message.text) } else { showError(message.text) }
 				this.$emit('changed')
 			} catch (e) { showError(this.errMsg(e, this.t('Verknüpfen fehlgeschlagen'))) } finally { this.linking = false }
+		},
+
+		async doResendLink() {
+			this.linking = true
+			try {
+				const { data } = await api.resendMemberLinkConfirmation(this.member.id)
+				showSuccess(this.tRaw('Bestätigungslink an {email} gesendet.', { email: data.linkMailSentTo }))
+				this.$emit('changed')
+			} catch (e) { showError(this.errMsg(e, this.t('Der Bestätigungslink konnte nicht gesendet werden'))) } finally { this.linking = false }
 		},
 
 		async doUnlink() {
