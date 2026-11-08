@@ -1,4 +1,5 @@
 OC.L10N.register("vereinsbuchhaltung", {
+	"Ihr letztes Mandat war gesperrt, als es endete. Ein neues Mandat richtet Ihnen der Verein ein – bitte wenden Sie sich an ihn.": "Uw laatste machtiging was geblokkeerd toen deze eindigde. De vereniging richt een nieuwe machtiging voor u in – neem contact met de vereniging op.",
 	"Bestätigung ausstehend": "Bevestiging in afwachting",
 	"Vorschlag {uid} verknüpfen": "Suggestie {uid} koppelen",
 	"Bestätigungslink erneut senden": "Bevestigingslink opnieuw versturen",

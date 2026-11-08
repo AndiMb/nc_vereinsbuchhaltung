@@ -1,4 +1,5 @@
 OC.L10N.register("vereinsbuchhaltung", {
+	"Ihr letztes Mandat war gesperrt, als es endete. Ein neues Mandat richtet Ihnen der Verein ein – bitte wenden Sie sich an ihn.": "Your last mandate was suspended when it ended. The club will set up a new mandate for you – please contact the club.",
 	"Bestätigung ausstehend": "Confirmation pending",
 	"Vorschlag {uid} verknüpfen": "Link suggestion {uid}",
 	"Bestätigungslink erneut senden": "Resend confirmation link",

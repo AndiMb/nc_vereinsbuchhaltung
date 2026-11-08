@@ -1802,7 +1802,9 @@ gemacht hat; unter *Frühere Mandate* stehen die beendeten.
 **Sperren und Entsperren** verlangen jeweils eine Notiz; sie steht im Verlauf.
 Eine Sperre beendet nichts, offene Forderungen bleiben offen. Eine Sperre nach
 einer Rücklastschrift setzt die App selbst und kennzeichnet sie als solche –
-entsperren müssen Sie von Hand, sobald der Fall geklärt ist.
+entsperren müssen Sie von Hand, sobald der Fall geklärt ist. Endet ein
+gesperrtes Mandat (etwa durch Widerruf), kann sich das Mitglied unter *Mein
+Beitrag* kein neues Mandat selbst erteilen; das neue legen Sie an.
 
 **Bankverbindung ändern** deckt drei Fälle ab: nur die **IBAN** hat sich
 geändert (dasselbe Mandat bleibt, eine neue Unterschrift ist nicht nötig; die
@@ -2467,7 +2469,9 @@ dieser Einzug noch ausgeführt.
 endgültig, die noch offene Summe wird genannt (dafür geht dem Mitglied eine
 Zahlungsaufforderung zu), und als erste Wahl steht „Ich habe nur ein neues Konto
 → IBAN ändern". Bei einem **ausgesetzten** Mandat lässt sich die IBAN nicht
-ändern; der Dialog verweist das Mitglied dann an den Verein. Einen **Entwurf**
+ändern; der Dialog verweist das Mitglied dann an den Verein. Auch nach dem
+Widerruf eines ausgesetzten Mandats erteilt das Mitglied kein neues selbst –
+die Sperre hebt nur der Verein auf. Einen **Entwurf**
 kann das Mitglied verwerfen, aber nicht korrigieren (13.2).
 
 **Quittung und Spur.** Jede Änderung bestätigt die App dem Mitglied per Mail:
