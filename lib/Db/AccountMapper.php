@@ -71,6 +71,20 @@ class AccountMapper extends QBMapper {
 	 *
 	 * @return int Anzahl betroffener Konten
 	 */
+	/**
+	 * Konten, die einer Auswertungsgruppe zugeordnet sind.
+	 *
+	 * @return Account[]
+	 */
+	public function findByCostCenter(string $userId, int $costCenterId): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('*')
+			->from($this->getTableName())
+			->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)))
+			->andWhere($qb->expr()->eq('cost_center_id', $qb->createNamedParameter($costCenterId, IQueryBuilder::PARAM_INT)));
+		return $this->findEntities($qb);
+	}
+
 	public function clearCostCenter(string $userId, int $costCenterId): int {
 		$qb = $this->db->getQueryBuilder();
 		$qb->update($this->getTableName())

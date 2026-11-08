@@ -58,6 +58,19 @@ class DebtorMapper extends QBMapper {
 		return $this->findEntities($qb);
 	}
 
+	/**
+	 * Alle Empfänger zu einem Mitglied – auch bereits geschwärzte, anders als
+	 * {@see findByMember()}. Für die Anonymisierung (#303).
+	 *
+	 * @return Debtor[]
+	 */
+	public function findAllByMember(int $memberId): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('*')->from($this->getTableName())
+			->where($qb->expr()->eq('member_id', $qb->createNamedParameter($memberId, IQueryBuilder::PARAM_INT)));
+		return $this->findEntities($qb);
+	}
+
 	public function findByMember(int $memberId): ?Debtor {
 		$qb = $this->db->getQueryBuilder();
 		$qb->select('*')->from($this->getTableName())

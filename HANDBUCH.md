@@ -212,7 +212,9 @@ werden; wer sie aus dem Wächter-Ordner hinausschiebt, dessen Belege gelten
 als fehlend.
 
 Einen Ordner im Home eines anderen Nutzers wählen oder ändern dürfen nur
-Nextcloud-Administratoren, das gilt auch für den Wachordner aus Abschnitt 3.3.
+Nextcloud-Administratoren, das gilt auch für den Wachordner aus Abschnitt 3.3
+und für die Ordner der Mandats-Nachweise, der Rechnungen und der SEPA-XML-
+Dateien, die im Home des Belegablage-Nutzers liegen.
 Verwalter ohne diese Rechte wählen ihr eigenes Home, ein bereits eingerichteter
 fremder Ordner bleibt gültig.
 
@@ -1364,11 +1366,15 @@ Auswertungsgruppe. Das betrifft nur Konten, die im abgeschlossenen Zeitraum
 auch tatsächlich bebucht sind. Der Grund: Aus einem Einnahmekonto ein
 Ausgabekonto zu machen, dreht das Vorzeichen in allen Auswertungen – der
 Kassenbericht des abgeschlossenen Geschäftsjahres sähe hinterher anders
-aus, ohne dass jemand eine Buchung angefasst hätte. **Frei änderbar
+aus, ohne dass jemand eine Buchung angefasst hätte. Das gilt auch für das
+**Zuordnen und Lösen in der Übersicht der Auswertungsgruppen** und für das
+**Löschen einer Gruppe**, an der ein solches Konto hängt. **Frei änderbar
 bleiben** Nummer, Name, Kategorie, Überkonto und der Aktiv-Schalter; sie
-ändern nur Beschriftung und Sortierung. Wer eine gesperrte Eigenschaft doch
-ändern muss, eröffnet den Zeitraum wieder (Kapitel 8.4) und schließt ihn
-danach erneut ab.
+ändern nur Beschriftung und Sortierung. Eine Ausnahme bei der Nummer: Werden
+die Auswertungsgruppen aus der Kontonummer gebildet (zweite Zahlengruppe),
+lässt sich diese Zahlengruppe nicht mehr ändern – sonst wanderte das Konto in
+eine andere Gruppe. Wer eine gesperrte Eigenschaft doch ändern muss, eröffnet
+den Zeitraum wieder (Kapitel 8.4) und schließt ihn danach erneut ab.
 
 Gesperrt ist außerdem die **Umstellung der Geschäftsjahres-Regel** und das
 Verschieben der Grenze zu einem abgeschlossenen Zeitraum (Kapitel 8.1). Die
@@ -2477,7 +2483,9 @@ kann das Mitglied verwerfen, aber nicht korrigieren (13.2).
 **Quittung und Spur.** Jede Änderung bestätigt die App dem Mitglied per Mail:
 was sich geändert hat, ab wann und welcher Einzug als erster betroffen ist – auch
 dann, wenn der Vorstand den Beitrag ändert (13.4; die Mail nennt ihn dann als
-Urheber). Die
+Urheber). Speichert das Mitglied seine Kontaktdaten unverändert, geht keine
+Mail hinaus; Kontaktdaten-Änderungen und Aktivierungslinks sind je Stunde
+begrenzt (20 bzw. 5). Die
 Mail ist die Kopie, eine eigene Ereignisliste gibt es im Bereich nicht. Zusätzlich
 erscheint ein Eintrag in der Nextcloud-**Aktivität** des Mitglieds (eigene Mail
 dazu verschickt Nextcloud nur beim Widerruf, sofern das Mitglied es nicht in
@@ -2560,7 +2568,10 @@ schwärzt die App deshalb die Person und lässt die Zahlen stehen:
   die Freitexte der Historie – Sperr-, Stundungs-, Erlass- und
   Storno-Begründungen, die Begründung einer individuellen Untergrenze,
   Vertretungsnotizen und der Freitext einer Rücklastschrift. Als Debitor der
-  Forderungen steht danach „Anonymisiertes Mitglied".
+  Forderungen steht danach „Anonymisiertes Mitglied". Ebenso geschwärzt wird
+  ein aus dem Mitglied angelegter Rechnungsempfänger (Name, Anschrift,
+  Mailadresse, Notiz); er verschwindet aus der Empfängerauswahl und lässt sich
+  nicht mehr bearbeiten, Kundennummer und Rechnungen bleiben.
 - **Was bleibt.** Beträge, Daten, Zustände, Rückgabecodes und Mandatsreferenzen –
   das, was die Buchhaltung belegt. Die Akte ist danach schreibgeschützt und
   trägt den Vermerk der Anonymisierung.
