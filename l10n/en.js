@@ -1612,6 +1612,7 @@ OC.L10N.register("vereinsbuchhaltung", {
 	"Forderungen an Mitglieder; allgemeine offene Posten ohne Mitglied stehen unter Buchungen.": "Claims against members; general open items without a member are under Bookings.",
 	"Die Forderungen konnten nicht geladen werden.": "The claims could not be loaded.",
 	"Filter": "Filters",
+	"Filter (aktiv)": "Filter (active)",
 	"Störfall": "Exception",
 	"Name enthält …": "Name contains …",
 	"Mitglied:": "Member:",

@@ -2068,3 +2068,60 @@ button.vbh-dirtree-label.vbh-dirtree-label.is-selected { background-color: var(-
 
 /* Knopf „n Belege zuordnen“ über der Buchungsliste */
 .vbh-suggest-bar { display: flex; justify-content: flex-end; margin: 0 0 8px; }
+
+/* ============================================================
+   Mobil: Kopf kompakt und beim Scrollen weg
+   ============================================================
+   Auf dem Handy bekam die Buchungsliste nur ein Viertel der Höhe: Titel und
+   Zeitraum standen untereinander, Aktionen und Filter je in eigenen Zeilen.
+   Jetzt teilen sich Titel und Werkzeuge eine Zeile, Unterreiter und Aktionen
+   ebenso, die Filter klappen erst auf Tipp auf. Beim Herunterscrollen gleitet
+   der Kopf (.vbh-top, samt Demo-Hinweis) ganz weg – entschieden in
+   lib/headerCollapse.js, angebunden in App.vue (onMainScroll). */
+.vbh-top { flex: 0 0 auto; }
+
+@media (max-width: 640px) {
+	/* Einklappen über die Zeilenhöhe des Rasters: 1fr → 0fr lässt sich animieren,
+	   ohne die Höhe des Kopfs zu kennen. visibility nimmt den eingeklappten Kopf
+	   aus der Tab-Reihenfolge – erst nach der Animation, damit er sichtbar
+	   wegfährt. */
+	.vbh-top { display: grid; grid-template-rows: 1fr; transition: grid-template-rows 0.2s ease; }
+	.vbh-top-inner { min-height: 0; overflow: hidden; }
+	.vbh-top.is-hidden { grid-template-rows: 0fr; }
+	.vbh-top.is-hidden .vbh-top-inner { visibility: hidden; transition: visibility 0s linear 0.2s; }
+
+	/* Titel und Werkzeuge in einer Zeile; der Titel weicht mit „…“. */
+	.vbh-header { display: flex; align-items: center; gap: 8px; padding: 4px 8px 4px 12px; }
+	.vbh-titlebar { flex: 1 1 auto; min-width: 0; flex-wrap: nowrap; gap: 8px; }
+	.vbh-titlebar h2 { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+	.vbh-navbar.vbh-navbar--mobile { --vbh-ctl-h: 44px; flex: 0 0 auto; margin: 0; }
+	.vbh-demobanner { margin: 0 8px 8px; padding: 8px 12px; }
+
+	/* Unterreiter und Aktionen in einer Zeile: die Reiter scrollen waagerecht,
+	   die Aktionen stehen rechts daneben, nur als Symbol (der Text bleibt für
+	   Screenreader erhalten). */
+	.vbh-sectiontop { flex-wrap: nowrap; }
+	.vbh-sectiontop .vbh-subtabs { flex: 1 1 auto; }
+	.vbh-sectiontop-actions { flex: 0 0 auto; flex-wrap: nowrap; gap: 4px; }
+	.vbh-sectiontop-actions .button-vue:has(.button-vue__icon) { width: 44px; min-width: 44px; padding: 0; }
+	.vbh-sectiontop-actions .button-vue:has(.button-vue__icon) .button-vue__wrapper { justify-content: center; }
+	.vbh-sectiontop-actions .button-vue:has(.button-vue__icon) .button-vue__icon { width: auto; min-width: 0; }
+	.vbh-sectiontop-actions .button-vue:has(.button-vue__icon) .button-vue__text { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+	/* Filter: Suche und Filter-Knopf in einer Zeile, aufgeklappte Filter und
+	   Auswahlfelder darunter. */
+	.vbh-filterbar { flex-direction: row; flex-wrap: wrap; align-items: center; }
+	.vbh-filterbar .vbh-search { flex: 1 1 0; width: auto; height: 44px; }
+	.vbh-filterbar .vbh-inv-search { flex-basis: 100%; }
+	.vbh-filterbar .vbh-filter-select { flex: 1 1 100%; }
+	.vbh-filter-toggle { flex: 0 0 auto; }
+	/* Rechnungen: Jahr und Projekt nebeneinander (doppelte Klasse schlägt die
+	   scoped-Regel aus InvoicesTab.vue). */
+	.vbh-filterbar .vbh-inv-yearsel.vbh-inv-yearsel { flex: 1 1 0; min-width: 0; }
+	.vbh-filterbar .vbh-inv-yearsel select { flex: 1 1 auto; min-width: 0; width: 100%; }
+}
+
+@media (max-width: 640px) and (prefers-reduced-motion: reduce) {
+	.vbh-top,
+	.vbh-top.is-hidden .vbh-top-inner { transition: none; }
+}
