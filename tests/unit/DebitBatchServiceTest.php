@@ -407,6 +407,7 @@ class DebitBatchServiceTest extends TestCase {
 			$this->debitItem(11, 1, 3),
 		]);
 
+		$this->mandateMapper->method('findOrNull')->willReturnCallback(fn (int $id) => $this->mandate($id, 1));
 		$this->mandateService->expects($this->once())->method('markPresented')->with(3, '2026-10-01');
 		$this->mandateService->expects($this->never())->method('markAmendmentTransmitted');
 
@@ -431,10 +432,57 @@ class DebitBatchServiceTest extends TestCase {
 		$amendment->setCreatedAt('2026-01-01T00:00:00+00:00');
 		$this->openAmendmentsByMandate[3] = [$amendment];
 
+		$this->mandateMapper->method('findOrNull')->willReturnCallback(fn (int $id) => $this->mandate($id, 1));
 		$this->mandateService->expects($this->once())->method('markAmendmentTransmitted')->with(7, 10);
 		$this->mandateService->expects($this->once())->method('markPresented')->with(3, '2026-10-01');
 
 		$this->service()->submit(1);
+	}
+
+	// --- #302: Mandat nach der Freigabe widerrufen oder gesperrt ---------------------
+
+	private function revokedMandate(int $id): Mandate {
+		$m = $this->mandate($id, 1);
+		$m->setStatus(Mandate::STATUS_ENDED);
+		$m->setEndReason(Mandate::END_REASON_REVOKED);
+		return $m;
+	}
+
+	public function testWiderrufenesMandatZaehltAlsAbweichungMitEigenerWarnung(): void {
+		$this->itemMapper->method('findByBatch')->with(1)->willReturn([$this->debitItem(10, 1, 3), $this->debitItem(11, 1, 4)]);
+		$this->mandateMapper->method('findOrNull')->willReturnCallback(fn (int $id) => $id === 3
+			? $this->revokedMandate(3)
+			: $this->mandate(4, 1, iban: 'DE00000000000000000000', bic: null));
+
+		$drift = $this->service()->findDrift(1);
+
+		$this->assertContains(['itemId' => 10, 'mandateId' => 3, 'field' => 'status', 'snapshot' => Mandate::STATUS_ACTIVE, 'current' => Mandate::STATUS_ENDED], $drift);
+		$this->assertSame(1, $this->service()->nonCollectibleCount(1));
+		$this->assertSame(
+			'1 Posten hat kein einzugsfähiges Mandat mehr (widerrufen, gesperrt oder beendet). 1 Posten weicht von den aktuellen Mandatsdaten ab.',
+			$this->service()->driftWarning(1),
+		);
+	}
+
+	public function testSubmitMitWiderrufenemMandatVerlangtEineBestaetigung(): void {
+		$this->batchMapper->method('find')->with(1)->willReturn($this->releasedBatch());
+		$this->itemMapper->method('findByBatch')->with(1)->willReturn([$this->debitItem(10, 1, 3)]);
+		$this->mandateMapper->method('findOrNull')->willReturnCallback(fn (int $id) => $this->revokedMandate($id));
+		$this->mandateService->expects($this->never())->method('markPresented');
+		$this->batchMapper->expects($this->never())->method('update');
+
+		$this->expectException(\InvalidArgumentException::class);
+		$this->service()->submit(1);
+	}
+
+	public function testSubmitMitWiderrufenemMandatGehtNachBestaetigungDurch(): void {
+		$this->batchMapper->method('find')->with(1)->willReturn($this->releasedBatch());
+		$this->itemMapper->method('findByBatch')->with(1)->willReturn([$this->debitItem(10, 1, 3)]);
+		$this->mandateMapper->method('findOrNull')->willReturnCallback(fn (int $id) => $this->revokedMandate($id));
+
+		$submitted = $this->service()->submit(1, true);
+
+		$this->assertSame(DebitBatch::STATUS_SUBMITTED, $submitted->getStatus());
 	}
 
 	public function testSubmitWirftWennBereitsEingereicht(): void {

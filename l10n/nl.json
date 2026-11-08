@@ -4373,7 +4373,16 @@
         "Schneller: Start, Buchungsliste, Offene Posten, „Zuzuordnen“ und Aufgaben laden deutlich weniger Daten.": "Sneller: opstarten, boekingslijst, openstaande posten, „Toe te wijzen” en taken laden aanzienlijk minder gegevens.",
         "Auswertungsgruppe in der Kontonummer": "Rapportagegroep in het rekeningnummer",
         "Dieser Empfänger ist anonymisiert und kann nicht mehr bearbeitet werden.": "Deze ontvanger is geanonimiseerd en kan niet meer worden bewerkt.",
-        "Ihr letztes Mandat war gesperrt, als es endete. Ein neues Mandat richtet Ihnen der Verein ein – bitte wenden Sie sich an ihn.": "Uw laatste machtiging was geblokkeerd toen deze eindigde. De vereniging richt een nieuwe machtiging voor u in – neem contact met de vereniging op."
+        "Ihr letztes Mandat war gesperrt, als es endete. Ein neues Mandat richtet Ihnen der Verein ein – bitte wenden Sie sich an ihn.": "Uw laatste machtiging was geblokkeerd toen deze eindigde. De vereniging richt een nieuwe machtiging voor u in – neem contact met de vereniging op.",
+        "Sie zieht auch von Mandaten ein, die nicht mehr einzugsfähig sind. Ist sie noch nicht bei der Bank, verwerfen Sie den Lauf besser und geben ihn neu frei.": "Het bestand int ook van machtigingen die niet meer inbaar zijn. Ligt het nog niet bij de bank, verwerp de run dan liever en geef hem opnieuw vrij.",
+        "_%n Posten hat kein einzugsfähiges Mandat mehr (widerrufen, gesperrt oder beendet)._::_%n Posten haben kein einzugsfähiges Mandat mehr (widerrufen, gesperrt oder beendet)._": [
+            "%n post heeft geen inbare machtiging meer (ingetrokken, geblokkeerd of beëindigd).",
+            "%n posten hebben geen inbare machtiging meer (ingetrokken, geblokkeerd of beëindigd)."
+        ],
+        "_%n Posten des Laufs hat kein einzugsfähiges Mandat mehr. Laden Sie die Ansicht neu und prüfen Sie den Lauf: Verwerfen und neu freigeben nimmt den Posten heraus._::_%n Posten des Laufs haben kein einzugsfähiges Mandat mehr. Laden Sie die Ansicht neu und prüfen Sie den Lauf: Verwerfen und neu freigeben nimmt die Posten heraus._": [
+            "%n post van de run heeft geen inbare machtiging meer. Laad de weergave opnieuw en controleer de run: verwerpen en opnieuw vrijgeven haalt de post eruit.",
+            "%n posten van de run hebben geen inbare machtiging meer. Laad de weergave opnieuw en controleer de run: verwerpen en opnieuw vrijgeven haalt de posten eruit."
+        ]
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

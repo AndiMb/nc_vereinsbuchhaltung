@@ -84,11 +84,21 @@ describe('submitRun', () => {
 
 		await actions.submitRun(run())
 
-		expect(api.submitDebitBatch).toHaveBeenCalledWith(5)
+		expect(api.submitDebitBatch).toHaveBeenCalledWith(5, false)
 		expect(state.expandedRunId).toBe(5)
 		expect(state.selectedDate).toBe('2026-12-01')
 		expect(api.debitTimeline).toHaveBeenCalledTimes(1)
 		expect(api.getDebitBatch).toHaveBeenCalledWith(5)
+	})
+})
+
+describe('submitRun mit Posten ohne einzugsfähiges Mandat (#302)', () => {
+	it('bestätigt die Warnung, die die Rückfrage gezeigt hat', async () => {
+		api.submitDebitBatch.mockResolvedValue({ data: run({ status: 'eingereicht' }) })
+
+		await actions.submitRun(run({ nonCollectibleCount: 2 }))
+
+		expect(api.submitDebitBatch).toHaveBeenCalledWith(5, true)
 	})
 })
 
