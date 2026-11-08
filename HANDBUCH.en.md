@@ -2524,7 +2524,9 @@ therefore blacks out the person and leaves the figures:
 A deleted Nextcloud account doesn't trigger the anonymization, and the
 anonymization doesn't dissolve the account link: the two are independent (when
 an account is deleted, the member stays, the email address is taken over and a
-task asks for a check, 13.9).
+task asks for a check, 13.9). Once the member is anonymized, the record stays
+empty: the linked account has **no self-service** any more, so it cannot write
+contact data back either, and deleting the account takes over no email address.
 
 **Encrypted bank details.** The IBANs of members and payers – on mandates, in
 collection items and in bank transactions – and the search values of the

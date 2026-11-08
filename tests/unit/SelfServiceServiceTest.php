@@ -149,4 +149,17 @@ class SelfServiceServiceTest extends TestCase {
 
 		$this->assertSame(['available' => true, 'memberId' => 42], $this->service()->describeCurrent());
 	}
+
+	/** #296: ein anonymisiertes Mitglied hat keinen Self-Service mehr – sonst schriebe es Personendaten zurück. */
+	public function testAnonymisiertesMitgliedHatKeinenSelfService(): void {
+		$this->loggedInAs(self::UID);
+		$member = new Member();
+		$member->setId(3);
+		$member->setRedactedAt('2026-01-01 00:00:00');
+		$this->memberMapper->method('findByNcUserId')->willReturn($member);
+		$this->config->method('getValueString')->willReturn('1');
+
+		$this->assertNull($this->service()->currentMember());
+		$this->assertFalse($this->service()->hasAccess());
+	}
 }
