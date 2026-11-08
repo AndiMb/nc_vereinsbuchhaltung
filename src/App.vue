@@ -497,6 +497,7 @@ import { useSort } from './composables/useSort.js'
 import { useSync } from './composables/useSync.js'
 import { useTasks } from './composables/useTasks.js'
 import { buildWhatsNewEntries, filterWhatsNewEntries } from './data/whatsNew.js'
+import { accountLabel, accountOption } from './lib/accountLabel.js'
 import { takeBootState } from './lib/bootState.js'
 import { clubToday, setClubTimeZone } from './lib/clubTime.js'
 import { amountClass, budgetDiffClass, errMsg, formatDate, formatDateTime, formatMoney, typeLabel } from './lib/format.js'
@@ -983,7 +984,7 @@ export default {
 				.filter((a) => a.active && a.type === type)
 				.sort((a, b) => (counts[b.id] || 0) - (counts[a.id] || 0)
 					|| String(a.number).localeCompare(String(b.number), 'de', { numeric: true }))
-				.map((a) => ({ id: a.id, label: `${a.number} ${a.name}`, number: a.number }))
+				.map((a) => accountOption(a))
 		},
 
 		moneyAccountOptions() {
@@ -991,7 +992,7 @@ export default {
 				.filter((a) => a.active && (a.isBank || a.type === 'asset'))
 				.sort((a, b) => (b.isBank ? 1 : 0) - (a.isBank ? 1 : 0)
 					|| String(a.number).localeCompare(String(b.number), 'de', { numeric: true }))
-				.map((a) => ({ id: a.id, label: `${a.number} ${a.name}`, number: a.number }))
+				.map((a) => accountOption(a))
 		},
 
 		defaultMoneyAccountId() {
@@ -1027,7 +1028,7 @@ export default {
 			const out = []
 			for (const id of this.recentAccountIds) {
 				const a = this.accountsById[id]
-				if (a && a.active) { out.push({ id: a.id, label: `${a.number} ${a.name}`, number: a.number }) }
+				if (a && a.active) { out.push(accountOption(a)) }
 			}
 			return out
 		},
@@ -1851,7 +1852,7 @@ export default {
 		budgetDiffClass,
 		accountLabel(id) {
 			const acc = this.accountsById[id]
-			return acc ? `${acc.number} ${acc.name}` : `#${id}`
+			return acc ? accountLabel(acc) : `#${id}`
 		},
 		// accountOptionFor/accountFilterBy sind jetzt Teil von BookingsTab.vue
 		// (nicht mehr anderswo in App.vue gebraucht).
@@ -2159,7 +2160,7 @@ export default {
 				const haystack = { counterparty: tx.counterparty, purpose: tx.purpose, iban: tx.iban }[rule.matchField]
 				if (haystack && rule.matchValue && haystack.toLowerCase().includes(rule.matchValue.toLowerCase())) {
 					const acc = this.accountsById[rule.contraAccountId]
-					if (acc && acc.active) { return { accountId: acc.id, label: `${acc.number} ${acc.name}` } }
+					if (acc && acc.active) { return { accountId: acc.id, label: accountLabel(acc) } }
 				}
 			}
 			if (tx.counterparty) {
@@ -2167,7 +2168,7 @@ export default {
 				if (hist) {
 					const best = Object.entries(hist).sort((a, b) => b[1] - a[1])[0]
 					const acc = this.accountsById[Number(best[0])]
-					if (acc && acc.active) { return { accountId: acc.id, label: `${acc.number} ${acc.name}` } }
+					if (acc && acc.active) { return { accountId: acc.id, label: accountLabel(acc) } }
 				}
 			}
 			return null
@@ -2921,6 +2922,8 @@ export default {
 			this.newAccount = {
 				number: '',
 				name: '',
+				shortName: '',
+				description: '',
 				type: parent ? parent.type : 'income',
 				category: parent ? (parent.category || '') : '',
 				isBank: false,
@@ -2946,6 +2949,8 @@ export default {
 			this.newAccount = {
 				number: acc.number,
 				name: acc.name,
+				shortName: acc.shortName || '',
+				description: acc.description || '',
 				type: acc.type,
 				category: acc.category || '',
 				isBank: !!acc.isBank,
@@ -2972,6 +2977,9 @@ export default {
 					await api.updateAccount(this.accountEditId, {
 						number: f.number,
 						name: f.name,
+						// Leerstring löscht Kurzname und Beschreibung (null hieße „unverändert“)
+						shortName: f.shortName || '',
+						description: f.description || '',
 						type: f.type,
 						// Leerstring statt null: der Controller verwirft null-Werte,
 						// eine geleerte Kategorie wuerde sonst nicht geloescht (Issue #59).

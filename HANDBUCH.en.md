@@ -126,6 +126,13 @@ accounts via the "Parent" field).
 Every account has:
 - a **number** (free-form, e.g. 1200),
 - a **name**,
+- optionally a **short name**: it appears in selection lists and the journal
+  instead of the name – handy for long names; search still finds both. The
+  account header and the reports show the full name; in the account tree it
+  appears on hover,
+- optionally a **description** (Markdown: **bold**, *italic*, lists, links):
+  it appears in the account above the bookings and explains, for example to
+  a new treasurer, what the account is for,
 - a **type** (income, expenses, fixed/current asset, liability, equity),
 - optionally the **bank account** flag (for cash accounts – only these
   accumulate across the fiscal-year boundary),

@@ -127,6 +127,13 @@ verschieben (Über-/Unterkonten über das Feld „Übergeordnet").
 Jedes Konto hat:
 - eine **Nummer** (frei, z. B. 1200),
 - einen **Namen**,
+- optional einen **Kurznamen**: Er steht in den Auswahllisten und im Journal
+  statt des Namens – praktisch bei langen Bezeichnungen; die Suche findet
+  weiter beide. Der Kopf des Kontos und die Berichte zeigen den vollen Namen,
+  im Kontenbaum erscheint er beim Darüberfahren,
+- optional eine **Beschreibung** (Markdown: **fett**, *kursiv*, Listen,
+  Links): Sie steht im Konto über den Buchungen und erklärt z. B. neuen
+  Kassenwarten, wofür das Konto da ist,
 - einen **Typ** (Einnahmen, Ausgaben, Anlage/Umlauf, Verbindlichkeit,
   Eigenkapital),
 - ggf. das Flag **Bankkonto** (für Geldkonten – nur diese kumulieren über

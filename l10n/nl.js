@@ -1,4 +1,11 @@
 OC.L10N.register("vereinsbuchhaltung", {
+	"Der Kurzname darf höchstens 64 Zeichen lang sein.": "De korte naam mag maximaal 64 tekens lang zijn.",
+	"Die Beschreibung darf höchstens 10.000 Zeichen lang sein.": "De beschrijving mag maximaal 10.000 tekens lang zijn.",
+	"Wofür ist das Konto da, was wird hier gebucht?": "Waarvoor is deze rekening, wat wordt hier geboekt?",
+	"Steht im Konto über den Buchungen. Markdown geht: **fett**, *kursiv*, Listen mit „-“ und Links wie [Satzung](https://…).": "Staat bij de rekening boven de boekingen. Markdown werkt: **vet**, *cursief*, lijsten met „-” en links zoals [Statuten](https://…).",
+	"Kurzname (optional)": "Korte naam (optioneel)",
+	"z. B. Jugend-Events": "bijv. Jeugdevenementen",
+	"Steht in den Auswahllisten und im Journal statt der Bezeichnung – praktisch bei langen Namen. Gesucht wird weiter in beiden.": "Staat in keuzelijsten en het journaal in plaats van de naam – handig bij lange namen. Zoeken vindt nog steeds beide.",
 	"Einstellungen und Tabellen aufgeräumt: Alle Ein/Aus-Einstellungen sind einheitliche Schalter mit Erklärung (der Schalter für den Reiter „Beiträge“ wirkt wieder), die Mahn- und Mailtexte haben einen Knopf „Standardtext übernehmen“, und große Tabellen erscheinen am Handy als Karten.": "Instellingen en tabellen opgeschoond: alle aan/uit-instellingen zijn uniforme schakelaars met uitleg (de schakelaar voor het tabblad “Contributies” werkt weer), de aanmaning- en e-mailteksten hebben een knop “Standaardtekst overnemen”, en grote tabellen worden op de telefoon als kaarten weergegeven.",
 	"Zur Beachtung": "Let op",
 	"Hinweis auf die Gemeinnützigkeit (optional)": "Vermelding van het algemeen nut (optioneel)",

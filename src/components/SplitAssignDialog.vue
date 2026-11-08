@@ -108,6 +108,7 @@ import NcModal from '@nextcloud/vue/components/NcModal'
 import NcSelect from '@nextcloud/vue/components/NcSelect'
 import AmountInput from './AmountInput.vue'
 import { useAccounts } from '../composables/useAccounts.js'
+import { accountFilterBy, accountLabel, accountOption } from '../lib/accountLabel.js'
 import { formatDate, formatMoney } from '../lib/format.js'
 import { newUid } from '../lib/rowKeys.js'
 import { isSelectableOption } from '../lib/selectOptions.js'
@@ -174,7 +175,7 @@ export default {
 			const opts = []
 			for (const [cat, list] of Object.entries(groups)) {
 				opts.push({ id: null, label: cat, $isDisabled: true })
-				for (const acc of list) { opts.push({ id: acc.id, label: `${acc.number} ${acc.name}`, number: acc.number }) }
+				for (const acc of list) { opts.push(accountOption(acc)) }
 			}
 			return opts
 		},
@@ -185,28 +186,18 @@ export default {
 		formatDate,
 		accountLabel(id) {
 			const acc = this.accountsById[id]
-			return acc ? `${acc.number} ${acc.name}` : `#${id}`
+			return acc ? accountLabel(acc) : `#${id}`
 		},
 
 		isSelectableOption,
 
-		accountFilterBy(option, label, search) {
-			const s = String(search || '').trim().toLowerCase()
-			if (!s) { return true }
-			if (option && option.$isDisabled) { return false }
-			if (/^[\d\s]+$/.test(s)) {
-				const digits = s.replace(/\s+/g, '')
-				const num = String((option && option.number) || '').replace(/\s+/g, '').toLowerCase()
-				return num.startsWith(digits)
-			}
-			return String(label || '').toLowerCase().includes(s)
-		},
+		accountFilterBy,
 
 		optionFor(index) {
 			const id = this.parts[index]?.accountId
 			if (id === null || id === undefined) { return null }
 			const acc = this.accountsById[id]
-			return acc ? { id: acc.id, label: `${acc.number} ${acc.name}`, number: acc.number } : null
+			return acc ? accountOption(acc) : null
 		},
 
 		setAccount(index, option) {

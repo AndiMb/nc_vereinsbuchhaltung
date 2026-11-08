@@ -1,4 +1,11 @@
 OC.L10N.register("vereinsbuchhaltung", {
+	"Der Kurzname darf höchstens 64 Zeichen lang sein.": "The short name may be at most 64 characters long.",
+	"Die Beschreibung darf höchstens 10.000 Zeichen lang sein.": "The description may be at most 10,000 characters long.",
+	"Wofür ist das Konto da, was wird hier gebucht?": "What is this account for, and what gets booked here?",
+	"Steht im Konto über den Buchungen. Markdown geht: **fett**, *kursiv*, Listen mit „-“ und Links wie [Satzung](https://…).": "Shown in the account above the bookings. Markdown works: **bold**, *italic*, lists with “-” and links such as [Statutes](https://…).",
+	"Kurzname (optional)": "Short name (optional)",
+	"z. B. Jugend-Events": "e.g. Youth events",
+	"Steht in den Auswahllisten und im Journal statt der Bezeichnung – praktisch bei langen Namen. Gesucht wird weiter in beiden.": "Shown in selection lists and the journal instead of the name – handy for long names. Search still finds both.",
 	"Beleg übernehmen": "Add receipt",
 	"Der angezeigte Beleg „{name}“ ist noch nicht übernommen. Mit der Buchung speichern?": "The receipt shown, “{name}”, has not been added yet. Save it with the booking?",
 	"Zurück": "Back",

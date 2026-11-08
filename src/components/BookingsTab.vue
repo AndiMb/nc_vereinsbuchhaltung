@@ -827,6 +827,7 @@ import { useOpenItems } from '../composables/useOpenItems.js'
 import { usePeriods } from '../composables/usePeriods.js'
 import { useSort } from '../composables/useSort.js'
 import { journalRowMatchesAccountFilter } from '../lib/accountFilter.js'
+import { accountFilterBy, accountLabel } from '../lib/accountLabel.js'
 import { claimTypeLabel } from '../lib/claims.js'
 import { bookingFlow, flowClass, flowLabel, formatFlowMoney, transactionFlow } from '../lib/flow.js'
 import { amountClass, errMsg, formatDate, formatMoney } from '../lib/format.js'
@@ -1478,7 +1479,7 @@ export default {
 
 		accountLabel(id) {
 			const acc = this.accountsById[id]
-			return acc ? `${acc.number} ${acc.name}` : `#${id}`
+			return acc ? accountLabel(acc) : `#${id}`
 		},
 
 		accountOptionFor(id) {
@@ -1487,17 +1488,7 @@ export default {
 
 		isSelectableOption,
 
-		accountFilterBy(option, label, search) {
-			const s = String(search || '').trim().toLowerCase()
-			if (!s) { return true }
-			if (option && option.$isDisabled) { return false }
-			if (/^[\d\s]+$/.test(s)) {
-				const digits = s.replace(/\s+/g, '')
-				const num = String((option && option.number) || '').replace(/\s+/g, '').toLowerCase()
-				return num.startsWith(digits)
-			}
-			return String(label || '').toLowerCase().includes(s)
-		},
+		accountFilterBy,
 
 		/** Geldrichtung der Journalzeile für Vorzeichen, Farbe und Tooltip, siehe lib/flow.js. Neutral ('') in der Standarddarstellung. */
 		rowFlow(r) {
