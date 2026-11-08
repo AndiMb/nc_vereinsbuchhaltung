@@ -4369,5 +4369,6 @@ OC.L10N.register("vereinsbuchhaltung", {
 	"Sicherheit: „Alle Daten löschen“, der Import mit Löschen und die Rollenvergabe verlangen jetzt Ihr Passwort. Ordner im Home anderer Nutzer wählen nur Nextcloud-Administratoren.": "Beveiliging: „Alle gegevens verwijderen”, de import met verwijderen en het toekennen van rollen vragen nu om uw wachtwoord. Mappen in de thuismap van een andere gebruiker kiest alleen een Nextcloud-beheerder.",
 	"Behoben: GiroCode, E-Rechnung und das Lesen von Beleg-PDFs fehlten im Paket 0.50.0 und gehen jetzt wieder.": "Opgelost: GiroCode, e-factuur en het lezen van pdf-bewijsstukken ontbraken in pakket 0.50.0 en werken weer.",
 	"Behoben: Zwischen 0 und 2 Uhr galt noch der Vortag als „heute“. Fälligkeiten und Mahnfristen rechnen jetzt ab dem Vereinstag.": "Opgelost: tussen 0 en 2 uur gold nog de vorige dag als „vandaag”. Vervaldata en aanmaningstermijnen rekenen nu vanaf de verenigingsdag.",
-	"Schneller: Start, Buchungsliste, Offene Posten, „Zuzuordnen“ und Aufgaben laden deutlich weniger Daten.": "Sneller: opstarten, boekingslijst, openstaande posten, „Toe te wijzen” en taken laden aanzienlijk minder gegevens."
+	"Schneller: Start, Buchungsliste, Offene Posten, „Zuzuordnen“ und Aufgaben laden deutlich weniger Daten.": "Sneller: opstarten, boekingslijst, openstaande posten, „Toe te wijzen” en taken laden aanzienlijk minder gegevens.",
+	"Auswertungsgruppe in der Kontonummer": "Rapportagegroep in het rekeningnummer"
 }, "nplurals=2; plural=(n != 1);");
