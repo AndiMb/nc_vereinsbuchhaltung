@@ -222,7 +222,7 @@ class InvoiceDocumentService {
 		if ($account === null) {
 			return null;
 		}
-		return ['iban' => (string)$account->getIban(), 'bic' => $this->settings->bic(), 'holder' => $this->settings->issuer()['name']];
+		return ['iban' => (string)$account->getIban(), 'bic' => $this->settings->bic(), 'holder' => $this->settings->accountHolder()];
 	}
 
 	/** @param list<int|string> $params */

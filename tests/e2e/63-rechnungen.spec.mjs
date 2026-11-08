@@ -136,6 +136,19 @@ test.describe.serial('Rechnungen', () => {
 		expect(again.status()).toBe(400)
 	})
 
+	test('Langer Vereinsname (#238): Name auf Rechnungen und Kontoinhaber werden gespeichert, mehr als 70 Zeichen Inhaber abgelehnt', async ({ request }) => {
+		await api.updateSettings(request, { club_invoice_name: 'Turn- und Sportverein E2E e. V.', club_account_holder: 'TSV E2E' })
+		const settings = await api.getJson(request, '/settings')
+		expect(settings.club_invoice_name).toBe('Turn- und Sportverein E2E e. V.')
+		expect(settings.club_account_holder).toBe('TSV E2E')
+		expect(settings.club_name).toBe('TSV E2E e. V.')
+
+		const tooLong = await api.updateSettings(request, { club_account_holder: 'x'.repeat(71) }, { expectOk: false })
+		expect(tooLong.status()).toBe(400)
+
+		await api.updateSettings(request, { club_invoice_name: '', club_account_holder: '' })
+	})
+
 	test('Rollen: Buchhalter legt Entwürfe an, festschreiben darf nur der Verwalter', async ({ request }) => {
 		const draft = await (await api.raw(request, 'POST', '/invoices', {
 			user: USERS.buchhalter,
