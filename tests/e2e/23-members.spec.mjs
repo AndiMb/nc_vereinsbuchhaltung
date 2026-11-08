@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test'
-import { api, BANK_ACCOUNT, BANK_ACCOUNT_IBAN, neuAnlegen, openApp, switchTab, USERS, visibleSection } from './fixtures/nextcloud.mjs'
+import { setMemberLinkToken } from './fixtures/member-link.mjs'
+import { api, authHeaders, BANK_ACCOUNT, BANK_ACCOUNT_IBAN, BASE_URL, neuAnlegen, openApp, switchTab, USERS, visibleSection } from './fixtures/nextcloud.mjs'
 
 // Mitglied-Entity (Issue #65, docs/beitraege-sepa-modul-spec.md §2.2/§3.1):
 // Stammdaten-CRUD unabhängig von einem SEPA-Mandat, dazu die NC-Konto-
@@ -91,21 +92,21 @@ test.describe('Mitglieder-Stammdaten', () => {
 		await expect(visibleSection(page).getByText('Musikverein Talheim e.V.').first()).toBeVisible()
 	})
 
-	test('NC-Konto verknüpfen: Vorschlag zeigen, erst nach Bestätigung setzen', async ({ page, request }) => {
-		await api.setUserEmail(request, USERS.revisor, 'verknuepfung@example.org')
-		const member = await api.createMember(request, {
-			firstName: 'Ver',
-			lastName: 'Knuepfung',
-			email: 'verknuepfung@example.org',
-		})
+	test('NC-Konto verknüpfen: Vorschlag zeigen, erst nach Rückfrage setzen, gilt erst nach Bestätigung durch das Mitglied', async ({ page, browser, request }) => {
+		// Eindeutiger Nachname: /reset räumt die Mitglieder nicht ab, ein Wiederholungslauf fände sonst zwei gleichnamige Zeilen.
+		const lastName = `Knuepfung-${Math.random().toString(36).slice(2, 6)}`
+		const email = `verknuepfung.${lastName.toLowerCase()}@example.org`
+		await api.unlinkMemberByNcUser(request, USERS.revisor)
+		await api.setUserEmail(request, USERS.revisor, email)
+		const member = await api.createMember(request, { firstName: 'Ver', lastName, email })
 
 		await openApp(page, USERS.buchhalter)
 		await switchTab(page, 'Beiträge')
-		const row = visibleSection(page).locator('tr', { hasText: 'Ver Knuepfung' })
+		const row = visibleSection(page).locator('tr', { hasText: member.displayName })
 		// Der Name der Zeile öffnet die Akte (der eine Weg dorthin); das Zeilenmenü führt nur zum Mandat.
 		await row.getByRole('button', { name: 'Akte öffnen' }).click()
 
-		const dialog = page.getByRole('dialog')
+		const dialog = page.getByRole('dialog', { name: `Mitglied: ${member.displayName}` })
 		await expect(dialog).toBeVisible()
 		// Kein Treffer vorausgewählt (Spec §3.1) – vor dem Klick auf "Vorschläge
 		// suchen" steht noch nichts.
@@ -115,14 +116,40 @@ test.describe('Mitglieder-Stammdaten', () => {
 		const suggestion = dialog.locator('.vbh-linksuggestions li', { hasText: USERS.revisor })
 		await expect(suggestion).toBeVisible()
 		await suggestion.getByRole('button', { name: 'Verknüpfen' }).click()
+		// Rückfrage mit der Benutzer-ID – nur sie unterscheidet zwei Konten sicher (#295).
+		const confirm = page.getByRole('dialog', { name: 'Mit Nextcloud-Konto verknüpfen' })
+		await expect(confirm).toContainText(`Benutzer-ID ${USERS.revisor}`)
+		await confirm.getByRole('button', { name: 'Verknüpfen', exact: true }).click()
 
-		await expect(dialog.getByText(`Verknüpft mit „${USERS.revisor}".`)).toBeVisible()
-
-		const updated = (await api.listMembers(request)).find((m) => m.id === member.id)
+		// Angelegt, aber ausstehend: das Konto hat noch keinen Zugriff als dieses Mitglied.
+		await expect(dialog.getByText(`Verknüpfung mit „${USERS.revisor}" wartet auf Bestätigung durch das Mitglied.`)).toBeVisible()
+		let updated = (await api.listMembers(request)).find((m) => m.id === member.id)
 		expect(updated.ncUserId).toBe(USERS.revisor)
+		expect(updated.ncLinkConfirmed).toBe(false)
 
-		// Aufräumen: eine bleibende Verknüpfung würde dem Self-Service anderer Specs ein Mitglied für `revisor` unterschieben.
-		await api.unlinkMember(request, member.id)
+		try {
+			// Das Mitglied öffnet den Link aus seiner Mail mit dem verknüpften Konto und bestätigt.
+			const token = await setMemberLinkToken(member.id)
+			const memberContext = await browser.newContext()
+			try {
+				const own = await memberContext.newPage()
+				await openApp(own, USERS.revisor)
+				await own.goto(`${BASE_URL}/index.php/apps/vereinsbuchhaltung/link-account/${token}`)
+				await own.getByRole('button', { name: 'Ja, das bin ich – Konto bestätigen' }).click()
+				await expect(own.getByRole('button', { name: 'Ja, das bin ich – Konto bestätigen' })).toHaveCount(0)
+			} finally {
+				await memberContext.close()
+			}
+
+			updated = (await api.listMembers(request)).find((m) => m.id === member.id)
+			expect(updated.ncLinkConfirmed).toBe(true)
+			// Der Link gilt nur einmal.
+			const again = await request.fetch(`${BASE_URL}/index.php/apps/vereinsbuchhaltung/link-account/${token}`, { headers: authHeaders(USERS.revisor), maxRedirects: 0 })
+			expect(again.status()).toBe(404)
+		} finally {
+			// Aufräumen: eine bleibende Verknüpfung würde dem Self-Service anderer Specs ein Mitglied für `revisor` unterschieben.
+			await api.unlinkMember(request, member.id)
+		}
 	})
 
 	test('Löschsperre: aktives Mandat verhindert das Löschen mit erklärender Meldung', async ({ page, request }) => {

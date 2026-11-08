@@ -129,7 +129,7 @@ test.describe('Auslagenerstattung: Ansichten und Sprachen', () => {
 
 	test('Deep-Link /self/reimbursements: wer Rolle und Mitgliedschaft hat, landet im Unterreiter Auslagen', async ({ page, request }) => {
 		// Personalunion: der Revisor ist selbst Mitglied. (Konten ohne Rolle haben keine URL-Anbindung.)
-		const rita = await api.createMember(request, { firstName: 'Rita', lastName: 'Revisor' })
+		const rita = await api.createMember(request, { firstName: 'Rita', lastName: 'Revisor', email: 'rita.ansichten@example.org' })
 		memberIds.push(rita.id)
 		await api.linkMember(request, rita.id, USERS.revisor)
 		await api.submitReimbursement(request, { user: USERS.revisor, purpose: 'Antrag der Revisorin' })
