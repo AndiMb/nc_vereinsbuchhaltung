@@ -87,6 +87,40 @@ class InvoiceSettingsTest extends TestCase {
 		$this->assertSame('Als gemeinnützig anerkannt, Finanzamt Beispielstadt.', $s->issuer()['nonprofitNote']);
 	}
 
+	// #238: Ein langer Vereinsname bekommt eine Fassung für Rechnungen, ein
+	// eigener Kontoinhaber hält den GiroCode unter 70 Zeichen.
+
+	public function testNameAufRechnungenErsetztDenVereinsnamen(): void {
+		$s = $this->settings();
+		$this->store['club_name'] = 'Förderverein';
+		$this->assertSame('Förderverein', $s->issuer()['name']);
+
+		$s->update(['club_invoice_name' => '  Förderverein der Freiwilligen Feuerwehr Musterstadt e. V.  ']);
+
+		$this->assertSame('Förderverein der Freiwilligen Feuerwehr Musterstadt e. V.', $s->issuer()['name']);
+		$this->assertSame('Förderverein der Freiwilligen Feuerwehr Musterstadt e. V.', $s->all()['club_invoice_name']);
+	}
+
+	public function testKontoinhaberFaelltAufDenNamenAufRechnungenZurueck(): void {
+		$s = $this->settings();
+		$this->store['club_name'] = 'TSV Beispiel e. V.';
+		$this->assertSame('TSV Beispiel e. V.', $s->accountHolder());
+
+		$s->update(['club_invoice_name' => 'Turn- und Sportverein Beispiel e. V.']);
+		$this->assertSame('Turn- und Sportverein Beispiel e. V.', $s->accountHolder());
+
+		$s->update(['club_account_holder' => 'TSV Beispiel']);
+		$this->assertSame('TSV Beispiel', $s->accountHolder());
+		$this->assertSame('TSV Beispiel', $s->all()['club_account_holder']);
+	}
+
+	public function testOhneNamenAufRechnungenFehltDerVereinsnameWeiterhin(): void {
+		$s = $this->settings();
+		$s->update(['club_invoice_name' => 'Verein auf Rechnungen']);
+
+		$this->assertArrayNotHasKey('club_name', $s->missingIssuerFields());
+	}
+
 	public function testSteuerModusWirdGespeichertUndUnbekannteWerdenAbgelehnt(): void {
 		$s = $this->settings();
 
@@ -140,6 +174,8 @@ class InvoiceSettingsTest extends TestCase {
 			'BIC kaputt' => [['invoice_bic' => 'ABC']],
 			'Zahlungsziel negativ' => [['invoice_default_due_days' => -1]],
 			'Pfad mit ..' => [['invoice_folder' => 'a/../b']],
+			'Name auf Rechnungen zu lang' => [['club_invoice_name' => str_repeat('x', 201)]],
+			'Kontoinhaber länger als im GiroCode erlaubt' => [['club_account_holder' => str_repeat('x', 71)]],
 		];
 	}
 
