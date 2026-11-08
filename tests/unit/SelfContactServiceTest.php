@@ -71,7 +71,7 @@ class SelfContactServiceTest extends TestCase {
 		$this->actorContext->setMemberChannel(self::MEMBER_ID);
 		$this->memberService->expects($this->once())->method('updateOwnContactData')
 			->with(self::MEMBER_ID, ['phone' => '+49 30 999'])
-			->willReturn(['member' => $this->member(), 'emailChanged' => false, 'oldEmail' => null]);
+			->willReturn(['member' => $this->member(), 'changed' => true, 'emailChanged' => false, 'oldEmail' => null]);
 
 		$this->service()->update(['phone' => '+49 30 999']);
 	}
@@ -79,7 +79,7 @@ class SelfContactServiceTest extends TestCase {
 	public function testOhneEmailWechselNurEineQuittungKeineWarnung(): void {
 		$this->actorContext->setMemberChannel(self::MEMBER_ID);
 		$this->memberService->method('updateOwnContactData')
-			->willReturn(['member' => $this->member(), 'emailChanged' => false, 'oldEmail' => null]);
+			->willReturn(['member' => $this->member(), 'changed' => true, 'emailChanged' => false, 'oldEmail' => null]);
 
 		$this->activity->expects($this->once())->method('publish')
 			->with('katrin.b', SelfServiceProvider::SUBJECT_CONTACT_UPDATED, [], 'member', self::MEMBER_ID);
@@ -94,7 +94,7 @@ class SelfContactServiceTest extends TestCase {
 		$this->actorContext->setMemberChannel(self::MEMBER_ID);
 		$updated = $this->member(email: 'neu@example.org');
 		$this->memberService->method('updateOwnContactData')
-			->willReturn(['member' => $updated, 'emailChanged' => true, 'oldEmail' => 'katrin@example.org']);
+			->willReturn(['member' => $updated, 'changed' => true, 'emailChanged' => true, 'oldEmail' => 'katrin@example.org']);
 
 		$this->receiptMail->expects($this->once())->method('sendReceipt')
 			->with($this->isInstanceOf(Member::class), 'neu@example.org', $this->anything(), $this->anything(), null, null);
@@ -104,10 +104,22 @@ class SelfContactServiceTest extends TestCase {
 		$this->service()->update(['email' => 'neu@example.org']);
 	}
 
+	/** #305: unverändertes Speichern verschickt keine Mail im Namen des Vereins. */
+	public function testOhneAenderungKeineQuittungKeineWarnungKeineActivity(): void {
+		$this->actorContext->setMemberChannel(self::MEMBER_ID);
+		$this->memberService->method('updateOwnContactData')
+			->willReturn(['member' => $this->member(), 'changed' => false, 'emailChanged' => false, 'oldEmail' => null]);
+		$this->receiptMail->expects($this->never())->method('sendReceipt');
+		$this->receiptMail->expects($this->never())->method('sendOldAddressWarning');
+		$this->activity->expects($this->never())->method('publish');
+
+		$this->service()->update(['phone' => '+49 30 000']);
+	}
+
 	public function testOhneNcUserIdWirdKeineActivityVeroeffentlicht(): void {
 		$this->actorContext->setMemberChannel(self::MEMBER_ID);
 		$this->memberService->method('updateOwnContactData')
-			->willReturn(['member' => $this->member(ncUserId: null), 'emailChanged' => false, 'oldEmail' => null]);
+			->willReturn(['member' => $this->member(ncUserId: null), 'changed' => true, 'emailChanged' => false, 'oldEmail' => null]);
 
 		$this->activity->expects($this->never())->method('publish');
 

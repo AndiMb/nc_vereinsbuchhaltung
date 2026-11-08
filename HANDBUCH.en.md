@@ -209,7 +209,9 @@ renamed freely within the watch folder; receipts moved out of the watch
 folder count as missing.
 
 Only Nextcloud administrators may choose or change a folder in another
-user's home; this also applies to the watched folder from chapter 3.3.
+user's home; this also applies to the watched folder from chapter 3.3 and to
+the folders for mandate documents, invoices and SEPA XML files, which live in
+the home of the receipt-storage user.
 Administrators of the app without those rights choose their own home, and a
 foreign folder that is already set up stays valid.
 
@@ -1334,11 +1336,16 @@ account type, bank-account flag, sphere, reserve type and reporting group. This
 only affects accounts that actually have postings in the closed year. The
 reason: turning an income account into an expense account flips the sign in
 every report – the treasurer's report of the closed year would look
-different afterwards, without anyone having touched a posting. **Freely
-changeable remain** the number, name, category, parent account and the
-active toggle; they only change the label and sorting. Anyone who still
-needs to change a locked property reopens the year (chapter 8.4) and closes
-it again afterwards.
+different afterwards, without anyone having touched a posting. This also
+applies to **assigning and removing accounts in the reporting groups
+overview** and to **deleting a group** that such an account belongs to.
+**Freely changeable remain** the number, name, category, parent account and
+the active toggle; they only change the label and sorting. One exception for
+the number: if the reporting groups are derived from the account number
+(second group of digits), that group of digits can no longer be changed –
+otherwise the account would move to another group. Anyone who still needs to
+change a locked property reopens the year (chapter 8.4) and closes it again
+afterwards.
 
 > **For the watch folder, this means:** if someone drops a statement that
 > falls into a closed year, the transactions are read in but stay
@@ -1763,7 +1770,9 @@ under *Former mandates* are the ended ones.
 **Blocking and unblocking** each require a note; it appears in the history.
 A block ends nothing, open claims stay open. A block after a returned direct
 debit is set by the app itself and marked as such – you have to unblock by
-hand once the case is resolved.
+hand once the case is resolved. If a blocked mandate ends (for example through
+revocation), the member cannot grant a new mandate themselves under *My
+contribution*; you create the new one.
 
 **Change bank details** covers three cases: only the **IBAN** has changed
 (the same mandate stays, a new signature isn't needed; the app reports the
@@ -2446,13 +2455,15 @@ the run only freezes it at release – so it can be changed until then.
 revocation is final, the still-open total is named (the member gets a payment
 request for it), and the first choice offered is "I only have a new account →
 change IBAN". For a **suspended** mandate the IBAN can't be changed; the dialog
-then refers the member to the club. A **draft** can be discarded by the member
+then refers the member to the club. After revoking a suspended mandate the
+member cannot grant a new one either – only the club lifts the block. A **draft** can be discarded by the member
 but not corrected (13.2).
 
 **Receipt and trail.** The app confirms every change to the member by email:
 what changed, from when, and which collection is the first one affected – also
 when the board changes the fee (13.4; the email then names it as the
-originator). The
+originator). Saving the contact details unchanged sends no email; contact
+changes and activation links are limited per hour (20 and 5). The
 email is the copy; the area has no event list of its own. In addition, an entry
 appears in the member's Nextcloud **Activity** (Nextcloud only sends an email for
 it on revocation, unless the member turned that off in their personal
@@ -2535,7 +2546,10 @@ therefore blacks out the person and leaves the figures:
   free text of the history – reasons for suspension, deferral, waiver and
   cancellation, the reason for an individual minimum, representation notes and
   the free text of a returned debit. The claims' debtor then reads "Anonymisiertes
-  Mitglied" ("anonymized member").
+  Mitglied" ("anonymized member"). An invoice recipient created from the member
+  is blacked out as well (name, address, email, note); it disappears from the
+  recipient selection and can no longer be edited, while the customer number
+  and the invoices stay.
 - **What stays.** Amounts, dates, states, return codes and mandate references –
   what the books document. The record is read-only afterwards and carries the
   anonymization note.

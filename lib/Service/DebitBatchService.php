@@ -290,12 +290,16 @@ class DebitBatchService {
 			throw new \InvalidArgumentException($this->l10n->t('Das einziehende Konto hat keine IBAN hinterlegt.'));
 		}
 
-		$claims = $this->runQuery->preview($dueDate);
-		if ($claims === []) {
-			throw new \InvalidArgumentException($this->l10n->t('Keine bis zum %s fälligen offenen Posten mit einzugsfähigem Mandat gefunden.', [$dueDate]));
-		}
+		// Auswahl und Anlage in EINER Transaktion, wiederholt bei einem
+		// Unique-Fehler (#301): gibt ein zweiter Request gleichzeitig denselben
+		// Termin frei, scheitert einer am Index auf `live_open_item_id` und
+		// wählt im nächsten Versuch nur, was der andere nicht schon genommen hat.
+		$batch = $this->transaction->runWithRetry(function () use ($dueDate, $creditorId, $creditorName, $collectingAccount): DebitBatch {
+			$claims = $this->runQuery->preview($dueDate);
+			if ($claims === []) {
+				throw new \InvalidArgumentException($this->l10n->t('Keine bis zum %s fälligen offenen Posten mit einzugsfähigem Mandat gefunden.', [$dueDate]));
+			}
 
-		$batch = $this->transaction->run(function () use ($claims, $dueDate, $creditorId, $creditorName, $collectingAccount): DebitBatch {
 			$batch = new DebitBatch();
 			$batch->setDueDate($dueDate);
 			$batch->setStatus(DebitBatch::STATUS_RELEASED);
@@ -362,6 +366,7 @@ class DebitBatchService {
 		$item = new DebitItem();
 		$item->setBatchId((int)$batch->getId());
 		$item->setOpenItemId((int)$claim->getId());
+		$item->setLiveOpenItemId((int)$claim->getId());
 		$item->setMandateId((int)$mandate->getId());
 		$item->setAmountCents($claim->getAmountCents());
 		$item->setIban((string)$mandate->getIban());
@@ -470,6 +475,7 @@ class DebitBatchService {
 			$batch->setDiscardedAt($this->now());
 			$batch->setDiscardReason($reason);
 			$batch = $this->batchMapper->update($batch);
+			$this->itemMapper->releaseClaimsOfBatch((int)$batch->getId());
 
 			$this->audit->log('Lastschriftlauf verworfen', 'debit_batch', $batch->getId(), [
 				'faelligkeit' => $batch->getDueDate(),

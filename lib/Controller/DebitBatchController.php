@@ -15,6 +15,7 @@ use OCA\Vereinsbuchhaltung\Service\DebitBatchService;
 use OCA\Vereinsbuchhaltung\Service\DebitBatchXmlStorageService;
 use OCA\Vereinsbuchhaltung\Service\DebitTimelineService;
 use OCA\Vereinsbuchhaltung\Service\FolderPathValidator;
+use OCA\Vereinsbuchhaltung\Service\ForeignHomeGuard;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Db\DoesNotExistException;
@@ -54,6 +55,7 @@ class DebitBatchController extends Controller {
 		private ContributionCycleTaskService $cycleTasks,
 		private MemberMapper $members,
 		private IUserManager $userManager,
+		private ForeignHomeGuard $foreignHomeGuard,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -250,6 +252,13 @@ class DebitBatchController extends Controller {
 	public function updateSettings(?int $releaseLeadDays = null, ?string $xmlFolderEnabled = null, ?string $xmlFolderPath = null): DataResponse {
 		if ($xmlFolderPath !== null) {
 			$pathError = $this->folderPaths->validate($xmlFolderPath, $this->l10n->t('Ablageordner für die XML-Dateien'));
+			// Die XML-Dateien liegen im Home des Belegablage-Nutzers: einen anderen
+			// Ordner dort wählt nur, wer auch die Belegablage dort wählen dürfte (#307).
+			$requested = trim(str_replace('\\', '/', $xmlFolderPath), '/');
+			$pathError ??= $this->foreignHomeGuard->folderChangeError(
+				$this->xmlStorage->folderPath(),
+				$requested !== '' ? $requested : DebitBatchXmlStorageService::DEFAULT_PATH,
+			);
 			if ($pathError !== null) {
 				return new DataResponse(['message' => $pathError], Http::STATUS_BAD_REQUEST);
 			}

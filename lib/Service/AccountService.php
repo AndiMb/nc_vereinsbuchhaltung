@@ -10,7 +10,6 @@ use OCA\Vereinsbuchhaltung\Db\BudgetMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
 use OCA\Vereinsbuchhaltung\Db\RuleMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
-use OCA\Vereinsbuchhaltung\Exception\PeriodClosedException;
 use OCA\Vereinsbuchhaltung\Exception\UserFacingException;
 use OCA\Vereinsbuchhaltung\Service\Sepa\SepaImportSettingsService;
 use OCA\Vereinsbuchhaltung\Service\Statement\BankAccountMatcher;
@@ -50,7 +49,7 @@ class AccountService {
 	/**
 	 * Konto-Felder, die in die Zahlen einer Auswertung eingehen – und damit den
 	 * Bericht eines abgeschlossenen Geschäftsjahres nachträglich verändern
-	 * würden. Siehe {@see assertEvaluationOpen()}.
+	 * würden. Siehe {@see AccountEvaluationLock}.
 	 *
 	 *  - type    steuert über Account::isCreditNature() das Vorzeichen und über
 	 *            isResultRelevant() die Aufnahme ins Jahresergebnis
@@ -58,11 +57,14 @@ class AccountService {
 	 *            Vermögensübersicht und Einnahmen-/Ausgaben-Rechnung
 	 *  - sphere / reserveKind / costCenterId  bestimmen, in welcher Zeile der
 	 *            Sphären-, Rücklagen- bzw. Kostenstellenübersicht das Konto steht
+	 *  - costCode  die zweite Zahlengruppe der Kontonummer: im Modus 'group'
+	 *            die Kostenstelle des Kontos (ReportService::costCode(), #299)
 	 *
-	 * Nummer, Name, Kategorie, Aktiv-Schalter und Überkonto sind bewusst nicht
-	 * dabei: sie ändern nur Beschriftung und Sortierung, keine Beträge.
+	 * Name, Kategorie, Aktiv-Schalter und Überkonto sind bewusst nicht dabei: sie
+	 * ändern nur Beschriftung und Sortierung, keine Beträge. Die Nummer selbst
+	 * auch nicht – nur ihre Kostenstellen-Gruppe.
 	 */
-	private const EVALUATION_FIELDS = ['type', 'isBank', 'sphere', 'reserveKind', 'costCenterId'];
+	private const EVALUATION_FIELDS = ['type', 'isBank', 'sphere', 'reserveKind', 'costCenterId', 'costCode'];
 
 	public function __construct(
 		private AccountMapper $mapper,
@@ -72,7 +74,7 @@ class AccountService {
 		private TransactionRunner $transaction,
 		private RowNormalizer $normalizer,
 		private CostCenterService $costCenters,
-		private PeriodService $periods,
+		private AccountEvaluationLock $evaluationLock,
 		private AuditService $audit,
 		private IbanValidator $ibanValidator,
 		private SepaDebtorAccountService $sepaDebtorAccount,
@@ -204,8 +206,12 @@ class AccountService {
 		// Erst prüfen, dann speichern: die Änderungen stehen bis hierher nur am
 		// Objekt, ein Abbruch lässt also nichts Halbes zurück.
 		$changed = self::changedEvaluationFields($before, self::evaluationSnapshot($account));
+		if (!$this->evaluationLock->costCodeIsEvaluated()) {
+			// Außerhalb des Modus 'group' ist die Nummer nur Beschriftung.
+			$changed = array_values(array_diff($changed, ['costCode']));
+		}
 		if ($changed !== []) {
-			$this->assertEvaluationOpen($userId, $account->getId(), $labelBefore, $changed);
+			$this->evaluationLock->assertOpen($userId, $account->getId(), $labelBefore, $changed);
 		}
 
 		$saved = $this->mapper->update($account);
@@ -214,7 +220,7 @@ class AccountService {
 			$this->audit->log('Konto geändert', 'account', $saved->getId(), [
 				'konto' => $label,
 				...($labelBefore !== $label ? ['vorher' => $labelBefore] : []),
-				...($changed !== [] ? ['auswertungsrelevant' => implode(', ', array_map(self::fieldLabel(...), $changed))] : []),
+				...($changed !== [] ? ['auswertungsrelevant' => implode(', ', array_map($this->evaluationLock->fieldLabel(...), $changed))] : []),
 			]);
 		}
 		return $saved;
@@ -232,6 +238,7 @@ class AccountService {
 			'sphere' => $account->getSphere(),
 			'reserveKind' => $account->getReserveKind(),
 			'costCenterId' => $account->getCostCenterId(),
+			'costCode' => ReportService::costCode((string)$account->getNumber()),
 		];
 	}
 
@@ -251,63 +258,6 @@ class AccountService {
 			}
 		}
 		return $changed;
-	}
-
-	/** Feldname → Bezeichnung für Meldungen und Protokoll. */
-	private function fieldLabel(string $field): string {
-		return match ($field) {
-			'type' => $this->l10n->t('Kontoart'),
-			'isBank' => $this->l10n->t('Geldkonto-Kennzeichen'),
-			'sphere' => $this->l10n->t('Sphäre'),
-			'reserveKind' => $this->l10n->t('Rücklagen-Art'),
-			'costCenterId' => $this->l10n->t('Auswertungsgruppe'),
-			default => $field,
-		};
-	}
-
-	/**
-	 * Festschreibung an den Konto-Stammdaten.
-	 *
-	 * Der Jahresabschluss schützt bisher die Buchungssätze eines Geschäftsjahres
-	 * – nicht aber die Konten, aus denen der Bericht gerechnet wird. Ein Wechsel
-	 * der Kontoart dreht über Account::isCreditNature() das Vorzeichen, ein
-	 * Wechsel des Geldkonto-Kennzeichens verschiebt das Konto über
-	 * isStockAccount() zwischen Vermögensübersicht und Einnahmen-/Ausgaben-
-	 * Rechnung. Beides geht rückwirkend in den Kassenbericht eines
-	 * festgeschriebenen Zeitraums ein: das archivierte Jahresergebnis änderte
-	 * sich nachträglich, ohne dass eine einzige Buchung angefasst wurde.
-	 *
-	 * Gesperrt wird deshalb nur, wenn das Konto in einem abgeschlossenen
-	 * Zeitraum tatsächlich bebucht ist. Ein unbenutztes oder erst später
-	 * bebuchtes Konto bleibt frei änderbar.
-	 *
-	 * @param string[] $changed Feldnamen aus EVALUATION_FIELDS
-	 * @throws PeriodClosedException wenn das Konto einen abgeschlossenen Zeitraum berührt
-	 */
-	private function assertEvaluationOpen(string $userId, int $accountId, string $label, array $changed): void {
-		$closedIds = array_values(array_intersect(
-			$this->lineMapper->findPeriodIdsForAccount($userId, $accountId),
-			$this->periods->closedIds($userId),
-		));
-		if ($closedIds === []) {
-			return;
-		}
-		// In der Meldung steht die Bezeichnung, nicht die ID: „2025/26" sagt
-		// dem Kassenwart etwas, eine Perioden-ID nichts.
-		$closed = array_map(fn (int $id): string => $this->periods->find($userId, $id)->getLabel(), $closedIds);
-		throw new PeriodClosedException($this->l10n->t(
-			'Das Konto "%s" ist in %s bebucht – %s dort abgeschlossen. %s lässt sich deshalb nicht mehr ändern: '
-			. 'die Auswertungen dieses Zeitraums würden sich nachträglich verschieben. '
-			. 'Wer die Änderung braucht, eröffnet den Zeitraum wieder und schließt ihn danach erneut ab.',
-			[
-				$label,
-				count($closed) === 1 ? $closed[0] : implode(', ', $closed),
-				count($closed) === 1 ? $this->l10n->t('dieses Geschäftsjahr ist') : $this->l10n->t('diese Geschäftsjahre sind'),
-				count($changed) === 1
-					? $this->fieldLabel($changed[0])
-					: implode(' ' . $this->l10n->t('und') . ' ', array_map($this->fieldLabel(...), $changed)),
-			],
-		));
 	}
 
 	/**
@@ -464,7 +414,7 @@ class AccountService {
 				// Sphärenübersicht eines abgeschlossenen Jahres darf sich nicht
 				// nachträglich verschieben. Die Transaktion sorgt dafür, dass ein
 				// gesperrtes Konto nicht die halbe Zuordnung stehen lässt.
-				$this->assertEvaluationOpen($userId, $account->getId(), $account->getNumber() . ' ' . $account->getName(), ['sphere']);
+				$this->evaluationLock->assertOpen($userId, $account->getId(), $account->getNumber() . ' ' . $account->getName(), ['sphere']);
 				$account->setSphere($validated);
 				$this->mapper->update($account);
 				$count++;

@@ -1,5 +1,5 @@
 OC.L10N.register("vereinsbuchhaltung", {
-	"Sie zieht auch von Mandaten ein, die nicht mehr einzugsfähig sind. Ist sie noch nicht bei der Bank, verwerfen Sie den Lauf besser und geben ihn neu frei.": "It also collects from mandates that are no longer collectible. If it is not at the bank yet, better discard the run and release it again.",
+	"Diese Buchung gehört schon zu einer anderen Auslage.": "This entry already belongs to another expense.",
 	"Bestätigung ausstehend": "Confirmation pending",
 	"Vorschlag {uid} verknüpfen": "Link suggestion {uid}",
 	"Bestätigungslink erneut senden": "Resend confirmation link",
@@ -4370,6 +4370,10 @@ OC.L10N.register("vereinsbuchhaltung", {
 	"Behoben: GiroCode, E-Rechnung und das Lesen von Beleg-PDFs fehlten im Paket 0.50.0 und gehen jetzt wieder.": "Fixed: GiroCode, e-invoice and reading receipt PDFs were missing from package 0.50.0 and work again.",
 	"Behoben: Zwischen 0 und 2 Uhr galt noch der Vortag als „heute“. Fälligkeiten und Mahnfristen rechnen jetzt ab dem Vereinstag.": "Fixed: between 00:00 and 02:00 “today” was still yesterday. Due dates and dunning deadlines now count from the club day.",
 	"Schneller: Start, Buchungsliste, Offene Posten, „Zuzuordnen“ und Aufgaben laden deutlich weniger Daten.": "Faster: startup, booking list, open items, “To assign” and tasks load much less data.",
+	"Auswertungsgruppe in der Kontonummer": "Reporting group in the account number",
+	"Dieser Empfänger ist anonymisiert und kann nicht mehr bearbeitet werden.": "This recipient has been anonymised and can no longer be edited.",
+	"Ihr letztes Mandat war gesperrt, als es endete. Ein neues Mandat richtet Ihnen der Verein ein – bitte wenden Sie sich an ihn.": "Your last mandate was suspended when it ended. The club will set up a new mandate for you – please contact the club.",
+	"Sie zieht auch von Mandaten ein, die nicht mehr einzugsfähig sind. Ist sie noch nicht bei der Bank, verwerfen Sie den Lauf besser und geben ihn neu frei.": "It also collects from mandates that are no longer collectible. If it is not at the bank yet, better discard the run and release it again.",
 	"_%n Posten hat kein einzugsfähiges Mandat mehr (widerrufen, gesperrt oder beendet)._::_%n Posten haben kein einzugsfähiges Mandat mehr (widerrufen, gesperrt oder beendet)._": [
 		"%n item no longer has a collectible mandate (revoked, suspended or ended).",
 		"%n items no longer have a collectible mandate (revoked, suspended or ended)."
