@@ -1,4 +1,5 @@
 OC.L10N.register("vereinsbuchhaltung", {
+	"Diese Buchung gehört schon zu einer anderen Auslage.": "Deze boeking hoort al bij een andere declaratie.",
 	"Bestätigung ausstehend": "Bevestiging in afwachting",
 	"Vorschlag {uid} verknüpfen": "Suggestie {uid} koppelen",
 	"Bestätigungslink erneut senden": "Bevestigingslink opnieuw versturen",
