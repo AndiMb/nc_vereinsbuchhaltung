@@ -1,73 +1,106 @@
 <template>
 	<div class="vbh">
-		<header class="vbh-header">
-			<div class="vbh-titlebar">
-				<h2>Vereinsbuchhaltung</h2>
-				<div
-					v-if="cashTotal && !isMobile"
-					class="vbh-bankchip"
-					:class="{ warn: Math.abs(cashTotal.open) > 0.005 }"
-					:title="cashTotalTitle">
-					<span class="vbh-bankchip-label">{{ cashTotal.label }}</span>
-					<span class="vbh-bankchip-value">{{ formatMoney(cashTotal.balance) }}</span>
-					<span v-if="Math.abs(cashTotal.open) > 0.005" class="vbh-bankchip-hint">{{ t('{amount} offen', { amount: formatMoney(cashTotal.open) }) }}</span>
-					<!-- Dieselbe Aufschluesselung wie im Tooltip, nur vorlesbar: ein
-					     title haengt an der Maus und ist per Tastatur nicht
-					     erreichbar. Als schlichter Text im Chip statt per
-					     aria-describedby, weil Screenreader eine Beschreibung an
-					     einem nicht fokussierbaren Element nicht verlaesslich
-					     ansagen. Entfaellt, wenn die Aufschluesselung nichts
-					     hinzufuegt (ein Konto, keins abgewaehlt). -->
-					<span v-if="cashBreakdownLines.length > 1" class="vbh-visually-hidden">{{ cashBreakdownLines.join(', ') }}</span>
-				</div>
-				<NcLoadingIcon v-if="busy" :size="24" :name="t('Wird geladen…')" />
-			</div>
-			<div v-if="canRead || myAreaAvailable" class="vbh-navbar" :class="{ 'vbh-navbar--mobile': isMobile }">
-				<nav v-if="!isMobile" class="vbh-tabs">
-					<button
-						v-for="tab in visibleTabs"
-						:key="tab.id"
-						:class="{ active: activeTab === tab.id }"
-						@click="activeTab = tab.id">
-						<NcIconSvgWrapper :path="tab.icon" :size="18" inline />
-						{{ tab.label }}
-						<span v-if="tab.id === 'bookings' && unassignedCount > 0" class="vbh-badge vbh-badge--alert">{{ unassignedCount }}</span>
-					</button>
-				</nav>
-				<!-- Zeitraum/Buchung/Hilfe beziehen sich auf die Buchhaltung - fuer ein
-				     nur per Self-Service verknuepftes Konto (kein canRead) ergeben sie
-				     keinen Sinn, siehe "Mein Beitrag" (SelfServiceTab.vue). -->
-				<div v-if="canRead" class="vbh-navright">
-					<!-- Ein „+“ für alles, was sich von überall anlegen lässt: Buchung
-					     und Rechnung. Was fehlt (Modul aus, keine
-					     Berechtigung), erscheint nicht. -->
-					<div v-if="canWrite && !isMobile" class="vbh-newbooking-btn vbh-newmenu">
-						<NewMenu :items="newMenuItems" @select="onNewMenu" />
+		<!-- Kopf samt Hinweisen darunter. Mobil gleitet er beim Herunterscrollen
+		     weg und gibt der Liste den Platz (onMainScroll, lib/headerCollapse.js). -->
+		<div class="vbh-top" :class="{ 'is-hidden': headHidden }">
+			<div ref="topInner" class="vbh-top-inner">
+				<header class="vbh-header">
+					<div class="vbh-titlebar">
+						<h2>Vereinsbuchhaltung</h2>
+						<div
+							v-if="cashTotal && !isMobile"
+							class="vbh-bankchip"
+							:class="{ warn: Math.abs(cashTotal.open) > 0.005 }"
+							:title="cashTotalTitle">
+							<span class="vbh-bankchip-label">{{ cashTotal.label }}</span>
+							<span class="vbh-bankchip-value">{{ formatMoney(cashTotal.balance) }}</span>
+							<span v-if="Math.abs(cashTotal.open) > 0.005" class="vbh-bankchip-hint">{{ t('{amount} offen', { amount: formatMoney(cashTotal.open) }) }}</span>
+							<!-- Dieselbe Aufschluesselung wie im Tooltip, nur vorlesbar: ein
+							     title haengt an der Maus und ist per Tastatur nicht
+							     erreichbar. Als schlichter Text im Chip statt per
+							     aria-describedby, weil Screenreader eine Beschreibung an
+							     einem nicht fokussierbaren Element nicht verlaesslich
+							     ansagen. Entfaellt, wenn die Aufschluesselung nichts
+							     hinzufuegt (ein Konto, keins abgewaehlt). -->
+							<span v-if="cashBreakdownLines.length > 1" class="vbh-visually-hidden">{{ cashBreakdownLines.join(', ') }}</span>
+						</div>
+						<NcLoadingIcon v-if="busy" :size="24" :name="t('Wird geladen…')" />
 					</div>
-					<label class="vbh-yearsel" :title="periodTitle">
-						<span>{{ t('Zeitraum') }}</span>
-						<!-- @change: eine bewusste Wahl zählt auch dann, wenn sie fällt,
-						     bevor die Zeiträume geladen sind („Alle Zeiträume" steht von
-						     Anfang an im Feld) – sonst überschriebe loadPeriods() sie
-						     gleich darauf mit der Vorgabe. -->
-						<select v-model="selectedPeriodId" @change="initialised = true">
-							<option :value="null">{{ t('Alle Zeiträume') }}</option>
-							<option v-for="p in periods" :key="p.id" :value="p.id">{{ p.label }}{{ p.closedAt ? ' 🔒' : '' }}</option>
-						</select>
-					</label>
-					<TasksFlyout v-if="canWrite && membershipActive" @navigate="onTaskNavigate" />
-					<NcButton
-						variant="tertiary"
-						:aria-label="t('Hilfe')"
-						:title="t('Hilfe')"
-						@click="openHelp()">
-						<template #icon>
-							<NcIconSvgWrapper :path="mdiHelpCircleOutline" :size="20" />
-						</template>
+					<div v-if="canRead || myAreaAvailable" class="vbh-navbar" :class="{ 'vbh-navbar--mobile': isMobile }">
+						<nav v-if="!isMobile" class="vbh-tabs">
+							<button
+								v-for="tab in visibleTabs"
+								:key="tab.id"
+								:class="{ active: activeTab === tab.id }"
+								@click="activeTab = tab.id">
+								<NcIconSvgWrapper :path="tab.icon" :size="18" inline />
+								{{ tab.label }}
+								<span v-if="tab.id === 'bookings' && unassignedCount > 0" class="vbh-badge vbh-badge--alert">{{ unassignedCount }}</span>
+							</button>
+						</nav>
+						<!-- Zeitraum/Buchung/Hilfe beziehen sich auf die Buchhaltung - fuer ein
+						     nur per Self-Service verknuepftes Konto (kein canRead) ergeben sie
+						     keinen Sinn, siehe "Mein Beitrag" (SelfServiceTab.vue). -->
+						<div v-if="canRead" class="vbh-navright">
+							<!-- Ein „+“ für alles, was sich von überall anlegen lässt: Buchung
+							     und Rechnung. Was fehlt (Modul aus, keine
+							     Berechtigung), erscheint nicht. -->
+							<div v-if="canWrite && !isMobile" class="vbh-newbooking-btn vbh-newmenu">
+								<NewMenu :items="newMenuItems" @select="onNewMenu" />
+							</div>
+							<label class="vbh-yearsel" :title="periodTitle">
+								<span>{{ t('Zeitraum') }}</span>
+								<!-- @change: eine bewusste Wahl zählt auch dann, wenn sie fällt,
+								     bevor die Zeiträume geladen sind („Alle Zeiträume" steht von
+								     Anfang an im Feld) – sonst überschriebe loadPeriods() sie
+								     gleich darauf mit der Vorgabe. -->
+								<select v-model="selectedPeriodId" @change="initialised = true">
+									<option :value="null">{{ t('Alle Zeiträume') }}</option>
+									<option v-for="p in periods" :key="p.id" :value="p.id">{{ p.label }}{{ p.closedAt ? ' 🔒' : '' }}</option>
+								</select>
+							</label>
+							<TasksFlyout v-if="canWrite && membershipActive" @navigate="onTaskNavigate" />
+							<NcButton
+								variant="tertiary"
+								:aria-label="t('Hilfe')"
+								:title="t('Hilfe')"
+								@click="openHelp()">
+								<template #icon>
+									<NcIconSvgWrapper :path="mdiHelpCircleOutline" :size="20" />
+								</template>
+							</NcButton>
+						</div>
+					</div>
+				</header>
+
+				<div v-if="demoActive" class="vbh-demobanner">
+					<span><strong>{{ t('Beispieldaten aktiv.') }}</strong> {{ t('Das ist ein Beispielverein zum Ausprobieren, keine echten Daten.') }}</span>
+					<NcButton variant="secondary" :disabled="busy" @click="resetAll">
+						{{ t('Zurücksetzen & mit echten Daten starten') }}
 					</NcButton>
 				</div>
+
+				<div v-if="showRevisorIntro" class="vbh-revisorintro">
+					<h3>{{ t('Willkommen als Kassenprüfer/in') }}</h3>
+					<ul>
+						<li>{{ t('Buchungen einsehen (Tab „Buchungen")') }}</li>
+						<li>{{ t('Kontoauszug und Saldenliste prüfen (Tabs „Konten" und „Berichte")') }}</li>
+						<li>{{ t('Kassenbericht drucken (Tab „Berichte" → Auswertung)') }}</li>
+					</ul>
+					<p>{{ t('Ändern ist mit dieser Rolle nicht möglich.') }}</p>
+					<div class="vbh-modal-actions">
+						<a
+							:href="pruefleitfadenUrl"
+							target="_blank"
+							rel="noopener"
+							class="vbh-export-btn"><NcIconSvgWrapper :path="mdiPrinter" :size="16" inline /> {{ t('Prüfleitfaden') }}</a>
+						<NcButton variant="tertiary" @click="dismissRevisorIntro">
+							{{ t('Verstanden') }}
+						</NcButton>
+					</div>
+				</div>
 			</div>
-		</header>
+		</div>
 
 		<!-- "Kein Zugriff" nur ohne jede Berechtigung: ein verknuepftes,
 		     Self-Service-faehiges Konto ohne vbh-Rolle bekommt statt dessen den
@@ -78,34 +111,10 @@
 			<p>{{ t('Sie haben keine Berechtigung für die Vereinsbuchhaltung. Bitte wenden Sie sich an eine Verwalterin oder einen Verwalter.') }}</p>
 		</div>
 
-		<div v-if="demoActive" class="vbh-demobanner">
-			<span><strong>{{ t('Beispieldaten aktiv.') }}</strong> {{ t('Das ist ein Beispielverein zum Ausprobieren, keine echten Daten.') }}</span>
-			<NcButton variant="secondary" :disabled="busy" @click="resetAll">
-				{{ t('Zurücksetzen & mit echten Daten starten') }}
-			</NcButton>
-		</div>
-
-		<div v-if="showRevisorIntro" class="vbh-revisorintro">
-			<h3>{{ t('Willkommen als Kassenprüfer/in') }}</h3>
-			<ul>
-				<li>{{ t('Buchungen einsehen (Tab „Buchungen")') }}</li>
-				<li>{{ t('Kontoauszug und Saldenliste prüfen (Tabs „Konten" und „Berichte")') }}</li>
-				<li>{{ t('Kassenbericht drucken (Tab „Berichte" → Auswertung)') }}</li>
-			</ul>
-			<p>{{ t('Ändern ist mit dieser Rolle nicht möglich.') }}</p>
-			<div class="vbh-modal-actions">
-				<a
-					:href="pruefleitfadenUrl"
-					target="_blank"
-					rel="noopener"
-					class="vbh-export-btn"><NcIconSvgWrapper :path="mdiPrinter" :size="16" inline /> {{ t('Prüfleitfaden') }}</a>
-				<NcButton variant="tertiary" @click="dismissRevisorIntro">
-					{{ t('Verstanden') }}
-				</NcButton>
-			</div>
-		</div>
-
-		<main v-show="canRead || myAreaAvailable" class="vbh-main">
+		<!-- @scroll.capture: Scroll-Ereignisse steigen nicht auf; abgefangen
+		     erreichen uns die aller Scrollbereiche der Reiter, ohne dass jeder
+		     Reiter einzeln Bescheid geben muss. -->
+		<main v-show="canRead || myAreaAvailable" class="vbh-main" @scroll.capture.passive="onMainScroll">
 			<!-- ============ ÜBERSICHT (DASHBOARD) ============ -->
 			<section
 				v-if="visitedTabs.dashboard"
@@ -491,6 +500,7 @@ import { buildWhatsNewEntries, filterWhatsNewEntries } from './data/whatsNew.js'
 import { takeBootState } from './lib/bootState.js'
 import { clubToday, setClubTimeZone } from './lib/clubTime.js'
 import { amountClass, budgetDiffClass, errMsg, formatDate, formatDateTime, formatMoney, typeLabel } from './lib/format.js'
+import { createHeaderCollapse } from './lib/headerCollapse.js'
 import { createLatestRequest } from './lib/latestRequest.js'
 import { withPasswordConfirmation } from './lib/passwordGate.js'
 import { linkFilesToBookings } from './lib/receiptBatch.js'
@@ -747,6 +757,8 @@ export default {
 			syncTimer: null,
 			// Mobil-Layout (≤ 640px): schaltet Bottom-Nav, Kartenlisten etc.
 			isMobile: false,
+			// Mobil: App-Kopf beim Herunterscrollen ausgeblendet (onMainScroll).
+			headHidden: false,
 			// Breites Fenster (≥ 1500px): Belegvorschau neben der Belegliste, darunter
 			// steht sie anstelle der Liste (#231).
 			isWide: true,
@@ -1184,6 +1196,7 @@ export default {
 
 	watch: {
 		activeTab(tab) {
+			this.showHead()
 			if (!this.visitedTabs[tab]) { this.visitedTabs[tab] = true }
 			this.loadTab(tab)
 			// Einblend-Animation der Sektion neu starten
@@ -1267,7 +1280,10 @@ export default {
 		// Mobil-Layout reaktiv am selben Breakpoint wie das CSS (640px)
 		this.vbhMql = window.matchMedia('(max-width: 640px)')
 		this.isMobile = this.vbhMql.matches
-		this.onMqChange = (e) => { this.isMobile = e.matches }
+		this.onMqChange = (e) => {
+			this.isMobile = e.matches
+			if (!e.matches) { this.showHead() }
+		}
 		if (this.vbhMql.addEventListener) { this.vbhMql.addEventListener('change', this.onMqChange) } else { this.vbhMql.addListener(this.onMqChange) }
 		this.vbhWideMql = window.matchMedia('(min-width: 1500px)')
 		this.isWide = this.vbhWideMql.matches
@@ -1333,6 +1349,48 @@ export default {
 	},
 
 	methods: {
+		// --- Mobil: App-Kopf beim Scrollen ein- und ausblenden ---
+		// Die Entscheidung trifft lib/headerCollapse.js; hier nur die Anbindung an
+		// die Scrollbereiche der Reiter und die kurze Sperre waehrend der
+		// Animation: in der Zeit verschiebt der Browser den Scrollstand womoeglich
+		// selbst (der Bereich wird groesser), das ist keine Nutzerbewegung.
+		onMainScroll(e) {
+			if (!this.isMobile) { return }
+			const el = e.target
+			if (!(el instanceof Element)) { return }
+			// Waagerecht scrollende Leisten (Unterreiter, breite Tabellen) zählen nicht.
+			if (el.scrollHeight <= el.clientHeight + 1) { return }
+			if (!this.headCollapse) { this.headCollapse = createHeaderCollapse() }
+			if (el !== this.headScrollEl) {
+				// Anderer Scrollbereich (Unterreiter, Konto-Detail …): neu anfangen.
+				this.headScrollEl = el
+				this.headCollapse.reset()
+				this.headHidden = false
+			}
+			if (Date.now() < this.headLockUntil) {
+				this.headCollapse.sync(el.scrollTop)
+				return
+			}
+			const hidden = this.headCollapse.update({
+				scrollTop: el.scrollTop,
+				scrollHeight: el.scrollHeight,
+				clientHeight: el.clientHeight,
+				// scrollHeight statt offsetHeight: eingeklappt ist der Kopf 0 hoch,
+				// sein Inhalt aber nicht.
+				headerHeight: this.$refs.topInner?.scrollHeight ?? 0,
+			})
+			if (hidden !== this.headHidden) {
+				this.headHidden = hidden
+				this.headLockUntil = Date.now() + 300
+			}
+		},
+
+		showHead() {
+			this.headHidden = false
+			this.headScrollEl = null
+			this.headCollapse?.reset()
+		},
+
 		// --- Tastaturkürzel: N = neue Buchung, / = Suche fokussieren ---
 		onGlobalKeydown(e) {
 			if (e.ctrlKey || e.metaKey || e.altKey) { return }

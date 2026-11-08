@@ -23,7 +23,28 @@
 					{{ t('Regeln') }}
 				</button>
 			</div>
-			<div class="vbh-sectiontop-actions">
+			<!-- Mobil teilen sich Unterreiter und Aktionen eine Zeile; CSV und
+			     Import passen dort nur gesammelt in ein Menü. -->
+			<div v-if="isMobile && (bookingView === 'journal' || canWrite)" class="vbh-sectiontop-actions">
+				<NcActions :ariaLabel="t('Weitere Aktionen')" :forceMenu="true">
+					<NcActionLink
+						v-if="bookingView === 'journal'"
+						:href="exportJournalUrl"
+						download="">
+						<template #icon>
+							<NcIconSvgWrapper :path="mdiDownload" :size="20" />
+						</template>
+						{{ t('Journal als CSV exportieren') }}
+					</NcActionLink>
+					<NcActionButton v-if="canWrite" closeAfterClick @click="openImport">
+						<template #icon>
+							<NcIconSvgWrapper :path="mdiUpload" :size="20" />
+						</template>
+						{{ t('Umsätze importieren') }}
+					</NcActionButton>
+				</NcActions>
+			</div>
+			<div v-else-if="!isMobile" class="vbh-sectiontop-actions">
 				<a
 					v-if="bookingView === 'journal'"
 					:href="exportJournalUrl"
@@ -51,8 +72,22 @@
 				:title="t('Sucht in Text und Nummer; eine Zahl wie 12,50 findet auch Buchungen über genau diesen Betrag.')"
 				class="vbh-search"
 				@input="onSearchInput">
+			<!-- Mobil: Konto und „nur ohne Beleg“ erst auf Tipp; hervorgehoben,
+			     solange ein Filter greift, damit eine gefilterte Liste auffällt. -->
+			<NcButton
+				v-if="isMobile && bookingView === 'journal'"
+				class="vbh-filter-toggle"
+				:variant="journalFilterActive ? 'primary' : 'tertiary'"
+				:aria-label="journalFilterActive ? t('Filter (aktiv)') : t('Filter')"
+				:title="journalFilterActive ? t('Filter (aktiv)') : t('Filter')"
+				:aria-expanded="String(filtersOpen)"
+				@click="filtersOpen = !filtersOpen">
+				<template #icon>
+					<NcIconSvgWrapper :path="mdiFilterVariant" :size="20" />
+				</template>
+			</NcButton>
 			<NcSelect
-				v-if="bookingView === 'journal'"
+				v-if="bookingView === 'journal' && (!isMobile || filtersOpen)"
 				v-model="bookingFilterAccountOption"
 				:options="accountFilterOptions"
 				:filterBy="accountFilterBy"
@@ -74,7 +109,7 @@
 					<NcEllipsisedOption v-else :name="opt.label" :search="bookingFilterSearch" />
 				</template>
 			</NcSelect>
-			<label v-if="bookingView === 'journal'" class="vbh-checkinline" :title="t('Nur Buchungen ohne angehängten Beleg zeigen (z. B. vor der Kassenprüfung)')">
+			<label v-if="bookingView === 'journal' && (!isMobile || filtersOpen)" class="vbh-checkinline" :title="t('Nur Buchungen ohne angehängten Beleg zeigen (z. B. vor der Kassenprüfung)')">
 				<input v-model="journalOnlyNoAttachment" type="checkbox">
 				{{ t('nur ohne Beleg') }}
 			</label>
@@ -766,10 +801,11 @@
 </template>
 
 <script>
-import { mdiDelete, mdiDownload, mdiFlash, mdiPaperclip, mdiPaperclipCheck, mdiPencil, mdiUpload } from '@mdi/js'
+import { mdiDelete, mdiDownload, mdiFilterVariant, mdiFlash, mdiPaperclip, mdiPaperclipCheck, mdiPencil, mdiUpload } from '@mdi/js'
 import { showError, showSuccess } from '@nextcloud/dialogs'
 import { toRefs } from 'vue'
 import NcActionButton from '@nextcloud/vue/components/NcActionButton'
+import NcActionLink from '@nextcloud/vue/components/NcActionLink'
 import NcActions from '@nextcloud/vue/components/NcActions'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcEllipsisedOption from '@nextcloud/vue/components/NcEllipsisedOption'
@@ -806,7 +842,7 @@ const JOURNAL_PAGE = 200
 
 export default {
 	name: 'BookingsTab',
-	components: { NcButton, NcActions, NcActionButton, NcSelect, NcEllipsisedOption, NcEmptyContent, NcIconSvgWrapper, AmountInput, BookingCard, CommentMark, ReceiptSuggestionConfirmDialog, ReimbursementAssignDialog, ReimbursementsPanel, RulesPanel },
+	components: { NcButton, NcActions, NcActionButton, NcActionLink, NcSelect, NcEllipsisedOption, NcEmptyContent, NcIconSvgWrapper, AmountInput, BookingCard, CommentMark, ReceiptSuggestionConfirmDialog, ReimbursementAssignDialog, ReimbursementsPanel, RulesPanel },
 	props: {
 		isMobile: { type: Boolean, required: true },
 		// 'plain' | 'signed': Vorzeichen und Farbe am Betrag, siehe lib/flow.js
@@ -880,6 +916,7 @@ export default {
 	data() {
 		return {
 			mdiDownload,
+			mdiFilterVariant,
 			mdiUpload,
 			mdiPaperclip,
 			mdiPaperclipCheck,
@@ -893,6 +930,8 @@ export default {
 			bookingFilter: null,
 			bookingFilterSearch: '',
 			journalOnlyNoAttachment: false,
+			// Mobil: Konto-Filter und „nur ohne Beleg“ aufgeklappt?
+			filtersOpen: false,
 			// Wie viele der gefilterten Buchungen gerade dargestellt werden.
 			journalLimit: JOURNAL_PAGE,
 			// Belegvorschläge (#229): Antwort von GET /attachments/suggestions
@@ -941,6 +980,10 @@ export default {
 		// (Zuordnen, Offene Posten) bleiben sie reine Trenner.
 		accountFilterOptions() {
 			return buildAccountOptions(this.accountsSorted, this.accountUsageCounts, this.t, { selectableCategories: true })
+		},
+
+		journalFilterActive() {
+			return !!this.bookingFilter || this.journalOnlyNoAttachment
 		},
 
 		bookingFilterAccountOption: {

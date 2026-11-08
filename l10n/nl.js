@@ -1607,6 +1607,7 @@ OC.L10N.register("vereinsbuchhaltung", {
 	"Forderungen an Mitglieder; allgemeine offene Posten ohne Mitglied stehen unter Buchungen.": "Vorderingen op leden; algemene openstaande posten zonder lid staan onder Boekingen.",
 	"Die Forderungen konnten nicht geladen werden.": "De vorderingen konden niet worden geladen.",
 	"Filter": "Filters",
+	"Filter (aktiv)": "Filter (actief)",
 	"Störfall": "Afwijking",
 	"Name enthält …": "Naam bevat …",
 	"Mitglied:": "Lid:",
