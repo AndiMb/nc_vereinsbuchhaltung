@@ -195,9 +195,56 @@ class InvoiceDunningService {
 
 		$doc = $this->documents->createDunningLetter($invoice, $level, $body, $remaining, $today);
 		$content = $this->documents->documentContent($invoiceId, (int)$doc->getId());
-
 		$snapshot = $invoice->debtorSnapshotData() ?? [];
-		$recipientName = (string)($snapshot['name'] ?? '');
+		$this->deliver($invoice, $level, $to, (string)($snapshot['name'] ?? ''), $subject, $body, $content, $board);
+
+		$dunning = new InvoiceDunning();
+		$dunning->setInvoiceId($invoiceId);
+		$dunning->setLevel($level);
+		$dunning->setSentAt((new \DateTimeImmutable())->format(\DateTimeInterface::ATOM)); // UTC-Zeitstempel (#263)
+		$dunning->setSentTo($to);
+		$dunning->setRemainingCents($remaining);
+		$dunning->setDocumentId((int)$doc->getId());
+		$dunning->setAuto($auto ? 1 : 0);
+		$dunning->setCreatedBy($auto ? 'system' : $this->actor());
+		$dunning = $this->dunnings->insert($dunning);
+		$this->audit->log($auto ? 'Rechnung automatisch gemahnt' : 'Rechnung gemahnt', 'invoice', $invoiceId, ['number' => $invoice->getNumber(), 'level' => $level, 'to' => $to, 'copyBoard' => $board !== null]);
+		return $dunning;
+	}
+
+	/**
+	 * Testversand (#216): dasselbe Mahnschreiben an die eigene Adresse, Betreff
+	 * mit „[TEST]“. Das PDF wird nur erzeugt, nicht abgelegt; es entsteht weder
+	 * eine Mahnung noch ein Protokolleintrag, und der Vorstand bekommt keine Kopie.
+	 *
+	 * @param string $to die Adresse des angemeldeten Nutzers (bestimmt der Controller)
+	 * @throws DoesNotExistException
+	 * @throws \InvalidArgumentException wenn die Rechnung nicht gemahnt werden darf, die Stufe nicht passt oder die Adresse fehlt
+	 * @throws \RuntimeException wenn PDF oder Mailversand scheitern
+	 */
+	public function sendTest(int $invoiceId, string $to, ?string $subject = null, ?string $body = null, ?int $level = null, ?string $today = null): void {
+		$today ??= $this->clock->today();
+		[$invoice, $remaining] = $this->mahnable($invoiceId, $today);
+		$level ??= $this->nextLevel($invoiceId);
+		$this->assertLevel($invoiceId, $level);
+		$to = trim($to);
+		if (!EmailValidator::isValid($to)) {
+			throw new \InvalidArgumentException($this->l10n->t('Für den Testversand fehlt in Ihrem Nextcloud-Konto eine gültige E-Mail-Adresse.'));
+		}
+		$subject = $subject !== null && trim($subject) !== '' ? trim($subject) : $this->fill($this->subjectTemplate(), $invoice, $level, $remaining, $today);
+		$body = $body !== null && trim($body) !== '' ? trim($body) : $this->fill($this->bodyTemplate($level), $invoice, $level, $remaining, $today);
+		$content = $this->documents->dunningLetterForTest($invoice, $level, $body, $remaining, $today);
+		// Ohne Anzeigenamen: die Mail geht an die eigene Adresse, nicht an den Kunden.
+		$this->deliver($invoice, $level, $to, '', '[TEST] ' . $subject, $body, $content, null);
+	}
+
+	/**
+	 * Baut die Mahn-Mail und verschickt sie; ohne Folgen für die Rechnung.
+	 *
+	 * @param array{content: string, fileName: string} $letter
+	 * @throws UserFacingException wenn der Mailversand scheitert
+	 */
+	private function deliver(Invoice $invoice, int $level, string $to, string $recipientName, string $subject, string $body, array $letter, ?string $board): void {
 		$template = $this->mailer->createEMailTemplate('vereinsbuchhaltung.invoice_dunning');
 		$template->setSubject($subject);
 		$this->mailBranding->addHeader($template);
@@ -215,7 +262,7 @@ class InvoiceDunningService {
 		if ($board !== null) {
 			$message->setBcc([$board]);
 		}
-		$message->attach($this->mailer->createAttachment($content['content'], $content['fileName'], 'application/pdf'));
+		$message->attach($this->mailer->createAttachment($letter['content'], $letter['fileName'], 'application/pdf'));
 
 		try {
 			$failed = $this->mailer->send($message);
@@ -226,19 +273,6 @@ class InvoiceDunningService {
 		if ($failed !== []) {
 			throw new UserFacingException($this->l10n->t('Die E-Mail wurde vom Mailserver nicht angenommen.'));
 		}
-
-		$dunning = new InvoiceDunning();
-		$dunning->setInvoiceId($invoiceId);
-		$dunning->setLevel($level);
-		$dunning->setSentAt((new \DateTimeImmutable())->format(\DateTimeInterface::ATOM)); // UTC-Zeitstempel (#263)
-		$dunning->setSentTo($to);
-		$dunning->setRemainingCents($remaining);
-		$dunning->setDocumentId((int)$doc->getId());
-		$dunning->setAuto($auto ? 1 : 0);
-		$dunning->setCreatedBy($auto ? 'system' : $this->actor());
-		$dunning = $this->dunnings->insert($dunning);
-		$this->audit->log($auto ? 'Rechnung automatisch gemahnt' : 'Rechnung gemahnt', 'invoice', $invoiceId, ['number' => $invoice->getNumber(), 'level' => $level, 'to' => $to, 'copyBoard' => $board !== null]);
-		return $dunning;
 	}
 
 	/**

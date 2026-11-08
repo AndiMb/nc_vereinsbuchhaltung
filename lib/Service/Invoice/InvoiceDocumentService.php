@@ -15,6 +15,7 @@ use OCA\Vereinsbuchhaltung\Service\BrandingService;
 use OCA\Vereinsbuchhaltung\Service\EInvoice\EInvoiceData;
 use OCA\Vereinsbuchhaltung\Service\InvoiceBankAccountService;
 use OCA\Vereinsbuchhaltung\Service\InvoiceSettings;
+use OCA\Vereinsbuchhaltung\Service\SafeFileName;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\IL10N;
 
@@ -86,6 +87,45 @@ class InvoiceDocumentService {
 	}
 
 	/**
+	 * PDF für den Testversand (#216): wie pdfContent(), legt aber nichts ab.
+	 * Fehlt einer festgeschriebenen Rechnung das PDF noch, wird es nur erzeugt –
+	 * abgelegt (und protokolliert) wird es erst beim echten Versand oder Abruf.
+	 *
+	 * @return array{content: string, fileName: string}
+	 * @throws DoesNotExistException
+	 * @throws \RuntimeException
+	 */
+	public function pdfContentForTest(int $invoiceId): array {
+		$invoice = $this->invoices->find($invoiceId);
+		if (!$invoice->isIssued()) {
+			return $this->pdfContent($invoiceId);
+		}
+		$existing = $this->documents->findByInvoiceAndKind($invoiceId, InvoiceDocument::KIND_PDF);
+		$content = $existing !== null ? $this->storage->readOrNull($existing) : null;
+		if ($existing !== null && $content !== null) {
+			return ['content' => $content, 'fileName' => $existing->getFileName()];
+		}
+		return [
+			'content' => $this->renderer->render($this->pdfData($invoice, false)),
+			'fileName' => SafeFileName::of((string)$invoice->getNumber(), 100) . '.pdf',
+		];
+	}
+
+	/**
+	 * Mahnschreiben für den Testversand (#216): dieselben Bytes wie
+	 * createDunningLetter(), aber ohne Ablage und ohne Protokolleintrag.
+	 *
+	 * @return array{content: string, fileName: string}
+	 * @throws \RuntimeException wenn die PDF-Erzeugung scheitert
+	 */
+	public function dunningLetterForTest(Invoice $invoice, int $level, string $body, int $remainingCents, string $letterDate): array {
+		return [
+			'content' => $this->renderer->renderDunning($this->pdfData($invoice, false), $level, $body, $remainingCents, $letterDate),
+			'fileName' => SafeFileName::of((string)($invoice->getNumber() ?? ('Rechnung-' . $invoice->getId())), 100) . '-mahnung-' . $level . '.pdf',
+		];
+	}
+
+	/**
 	 * Inhalt eines gespeicherten Dokuments.
 	 *
 	 * @return array{content: string, fileName: string, kind: string}
@@ -132,8 +172,13 @@ class InvoiceDocumentService {
 		return new EInvoiceData($data->invoice, $data->lines, $data->debtor, $data->issuer, $data->bank, $data->precedingNumber, $data->precedingDate);
 	}
 
-	private function pdfData(Invoice $invoice, bool $preview): InvoicePdfData {
-		$lines = $this->lines->findByInvoice((int)$invoice->getId());
+	/**
+	 * Empfängerangaben: der Schnappschuss vom Festschreiben, bei Entwürfen der
+	 * aktuelle Stand des Empfängers.
+	 *
+	 * @return array<string, mixed>|null
+	 */
+	public function debtorSnapshot(Invoice $invoice): ?array {
 		$snapshot = $invoice->debtorSnapshotData();
 		if ($snapshot === null && $invoice->getDebtorId() !== null) {
 			try {
@@ -141,6 +186,12 @@ class InvoiceDocumentService {
 			} catch (DoesNotExistException) {
 			}
 		}
+		return $snapshot;
+	}
+
+	private function pdfData(Invoice $invoice, bool $preview): InvoicePdfData {
+		$lines = $this->lines->findByInvoice((int)$invoice->getId());
+		$snapshot = $this->debtorSnapshot($invoice);
 		$precedingNumber = null;
 		$precedingDate = null;
 		if ($invoice->isCredit() && $invoice->getPrecedingInvoiceId() !== null) {

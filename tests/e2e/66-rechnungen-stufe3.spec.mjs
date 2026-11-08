@@ -167,6 +167,28 @@ test.describe.serial('Rechnungen Stufe 3', () => {
 		expect(detail.dunning.history).toEqual([])
 	})
 
+	test('Testversand (#216): nur für Verwalter, an die eigene Adresse, nie für bezahlte Rechnungen', async ({ request }) => {
+		const list = await api.getJson(request, '/invoices')
+		const overdue = list.find((i) => i.dunning?.due)
+		const paid = list.find((i) => i.status === 'paid')
+
+		// Die Vorgaben nennen die Adresse des eigenen Kontos, nicht die des Kunden.
+		const mail = await api.getJson(request, `/invoices/${overdue.id}/mail-defaults`)
+		expect(typeof mail.testTo).toBe('string')
+		expect(mail.to).toBe('info@studio-e2e.example')
+		const dunning = await api.getJson(request, `/invoices/${overdue.id}/dunning-defaults`)
+		expect(typeof dunning.testTo).toBe('string')
+
+		// Eine Empfängeradresse aus der Anfrage zählt nicht – Buchhalter dürfen gar nicht.
+		expect((await api.raw(request, 'POST', `/invoices/${overdue.id}/send-test`, { user: USERS.buchhalter, data: {} })).status()).toBe(403)
+		expect((await api.raw(request, 'POST', `/invoices/${overdue.id}/dunning-test`, { user: USERS.buchhalter, data: {} })).status()).toBe(403)
+		expect((await api.raw(request, 'POST', `/invoices/${paid.id}/dunning-test`, { data: {} })).status()).toBe(400)
+
+		// Der Testversand hinterlässt keine Mahnung.
+		const detail = await api.getJson(request, `/invoices/${overdue.id}`)
+		expect(detail.dunning.history).toEqual([])
+	})
+
 	test('Das Prüfungs-ZIP enthält die Rechnungen mit Übersicht und Prüfsummen', async ({ request }) => {
 		const response = await api.raw(request, 'GET', '/export/attachments')
 		expect(response.status()).toBe(200)

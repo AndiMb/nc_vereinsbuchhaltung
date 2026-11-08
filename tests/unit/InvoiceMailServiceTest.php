@@ -11,6 +11,7 @@ use OCA\Vereinsbuchhaltung\Service\Invoice\InvoiceDocumentService;
 use OCA\Vereinsbuchhaltung\Service\Invoice\InvoiceMailService;
 use OCA\Vereinsbuchhaltung\Service\InvoiceService;
 use OCA\Vereinsbuchhaltung\Service\InvoiceSettings;
+use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubClockStub;
 use OCP\IL10N;
 use OCP\Mail\IAttachment;
 use OCP\Mail\IEMailTemplate;
@@ -56,7 +57,7 @@ class InvoiceMailServiceTest extends TestCase {
 		$l10n = $this->createMock(IL10N::class);
 		$l10n->method('t')->willReturnCallback(static fn (string $text, $params = []) => vsprintf($text, (array)$params));
 		$l10n->method('getLanguageCode')->willReturn('de');
-		return new InvoiceMailService($this->mailer, $invoices, $this->service, $this->documents, $this->settings, $this->createMock(LoggerInterface::class), $l10n, $this->createMock(ClubMailBranding::class));
+		return new InvoiceMailService($this->mailer, $invoices, $this->service, $this->documents, $this->settings, $this->createMock(LoggerInterface::class), $l10n, $this->createMock(ClubMailBranding::class), ClubClockStub::at('2026-03-05T10:00:00Z'));
 	}
 
 	private function mockMessage(): IMessage&MockObject {
@@ -193,6 +194,96 @@ class InvoiceMailServiceTest extends TestCase {
 		$s->send(1, 'a@b.example');
 	}
 
+	// ------------------------------------------------------------------
+	// Testversand (#216): dieselbe Mail an die eigene Adresse, ohne Folgen
+	// ------------------------------------------------------------------
+
+	public function testTestversandSchicktDieMailOhneVersandvermerk(): void {
+		$s = $this->service();
+		$message = $this->mockMessage();
+		$this->documents->expects($this->once())->method('pdfContentForTest')->with(1)->willReturn(['content' => '%PDF-1.7', 'fileName' => 'RE-2026-0042.pdf']);
+		$this->documents->expects($this->never())->method('pdfContent');
+		$message->expects($this->once())->method('setTo')->with(['ich@verein.example'])->willReturnSelf();
+		$message->expects($this->once())->method('attach');
+		$message->expects($this->never())->method('setBcc');
+		$this->mailer->expects($this->once())->method('send')->willReturn([]);
+		$this->service->expects($this->never())->method('markSent');
+
+		$s->sendTest(1, 'ich@verein.example');
+	}
+
+	public function testTestversandKennzeichnetDenBetreff(): void {
+		$s = $this->service();
+		$this->mockMessage();
+		$this->documents->method('pdfContentForTest')->willReturn(['content' => '%PDF', 'fileName' => 'x.pdf']);
+		/** @var IEMailTemplate&MockObject $template */
+		$template = $this->mailer->createEMailTemplate('x');
+		$template->expects($this->once())->method('setSubject')->with('[TEST] Mein Betreff');
+		$this->mailer->method('send')->willReturn([]);
+
+		$s->sendTest(1, 'ich@verein.example', 'Mein Betreff');
+	}
+
+	public function testTestversandGehtAuchFuerEntwuerfe(): void {
+		$this->invoice->setIssuedAt(null);
+		$this->invoice->setStatus(Invoice::STATUS_DRAFT);
+		$this->invoice->setNumber(null);
+		$s = $this->service();
+		$this->mockMessage();
+		$this->documents->method('pdfContentForTest')->willReturn(['content' => '%PDF', 'fileName' => 'Rechnung-Entwurf.pdf']);
+		$this->mailer->expects($this->once())->method('send')->willReturn([]);
+		$this->service->expects($this->never())->method('markSent');
+
+		$s->sendTest(1, 'ich@verein.example');
+	}
+
+	public function testEntwurfVorgabenNennenStattDerNummerDenEntwurf(): void {
+		$this->invoice->setIssuedAt(null);
+		$this->invoice->setStatus(Invoice::STATUS_DRAFT);
+		$this->invoice->setNumber(null);
+
+		$defaults = $this->service()->defaults(1);
+
+		$this->assertSame('Rechnung Entwurf von TSV Beispiel e. V.', $defaults['subject']);
+		$this->assertSame('Rechnung-Entwurf.pdf', $defaults['fileName']);
+	}
+
+	public function testEntwurfVorgabenNennenEmpfaengerUndVoraussichtlichesZahlungsziel(): void {
+		// Ein Entwurf hat noch keinen Empfänger-Schnappschuss und kein Zahlungsziel;
+		// der Text soll trotzdem so aussehen wie nach dem Festschreiben heute.
+		$this->invoice->setIssuedAt(null);
+		$this->invoice->setStatus(Invoice::STATUS_DRAFT);
+		$this->invoice->setNumber(null);
+		$this->invoice->setDebtorSnapshot(null);
+		$this->invoice->setDebtorId(5);
+		$this->invoice->setDueDate(null);
+		$s = $this->service();
+		$this->settings->method('defaultDueDays')->willReturn(14);
+		$this->documents->method('debtorSnapshot')->willReturn(['name' => 'Muster GmbH', 'email' => 'buchhaltung@muster.example']);
+
+		$body = $s->defaults(1)['body'];
+
+		$this->assertStringContainsString('Guten Tag Muster GmbH,', $body);
+		$this->assertStringContainsString('bis zum 19.03.2026.', $body);
+	}
+
+	public function testStornierteRechnungLaesstSichNichtTestweiseVerschicken(): void {
+		$this->invoice->setStatus(Invoice::STATUS_CANCELLED);
+		$s = $this->service();
+		$this->mailer->expects($this->never())->method('send');
+
+		$this->expectException(\InvalidArgumentException::class);
+		$s->sendTest(1, 'ich@verein.example');
+	}
+
+	public function testTestversandOhneEigeneAdresseVerschicktNichts(): void {
+		$s = $this->service();
+		$this->mailer->expects($this->never())->method('send');
+
+		$this->expectException(\InvalidArgumentException::class);
+		$s->sendTest(1, '');
+	}
+
 	public function testBetreffUndTextLassenSichBeimVersandUeberschreiben(): void {
 		$s = $this->service();
 		$this->mockMessage();
@@ -222,7 +313,7 @@ class InvoiceMailServiceTest extends TestCase {
 		$service = $this->createMock(InvoiceService::class);
 		$service->method('markSent')->willReturn($this->invoice);
 
-		(new InvoiceMailService($this->mailer, $invoices, $service, $documents, $settings, $this->createMock(LoggerInterface::class), $l10n, $this->createMock(ClubMailBranding::class)))
+		(new InvoiceMailService($this->mailer, $invoices, $service, $documents, $settings, $this->createMock(LoggerInterface::class), $l10n, $this->createMock(ClubMailBranding::class), ClubClockStub::system()))
 			->send(1, 'a@b.example', 'Mein Betreff', 'Mein Text');
 	}
 }

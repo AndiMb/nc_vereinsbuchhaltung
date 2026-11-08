@@ -220,6 +220,41 @@ class InvoiceDunningServiceTest extends TestCase {
 		$s->send(1, 'zahler@example.org', null, null, null, false, self::TODAY, true);
 	}
 
+	// Testversand (#216): dasselbe Mahnschreiben an die eigene Adresse, ohne Folgen.
+
+	public function testTestversandLegtNichtsAbUndMerktKeineMahnung(): void {
+		$this->boardEmail = 'vorstand@verein.example';
+		$this->copyBoardSetting = true;
+		$s = $this->service();
+		$message = $this->expectMail(1);
+		$message->expects($this->once())->method('setTo')->with(['ich@verein.example'])->willReturnSelf();
+		$message->expects($this->never())->method('setBcc');
+		$this->documents->expects($this->never())->method('createDunningLetter');
+		$this->documents->expects($this->once())->method('dunningLetterForTest')->willReturn(['content' => '%PDF', 'fileName' => 'RE-2026-0001-mahnung-1.pdf']);
+		$this->dunnings->expects($this->never())->method('insert');
+
+		$s->sendTest(1, 'ich@verein.example', null, null, null, self::TODAY);
+	}
+
+	public function testTestversandKennzeichnetDenBetreff(): void {
+		$s = $this->service();
+		$this->expectMail(1);
+		$this->documents->method('dunningLetterForTest')->willReturn(['content' => '%PDF', 'fileName' => 'x.pdf']);
+		/** @var IEMailTemplate&MockObject $template */
+		$template = $this->mailer->createEMailTemplate('x');
+		$template->expects($this->once())->method('setSubject')->with('[TEST] Erinnerung');
+
+		$s->sendTest(1, 'ich@verein.example', 'Erinnerung', null, null, self::TODAY);
+	}
+
+	public function testTestversandOhneEigeneAdresseVerschicktNichts(): void {
+		$s = $this->service();
+		$this->mailer->expects($this->never())->method('send');
+
+		$this->expectException(\InvalidArgumentException::class);
+		$s->sendTest(1, '', null, null, null, self::TODAY);
+	}
+
 	public function testOhneAngabeGiltDieEinstellung(): void {
 		$this->boardEmail = 'vorstand@verein.example';
 		$this->copyBoardSetting = true;
