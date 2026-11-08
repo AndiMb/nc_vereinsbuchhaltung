@@ -43,6 +43,7 @@
 				<NcCheckboxRadioSwitch v-if="boardEmail" v-model="form.copyBoard" type="switch">
 					{{ t('Kopie an Vorstand') }}
 				</NcCheckboxRadioSwitch>
+				<TestSendHint :testTo="testTo" />
 			</template>
 			<p v-if="error" class="vbh-hint vbh-hint--error" role="alert">
 				{{ error }}
@@ -50,6 +51,13 @@
 			<div class="vbh-modal-actions">
 				<NcButton variant="tertiary" @click="$emit('close')">
 					{{ t('Abbrechen') }}
+				</NcButton>
+				<NcButton
+					variant="secondary"
+					:disabled="loading || busy || !testTo"
+					:title="testTo ? tRaw('Schickt das Mahnschreiben mit „[TEST]“ im Betreff an {email}. Es wird nicht abgelegt und zählt nicht als Mahnung.', { email: testTo }) : ''"
+					@click="sendTest">
+					{{ t('Test an mich senden') }}
 				</NcButton>
 				<NcButton variant="primary" :disabled="loading || busy || !form.to.trim()" @click="send">
 					{{ t('Mahnung senden') }}
@@ -60,10 +68,12 @@
 </template>
 
 <script>
+import { showSuccess } from '@nextcloud/dialogs'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcCheckboxRadioSwitch from '@nextcloud/vue/components/NcCheckboxRadioSwitch'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import NcModal from '@nextcloud/vue/components/NcModal'
+import TestSendHint from './TestSendHint.vue'
 import api from '../api.js'
 import { errMsg, formatMoney } from '../lib/format.js'
 import { dunningLabel } from '../lib/invoices.js'
@@ -71,7 +81,7 @@ import { dunningLabel } from '../lib/invoices.js'
 /** Zahlungserinnerung oder Mahnung zu einer Rechnung verschicken (Epic #168, Stufe 3). */
 export default {
 	name: 'InvoiceDunningDialog',
-	components: { NcModal, NcButton, NcCheckboxRadioSwitch, NcLoadingIcon },
+	components: { NcModal, NcButton, NcCheckboxRadioSwitch, NcLoadingIcon, TestSendHint },
 	props: {
 		show: { type: Boolean, default: false },
 		invoice: { type: Object, default: null },
@@ -80,7 +90,7 @@ export default {
 	emits: ['close', 'sent', 'update:show'],
 
 	data() {
-		return { loading: false, busy: false, error: '', remaining: 0, boardEmail: '', form: { level: 1, to: '', subject: '', body: '', copyBoard: false } }
+		return { loading: false, busy: false, error: '', remaining: 0, boardEmail: '', testTo: '', form: { level: 1, to: '', subject: '', body: '', copyBoard: false } }
 	},
 
 	computed: {
@@ -110,6 +120,7 @@ export default {
 				const { data } = await api.invoiceDunningDefaults(this.invoice.id, level)
 				this.form = { level: data.level, to: data.to, subject: data.subject, body: data.body, copyBoard: !!data.copyBoard }
 				this.boardEmail = data.boardEmail || ''
+				this.testTo = data.testTo || ''
 				this.remaining = data.remainingCents
 			} catch (e) {
 				this.error = errMsg(e, this.t('Die Vorgaben konnten nicht geladen werden.'))
@@ -126,6 +137,21 @@ export default {
 				this.$emit('sent', data)
 			} catch (e) {
 				this.error = errMsg(e, this.t('Die Mahnung konnte nicht gesendet werden.'))
+			} finally {
+				this.busy = false
+			}
+		},
+
+		/** Dasselbe Mahnschreiben an die eigene Adresse; es zählt nicht als Mahnung (#216). */
+		async sendTest() {
+			this.busy = true
+			this.error = ''
+			try {
+				const { level, subject, body } = this.form
+				const { data } = await api.dunInvoiceTest(this.invoice.id, { level, subject, body })
+				showSuccess(this.tRaw('Testmail an {email} gesendet.', { email: data.sentTo }))
+			} catch (e) {
+				this.error = errMsg(e, this.t('Die Testmail konnte nicht gesendet werden.'))
 			} finally {
 				this.busy = false
 			}

@@ -1,5 +1,17 @@
 {
     "translations": {
+        "Für den Testversand fehlt in Ihrem Nextcloud-Konto eine gültige E-Mail-Adresse.": "Your Nextcloud account has no valid email address for the test send.",
+        "Stornierte Rechnungen lassen sich nicht versenden.": "Cancelled invoices cannot be sent.",
+        "Testversand …": "Test send …",
+        "Testmail an {email} gesendet.": "Test email sent to {email}.",
+        "Die Testmail konnte nicht gesendet werden.": "The test email could not be sent.",
+        "Schickt das Mahnschreiben mit „[TEST]“ im Betreff an {email}. Es wird nicht abgelegt und zählt nicht als Mahnung.": "Sends the dunning letter to {email} with “[TEST]” in the subject. It is not stored and does not count as a reminder.",
+        "Test an mich senden": "Send test to me",
+        "Testversand für den Rechnungsentwurf": "Test send for the draft invoice",
+        "Ein Entwurf geht noch nicht an Kunden. Der Testversand zeigt Ihnen, wie die Mail mit Absender, Logo und PDF ankommt.": "A draft is not sent to customers yet. The test send shows you how the email arrives, with sender, logo and PDF.",
+        "Schickt diese Mail mit „[TEST]“ im Betreff an {email}. An der Rechnung ändert sich nichts.": "Sends this email to {email} with “[TEST]” in the subject. The invoice does not change.",
+        "Für den Testversand fehlt in Ihrem Nextcloud-Konto eine E-Mail-Adresse.": "Your Nextcloud account has no email address for the test send.",
+        "In den persönlichen Einstellungen eintragen": "Add it in your personal settings",
         "Name auf Rechnungen (optional)": "Name on invoices (optional)",
         "Nur nötig, wenn der Vereinsname auf Rechnungen anders lauten soll, etwa weil er sehr lang ist. Er steht dann im Briefkopf, in der Absenderzeile, in der Fußzeile, in der E-Rechnung und in den Rechnungs-Mails. Leer gilt der Vereinsname.": "Only needed if the club name should read differently on invoices, for example because it is very long. It then appears in the letterhead, the sender line, the footer, the e-invoice and the invoice emails. If empty, the club name is used.",
         "Kontoinhaber (optional)": "Account holder (optional)",
