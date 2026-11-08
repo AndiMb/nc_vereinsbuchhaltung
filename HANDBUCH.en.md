@@ -1770,7 +1770,9 @@ under *Former mandates* are the ended ones.
 **Blocking and unblocking** each require a note; it appears in the history.
 A block ends nothing, open claims stay open. A block after a returned direct
 debit is set by the app itself and marked as such – you have to unblock by
-hand once the case is resolved.
+hand once the case is resolved. If a blocked mandate ends (for example through
+revocation), the member cannot grant a new mandate themselves under *My
+contribution*; you create the new one.
 
 **Change bank details** covers three cases: only the **IBAN** has changed
 (the same mandate stays, a new signature isn't needed; the app reports the
@@ -2450,7 +2452,8 @@ the run only freezes it at release – so it can be changed until then.
 revocation is final, the still-open total is named (the member gets a payment
 request for it), and the first choice offered is "I only have a new account →
 change IBAN". For a **suspended** mandate the IBAN can't be changed; the dialog
-then refers the member to the club. A **draft** can be discarded by the member
+then refers the member to the club. After revoking a suspended mandate the
+member cannot grant a new one either – only the club lifts the block. A **draft** can be discarded by the member
 but not corrected (13.2).
 
 **Receipt and trail.** The app confirms every change to the member by email:

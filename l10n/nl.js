@@ -4371,5 +4371,6 @@ OC.L10N.register("vereinsbuchhaltung", {
 	"Behoben: Zwischen 0 und 2 Uhr galt noch der Vortag als „heute“. Fälligkeiten und Mahnfristen rechnen jetzt ab dem Vereinstag.": "Opgelost: tussen 0 en 2 uur gold nog de vorige dag als „vandaag”. Vervaldata en aanmaningstermijnen rekenen nu vanaf de verenigingsdag.",
 	"Schneller: Start, Buchungsliste, Offene Posten, „Zuzuordnen“ und Aufgaben laden deutlich weniger Daten.": "Sneller: opstarten, boekingslijst, openstaande posten, „Toe te wijzen” en taken laden aanzienlijk minder gegevens.",
 	"Auswertungsgruppe in der Kontonummer": "Rapportagegroep in het rekeningnummer",
-	"Dieser Empfänger ist anonymisiert und kann nicht mehr bearbeitet werden.": "Deze ontvanger is geanonimiseerd en kan niet meer worden bewerkt."
+	"Dieser Empfänger ist anonymisiert und kann nicht mehr bearbeitet werden.": "Deze ontvanger is geanonimiseerd en kan niet meer worden bewerkt.",
+	"Ihr letztes Mandat war gesperrt, als es endete. Ein neues Mandat richtet Ihnen der Verein ein – bitte wenden Sie sich an ihn.": "Uw laatste machtiging was geblokkeerd toen deze eindigde. De vereniging richt een nieuwe machtiging voor u in – neem contact met de vereniging op."
 }, "nplurals=2; plural=(n != 1);");

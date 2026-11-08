@@ -4371,5 +4371,6 @@ OC.L10N.register("vereinsbuchhaltung", {
 	"Behoben: Zwischen 0 und 2 Uhr galt noch der Vortag als „heute“. Fälligkeiten und Mahnfristen rechnen jetzt ab dem Vereinstag.": "Fixed: between 00:00 and 02:00 “today” was still yesterday. Due dates and dunning deadlines now count from the club day.",
 	"Schneller: Start, Buchungsliste, Offene Posten, „Zuzuordnen“ und Aufgaben laden deutlich weniger Daten.": "Faster: startup, booking list, open items, “To assign” and tasks load much less data.",
 	"Auswertungsgruppe in der Kontonummer": "Reporting group in the account number",
-	"Dieser Empfänger ist anonymisiert und kann nicht mehr bearbeitet werden.": "This recipient has been anonymised and can no longer be edited."
+	"Dieser Empfänger ist anonymisiert und kann nicht mehr bearbeitet werden.": "This recipient has been anonymised and can no longer be edited.",
+	"Ihr letztes Mandat war gesperrt, als es endete. Ein neues Mandat richtet Ihnen der Verein ein – bitte wenden Sie sich an ihn.": "Your last mandate was suspended when it ended. The club will set up a new mandate for you – please contact the club."
 }, "nplurals=2; plural=(n != 1);");
