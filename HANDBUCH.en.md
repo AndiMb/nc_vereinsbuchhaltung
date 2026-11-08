@@ -126,6 +126,13 @@ accounts via the "Parent" field).
 Every account has:
 - a **number** (free-form, e.g. 1200),
 - a **name**,
+- optionally a **short name**: it appears in selection lists and the journal
+  instead of the name – handy for long names; search still finds both. The
+  account header and the reports show the full name; in the account tree it
+  appears on hover,
+- optionally a **description** (Markdown: **bold**, *italic*, lists, links):
+  it appears in the account above the bookings and explains, for example to
+  a new treasurer, what the account is for,
 - a **type** (income, expenses, fixed/current asset, liability, equity),
 - optionally the **bank account** flag (for cash accounts – only these
   accumulate across the fiscal-year boundary),
@@ -202,7 +209,9 @@ renamed freely within the watch folder; receipts moved out of the watch
 folder count as missing.
 
 Only Nextcloud administrators may choose or change a folder in another
-user's home; this also applies to the watched folder from chapter 3.3.
+user's home; this also applies to the watched folder from chapter 3.3 and to
+the folders for mandate documents, invoices and SEPA XML files, which live in
+the home of the receipt-storage user.
 Administrators of the app without those rights choose their own home, and a
 foreign folder that is already set up stays valid.
 
@@ -1327,11 +1336,16 @@ account type, bank-account flag, sphere, reserve type and reporting group. This
 only affects accounts that actually have postings in the closed year. The
 reason: turning an income account into an expense account flips the sign in
 every report – the treasurer's report of the closed year would look
-different afterwards, without anyone having touched a posting. **Freely
-changeable remain** the number, name, category, parent account and the
-active toggle; they only change the label and sorting. Anyone who still
-needs to change a locked property reopens the year (chapter 8.4) and closes
-it again afterwards.
+different afterwards, without anyone having touched a posting. This also
+applies to **assigning and removing accounts in the reporting groups
+overview** and to **deleting a group** that such an account belongs to.
+**Freely changeable remain** the number, name, category, parent account and
+the active toggle; they only change the label and sorting. One exception for
+the number: if the reporting groups are derived from the account number
+(second group of digits), that group of digits can no longer be changed –
+otherwise the account would move to another group. Anyone who still needs to
+change a locked property reopens the year (chapter 8.4) and closes it again
+afterwards.
 
 > **For the watch folder, this means:** if someone drops a statement that
 > falls into a closed year, the transactions are read in but stay
@@ -1647,11 +1661,25 @@ can be linked in the member's record ("Nextcloud account" (*Nextcloud-Konto*)
 → "Find suggestions" (*Vorschläge suchen*), only after your confirmation –
 the email address merely supplies the suggestion).
 
+**The member confirms the link.** Every user enters the email address in
+their Nextcloud profile themselves, unchecked. A suggestion therefore does not
+prove that the account belongs to the member. That is why a link only takes
+effect once the member confirms it: linking sends a one-time link to the
+**email address in the record** (without one, you cannot link). The member
+logs in with the linked account and confirms; it does not work with any other
+account. Until then the link shows **"Confirmation pending"** (*Bestätigung
+ausstehend*): the account sees no self-service, and notifications are not sent
+to its address. The link is valid for 7 days; in the record, *Resend
+confirmation link* (*Bestätigungslink erneut senden*) sends a new one.
+Suggestion and confirmation dialog show the account's **user ID** – any
+account can choose its display name and email address freely, but not its ID.
+Links that existed before this rule count as confirmed.
+
 The member list shows in the **"Nextcloud account?"** column (*Nextcloud-Konto?*)
-whether an account is linked: "Yes", a link **"Link suggestion …"** (exactly one
-account carries the member's email address; it is linked after a
-confirmation), a button into the record when there are several matches,
-otherwise "No".
+whether an account is linked: "Yes", "Confirmation pending", a link **"Link
+suggestion …"** with the user ID (exactly one account carries the member's
+email address; it is linked after a confirmation), a button into the record
+when there are several matches, otherwise "No".
 
 When **admitting** a member you can **create a Nextcloud account** right away
 (*Create a Nextcloud account for this member*): account name (suggested from
@@ -1660,7 +1688,8 @@ invitation with a link to set the password –, groups, storage and language,
 the same details as in the user management. Only Nextcloud administrators,
 delegated administrators and group administrators (for their groups) see the
 section; the rights and password rules are Nextcloud's. The new account is
-linked to the record. If creating it fails, the member is admitted anyway – it
+linked to the record; here too, the link only takes effect once the member
+confirms it. If creating it fails, the member is admitted anyway – it
 can be done later in the record under *Nextcloud account* → *Create a new
 Nextcloud account …*.
 
@@ -1741,7 +1770,9 @@ under *Former mandates* are the ended ones.
 **Blocking and unblocking** each require a note; it appears in the history.
 A block ends nothing, open claims stay open. A block after a returned direct
 debit is set by the app itself and marked as such – you have to unblock by
-hand once the case is resolved.
+hand once the case is resolved. If a blocked mandate ends (for example through
+revocation), the member cannot grant a new mandate themselves under *My
+contribution*; you create the new one.
 
 **Change bank details** covers three cases: only the **IBAN** has changed
 (the same mandate stays, a new signature isn't needed; the app reports the
@@ -2080,7 +2111,10 @@ As long as the file has **not been submitted**, the run can still be changed:
   the items remain as history, the claims are free again and go into a new
   run, the end-to-end IDs are never used again. If mandate data has changed
   since the release, the run points this out – discard it then and release
-  the date again, the new file contains the current data.
+  the date again, the new file contains the current data. The run names
+  items whose mandate has since been revoked, suspended or ended separately:
+  the file would still collect from them. You then confirm "submitted" only
+  after an extra prompt – for example if the file is already at the bank.
 - **"Move date"** (*Termin verschieben*) only works to a later date (an
   earlier date would fall below the lead times); the file then carries the
   new date, identifier and end-to-end IDs stay. Download it again
@@ -2374,7 +2408,8 @@ saving.
    Nextcloud accounts"** under *Nextcloud settings → Vereinsbuchhaltung → Fees &
    SEPA → Basic settings*. It is off by default.
 2. The member is linked to their Nextcloud account in the record (13.2) – after
-   your confirmation, never on its own.
+   your confirmation, never on its own – and has confirmed the link via the
+   link in their email.
 
 Optionally, right below it: **"Members may switch their payment method to bank
 transfer themselves under 'My contribution'"** (off by default). Only with this
@@ -2420,13 +2455,15 @@ the run only freezes it at release – so it can be changed until then.
 revocation is final, the still-open total is named (the member gets a payment
 request for it), and the first choice offered is "I only have a new account →
 change IBAN". For a **suspended** mandate the IBAN can't be changed; the dialog
-then refers the member to the club. A **draft** can be discarded by the member
+then refers the member to the club. After revoking a suspended mandate the
+member cannot grant a new one either – only the club lifts the block. A **draft** can be discarded by the member
 but not corrected (13.2).
 
 **Receipt and trail.** The app confirms every change to the member by email:
 what changed, from when, and which collection is the first one affected – also
 when the board changes the fee (13.4; the email then names it as the
-originator). The
+originator). Saving the contact details unchanged sends no email; contact
+changes and activation links are limited per hour (20 and 5). The
 email is the copy; the area has no event list of its own. In addition, an entry
 appears in the member's Nextcloud **Activity** (Nextcloud only sends an email for
 it on revocation, unless the member turned that off in their personal
@@ -2509,7 +2546,10 @@ therefore blacks out the person and leaves the figures:
   free text of the history – reasons for suspension, deferral, waiver and
   cancellation, the reason for an individual minimum, representation notes and
   the free text of a returned debit. The claims' debtor then reads "Anonymisiertes
-  Mitglied" ("anonymized member").
+  Mitglied" ("anonymized member"). An invoice recipient created from the member
+  is blacked out as well (name, address, email, note); it disappears from the
+  recipient selection and can no longer be edited, while the customer number
+  and the invoices stay.
 - **What stays.** Amounts, dates, states, return codes and mandate references –
   what the books document. The record is read-only afterwards and carries the
   anonymization note.
@@ -2517,7 +2557,9 @@ therefore blacks out the person and leaves the figures:
 A deleted Nextcloud account doesn't trigger the anonymization, and the
 anonymization doesn't dissolve the account link: the two are independent (when
 an account is deleted, the member stays, the email address is taken over and a
-task asks for a check, 13.9).
+task asks for a check, 13.9). Once the member is anonymized, the record stays
+empty: the linked account has **no self-service** any more, so it cannot write
+contact data back either, and deleting the account takes over no email address.
 
 **Encrypted bank details.** The IBANs of members and payers – on mandates, in
 collection items and in bank transactions – and the search values of the
@@ -2670,7 +2712,7 @@ With the invoice module the association issues invoices in its own name – for 
 *Nextcloud settings → Vereinsbuchhaltung → Invoices* (administrators only):
 
 1. **Turn on the invoice module.**
-2. Enter the **details of the association**. Section 14 (4) UStG requires the name and address and the **tax number** (from the tax office) or the VAT ID. Register, board, phone and email additionally appear in the footer of the invoice. You maintain the name of the association further up under "Club".
+2. Enter the **details of the association**. Section 14 (4) UStG requires the name and address and the **tax number** (from the tax office) or the VAT ID. Register, board, phone and email additionally appear in the footer of the invoice. You maintain the name of the association further up under "Club". If it is too long for invoices or should read differently there, enter a **name on invoices**; it then appears in the letterhead, the sender line, the footer, the e-invoice and the invoice emails. The **account holder** (at most 70 characters, the limit of the GiroCode) appears in the payment block and the GiroCode; if empty, the name on invoices is used.
 3. **Tax and payment:** Most small associations are **small businesses** (section 19 UStG) and do not show value added tax; the invoice then carries the required notice. Whether this applies to your association is determined by the tax office or your tax adviser. The app picks the **account for payment details and GiroCode** itself: the SEPA direct debit account, otherwise the only cash account with an IBAN. You only need to choose it if several cash accounts have an IBAN; if the IBAN is missing, the checklist hint leads straight to the account. Also set the payment term and, if you like, default texts.
 4. **Invoice numbers:** The default is `RE-{JJJJ}-{NNNN}` (e.g. `RE-2026-0042`), restarting at 1 every year; credit notes are counted separately (`ST-…`). `{MM}` adds the month of the invoice date, e.g. `RE-{JJJJ}{MM}-{NNNN}` for `RE-202611-0001`; the counter can then also restart at 1 every month. Numbers are consecutive and unique – change the pattern only before you write the first invoice.
 
@@ -2706,6 +2748,8 @@ Accountants may create drafts; **finalizing, sending and cancelling** are reserv
 In the invoice details: **Send by email**. Recipient address, subject and text are prefilled and can be changed before sending; the PDF is attached. You maintain the template and its placeholders (`{nummer}`, `{betrag}`, `{faellig}`, `{verein}`, `{empfaenger}`) in the settings. Alternatively download the PDF and send or print it yourself.
 
 **Copy to board:** Enter the board's email address in the settings under **Invoices → Emails and templates**. The send dialog then shows a **Copy to board** switch; when on, the email also goes as a blind copy to that address, and the recipient does not see it. Without an address the switch does not appear.
+
+**Test send:** **Send test to me** in the send and dunning dialogs sends the same email, with “[TEST]” in the subject, to the email address of your Nextcloud account (personal settings). Nothing changes on the invoice: it does not count as sent, and there is no reminder, no log entry, no stored file and no copy to the board. Drafts have **Test send …** with the preview PDF, so you can check sender, logo and text before the first invoice goes out.
 
 ### 15.6 Assigning a payment
 

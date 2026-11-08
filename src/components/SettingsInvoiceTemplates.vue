@@ -115,6 +115,7 @@ import { showError, showSuccess } from '@nextcloud/dialogs'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import api from '../api.js'
+import { accountLabel } from '../lib/accountLabel.js'
 import { errMsg, formatMoney } from '../lib/format.js'
 import { TAX_KEYS, taxKeyLabel, taxKeyOf, unitLabel } from '../lib/invoices.js'
 
@@ -165,7 +166,7 @@ export default {
 
 		accountLabel(id) {
 			const a = this.accounts.find((x) => x.id === id)
-			return a ? `${a.number} ${a.name}` : '–'
+			return a ? accountLabel(a) : '–'
 		},
 
 		taxText(tpl) { return taxKeyLabel(taxKeyOf(tpl.taxCategory, tpl.taxRateBp)) },

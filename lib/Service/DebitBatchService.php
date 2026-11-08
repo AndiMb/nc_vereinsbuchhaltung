@@ -145,6 +145,10 @@ class DebitBatchService {
 	 * einen noch nicht eingereichten Lauf sinnvoll – ein eingereichter Lauf
 	 * ist bereits bei der Bank, eine „Abweichung" wäre nachträglich folgenlos.
 	 *
+	 * Neben den Bankdaten zählt der Zustand (#302): bei der Freigabe war jedes
+	 * Mandat einzugsfähig; ist es seitdem widerrufen, gesperrt oder beendet,
+	 * zöge die Datei trotzdem ein (`field` = `status`).
+	 *
 	 * @return list<array{itemId:int, mandateId:int, field:string, snapshot:?string, current:?string}>
 	 */
 	public function findDrift(int $batchId): array {
@@ -154,6 +158,9 @@ class DebitBatchService {
 			if ($mandate === null) {
 				$drift[] = ['itemId' => $item->getId(), 'mandateId' => $item->getMandateId(), 'field' => 'mandate', 'snapshot' => $item->getMandateReference(), 'current' => null];
 				continue;
+			}
+			if (!$mandate->isCollectible()) {
+				$drift[] = ['itemId' => $item->getId(), 'mandateId' => (int)$mandate->getId(), 'field' => 'status', 'snapshot' => Mandate::STATUS_ACTIVE, 'current' => $mandate->getStatus()];
 			}
 			foreach ([
 				'iban' => [$item->getIban(), $mandate->getIban()],
@@ -168,18 +175,52 @@ class DebitBatchService {
 		return $drift;
 	}
 
-	/** Zusammenfassende Warnmeldung für {@see findDrift()}, oder null, wenn nichts abweicht. */
+	/**
+	 * Zusammenfassende Warnmeldung für {@see findDrift()}, oder null, wenn nichts
+	 * abweicht. Posten ohne einzugsfähiges Mandat nennt sie zuerst und eigens.
+	 */
 	public function driftWarning(int $batchId): ?string {
 		$drift = $this->findDrift($batchId);
 		if ($drift === []) {
 			return null;
 		}
-		$affectedItems = count(array_unique(array_column($drift, 'itemId')));
-		return $this->l10n->n(
-			'%n Posten weicht von den aktuellen Mandatsdaten ab.',
-			'%n Posten weichen von den aktuellen Mandatsdaten ab.',
-			$affectedItems,
-		);
+		$blocked = self::nonCollectibleItems($drift);
+		$changed = array_diff(array_unique(array_column($drift, 'itemId')), $blocked);
+		$parts = [];
+		if ($blocked !== []) {
+			$parts[] = $this->l10n->n(
+				'%n Posten hat kein einzugsfähiges Mandat mehr (widerrufen, gesperrt oder beendet).',
+				'%n Posten haben kein einzugsfähiges Mandat mehr (widerrufen, gesperrt oder beendet).',
+				count($blocked),
+			);
+		}
+		if ($changed !== []) {
+			$parts[] = $this->l10n->n(
+				'%n Posten weicht von den aktuellen Mandatsdaten ab.',
+				'%n Posten weichen von den aktuellen Mandatsdaten ab.',
+				count($changed),
+			);
+		}
+		return implode(' ', $parts);
+	}
+
+	/** Anzahl der Posten, deren Mandat nicht mehr einzugsfähig ist oder fehlt (#302). */
+	public function nonCollectibleCount(int $batchId): int {
+		return count(self::nonCollectibleItems($this->findDrift($batchId)));
+	}
+
+	/**
+	 * @param list<array{itemId:int, field:string}> $drift
+	 * @return list<int>
+	 */
+	private static function nonCollectibleItems(array $drift): array {
+		$ids = [];
+		foreach ($drift as $entry) {
+			if ($entry['field'] === 'status' || $entry['field'] === 'mandate') {
+				$ids[$entry['itemId']] = $entry['itemId'];
+			}
+		}
+		return array_values($ids);
 	}
 
 	/** Das pain.008.001.02-XML eines Laufs, byte-identisch nachrenderbar (Spec §3.5). */
@@ -249,12 +290,16 @@ class DebitBatchService {
 			throw new \InvalidArgumentException($this->l10n->t('Das einziehende Konto hat keine IBAN hinterlegt.'));
 		}
 
-		$claims = $this->runQuery->preview($dueDate);
-		if ($claims === []) {
-			throw new \InvalidArgumentException($this->l10n->t('Keine bis zum %s fälligen offenen Posten mit einzugsfähigem Mandat gefunden.', [$dueDate]));
-		}
+		// Auswahl und Anlage in EINER Transaktion, wiederholt bei einem
+		// Unique-Fehler (#301): gibt ein zweiter Request gleichzeitig denselben
+		// Termin frei, scheitert einer am Index auf `live_open_item_id` und
+		// wählt im nächsten Versuch nur, was der andere nicht schon genommen hat.
+		$batch = $this->transaction->runWithRetry(function () use ($dueDate, $creditorId, $creditorName, $collectingAccount): DebitBatch {
+			$claims = $this->runQuery->preview($dueDate);
+			if ($claims === []) {
+				throw new \InvalidArgumentException($this->l10n->t('Keine bis zum %s fälligen offenen Posten mit einzugsfähigem Mandat gefunden.', [$dueDate]));
+			}
 
-		$batch = $this->transaction->run(function () use ($claims, $dueDate, $creditorId, $creditorName, $collectingAccount): DebitBatch {
 			$batch = new DebitBatch();
 			$batch->setDueDate($dueDate);
 			$batch->setStatus(DebitBatch::STATUS_RELEASED);
@@ -321,6 +366,7 @@ class DebitBatchService {
 		$item = new DebitItem();
 		$item->setBatchId((int)$batch->getId());
 		$item->setOpenItemId((int)$claim->getId());
+		$item->setLiveOpenItemId((int)$claim->getId());
 		$item->setMandateId((int)$mandate->getId());
 		$item->setAmountCents($claim->getAmountCents());
 		$item->setIban((string)$mandate->getIban());
@@ -347,11 +393,23 @@ class DebitBatchService {
 	 * @throws DoesNotExistException wenn es den Lauf nicht (mehr) gibt
 	 * @throws \InvalidArgumentException wenn der Lauf nicht (mehr) freigegeben ist
 	 */
-	public function submit(int $batchId): DebitBatch {
+	public function submit(int $batchId, bool $acknowledgeNonCollectible = false): DebitBatch {
 		$batch = $this->batchMapper->find($batchId);
 		$this->stateMachine->assertCanSubmit($batch);
+		// Ein seit der Freigabe widerrufenes oder gesperrtes Mandat steht noch in
+		// der Datei (#302). Ablehnen kann der Server die Einreichung nicht – die
+		// Datei liegt womöglich schon bei der Bank –, aber nur wer die Warnung
+		// gesehen hat, bestätigt sie: eine vor dem Widerruf geladene Seite nicht.
+		$nonCollectible = $this->nonCollectibleCount($batchId);
+		if ($nonCollectible > 0 && !$acknowledgeNonCollectible) {
+			throw new \InvalidArgumentException($this->l10n->n(
+				'%n Posten des Laufs hat kein einzugsfähiges Mandat mehr. Laden Sie die Ansicht neu und prüfen Sie den Lauf: Verwerfen und neu freigeben nimmt den Posten heraus.',
+				'%n Posten des Laufs haben kein einzugsfähiges Mandat mehr. Laden Sie die Ansicht neu und prüfen Sie den Lauf: Verwerfen und neu freigeben nimmt die Posten heraus.',
+				$nonCollectible,
+			));
+		}
 
-		return $this->transaction->run(function () use ($batch): DebitBatch {
+		return $this->transaction->run(function () use ($batch, $nonCollectible): DebitBatch {
 			$items = $this->itemMapper->findByBatch((int)$batch->getId());
 
 			$mandateIds = [];
@@ -375,11 +433,15 @@ class DebitBatchService {
 			$batch->setSubmittedAt($this->now());
 			$batch = $this->batchMapper->update($batch);
 
-			$this->audit->log('Lastschriftlauf eingereicht', 'debit_batch', $batch->getId(), [
+			$details = [
 				'faelligkeit' => $batch->getDueDate(),
 				'anzahl' => count($items),
 				'mandate' => count($mandateIds),
-			]);
+			];
+			if ($nonCollectible > 0) {
+				$details['ohne_einzugsfaehiges_mandat'] = $nonCollectible;
+			}
+			$this->audit->log('Lastschriftlauf eingereicht', 'debit_batch', $batch->getId(), $details);
 			return $batch;
 		});
 	}
@@ -413,6 +475,7 @@ class DebitBatchService {
 			$batch->setDiscardedAt($this->now());
 			$batch->setDiscardReason($reason);
 			$batch = $this->batchMapper->update($batch);
+			$this->itemMapper->releaseClaimsOfBatch((int)$batch->getId());
 
 			$this->audit->log('Lastschriftlauf verworfen', 'debit_batch', $batch->getId(), [
 				'faelligkeit' => $batch->getDueDate(),

@@ -36,6 +36,25 @@
 				{{ t('Es fehlen noch Angaben, ohne die sich keine Rechnung festschreiben lässt.') }}
 			</p>
 			<div class="vbh-form">
+				<label class="vbh-grow">{{ t('Name auf Rechnungen (optional)') }}
+					<input v-model="form.club_invoice_name" maxlength="200" :placeholder="clubName">
+				</label>
+			</div>
+			<p class="vbh-hint">
+				{{ t('Nur nötig, wenn der Vereinsname auf Rechnungen anders lauten soll, etwa weil er sehr lang ist. Er steht dann im Briefkopf, in der Absenderzeile, in der Fußzeile, in der E-Rechnung und in den Rechnungs-Mails. Leer gilt der Vereinsname.') }}
+			</p>
+			<div class="vbh-form">
+				<label class="vbh-grow">{{ t('Kontoinhaber (optional)') }}
+					<input v-model="form.club_account_holder" maxlength="70" :placeholder="invoiceName.slice(0, 70)">
+				</label>
+			</div>
+			<p v-if="holderTooLong" class="vbh-hint vbh-hint--warning">
+				{{ t('Der Name auf Rechnungen hat mehr als 70 Zeichen; im GiroCode würde er abgeschnitten. Tragen Sie den Kontoinhaber so ein, wie ihn die Bank führt.') }}
+			</p>
+			<p v-else class="vbh-hint">
+				{{ t('Steht im Zahlungsblock, im GiroCode (höchstens 70 Zeichen) und in der E-Rechnung. Leer gilt der Name auf Rechnungen.') }}
+			</p>
+			<div class="vbh-form">
 				<label class="vbh-grow">{{ t('Straße und Hausnummer') }}
 					<input v-model="form.club_street" maxlength="255">
 				</label>
@@ -418,6 +437,8 @@ const KEYS = [
 	'invoice_folder',
 	'invoice_mail_subject',
 	'invoice_mail_body',
+	'club_invoice_name',
+	'club_account_holder',
 	'club_street',
 	'club_postal_code',
 	'club_city',
@@ -452,6 +473,7 @@ export default {
 			loaded: false,
 			saving: false,
 			form: {},
+			clubName: '',
 			missing: [],
 			defaults: {},
 			accounts: [],
@@ -467,6 +489,12 @@ export default {
 	},
 
 	computed: {
+		/** Wie InvoiceSettings::issuer()['name']: Name auf Rechnungen, sonst der Vereinsname (#238). */
+		invoiceName() { return (this.form.club_invoice_name || '').trim() || this.clubName },
+
+		/** Der GiroCode fasst 70 Zeichen; ohne eigenen Kontoinhaber würde der Name gekürzt. */
+		holderTooLong() { return !(this.form.club_account_holder || '').trim() && this.invoiceName.length > 70 },
+
 		/** Wie InvoiceSettings::folder(): ein leeres Feld heißt Standardordner (Issue #212). */
 		invoiceFolderPath() {
 			return String(this.form.invoice_folder || '').replace(/\\/g, '/').replace(/^\/+|\/+$/g, '') || 'Vereinsbuchhaltung/Rechnungen'
@@ -516,6 +544,7 @@ export default {
 			form.invoice_rate_wirtschaftlich = data.invoice_rate_wirtschaftlich ?? 1900
 			form.invoice_default_due_days = data.invoice_default_due_days ?? 14
 			this.form = form
+			this.clubName = data.club_name || ''
 			this.missing = data.invoice_missing_issuer_fields || []
 			this.defaults = data.invoice_default_texts || {}
 		},
@@ -544,7 +573,7 @@ export default {
 		saveModule() { return this.store(['invoice_module_active', 'invoice_auto_assign', 'invoice_einvoice_auto', 'invoice_rf_reference'], 'stateError') },
 
 		saveIssuer() {
-			return this.store(['club_street', 'club_postal_code', 'club_city', 'club_country', 'club_tax_number', 'club_vat_id', 'club_register_court', 'club_register_no', 'club_representatives', 'club_phone', 'club_email', 'club_nonprofit_note'], 'issuerError')
+			return this.store(['club_invoice_name', 'club_account_holder', 'club_street', 'club_postal_code', 'club_city', 'club_country', 'club_tax_number', 'club_vat_id', 'club_register_court', 'club_register_no', 'club_representatives', 'club_phone', 'club_email', 'club_nonprofit_note'], 'issuerError')
 		},
 
 		saveTax() {

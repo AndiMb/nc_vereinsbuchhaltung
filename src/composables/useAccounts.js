@@ -2,6 +2,7 @@ import { showError } from '@nextcloud/dialogs'
 import { computed, reactive, shallowRef } from 'vue'
 import api from '../api.js'
 import { accountCategoryLabel } from '../lib/accountFilter.js'
+import { accountOption } from '../lib/accountLabel.js'
 import { deCollator } from '../lib/collator.js'
 import { errMsg } from '../lib/format.js'
 import { t } from '../lib/l10n.js'
@@ -79,7 +80,7 @@ export function buildAccountOptions(accountsSorted, usageCounts, t, { selectable
 		opts.push({ id: null, label: t('★ Häufig verwendet'), $isDisabled: true })
 		for (const acc of frequent) {
 			frequentIds.add(acc.id)
-			opts.push({ id: acc.id, label: `${acc.number} ${acc.name}`, number: acc.number })
+			opts.push(accountOption(acc))
 		}
 	}
 
@@ -97,7 +98,7 @@ export function buildAccountOptions(accountsSorted, usageCounts, t, { selectable
 			opts.push({ id: null, label: cat, $isDisabled: true })
 		}
 		for (const acc of accs) {
-			opts.push({ id: acc.id, label: `${acc.number} ${acc.name}`, number: acc.number })
+			opts.push(accountOption(acc))
 		}
 	}
 	return opts

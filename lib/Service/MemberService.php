@@ -88,14 +88,23 @@ class MemberService {
 	 * als bei {@see applyStammdaten()}) NICHT mit einem Default, sondern
 	 * behält den bisherigen Wert.
 	 *
+	 * `changed` meldet, ob sich überhaupt ein Feld geändert hat: nur dann
+	 * schreibt die Methode und nur dann verschickt der Self-Service eine
+	 * Quittung (#305).
+	 *
 	 * @param array<string, mixed> $data
-	 * @return array{member: Member, emailChanged: bool, oldEmail: ?string}
+	 * @return array{member: Member, changed: bool, emailChanged: bool, oldEmail: ?string}
 	 * @throws DoesNotExistException wenn es das Mitglied nicht (mehr) gibt
 	 * @throws \InvalidArgumentException bei ungültigen Eingaben
 	 */
 	public function updateOwnContactData(int $id, array $data): array {
 		$member = $this->mapper->find($id);
+		// Ein anonymisierter Datensatz bleibt leer (#296) – wie bei update().
+		if ($member->isRedacted()) {
+			throw new \InvalidArgumentException($this->l10n->t('Dieses Mitglied ist anonymisiert; Stammdaten können nicht mehr bearbeitet werden.'));
+		}
 		$oldEmail = $member->getEmail();
+		$before = self::ownContactFields($member);
 
 		if ($member->getMemberType() === Member::TYPE_PERSON) {
 			$lastName = trim((string)($data['lastName'] ?? $member->getLastName()));
@@ -119,11 +128,24 @@ class MemberService {
 		$member->setCity($this->nullIfEmpty($data['city'] ?? $member->getCity()));
 		$member->setCountry($this->normalizeCountry($data['country'] ?? $member->getCountry()));
 
-		$member = $this->mapper->update($member);
+		$changed = self::ownContactFields($member) !== $before;
+		if ($changed) {
+			$member = $this->mapper->update($member);
+		}
 		return [
 			'member' => $member,
+			'changed' => $changed,
 			'emailChanged' => $member->getEmail() !== $oldEmail,
 			'oldEmail' => $oldEmail,
+		];
+	}
+
+	/** @return list<?string> die Felder mit Hoheit „Mitglied", siehe {@see updateOwnContactData()} */
+	private static function ownContactFields(Member $member): array {
+		return [
+			$member->getFirstName(), $member->getLastName(), $member->getOrganizationName(),
+			$member->getEmail(), $member->getPhone(), $member->getStreet(),
+			$member->getPostalCode(), $member->getCity(), $member->getCountry(),
 		];
 	}
 
@@ -290,17 +312,32 @@ class MemberService {
 	 * menschlicher Bestätigung (Spec §3.1); diese Methode wählt nichts selbst
 	 * aus. 1:1-Identität „NC-Konto ist dieses Mitglied", kein Zugriffsrecht.
 	 *
+	 * Die neue Verknüpfung ist zunächst nur ausstehend (#295): sie gilt erst,
+	 * wenn das Konto den Einmal-Link an die Mailadresse des Mitglieds bestätigt
+	 * hat ({@see MemberLinkConfirmationService}). Ohne Mailadresse gibt es
+	 * deshalb keine Verknüpfung.
+	 *
 	 * @throws DoesNotExistException wenn es das Mitglied nicht (mehr) gibt
-	 * @throws \InvalidArgumentException wenn das Konto nicht existiert oder schon verknüpft ist
+	 * @throws \InvalidArgumentException wenn das Konto nicht existiert oder schon verknüpft ist,
+	 *                                   das Mitglied anonymisiert ist oder keine Mailadresse hat
 	 */
 	public function link(int $id, string $ncUserId): Member {
 		$member = $this->mapper->find($id);
+		if ($member->isRedacted()) {
+			throw new \InvalidArgumentException($this->l10n->t('Ein anonymisiertes Mitglied lässt sich nicht verknüpfen.'));
+		}
+		if (trim((string)$member->getEmail()) === '') {
+			throw new \InvalidArgumentException($this->l10n->t('Für dieses Mitglied ist keine Mailadresse hinterlegt. Der Bestätigungslink geht an diese Adresse – bitte zuerst eine hinterlegen.'));
+		}
 		if (!$this->userManager->userExists($ncUserId)) {
 			throw new \InvalidArgumentException($this->l10n->t('Dieses Nextcloud-Konto gibt es nicht: %s', [$ncUserId]));
 		}
 		$existing = $this->mapper->findByNcUserId($ncUserId);
 		if ($existing !== null && $existing->getId() !== $member->getId()) {
 			throw new \InvalidArgumentException($this->l10n->t('Dieses Nextcloud-Konto ist bereits mit einem anderen Mitglied verknüpft: %s', [$existing->displayName()]));
+		}
+		if ($member->getNcUserId() !== $ncUserId) {
+			MemberLinkConfirmationService::reset($member);
 		}
 		$member->setNcUserId($ncUserId);
 		return $this->mapper->update($member);
@@ -315,6 +352,7 @@ class MemberService {
 	public function unlink(int $id): Member {
 		$member = $this->mapper->find($id);
 		$member->setNcUserId(null);
+		MemberLinkConfirmationService::reset($member);
 		return $this->mapper->update($member);
 	}
 

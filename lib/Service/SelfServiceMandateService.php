@@ -111,11 +111,13 @@ class SelfServiceMandateService {
 	/**
 	 * Mandat erfassen + elektronisch erteilen in einem Schritt (Spec §3.4).
 	 *
-	 * @throws \InvalidArgumentException bei ungültigen Eingaben oder bereits
-	 *                                   bestehendem lebenden Mandat
+	 * @throws \InvalidArgumentException bei ungültigen Eingaben, bereits
+	 *                                   bestehendem lebenden Mandat oder einer
+	 *                                   nicht aufgehobenen Sperre
 	 */
 	public function grant(int $memberId, string $iban, ?string $bic, ?string $accountHolder): Mandate {
 		$member = $this->memberMapper->find($memberId);
+		$this->assertNoUnresolvedSuspension($memberId);
 		$mandate = $this->mandateService->grantElectronicSelfService(
 			$memberId,
 			$iban,
@@ -293,6 +295,32 @@ class SelfServiceMandateService {
 	 *
 	 * @throws \InvalidArgumentException wenn kein lebendes Mandat vorliegt oder es kein Entwurf ist
 	 */
+	/**
+	 * Eine Sperre hebt nur die Verwaltung auf, mit Pflicht-Notiz (Spec §2.2).
+	 * Endet ein gesperrtes Mandat – Widerruf durch das Mitglied oder die
+	 * Verwaltung, Verfall –, darf das Mitglied sich nicht selbst ein neues,
+	 * sofort einzugsfähiges Mandat erteilen: Widerrufen und neu Erteilen höbe
+	 * die Sperre sonst ohne die Verwaltung auf (#306). Maßgeblich ist das
+	 * jüngste Mandat, das nicht nur ein verworfener Entwurf war – sonst
+	 * schöbe ein selbst verworfener Entwurf die Sperre beiseite. Legt die
+	 * Verwaltung danach ein neues Mandat an (Papier oder elektronischer
+	 * Entwurf), ist das ihre Entscheidung, und die Prüfung greift nicht mehr.
+	 * Den Entwurf bestätigen ({@see confirmDraft()}) bleibt darum frei.
+	 *
+	 * @throws \InvalidArgumentException wenn das maßgebliche Mandat gesperrt endete
+	 */
+	private function assertNoUnresolvedSuspension(int $memberId): void {
+		foreach ($this->mandateService->findByMember($memberId) as $mandate) {
+			if ($mandate->getStatus() === Mandate::STATUS_ENDED && $mandate->getEndReason() === Mandate::END_REASON_DISCARDED) {
+				continue;
+			}
+			if ($mandate->getStatus() === Mandate::STATUS_ENDED && $mandate->getSuspendedAt() !== null) {
+				throw new \InvalidArgumentException($this->l10n->t('Ihr letztes Mandat war gesperrt, als es endete. Ein neues Mandat richtet Ihnen der Verein ein – bitte wenden Sie sich an ihn.'));
+			}
+			return;
+		}
+	}
+
 	public function discardDraft(int $memberId): Mandate {
 		$member = $this->memberMapper->find($memberId);
 		$mandate = $this->requireLiveMandate($memberId);
@@ -341,7 +369,7 @@ class SelfServiceMandateService {
 	 * ("Mail-Voreinstellung: an bei Widerruf, aus sonst").
 	 */
 	private function publishActivity(Member $member, string $subject, string $whatText): void {
-		$ncUserId = $member->getNcUserId();
+		$ncUserId = $member->confirmedNcUserId();
 		if ($ncUserId === null) {
 			// Praktisch unerreichbar (Self-Service verlangt eine Kontoverknüpfung),
 			// zur Sicherheit trotzdem kein Fataler Fehler - eine Aktivitäts-

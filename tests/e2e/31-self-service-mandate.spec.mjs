@@ -103,7 +103,7 @@ test.describe('Self-Service: Mandats-Aktionskatalog (Issue #75)', () => {
 	})
 
 	test('Kontoinhaberwechsel: Ausweg schaltet auf den IBAN-Modus zurück, die Bestätigung erteilt ein neues Mandat', async ({ page, request }) => {
-		const memberId = await linkFreshMember(request, { memberType: 'person', firstName: 'Otto', lastName: 'Weber' })
+		const memberId = await linkFreshMember(request, { memberType: 'person', firstName: 'Otto', lastName: 'Weber', email: 'otto.weber.wechsel@example.org' })
 		await activePaperMandate(request, memberId, 'DE12500105170648489890', 'Otto Weber')
 
 		await openApp(page, USERS.ohneRolle)
@@ -134,7 +134,7 @@ test.describe('Self-Service: Mandats-Aktionskatalog (Issue #75)', () => {
 	})
 
 	test('Widerruf-Dialog: Ausweg-Option verhindert den Widerruf, der eigentliche Widerruf bleibt endgültig', async ({ page, request }) => {
-		const memberId = await linkFreshMember(request, { memberType: 'person', firstName: 'Petra', lastName: 'Klein' })
+		const memberId = await linkFreshMember(request, { memberType: 'person', firstName: 'Petra', lastName: 'Klein', email: 'petra.klein@example.org' })
 		await activePaperMandate(request, memberId, 'DE44500105175407324931', 'Petra Klein')
 
 		await openApp(page, USERS.ohneRolle)

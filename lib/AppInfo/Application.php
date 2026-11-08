@@ -6,6 +6,7 @@ namespace OCA\Vereinsbuchhaltung\AppInfo;
 
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
 use OCA\Vereinsbuchhaltung\Listener\MemberAccountDeletionListener;
+use OCA\Vereinsbuchhaltung\Listener\PermissionPrincipalDeletedListener;
 use OCA\Vereinsbuchhaltung\Listener\UserDeletedListener;
 use OCA\Vereinsbuchhaltung\Middleware\PermissionMiddleware;
 use OCA\Vereinsbuchhaltung\Middleware\RevisionMiddleware;
@@ -16,6 +17,7 @@ use OCP\AppFramework\App;
 use OCP\AppFramework\Bootstrap\IBootContext;
 use OCP\AppFramework\Bootstrap\IBootstrap;
 use OCP\AppFramework\Bootstrap\IRegistrationContext;
+use OCP\Group\Events\GroupDeletedEvent;
 use OCP\IConfig;
 use OCP\IDBConnection;
 use OCP\User\Events\BeforeUserDeletedEvent;
@@ -39,6 +41,11 @@ class Application extends App implements IBootstrap {
 		// gelöscht, räumt der Listener die Einstellungen mit ab, damit keine
 		// Namen stehen bleiben, hinter denen niemand mehr steht.
 		$context->registerEventListener(UserDeletedEvent::class, UserDeletedListener::class);
+
+		// Rollen hängen nur an der ID von Nutzer oder Gruppe: mit dem Prinzipal
+		// verschwinden sie, sonst erbte sie ein späteres Konto mit derselben ID (#298).
+		$context->registerEventListener(UserDeletedEvent::class, PermissionPrincipalDeletedListener::class);
+		$context->registerEventListener(GroupDeletedEvent::class, PermissionPrincipalDeletedListener::class);
 
 		// Mitglied-Verknüpfung: rettet vor der Löschung die Mailadresse ins
 		// Mitglied (Spec §2.2/§3.1) und löst die Verknüpfung, sobald das

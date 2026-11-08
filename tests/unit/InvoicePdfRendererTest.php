@@ -59,12 +59,12 @@ class InvoicePdfRendererTest extends TestCase {
 	}
 
 	/** @param array<string, string>|null $bank */
-	private function render(Invoice $inv, int $lineCount, bool $preview = false, ?array $bank = ['iban' => 'DE02120300000000202051', 'bic' => 'BYLADEM1001', 'holder' => 'TSV Beispiel e. V.'], ?string $preceding = null, ?string $logo = null): string {
+	private function render(Invoice $inv, int $lineCount, bool $preview = false, ?array $bank = ['iban' => 'DE02120300000000202051', 'bic' => 'BYLADEM1001', 'holder' => 'TSV Beispiel e. V.'], ?string $preceding = null, ?string $logo = null, string $clubName = 'TSV Beispiel e. V.'): string {
 		$data = new InvoicePdfData(
 			$inv,
 			$this->lines($lineCount),
 			['name' => 'Muster GmbH', 'street' => 'Weg 2', 'postalCode' => '54321', 'city' => 'Ort', 'country' => 'DE'],
-			['name' => 'TSV Beispiel e. V.', 'street' => 'Hauptstr. 1', 'postalCode' => '12345', 'city' => 'Beispielstadt', 'country' => 'DE', 'taxNumber' => '12/345/67890', 'vatId' => '', 'registerCourt' => '', 'registerNo' => '', 'representatives' => '', 'phone' => '', 'email' => ''],
+			['name' => $clubName, 'street' => 'Hauptstr. 1', 'postalCode' => '12345', 'city' => 'Beispielstadt', 'country' => 'DE', 'taxNumber' => '12/345/67890', 'vatId' => '', 'registerCourt' => '', 'registerNo' => '', 'representatives' => '', 'phone' => '', 'email' => ''],
 			$bank,
 			$preceding,
 			$preceding !== null ? '2026-02-01' : null,
@@ -138,6 +138,17 @@ class InvoicePdfRendererTest extends TestCase {
 	public function testStornorechnungMitVerweisAufDieUrsprungsrechnung(): void {
 		$pdf = $this->render($this->invoice(2, Invoice::KIND_CREDIT), 2, false, null, 'RE-2026-0001');
 
+		$this->assertStringContainsString('<pdfaid:part>3</pdfaid:part>', $pdf);
+	}
+
+	public function testLangerVereinsnameBleibtAufEinerSeite(): void {
+		// #238: 110 Zeichen Name, 70 Zeichen Kontoinhaber (Grenze des GiroCodes)
+		$name = 'Förderverein der Freiwilligen Feuerwehr und der Jugendfeuerwehr der Gemeinde Musterstadt-Beispielhausen e. V.';
+		$bank = ['iban' => 'DE02120300000000202051', 'bic' => 'BYLADEM1001', 'holder' => mb_substr($name, 0, 70)];
+
+		$pdf = $this->render($this->invoice(3), 3, false, $bank, null, $this->logoPng(), $name);
+
+		$this->assertSame(1, $this->pages($pdf));
 		$this->assertStringContainsString('<pdfaid:part>3</pdfaid:part>', $pdf);
 	}
 

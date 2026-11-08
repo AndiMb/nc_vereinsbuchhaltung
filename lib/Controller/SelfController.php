@@ -28,6 +28,7 @@ use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
+use OCP\AppFramework\Http\Attribute\UserRateLimit;
 use OCP\AppFramework\Http\DataDisplayResponse;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\IL10N;
@@ -131,6 +132,7 @@ class SelfController extends Controller {
 	 * dem ActorContextService (IDOR-Schutz).
 	 */
 	#[NoAdminRequired]
+	#[UserRateLimit(limit: 5, period: 3600)] // jeder Aufruf verschickt eine Mail (#305)
 	public function requestMandateActivationLink(): DataResponse {
 		$memberId = $this->requireMemberId();
 		$mandate = $this->mandateService->findLiveByMember($memberId);
@@ -249,6 +251,7 @@ class SelfController extends Controller {
 	 * (Spec §2.2) - siehe {@see \OCA\Vereinsbuchhaltung\Service\MemberService::updateOwnContactData()}.
 	 */
 	#[NoAdminRequired]
+	#[UserRateLimit(limit: 20, period: 3600)] // eine Änderung verschickt Mails (#305)
 	public function updateMe(
 		?string $firstName = null,
 		?string $lastName = null,

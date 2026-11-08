@@ -127,6 +127,13 @@ verschieben (Über-/Unterkonten über das Feld „Übergeordnet").
 Jedes Konto hat:
 - eine **Nummer** (frei, z. B. 1200),
 - einen **Namen**,
+- optional einen **Kurznamen**: Er steht in den Auswahllisten und im Journal
+  statt des Namens – praktisch bei langen Bezeichnungen; die Suche findet
+  weiter beide. Der Kopf des Kontos und die Berichte zeigen den vollen Namen,
+  im Kontenbaum erscheint er beim Darüberfahren,
+- optional eine **Beschreibung** (Markdown: **fett**, *kursiv*, Listen,
+  Links): Sie steht im Konto über den Buchungen und erklärt z. B. neuen
+  Kassenwarten, wofür das Konto da ist,
 - einen **Typ** (Einnahmen, Ausgaben, Anlage/Umlauf, Verbindlichkeit,
   Eigenkapital),
 - ggf. das Flag **Bankkonto** (für Geldkonten – nur diese kumulieren über
@@ -205,7 +212,9 @@ werden; wer sie aus dem Wächter-Ordner hinausschiebt, dessen Belege gelten
 als fehlend.
 
 Einen Ordner im Home eines anderen Nutzers wählen oder ändern dürfen nur
-Nextcloud-Administratoren, das gilt auch für den Wachordner aus Abschnitt 3.3.
+Nextcloud-Administratoren, das gilt auch für den Wachordner aus Abschnitt 3.3
+und für die Ordner der Mandats-Nachweise, der Rechnungen und der SEPA-XML-
+Dateien, die im Home des Belegablage-Nutzers liegen.
 Verwalter ohne diese Rechte wählen ihr eigenes Home, ein bereits eingerichteter
 fremder Ordner bleibt gültig.
 
@@ -1357,11 +1366,15 @@ Auswertungsgruppe. Das betrifft nur Konten, die im abgeschlossenen Zeitraum
 auch tatsächlich bebucht sind. Der Grund: Aus einem Einnahmekonto ein
 Ausgabekonto zu machen, dreht das Vorzeichen in allen Auswertungen – der
 Kassenbericht des abgeschlossenen Geschäftsjahres sähe hinterher anders
-aus, ohne dass jemand eine Buchung angefasst hätte. **Frei änderbar
+aus, ohne dass jemand eine Buchung angefasst hätte. Das gilt auch für das
+**Zuordnen und Lösen in der Übersicht der Auswertungsgruppen** und für das
+**Löschen einer Gruppe**, an der ein solches Konto hängt. **Frei änderbar
 bleiben** Nummer, Name, Kategorie, Überkonto und der Aktiv-Schalter; sie
-ändern nur Beschriftung und Sortierung. Wer eine gesperrte Eigenschaft doch
-ändern muss, eröffnet den Zeitraum wieder (Kapitel 8.4) und schließt ihn
-danach erneut ab.
+ändern nur Beschriftung und Sortierung. Eine Ausnahme bei der Nummer: Werden
+die Auswertungsgruppen aus der Kontonummer gebildet (zweite Zahlengruppe),
+lässt sich diese Zahlengruppe nicht mehr ändern – sonst wanderte das Konto in
+eine andere Gruppe. Wer eine gesperrte Eigenschaft doch ändern muss, eröffnet
+den Zeitraum wieder (Kapitel 8.4) und schließt ihn danach erneut ab.
 
 Gesperrt ist außerdem die **Umstellung der Geschäftsjahres-Regel** und das
 Verschieben der Grenze zu einem abgeschlossenen Zeitraum (Kapitel 8.1). Die
@@ -1687,10 +1700,25 @@ Nextcloud-Konto; ein vorhandenes lässt sich in der Akte
 verknüpfen (*Nextcloud-Konto* → *Vorschläge suchen*, erst nach Ihrer
 Bestätigung – die Mailadresse liefert nur den Vorschlag).
 
+**Das Mitglied bestätigt die Verknüpfung.** Die Mailadresse im
+Nextcloud-Profil trägt jede Nutzerin und jeder Nutzer selbst ein, ungeprüft.
+Ein Vorschlag beweist also nicht, dass das Konto dem Mitglied gehört. Deshalb
+gilt eine Verknüpfung erst, wenn das Mitglied sie bestätigt: Beim Verknüpfen
+geht ein Einmal-Link an die **Mailadresse in der Akte** (ohne sie lässt sich
+nicht verknüpfen). Das Mitglied meldet sich mit dem verknüpften Konto an und
+bestätigt; mit einem anderen Konto geht es nicht. Bis dahin steht die
+Verknüpfung auf **„Bestätigung ausstehend"**: das Konto sieht keinen
+Self-Service, und Mitteilungen gehen nicht an seine Adresse. Der Link gilt
+7 Tage; in der Akte lässt er sich mit *Bestätigungslink erneut senden* neu
+verschicken. Vorschlag und Rückfrage nennen die **Benutzer-ID** des Kontos –
+Anzeigename und Mailadresse kann jedes Konto frei wählen, die ID nicht.
+Verknüpfungen, die schon vor dieser Regel bestanden, gelten als bestätigt.
+
 Die Mitgliederliste zeigt in der Spalte **„Nextcloud-Konto?"**, ob ein Konto
-verknüpft ist: „Ja", ein Link **„Vorschlag … verknüpfen"** (genau ein Konto
-trägt die Mailadresse des Mitglieds; verknüpft wird nach einer Rückfrage), bei
-mehreren Treffern ein Knopf in die Akte, sonst „Nein".
+verknüpft ist: „Ja", „Bestätigung ausstehend", ein Link **„Vorschlag …
+verknüpfen"** mit der Benutzer-ID (genau ein Konto trägt die Mailadresse des
+Mitglieds; verknüpft wird nach einer Rückfrage), bei mehreren Treffern ein
+Knopf in die Akte, sonst „Nein".
 
 Beim **Aufnehmen** lässt sich gleich ein **Nextcloud-Konto anlegen**
 (*Nextcloud-Konto für dieses Mitglied anlegen*): Kontoname (aus dem Namen
@@ -1700,7 +1728,8 @@ Sprache, also dieselben Angaben wie in der Benutzerverwaltung. Den Abschnitt
 sehen nur Nextcloud-Administratoren, delegierte Administratoren und
 Gruppen-Administratoren (diese für ihre Gruppen); die Rechte und
 Passwortregeln sind die von Nextcloud. Das neue Konto wird mit der Akte
-verknüpft. Scheitert das Anlegen, ist das Mitglied trotzdem aufgenommen – in
+verknüpft; auch hier gilt die Verknüpfung erst nach der Bestätigung durch das
+Mitglied. Scheitert das Anlegen, ist das Mitglied trotzdem aufgenommen – in
 der Akte unter *Nextcloud-Konto* → *Neues Nextcloud-Konto anlegen …* lässt es
 sich nachholen.
 
@@ -1779,7 +1808,9 @@ gemacht hat; unter *Frühere Mandate* stehen die beendeten.
 **Sperren und Entsperren** verlangen jeweils eine Notiz; sie steht im Verlauf.
 Eine Sperre beendet nichts, offene Forderungen bleiben offen. Eine Sperre nach
 einer Rücklastschrift setzt die App selbst und kennzeichnet sie als solche –
-entsperren müssen Sie von Hand, sobald der Fall geklärt ist.
+entsperren müssen Sie von Hand, sobald der Fall geklärt ist. Endet ein
+gesperrtes Mandat (etwa durch Widerruf), kann sich das Mitglied unter *Mein
+Beitrag* kein neues Mandat selbst erteilen; das neue legen Sie an.
 
 **Bankverbindung ändern** deckt drei Fälle ab: nur die **IBAN** hat sich
 geändert (dasselbe Mandat bleibt, eine neue Unterschrift ist nicht nötig; die
@@ -2119,6 +2150,10 @@ Solange die Datei **nicht eingereicht** ist, lässt sich der Lauf noch ändern:
   Lauf, die End-to-End-IDs werden nie wieder verwendet. Haben sich Mandatsdaten
   seit der Freigabe geändert, weist der Lauf darauf hin – verwerfen Sie ihn dann
   und geben Sie den Termin neu frei, die neue Datei enthält die aktuellen Daten.
+  Eigens nennt der Lauf Posten, deren Mandat seitdem widerrufen, gesperrt oder
+  beendet wurde: Die Datei zöge auch dort ein. „Eingereicht" bestätigen Sie
+  dann nur nach einer eigenen Rückfrage – etwa wenn die Datei schon bei der
+  Bank liegt.
 - **„Termin verschieben"** geht nur nach hinten (ein früherer Termin würde die
   Vorlauffristen unterschreiten); die Datei trägt dann den neuen Termin, Kennung
   und End-to-End-IDs bleiben. Laden Sie sie danach neu herunter.
@@ -2395,7 +2430,8 @@ Dafür ist **keine Buchhaltungsrolle** nötig, es gibt keinen Antrag, und jede
    Beitrag" für verknüpfte Nextcloud-Konten freischalten"** ein. Ab Werk ist er
    aus.
 2. Das Mitglied ist in der Akte mit seinem Nextcloud-Konto verknüpft (13.2) –
-   nach Ihrer Bestätigung, nie von selbst.
+   nach Ihrer Bestätigung, nie von selbst – und hat die Verknüpfung über den
+   Link in seiner Mail bestätigt.
 
 Optional dazu, direkt darunter: **„Mitglieder dürfen ihre Zahlungsart unter
 „Mein Beitrag" selbst auf Überweisung umstellen"** (ab Werk aus). Erst mit
@@ -2443,13 +2479,17 @@ dieser Einzug noch ausgeführt.
 endgültig, die noch offene Summe wird genannt (dafür geht dem Mitglied eine
 Zahlungsaufforderung zu), und als erste Wahl steht „Ich habe nur ein neues Konto
 → IBAN ändern". Bei einem **ausgesetzten** Mandat lässt sich die IBAN nicht
-ändern; der Dialog verweist das Mitglied dann an den Verein. Einen **Entwurf**
+ändern; der Dialog verweist das Mitglied dann an den Verein. Auch nach dem
+Widerruf eines ausgesetzten Mandats erteilt das Mitglied kein neues selbst –
+die Sperre hebt nur der Verein auf. Einen **Entwurf**
 kann das Mitglied verwerfen, aber nicht korrigieren (13.2).
 
 **Quittung und Spur.** Jede Änderung bestätigt die App dem Mitglied per Mail:
 was sich geändert hat, ab wann und welcher Einzug als erster betroffen ist – auch
 dann, wenn der Vorstand den Beitrag ändert (13.4; die Mail nennt ihn dann als
-Urheber). Die
+Urheber). Speichert das Mitglied seine Kontaktdaten unverändert, geht keine
+Mail hinaus; Kontaktdaten-Änderungen und Aktivierungslinks sind je Stunde
+begrenzt (20 bzw. 5). Die
 Mail ist die Kopie, eine eigene Ereignisliste gibt es im Bereich nicht. Zusätzlich
 erscheint ein Eintrag in der Nextcloud-**Aktivität** des Mitglieds (eigene Mail
 dazu verschickt Nextcloud nur beim Widerruf, sofern das Mitglied es nicht in
@@ -2532,7 +2572,10 @@ schwärzt die App deshalb die Person und lässt die Zahlen stehen:
   die Freitexte der Historie – Sperr-, Stundungs-, Erlass- und
   Storno-Begründungen, die Begründung einer individuellen Untergrenze,
   Vertretungsnotizen und der Freitext einer Rücklastschrift. Als Debitor der
-  Forderungen steht danach „Anonymisiertes Mitglied".
+  Forderungen steht danach „Anonymisiertes Mitglied". Ebenso geschwärzt wird
+  ein aus dem Mitglied angelegter Rechnungsempfänger (Name, Anschrift,
+  Mailadresse, Notiz); er verschwindet aus der Empfängerauswahl und lässt sich
+  nicht mehr bearbeiten, Kundennummer und Rechnungen bleiben.
 - **Was bleibt.** Beträge, Daten, Zustände, Rückgabecodes und Mandatsreferenzen –
   das, was die Buchhaltung belegt. Die Akte ist danach schreibgeschützt und
   trägt den Vermerk der Anonymisierung.
@@ -2540,7 +2583,10 @@ schwärzt die App deshalb die Person und lässt die Zahlen stehen:
 Ein gelöschtes Nextcloud-Konto löst die Anonymisierung nicht aus, und die
 Anonymisierung löst die Kontoverknüpfung nicht: beides ist voneinander
 unabhängig (bei einem gelöschten Konto bleibt das Mitglied, die Mailadresse wird
-übernommen und eine Aufgabe bittet um Prüfung, 13.9).
+übernommen und eine Aufgabe bittet um Prüfung, 13.9). Ist das Mitglied schon
+anonymisiert, bleibt die Akte leer: Das verknüpfte Konto hat **keinen
+Self-Service** mehr, kann also auch keine Kontaktdaten zurückschreiben, und beim
+Löschen des Kontos wird keine Mailadresse übernommen.
 
 **Verschlüsselte Bankverbindungen.** Die IBANs der Mitglieder und Zahler – am
 Mandat, in den Einzugsposten und in den Bankumsätzen – und die Suchwerte der
@@ -2700,7 +2746,7 @@ Mit dem Rechnungsmodul stellt der Verein Rechnungen in seinem eigenen Namen aus 
 *Nextcloud-Einstellungen → Vereinsbuchhaltung → Rechnungen* (nur Verwalter):
 
 1. **Rechnungsmodul einschalten.**
-2. **Angaben des Vereins** eintragen. Pflicht nach § 14 Abs. 4 UStG sind Name und Anschrift sowie die **Steuernummer** (vom Finanzamt) oder die USt-IdNr. Register, Vorstand, Telefon und E-Mail erscheinen zusätzlich im Fuß der Rechnung. Den Vereinsnamen pflegen Sie weiter oben unter „Verein".
+2. **Angaben des Vereins** eintragen. Pflicht nach § 14 Abs. 4 UStG sind Name und Anschrift sowie die **Steuernummer** (vom Finanzamt) oder die USt-IdNr. Register, Vorstand, Telefon und E-Mail erscheinen zusätzlich im Fuß der Rechnung. Den Vereinsnamen pflegen Sie weiter oben unter „Verein". Ist er für Rechnungen zu lang oder soll er dort anders lauten, tragen Sie einen **Namen auf Rechnungen** ein; er steht dann im Briefkopf, in der Absenderzeile, im Fuß, in der E-Rechnung und in den Rechnungs-Mails. Der **Kontoinhaber** (höchstens 70 Zeichen, so viel fasst der GiroCode) steht im Zahlungsblock und im GiroCode; leer gilt der Name auf Rechnungen.
 3. **Steuer und Zahlung:** Die meisten kleinen Vereine sind **Kleinunternehmer** (§ 19 UStG) und weisen keine Umsatzsteuer aus; auf der Rechnung steht dann der vorgeschriebene Hinweis. Ob das für Ihren Verein gilt, klärt das Finanzamt oder Ihre Steuerberatung. Das **Konto für Zahlungsangaben und GiroCode** wählt die App selbst: das Konto des SEPA-Einzugs, sonst das einzige Geldkonto mit IBAN. Selbst wählen müssen Sie es nur, wenn mehrere Geldkonten eine IBAN haben; fehlt die IBAN, führt der Hinweis in der Prüfliste direkt zum Konto. Legen Sie außerdem das Zahlungsziel und bei Bedarf Standardtexte fest.
 4. **Rechnungsnummern:** Voreingestellt ist `RE-{JJJJ}-{NNNN}` (z. B. `RE-2026-0042`), jedes Jahr neu ab 1; Stornorechnungen zählen getrennt (`ST-…`). Mit `{MM}` kommt der Monat des Rechnungsdatums dazu, etwa `RE-{JJJJ}{MM}-{NNNN}` für `RE-202611-0001`; der Zähler kann dann auch jeden Monat neu ab 1 beginnen. Die Nummern sind fortlaufend und einmalig – ändern Sie das Muster nur, bevor Sie die erste Rechnung schreiben.
 
@@ -2736,6 +2782,8 @@ Es wird noch **nichts gebucht**: Die App arbeitet nach dem Ist-Prinzip, gebucht 
 Im Detail der Rechnung: **Per E-Mail senden**. Empfänger-Adresse, Betreff und Text sind vorbelegt und vor dem Senden änderbar, das PDF hängt an. Die Vorlage und ihre Platzhalter (`{nummer}`, `{betrag}`, `{faellig}`, `{verein}`, `{empfaenger}`) pflegen Sie in den Einstellungen. Alternativ laden Sie das PDF herunter und verschicken oder drucken es selbst.
 
 **Kopie an Vorstand:** Tragen Sie in den Einstellungen unter **Rechnungen → E-Mails und Vorlagen** die E-Mail-Adresse des Vorstands ein. Dann zeigt der Versanddialog den Schalter **Kopie an Vorstand**; ist er an, geht die Mail zusätzlich als Blindkopie an diese Adresse, der Empfänger sieht sie nicht. Ohne Adresse erscheint der Schalter nicht.
+
+**Testversand:** **Test an mich senden** im Versand- und im Mahndialog schickt dieselbe Mail mit „[TEST]“ im Betreff an die E-Mail-Adresse Ihres Nextcloud-Kontos (persönliche Einstellungen). An der Rechnung ändert sich nichts: Sie gilt nicht als versendet, es entsteht keine Mahnung, kein Protokolleintrag und keine abgelegte Datei, der Vorstand bekommt keine Kopie. Für Entwürfe gibt es **Testversand …** mit dem Vorschau-PDF – so prüfen Sie Absender, Logo und Text, bevor die erste Rechnung hinausgeht.
 
 ### 15.6 Zahlungseingang zuordnen
 

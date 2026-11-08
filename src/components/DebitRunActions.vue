@@ -181,6 +181,9 @@ export default {
 			if (this.run.driftWarning) {
 				message += ' ' + this.run.driftWarning + ' ' + this.t('Die Datei enthält noch die alten Daten.')
 			}
+			if (this.run.nonCollectibleCount > 0) {
+				message += ' ' + this.t('Sie zieht auch von Mandaten ein, die nicht mehr einzugsfähig sind. Ist sie noch nicht bei der Bank, verwerfen Sie den Lauf besser und geben ihn neu frei.')
+			}
 			if (!await this.askConfirm(this.t('Datei als eingereicht bestätigen'), message, this.t('Ja, eingereicht'), 'primary')) { return }
 
 			this.busy = true

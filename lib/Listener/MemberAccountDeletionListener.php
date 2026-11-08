@@ -6,6 +6,7 @@ namespace OCA\Vereinsbuchhaltung\Listener;
 
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Db\Task;
+use OCA\Vereinsbuchhaltung\Service\MemberLinkConfirmationService;
 use OCA\Vereinsbuchhaltung\Service\TaskService;
 use OCP\EventDispatcher\Event;
 use OCP\EventDispatcher\IEventListener;
@@ -50,12 +51,16 @@ class MemberAccountDeletionListener implements IEventListener {
 		}
 
 		$rescuedEmail = null;
-		if (($member->getEmail() === null || $member->getEmail() === '')
+		// Nur aus einem bestätigten Konto (#295): die Adresse einer bloß
+		// ausstehenden Verknüpfung hat das Konto selbst gesetzt, nicht das Mitglied.
+		// Und nie in einen anonymisierten Datensatz (#296): die Adresse wäre sonst wieder da.
+		if ($member->isNcLinkConfirmed() && !$member->isRedacted() && ($member->getEmail() === null || $member->getEmail() === '')
 			&& $user->getEMailAddress() !== null && $user->getEMailAddress() !== '') {
 			$rescuedEmail = $user->getEMailAddress();
 			$member->setEmail($rescuedEmail);
 		}
 		$member->setNcUserId(null);
+		MemberLinkConfirmationService::reset($member);
 		$this->members->update($member);
 
 		if ($rescuedEmail !== null) {

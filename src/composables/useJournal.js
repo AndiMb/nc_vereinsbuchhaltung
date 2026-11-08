@@ -1,6 +1,7 @@
 import { showError } from '@nextcloud/dialogs'
 import { computed, reactive, shallowRef } from 'vue'
 import api from '../api.js'
+import { accountLabel as labelOf } from '../lib/accountLabel.js'
 import { errMsg } from '../lib/format.js'
 import { t } from '../lib/l10n.js'
 import { createLatestRequest } from '../lib/latestRequest.js'
@@ -31,7 +32,7 @@ const startTransactionsLoad = createLatestRequest()
 
 function accountLabel(id) {
 	const acc = accounts.accountsById.value[id]
-	return acc ? `${acc.number} ${acc.name}` : `#${id}`
+	return acc ? labelOf(acc) : `#${id}`
 }
 
 // Schlüssel der Kontobeschriftungen und -arten: Ändert sich ein Konto, das in
@@ -39,7 +40,7 @@ function accountLabel(id) {
 // alle Zeilen neu gebaut. Konten haben keinen eigenen Änderungsstempel, darum
 // zählen die Felder selbst; das sind wenige hundert Konten, nicht Buchungen.
 export function accountLabelKey(list) {
-	return list.length + '|' + list.map((a) => `${a.id}:${a.number}:${a.name}:${a.isBank ? 1 : 0}`).join('|')
+	return list.length + '|' + list.map((a) => `${a.id}:${a.number}:${a.name}:${a.shortName || ''}:${a.isBank ? 1 : 0}`).join('|')
 }
 const accountsKey = computed(() => accountLabelKey(accounts.state.accounts))
 

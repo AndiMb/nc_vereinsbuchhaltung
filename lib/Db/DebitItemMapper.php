@@ -188,6 +188,19 @@ class DebitItemMapper extends EncryptingMapper {
 	}
 
 	/**
+	 * Ein verworfener Lauf gibt seine Forderungen frei (#301): die Posten
+	 * bleiben als Historie, zählen aber nicht mehr für den Unique-Index auf
+	 * `live_open_item_id`.
+	 */
+	public function releaseClaimsOfBatch(int $batchId): void {
+		$qb = $this->db->getQueryBuilder();
+		$qb->update($this->getTableName())
+			->set('live_open_item_id', $qb->createNamedParameter(null, IQueryBuilder::PARAM_NULL))
+			->where($qb->expr()->eq('batch_id', $qb->createNamedParameter($batchId, IQueryBuilder::PARAM_INT)))
+			->executeStatement();
+	}
+
+	/**
 	 * Beim Zurücksetzen (siehe {@see \OCA\Vereinsbuchhaltung\Service\ContributionResetService}):
 	 * der Posten ist der Schnappschuss einer Forderung samt IBAN und
 	 * Kontoinhaber – ohne die Forderung ist er personenbezogener Rest ohne

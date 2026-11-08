@@ -121,6 +121,18 @@ class DebtorServiceTest extends TestCase {
 		$this->assertSame($existing, $this->service()->forMember(7));
 	}
 
+	/** #303: ein mit dem Mitglied geschwärzter Empfänger bekommt keine Personendaten zurück. */
+	public function testAnonymisierterEmpfaengerLaesstSichNichtBearbeiten(): void {
+		$existing = new Debtor();
+		$existing->setName('Anonymisiertes Mitglied');
+		$existing->setRedactedAt('2026-01-01T00:00:00+00:00');
+		$this->mapper->method('find')->willReturn($existing);
+		$this->mapper->expects($this->never())->method('update');
+
+		$this->expectException(\InvalidArgumentException::class);
+		$this->service()->update(3, ['name' => 'Katrin Brunner']);
+	}
+
 	public function testAnonymisiertesMitgliedKannKeinEmpfaengerWerden(): void {
 		$member = new Member();
 		$member->setRedactedAt('2026-01-01T00:00:00+00:00');

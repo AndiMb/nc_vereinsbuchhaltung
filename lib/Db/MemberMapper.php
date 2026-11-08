@@ -73,6 +73,17 @@ class MemberMapper extends QBMapper {
 		return $rows[0] ?? null;
 	}
 
+	/** Das Mitglied mit diesem (gehashten) Bestätigungslink der Kontoverknüpfung (#295). */
+	public function findByLinkTokenHash(string $hash): ?Member {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('*')
+			->from($this->getTableName())
+			->where($qb->expr()->eq('nc_link_token_hash', $qb->createNamedParameter($hash)))
+			->setMaxResults(1);
+		$rows = $this->findEntities($qb);
+		return $rows[0] ?? null;
+	}
+
 	public function findByMemberNumber(string $memberNumber): ?Member {
 		$qb = $this->db->getQueryBuilder();
 		$qb->select('*')

@@ -65,6 +65,8 @@ class SelfServiceMandateServiceTest extends TestCase {
 		$member->setFirstName('Katrin');
 		$member->setLastName('Brunner');
 		$member->setNcUserId('katrin.b');
+		// Bestätigte Verknüpfung (#295): nur sie zählt für Mail, Sprache und Activity.
+		$member->setNcLinkConfirmedAt('2026-01-01 00:00:00');
 		return $member;
 	}
 
@@ -215,6 +217,54 @@ class SelfServiceMandateServiceTest extends TestCase {
 		$result = $this->service()->grant(42, 'DE89370400440532013000', null, null);
 
 		$this->assertSame(5, $result->getId());
+	}
+
+	// --- Sperre (#306): Widerrufen und neu Erteilen hebt sie nicht auf ------------
+
+	private function endedMandate(int $id, string $endReason, bool $suspended): Mandate {
+		$m = $this->mandate($id, Mandate::STATUS_ENDED);
+		$m->setEndReason($endReason);
+		if ($suspended) {
+			$m->setSuspendedAt('2026-03-01 10:00:00');
+			$m->setSuspensionOrigin(Mandate::SUSPENSION_RETURNED_DEBIT);
+		}
+		return $m;
+	}
+
+	public function testGrantNachWiderrufEinesGesperrtenMandatsWirdAbgelehnt(): void {
+		$this->memberMapper->method('find')->willReturn($this->member());
+		$this->mandateService->method('findByMember')->with(42)
+			->willReturn([$this->endedMandate(1, Mandate::END_REASON_REVOKED, true)]);
+		$this->mandateService->expects($this->never())->method('grantElectronicSelfService');
+		$this->receiptMailer->expects($this->never())->method('send');
+
+		$this->expectException(\InvalidArgumentException::class);
+		$this->service()->grant(42, 'DE89370400440532013000', null, null);
+	}
+
+	public function testSelbstVerworfenerEntwurfSchiebtDieSperreNichtBeiseite(): void {
+		$this->memberMapper->method('find')->willReturn($this->member());
+		$this->mandateService->method('findByMember')->willReturn([
+			$this->endedMandate(2, Mandate::END_REASON_DISCARDED, false),
+			$this->endedMandate(1, Mandate::END_REASON_REVOKED, true),
+		]);
+		$this->mandateService->expects($this->never())->method('grantElectronicSelfService');
+
+		$this->expectException(\InvalidArgumentException::class);
+		$this->service()->grant(42, 'DE89370400440532013000', null, null);
+	}
+
+	public function testGrantNachWiderrufOhneSperreUndNachNeuemMandatDerVerwaltungBleibtMoeglich(): void {
+		$this->memberMapper->method('find')->willReturn($this->member());
+		$this->mandateService->method('findByMember')->willReturnOnConsecutiveCalls(
+			[$this->endedMandate(1, Mandate::END_REASON_REVOKED, false)],
+			// Die Verwaltung hat nach dem gesperrten ein Papiermandat angelegt, das später endete.
+			[$this->endedMandate(2, Mandate::END_REASON_REVOKED, false), $this->endedMandate(1, Mandate::END_REASON_REVOKED, true)],
+		);
+		$this->mandateService->expects($this->exactly(2))->method('grantElectronicSelfService')->willReturn($this->mandate(5));
+
+		$this->service()->grant(42, 'DE89370400440532013000', null, null);
+		$this->service()->grant(42, 'DE89370400440532013000', null, null);
 	}
 
 	// --- Seiteneffekte: Quittungsmail + Activity ---------------------------------

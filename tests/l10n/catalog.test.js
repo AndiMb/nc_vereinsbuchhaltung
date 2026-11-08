@@ -157,7 +157,8 @@ describe('Sie-Form im Quelltext, Du-Fassung in l10n/de.json', () => {
 		// Texte an Mitglieder: Mails, Aktivitäten und die Oberfläche von „Mein Beitrag". Die Texte an die
 		// Verwaltung (Akte, Einzug, Einstellungen) sprechen die Buchhaltung mit Sie an und bleiben ohne Du-Fassung.
 		const memberFacing = [
-			/^lib\/Service\/(ContributionPreNotificationService|DunningLadderService|MandateActivationService|SelfContactService|SelfContributionService|SelfServiceMandateService|SelfServiceReceiptMailService|SelfServiceReceiptMailer)\.php$/,
+			/^lib\/Service\/(ContributionPreNotificationService|DunningLadderService|MandateActivationService|SelfContactService|SelfContributionService|SelfServiceMandateService|SelfServiceReceiptMailService|SelfServiceReceiptMailer|MemberLinkConfirmationService)\.php$/,
+			/^lib\/Controller\/MemberLinkController\.php$/,
 			/^lib\/Activity\//,
 			/^lib\/Service\/Sepa\/ReturnReasonClassifier\.php$/,
 			/^src\/components\/(SelfService|SelfReimbursement)[A-Za-z]*\.vue$/,

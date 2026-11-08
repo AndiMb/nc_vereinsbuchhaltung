@@ -122,7 +122,7 @@ class ReimbursementMailService {
 		if ($email !== '') {
 			return $email;
 		}
-		$ncUserId = $member->getNcUserId();
+		$ncUserId = $member->confirmedNcUserId();
 		$fromAccount = $ncUserId !== null ? $this->userManager->get($ncUserId)?->getEMailAddress() : null;
 		return $fromAccount !== null && $fromAccount !== '' ? $fromAccount : null;
 	}

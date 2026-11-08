@@ -37,6 +37,8 @@ use OCP\AppFramework\Db\Entity;
  *
  * @method int getBatchId()
  * @method void setBatchId(int $batchId)
+ * @method int|null getLiveOpenItemId()
+ * @method void setLiveOpenItemId(?int $liveOpenItemId)
  * @method int getOpenItemId()
  * @method void setOpenItemId(int $openItemId)
  * @method int getMandateId()
@@ -82,6 +84,13 @@ class DebitItem extends Entity implements \JsonSerializable {
 	protected $amendmentIndicator = false;
 	protected $originalDebtorAccount;
 	protected $createdAt;
+	/**
+	 * Die `open_item_id`, solange der Lauf lebt (`freigegeben`/`eingereicht`),
+	 * beim Verwerfen NULL. Ein Unique-Index darauf setzt „höchstens ein
+	 * Einzugsposten je Forderung" in der Datenbank durch (#301): zwei
+	 * gleichzeitige Freigaben können sonst dieselbe Forderung aufnehmen.
+	 */
+	protected $liveOpenItemId;
 
 	/** Immer RCUR, nie FRST (Compliance-Anhang Spec §8), siehe {@see Mandate::SEQUENCE_TYPE}. */
 	public const SEQUENCE_TYPE = 'RCUR';
@@ -92,6 +101,7 @@ class DebitItem extends Entity implements \JsonSerializable {
 	public function __construct() {
 		$this->addType('batchId', 'integer');
 		$this->addType('openItemId', 'integer');
+		$this->addType('liveOpenItemId', 'integer');
 		$this->addType('mandateId', 'integer');
 		$this->addType('amountCents', 'integer');
 		$this->addType('amendmentIndicator', 'boolean');

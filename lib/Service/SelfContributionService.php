@@ -120,7 +120,7 @@ class SelfContributionService {
 	/** Quittungsmail und Activity-Eintrag je tatsächlich geändertem Feld – `$before`/`$after` wie in {@see StaffChangeReceiptService}. */
 	private function notify(Assignment $before, Assignment $after, array $preview): void {
 		$member = $this->members->find($before->getMemberId());
-		$ncUserId = $member->getNcUserId();
+		$ncUserId = $member->confirmedNcUserId();
 		$assignmentId = (int)$before->getId();
 
 		$whatParts = [];
@@ -176,7 +176,7 @@ class SelfContributionService {
 		if ($member->getEmail() !== null && $member->getEmail() !== '') {
 			return $member->getEmail();
 		}
-		$user = $member->getNcUserId() !== null ? $this->userManager->get($member->getNcUserId()) : null;
+		$user = $member->confirmedNcUserId() !== null ? $this->userManager->get($member->confirmedNcUserId()) : null;
 		$accountEmail = $user?->getEMailAddress();
 		return ($user !== null && $accountEmail !== null && $accountEmail !== '') ? $accountEmail : null;
 	}
