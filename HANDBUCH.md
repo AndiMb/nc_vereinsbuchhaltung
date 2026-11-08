@@ -2744,6 +2744,8 @@ Im Detail der Rechnung: **Per E-Mail senden**. Empfänger-Adresse, Betreff und T
 
 **Kopie an Vorstand:** Tragen Sie in den Einstellungen unter **Rechnungen → E-Mails und Vorlagen** die E-Mail-Adresse des Vorstands ein. Dann zeigt der Versanddialog den Schalter **Kopie an Vorstand**; ist er an, geht die Mail zusätzlich als Blindkopie an diese Adresse, der Empfänger sieht sie nicht. Ohne Adresse erscheint der Schalter nicht.
 
+**Testversand:** **Test an mich senden** im Versand- und im Mahndialog schickt dieselbe Mail mit „[TEST]“ im Betreff an die E-Mail-Adresse Ihres Nextcloud-Kontos (persönliche Einstellungen). An der Rechnung ändert sich nichts: Sie gilt nicht als versendet, es entsteht keine Mahnung, kein Protokolleintrag und keine abgelegte Datei, der Vorstand bekommt keine Kopie. Für Entwürfe gibt es **Testversand …** mit dem Vorschau-PDF – so prüfen Sie Absender, Logo und Text, bevor die erste Rechnung hinausgeht.
+
 ### 15.6 Zahlungseingang zuordnen
 
 - **Beim Import:** Steht die Rechnungsnummer im Verwendungszweck (auch als `RE 2026 0042` oder `RE20260042`) und stimmt der Betrag genau, bucht der Import die Zahlung **selbst**: Geldkonto an Erlöskonto, mit der Rechnungsnummer als Belegnummer. Das lässt sich in den Einstellungen abschalten.

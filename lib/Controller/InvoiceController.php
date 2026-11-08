@@ -32,6 +32,7 @@ use OCP\AppFramework\Http\DataResponse;
 use OCP\AppFramework\Http\EmptyContentSecurityPolicy;
 use OCP\IL10N;
 use OCP\IRequest;
+use OCP\IUserSession;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -66,6 +67,7 @@ class InvoiceController extends Controller {
 		private BankTransactionMapper $txMapper,
 		private IL10N $l10n,
 		private LoggerInterface $logger,
+		private IUserSession $userSession,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -328,7 +330,7 @@ class InvoiceController extends Controller {
 	#[RequiresRole(PermissionService::ROLE_READ)]
 	public function mailDefaults(int $id): DataResponse {
 		try {
-			return new DataResponse($this->mail->defaults($id));
+			return new DataResponse($this->mail->defaults($id) + ['testTo' => $this->ownEmail()]);
 		} catch (DoesNotExistException) {
 			return $this->notFound();
 		}
@@ -350,12 +352,33 @@ class InvoiceController extends Controller {
 		}
 	}
 
+	/**
+	 * Testversand der Rechnungs-Mail an die eigene Adresse (#216). Die Adresse
+	 * kommt aus dem Nextcloud-Konto, nicht aus der Anfrage: sonst ließe sich der
+	 * Testversand nutzen, um ohne Vermerk an beliebige Adressen zu senden.
+	 */
+	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_ADMIN)]
+	public function sendTest(int $id, ?string $subject = null, ?string $body = null, array $documentIds = []): DataResponse {
+		try {
+			$to = $this->ownEmail();
+			$this->mail->sendTest($id, $to, $subject, $body, array_values(array_map('intval', $documentIds)));
+			return new DataResponse(['sentTo' => $to]);
+		} catch (DoesNotExistException) {
+			return $this->notFound();
+		} catch (\InvalidArgumentException $e) {
+			return $this->bad($e);
+		} catch (\RuntimeException $e) {
+			return $this->internalError($e, Http::STATUS_BAD_GATEWAY, $this->mailFailed());
+		}
+	}
+
 	/** Vorgaben für den Mahndialog: Stufe, Empfängeradresse, Betreff und Text. */
 	#[NoAdminRequired]
 	#[RequiresRole(PermissionService::ROLE_READ)]
 	public function dunningDefaults(int $id, ?int $level = null): DataResponse {
 		try {
-			return new DataResponse($this->dunning->defaults($id, $level));
+			return new DataResponse($this->dunning->defaults($id, $level) + ['testTo' => $this->ownEmail()]);
 		} catch (DoesNotExistException) {
 			return $this->notFound();
 		} catch (\InvalidArgumentException $e) {
@@ -377,6 +400,28 @@ class InvoiceController extends Controller {
 		} catch (\RuntimeException $e) {
 			return $this->internalError($e, Http::STATUS_BAD_GATEWAY, $this->mailFailed());
 		}
+	}
+
+	/** Testversand des Mahnschreibens an die eigene Adresse (#216); siehe sendTest(). */
+	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_ADMIN)]
+	public function dunTest(int $id, ?string $subject = null, ?string $body = null, ?int $level = null): DataResponse {
+		try {
+			$to = $this->ownEmail();
+			$this->dunning->sendTest($id, $to, $subject, $body, $level);
+			return new DataResponse(['sentTo' => $to]);
+		} catch (DoesNotExistException) {
+			return $this->notFound();
+		} catch (\InvalidArgumentException $e) {
+			return $this->bad($e);
+		} catch (\RuntimeException $e) {
+			return $this->internalError($e, Http::STATUS_BAD_GATEWAY, $this->mailFailed());
+		}
+	}
+
+	/** E-Mail-Adresse des angemeldeten Nutzers für den Testversand; leer, wenn keine hinterlegt ist. */
+	private function ownEmail(): string {
+		return trim((string)$this->userSession->getUser()?->getEMailAddress());
 	}
 
 	#[NoAdminRequired]

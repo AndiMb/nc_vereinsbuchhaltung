@@ -148,11 +148,14 @@ export default {
 	revertInvoicePayment: (id, paymentId) => axios.delete(url(`/invoices/${id}/payments/${paymentId}`)),
 	invoiceMailDefaults: (id) => axios.get(url(`/invoices/${id}/mail-defaults`)),
 	sendInvoice: (id, data) => axios.post(url(`/invoices/${id}/send`), data),
+	// Testversand an die eigene Adresse (#216); die Adresse bestimmt der Server.
+	sendInvoiceTest: (id, data) => axios.post(url(`/invoices/${id}/send-test`), data),
 	createInvoiceEInvoice: (id, format) => axios.post(url(`/invoices/${id}/e-invoice`), { format }),
 	invoicePdfUrl: (id, download = false) => url(`/invoices/${id}/pdf`) + (download ? '?download=1' : ''),
 	invoiceDocumentUrl: (id, documentId) => url(`/invoices/${id}/documents/${documentId}`),
 	invoiceDunningDefaults: (id, level) => axios.get(url(`/invoices/${id}/dunning-defaults`), { params: level ? { level } : {} }),
 	dunInvoice: (id, data) => axios.post(url(`/invoices/${id}/dunning`), data),
+	dunInvoiceTest: (id, data) => axios.post(url(`/invoices/${id}/dunning-test`), data),
 	// Sammelrechnungen aus einer Tabelle (#243): formData mit `file`, `name` und den Vorgaben
 	invoiceBatches: () => axios.get(url('/invoice-batches')),
 	previewInvoiceBatch: (formData) => axios.post(url('/invoice-batches/preview'), formData),

@@ -2714,6 +2714,8 @@ In the invoice details: **Send by email**. Recipient address, subject and text a
 
 **Copy to board:** Enter the board's email address in the settings under **Invoices → Emails and templates**. The send dialog then shows a **Copy to board** switch; when on, the email also goes as a blind copy to that address, and the recipient does not see it. Without an address the switch does not appear.
 
+**Test send:** **Send test to me** in the send and dunning dialogs sends the same email, with “[TEST]” in the subject, to the email address of your Nextcloud account (personal settings). Nothing changes on the invoice: it does not count as sent, and there is no reminder, no log entry, no stored file and no copy to the board. Drafts have **Test send …** with the preview PDF, so you can check sender, logo and text before the first invoice goes out.
+
 ### 15.6 Assigning a payment
 
 - **On import:** If the invoice number appears in the payment reference (also as `RE 2026 0042` or `RE20260042`) and the amount matches exactly, the import books the payment **on its own**: cash account to revenue account, with the invoice number as document reference. You can turn this off in the settings.
