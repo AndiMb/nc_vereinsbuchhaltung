@@ -1,4 +1,5 @@
 OC.L10N.register("vereinsbuchhaltung", {
+	"Dieser Empfänger ist anonymisiert und kann nicht mehr bearbeitet werden.": "Deze ontvanger is geanonimiseerd en kan niet meer worden bewerkt.",
 	"Bestätigung ausstehend": "Bevestiging in afwachting",
 	"Vorschlag {uid} verknüpfen": "Suggestie {uid} koppelen",
 	"Bestätigungslink erneut senden": "Bevestigingslink opnieuw versturen",

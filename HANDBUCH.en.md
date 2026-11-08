@@ -2532,7 +2532,10 @@ therefore blacks out the person and leaves the figures:
   free text of the history – reasons for suspension, deferral, waiver and
   cancellation, the reason for an individual minimum, representation notes and
   the free text of a returned debit. The claims' debtor then reads "Anonymisiertes
-  Mitglied" ("anonymized member").
+  Mitglied" ("anonymized member"). An invoice recipient created from the member
+  is blacked out as well (name, address, email, note); it disappears from the
+  recipient selection and can no longer be edited, while the customer number
+  and the invoices stay.
 - **What stays.** Amounts, dates, states, return codes and mandate references –
   what the books document. The record is read-only afterwards and carries the
   anonymization note.
