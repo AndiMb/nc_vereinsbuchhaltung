@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Tests\Unit;
 
 use OCA\Vereinsbuchhaltung\Service\InvoiceBatch\SpreadsheetReader;
+use OCA\Vereinsbuchhaltung\Service\Text\SafeXml;
 use OCP\ITempManager;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -16,6 +18,9 @@ class SpreadsheetReaderTest extends TestCase {
 
 	/** @var list<string> */
 	private array $tempFiles = [];
+
+	private const SHEET_OPEN = '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>';
+	private const SHEET_CLOSE = '</sheetData></worksheet>';
 
 	protected function tearDown(): void {
 		foreach ($this->tempFiles as $file) {
@@ -66,7 +71,8 @@ class SpreadsheetReaderTest extends TestCase {
 	 * @param string $sheetXml Inhalt von <sheetData>
 	 * @param list<string> $shared geteilte Zeichenketten
 	 */
-	private function xlsx(string $sheetXml, array $shared = [], ?string $target = null): string {
+	/** @param ?string $rawSheet ersetzt das erste Blatt wörtlich, ohne <worksheet>-Hülle */
+	private function xlsx(string $sheetXml, array $shared = [], ?string $target = null, ?string $rawSheet = null): string {
 		$sheetPath = 'worksheets/sheet1.xml';
 		$file = tempnam(sys_get_temp_dir(), 'xlsx');
 		$zip = new \ZipArchive();
@@ -79,12 +85,43 @@ class SpreadsheetReaderTest extends TestCase {
 			$sst .= '<si><t xml:space="preserve">' . htmlspecialchars($s, ENT_XML1) . '</t></si>';
 		}
 		$zip->addFromString('xl/sharedStrings.xml', '<?xml version="1.0"?><sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' . $sst . '</sst>');
-		$zip->addFromString('xl/' . $sheetPath, '<?xml version="1.0"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>' . $sheetXml . '</sheetData></worksheet>');
+		$zip->addFromString('xl/' . $sheetPath, $rawSheet ?? '<?xml version="1.0"?>' . self::SHEET_OPEN . $sheetXml . self::SHEET_CLOSE);
 		$zip->addFromString('xl/worksheets/other.xml', '<?xml version="1.0"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData><row r="1"><c r="A1" t="inlineStr"><is><t>falsches Blatt</t></is></c></row></sheetData></worksheet>');
 		$zip->close();
 		$content = (string)file_get_contents($file);
 		unlink($file);
 		return $content;
+	}
+
+	/**
+	 * @return array<string, array{string}>
+	 */
+	public static function unsafeSheets(): array {
+		$attrs = static fn (string $value): string => implode(' ', array_map(static fn (int $i): string => 'a' . $i . '="' . $value . '"', range(1, 300)));
+		$cell = '<row r="1"><c r="A1" t="inlineStr"><is><t>&e;</t></is></c></row>';
+		return [
+			'interne Entität' => ['<?xml version="1.0"?><!DOCTYPE worksheet [<!ENTITY e "' . str_repeat('A', 1000) . '">]>' . self::SHEET_OPEN . $cell . self::SHEET_CLOSE],
+			'DOCTYPE in UTF-16' => ["\xFF\xFE" . mb_convert_encoding('<?xml version="1.0" encoding="UTF-16"?><!DOCTYPE worksheet [<!ENTITY e "A">]>' . self::SHEET_OPEN . $cell . self::SHEET_CLOSE, 'UTF-16LE', 'UTF-8')],
+			'viele Attribute' => [self::SHEET_OPEN . '<row r="1" ' . $attrs('1') . '/>' . self::SHEET_CLOSE],
+			'Attribute mit >' => [self::SHEET_OPEN . '<row r="1" ' . $attrs('>') . '/>' . self::SHEET_CLOSE],
+			'Kodierung ohne Leerzeichen' => ['<?xml version="1.0"encoding="UTF-7"?>' . self::SHEET_OPEN . self::SHEET_CLOSE],
+		];
+	}
+
+	/** Präparierte Teile lehnt {@see SafeXml} ab, der Leser meldet sie als unlesbar. */
+	#[DataProvider('unsafeSheets')]
+	public function testPraepariertesBlattWirdAbgelehnt(string $sheetXml): void {
+		$this->expectException(\InvalidArgumentException::class);
+		$this->expectExceptionMessage('Die Excel-Datei ließ sich nicht lesen.');
+		$this->read($this->xlsx('', rawSheet: $sheetXml));
+	}
+
+	/** Die Deklaration, die Excel schreibt, samt BOM, geht durch. */
+	public function testExcelDeklarationMitBomWirdGelesen(): void {
+		$sheet = "\xEF\xBB\xBF" . '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' . "\r\n"
+			. self::SHEET_OPEN . '<row r="1"><c r="A1" t="inlineStr"><is><t>Anna</t></is></c></row>' . self::SHEET_CLOSE;
+
+		$this->assertSame([1 => ['Anna']], $this->read($this->xlsx('', rawSheet: $sheet)));
 	}
 
 	public function testXlsxLiestGeteilteUndInlineZeichenkettenZahlenUndLuecken(): void {

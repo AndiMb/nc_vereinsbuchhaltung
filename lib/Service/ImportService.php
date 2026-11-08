@@ -17,6 +17,13 @@ use OCP\AppFramework\Db\DoesNotExistException;
 
 class ImportService {
 
+	/**
+	 * Obergrenze einer Importdatei. Kontoauszüge und xbuc-Exporte eines Vereins
+	 * bleiben weit darunter; der XML-Parser legt je Knoten Speicher außerhalb
+	 * von PHPs memory_limit an, deshalb begrenzt die App die Eingabe selbst.
+	 */
+	public const MAX_BYTES = 20 * 1024 * 1024;
+
 	public function __construct(
 		private StatementParserRegistry $parsers,
 		private RowNormalizer $normalizer,

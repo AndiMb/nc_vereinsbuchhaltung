@@ -28,12 +28,13 @@ use horstoeko\invoicesuite\documents\dto\InvoiceSuitesummationLineDTO;
 use horstoeko\invoicesuite\documents\dto\InvoiceSuiteTaxDTO;
 use horstoeko\invoicesuite\InvoiceSuiteDocumentBuilder;
 use horstoeko\invoicesuite\InvoiceSuitePdfDocumentBuilder;
-use horstoeko\invoicesuite\InvoiceSuitePdfDocumentReader;
 use horstoeko\invoicesuite\InvoiceSuiteSettings;
+use horstoeko\invoicesuite\pdfs\extractor\InvoiceSuitePdfExtractor;
 use horstoeko\invoicesuite\validators\InvoiceSuiteXsdDocumentValidator;
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\InvoiceLine;
 use OCA\Vereinsbuchhaltung\Service\InvoiceCalculator;
+use OCA\Vereinsbuchhaltung\Service\Text\SafeXml;
 use OCP\IL10N;
 use OCP\ITempManager;
 
@@ -56,6 +57,9 @@ use OCP\ITempManager;
  * nicht nutzen.
  */
 class InvoiceSuiteEInvoiceWriter implements EInvoiceWriter {
+
+	/** Dateinamen, unter denen ZUGFeRD, Factur-X und XRechnung ihr XML in ein PDF einbetten (klein geschrieben). */
+	private const INVOICE_ATTACHMENT_NAMES = ['zugferd-invoice.xml', 'factur-x.xml', 'xrechnung.xml'];
 
 	private const PROVIDERS = [
 		EInvoiceFormat::ZUGFERD => 'zffxcomfort',
@@ -104,8 +108,10 @@ class InvoiceSuiteEInvoiceWriter implements EInvoiceWriter {
 	 * temporären Verzeichnis von Nextcloud. Der Zwischenspeicher darf jederzeit
 	 * verschwinden, er wird dann neu aufgebaut.
 	 *
-	 * Jede öffentliche Methode, die die Bibliothek nutzt, ruft das zuerst auf;
-	 * deshalb lädt es auch den Autoloader von vendor/ (#265).
+	 * Jede Methode, die Format-Anbieter oder den Serialisierer der Bibliothek
+	 * nutzt, ruft das zuerst auf; deshalb lädt es auch den Autoloader von
+	 * vendor/ (#265). {@see extractXml()} braucht nur den PDF-Extraktor und
+	 * lädt den Autoloader direkt.
 	 */
 	private function useWritableCache(): void {
 		Application::loadComposerAutoloader();
@@ -173,17 +179,34 @@ class InvoiceSuiteEInvoiceWriter implements EInvoiceWriter {
 		return $messages;
 	}
 
+	/**
+	 * Das als E-Rechnung eingebettete XML eines PDFs: der erste Anhang mit
+	 * einem der Dateinamen aus {@see INVOICE_ATTACHMENT_NAMES}, dessen Inhalt
+	 * eine Cross-Industry-Invoice ist.
+	 *
+	 * Die Auswahl macht die App selbst statt des Lesers der Bibliothek. Der
+	 * wandelt beim Einlesen schon Felder in Text und würde dabei Entitäten
+	 * einer DOCTYPE-Deklaration expandieren – auch in UTF-16, wo seine eigene
+	 * Textsuche nach „<!doctype“ nicht greift. {@see SafeXml} lehnt solche
+	 * Anhänge ab, und das PDF wird nur einmal gelesen.
+	 *
+	 * @throws EInvoiceException wenn das PDF nicht lesbar ist oder kein passendes XML enthält
+	 */
 	public function extractXml(string $pdf): string {
-		$this->useWritableCache();
+		Application::loadComposerAutoloader();
 		try {
-			$attachment = $this->withSchemaLoader(static fn () => InvoiceSuitePdfDocumentReader::createFromContent($pdf)->getInvoiceDocumentAttachment());
+			$attachments = InvoiceSuitePdfExtractor::fromContent($pdf);
 		} catch (\Throwable $e) {
 			throw new EInvoiceException($this->msg('Das PDF konnte nicht gelesen werden: %s', [$e->getMessage()]), [], $e);
 		}
-		if ($attachment === null) {
-			throw new EInvoiceException($this->msg('Im PDF ist kein XML eingebettet.'));
+		foreach ($attachments as $attachment) {
+			$xml = $attachment->getAttachmentContent();
+			if (in_array(strtolower($attachment->getAttachmentFilename()), self::INVOICE_ATTACHMENT_NAMES, true)
+				&& SafeXml::load($xml)?->getName() === 'CrossIndustryInvoice') {
+				return $xml;
+			}
 		}
-		return $attachment->getAttachmentContent();
+		throw new EInvoiceException($this->msg('Im PDF ist kein XML eingebettet.'));
 	}
 
 	// ------------------------------------------------------------------

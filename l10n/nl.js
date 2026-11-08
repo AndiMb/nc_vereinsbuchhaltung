@@ -4381,5 +4381,6 @@ OC.L10N.register("vereinsbuchhaltung", {
 	"_%n Posten des Laufs hat kein einzugsfähiges Mandat mehr. Laden Sie die Ansicht neu und prüfen Sie den Lauf: Verwerfen und neu freigeben nimmt den Posten heraus._::_%n Posten des Laufs haben kein einzugsfähiges Mandat mehr. Laden Sie die Ansicht neu und prüfen Sie den Lauf: Verwerfen und neu freigeben nimmt die Posten heraus._": [
 		"%n post van de run heeft geen inbare machtiging meer. Laad de weergave opnieuw en controleer de run: verwerpen en opnieuw vrijgeven haalt de post eruit.",
 		"%n posten van de run hebben geen inbare machtiging meer. Laad de weergave opnieuw en controleer de run: verwerpen en opnieuw vrijgeven haalt de posten eruit."
-	]
+	],
+	"Der Text enthält ungültige Zeichen.": "De tekst bevat ongeldige tekens."
 }, "nplurals=2; plural=(n != 1);");

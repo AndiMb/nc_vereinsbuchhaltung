@@ -136,6 +136,50 @@ class InvoiceSuiteEInvoiceWriterTest extends TestCase {
 		$this->assertSame([], $this->writer()->validate($extracted, EInvoiceFormat::ZUGFERD));
 	}
 
+	/**
+	 * Ein eingebettetes XML mit DOCTYPE wird nie gelesen: seine Entitäten
+	 * würden sonst beim ersten String-Cast außerhalb von memory_limit wachsen.
+	 * Die Bibliothek bettet so etwas nicht ein, deshalb entsteht das PDF hier
+	 * von Hand.
+	 */
+	public function testEingebettetesXmlMitDoctypeWirdNichtGelesen(): void {
+		$bomb = '<?xml version="1.0"?><!DOCTYPE rsm:CrossIndustryInvoice [<!ENTITY a "' . str_repeat('a', 10000) . '">]>'
+			. '<rsm:CrossIndustryInvoice xmlns:rsm="urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100"><x>' . str_repeat('&a;', 100) . '</x></rsm:CrossIndustryInvoice>';
+
+		$this->expectException(EInvoiceException::class);
+		$this->expectExceptionMessage('Im PDF ist kein XML eingebettet.');
+		$this->writer()->extractXml(self::pdfWithAttachment('factur-x.xml', $bomb));
+	}
+
+	public function testEingebettetesXmlOhneDoctypeWirdGelesen(): void {
+		$xml = '<?xml version="1.0"?><rsm:CrossIndustryInvoice xmlns:rsm="urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100"><x>RE-1</x></rsm:CrossIndustryInvoice>';
+
+		$this->assertSame($xml, $this->writer()->extractXml(self::pdfWithAttachment('factur-x.xml', $xml)));
+	}
+
+	/** Ein PDF mit einer Seite und einer eingebetteten Datei, unkomprimiert. */
+	private static function pdfWithAttachment(string $name, string $content): string {
+		$objects = [
+			'<< /Type /Catalog /Pages 2 0 R /AF [4 0 R] /Names << /EmbeddedFiles << /Names [(' . $name . ') 4 0 R] >> >> >>',
+			'<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+			'<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] >>',
+			'<< /Type /Filespec /F (' . $name . ') /UF (' . $name . ') /EF << /F 5 0 R >> >>',
+			'<< /Type /EmbeddedFile /Subtype /text#2Fxml /Length ' . strlen($content) . " >>\nstream\n" . $content . "\nendstream",
+		];
+		$pdf = "%PDF-1.7\n";
+		$offsets = [];
+		foreach ($objects as $i => $body) {
+			$offsets[] = strlen($pdf);
+			$pdf .= ($i + 1) . " 0 obj\n" . $body . "\nendobj\n";
+		}
+		$xref = strlen($pdf);
+		$pdf .= 'xref' . "\n0 " . (count($objects) + 1) . "\n0000000000 65535 f \n";
+		foreach ($offsets as $offset) {
+			$pdf .= sprintf("%010d 00000 n \n", $offset);
+		}
+		return $pdf . 'trailer' . "\n<< /Size " . (count($objects) + 1) . " /Root 1 0 R >>\nstartxref\n" . $xref . "\n%%EOF\n";
+	}
+
 	public function testUnbekanntesFormatWirdAbgelehnt(): void {
 		$this->expectException(EInvoiceException::class);
 		$this->writer()->buildXml($this->data(), 'edifact');

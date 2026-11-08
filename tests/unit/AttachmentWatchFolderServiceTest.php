@@ -208,6 +208,63 @@ class AttachmentWatchFolderServiceTest extends TestCase {
 		$this->assertCount(AttachmentWatchFolderService::MAX_FILES, $scan['files']);
 	}
 
+	/**
+	 * Belege aus Auslagenanträgen zählen nicht gegen die Obergrenze: Mitglieder
+	 * können sonst mit ihren Uploads die Dokumente des Vorstands aus dem Scan
+	 * verdrängen.
+	 */
+	public function testAntragsbelegeVerbrauchenDieObergrenzeNicht(): void {
+		$files = [];
+		$reimbursement = [];
+		for ($i = 1; $i <= AttachmentWatchFolderService::MAX_FILES; $i++) {
+			$files[] = $this->file($i, "antrag$i.pdf", 'application/pdf', 1, $i);
+			$reimbursement[$i] = true;
+		}
+		$files[] = $this->file(99999, 'Vorstand.pdf', 'application/pdf', 1, 1);
+		$this->storage->method('watchFolder')->willReturn($this->folder($files));
+		$reimbursementFiles = $this->createMock(ReimbursementFileMapper::class);
+		$reimbursementFiles->method('activeFileIds')->willReturn($reimbursement);
+
+		$scan = $this->service(reimbursementFiles: $reimbursementFiles)->scan();
+
+		$this->assertFalse($scan['capped']);
+		$this->assertSame([99999], array_column($scan['files'], 'fileId'));
+		$this->assertCount(AttachmentWatchFolderService::MAX_FILES, $scan['reimbursementFileIds']);
+	}
+
+	/** Eine ausgezahlte Antragsdatei, die der Scan gesehen hat, gilt nicht als fehlend. */
+	public function testGesehenerAntragsbelegGiltNichtAlsFehlend(): void {
+		$this->storage->method('watchFolder')->willReturn($this->folder([
+			$this->file(5, 'Auslage.pdf', 'application/pdf', 1, 1),
+		]));
+		$attachment = new Attachment();
+		$attachment->setFileId(5);
+		$attachment->setJournalId(3);
+		$this->mapper->method('findLinked')->willReturn([$attachment]);
+		$this->storage->expects($this->never())->method('exists');
+		$reimbursementFiles = $this->createMock(ReimbursementFileMapper::class);
+		$reimbursementFiles->method('activeFileIds')->willReturn([5 => true]);
+
+		$inbox = $this->service(reimbursementFiles: $reimbursementFiles)->inbox(self::BOOK);
+
+		$this->assertSame([], $inbox['files']);
+		$this->assertSame([], $inbox['missing']);
+	}
+
+	/** Auch übersprungene Dateien zählen für die Laufzeitgrenze des Scans. */
+	public function testScanStopptNachZuVielenDateienInsgesamt(): void {
+		$files = [];
+		for ($i = 1; $i <= AttachmentWatchFolderService::MAX_VISITED + 1; $i++) {
+			$files[] = $this->file($i, "n$i.txt", 'text/plain', 1, $i);
+		}
+		$this->storage->method('watchFolder')->willReturn($this->folder($files));
+
+		$scan = $this->service()->scan();
+
+		$this->assertTrue($scan['capped']);
+		$this->assertSame([], $scan['files']);
+	}
+
 	/** Verknüpfen nimmt nur, was im Ordnerbaum liegt und ein Beleg-Typ ist. */
 	public function testLinkLehntFremdeDateienAb(): void {
 		$root = $this->createMock(Folder::class);
@@ -885,7 +942,7 @@ class AttachmentWatchFolderServiceTest extends TestCase {
 		return $factory;
 	}
 
-	private function service(?IRootFolder $rootFolder = null, ?ICacheFactory $cacheFactory = null): AttachmentWatchFolderService {
+	private function service(?IRootFolder $rootFolder = null, ?ICacheFactory $cacheFactory = null, ?ReimbursementFileMapper $reimbursementFiles = null): AttachmentWatchFolderService {
 		$l10n = $this->createMock(IL10N::class);
 		$l10n->method('t')->willReturnCallback(
 			static fn (string $text, array $parameters = []): string => vsprintf($text, $parameters),
@@ -896,7 +953,7 @@ class AttachmentWatchFolderServiceTest extends TestCase {
 			$rootFolder ?? $this->createMock(IRootFolder::class),
 			$l10n,
 			$this->hashes,
-			$this->createMock(ReimbursementFileMapper::class),
+			$reimbursementFiles ?? $this->createMock(ReimbursementFileMapper::class),
 			$cacheFactory,
 		);
 	}
