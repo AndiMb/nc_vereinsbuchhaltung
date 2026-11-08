@@ -18,6 +18,7 @@ use OCA\Vereinsbuchhaltung\Service\ContributionYearService;
 use OCA\Vereinsbuchhaltung\Service\DemoDataService;
 use OCA\Vereinsbuchhaltung\Service\DunningSettings;
 use OCA\Vereinsbuchhaltung\Service\FolderPathValidator;
+use OCA\Vereinsbuchhaltung\Service\ForeignHomeGuard;
 use OCA\Vereinsbuchhaltung\Service\FrontendStateService;
 use OCA\Vereinsbuchhaltung\Service\InvoiceSettings;
 use OCA\Vereinsbuchhaltung\Service\MandateDocumentService;
@@ -123,6 +124,7 @@ class SettingsControllerSepaTest extends TestCase {
 			$l10n,
 			$frontendState,
 			$this->createMock(AuditService::class),
+			$this->createMock(ForeignHomeGuard::class),
 		);
 	}
 
