@@ -88,11 +88,11 @@ class MemberService {
 	 * als bei {@see applyStammdaten()}) NICHT mit einem Default, sondern
 	 * behält den bisherigen Wert.
 	 *
-	 * @param array<string, mixed> $data
 	 * `changed` meldet, ob sich überhaupt ein Feld geändert hat: nur dann
 	 * schreibt die Methode und nur dann verschickt der Self-Service eine
 	 * Quittung (#305).
 	 *
+	 * @param array<string, mixed> $data
 	 * @return array{member: Member, changed: bool, emailChanged: bool, oldEmail: ?string}
 	 * @throws DoesNotExistException wenn es das Mitglied nicht (mehr) gibt
 	 * @throws \InvalidArgumentException bei ungültigen Eingaben
