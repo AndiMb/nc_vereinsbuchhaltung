@@ -154,6 +154,9 @@ class MemberAnonymizationService {
 		$member->setCity(null);
 		$member->setCountry(null);
 		$member->setInternalNote(null);
+		// Ein noch offener Bestätigungslink der Kontoverknüpfung (#295) verfällt.
+		$member->setNcLinkTokenHash(null);
+		$member->setNcLinkTokenExpiresAt(null);
 		$member->setRedactedAt($now);
 		$this->members->update($member);
 	}

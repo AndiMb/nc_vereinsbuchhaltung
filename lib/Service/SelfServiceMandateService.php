@@ -341,7 +341,7 @@ class SelfServiceMandateService {
 	 * ("Mail-Voreinstellung: an bei Widerruf, aus sonst").
 	 */
 	private function publishActivity(Member $member, string $subject, string $whatText): void {
-		$ncUserId = $member->getNcUserId();
+		$ncUserId = $member->confirmedNcUserId();
 		if ($ncUserId === null) {
 			// Praktisch unerreichbar (Self-Service verlangt eine Kontoverknüpfung),
 			// zur Sicherheit trotzdem kein Fataler Fehler - eine Aktivitäts-

@@ -290,17 +290,32 @@ class MemberService {
 	 * menschlicher Bestätigung (Spec §3.1); diese Methode wählt nichts selbst
 	 * aus. 1:1-Identität „NC-Konto ist dieses Mitglied", kein Zugriffsrecht.
 	 *
+	 * Die neue Verknüpfung ist zunächst nur ausstehend (#295): sie gilt erst,
+	 * wenn das Konto den Einmal-Link an die Mailadresse des Mitglieds bestätigt
+	 * hat ({@see MemberLinkConfirmationService}). Ohne Mailadresse gibt es
+	 * deshalb keine Verknüpfung.
+	 *
 	 * @throws DoesNotExistException wenn es das Mitglied nicht (mehr) gibt
-	 * @throws \InvalidArgumentException wenn das Konto nicht existiert oder schon verknüpft ist
+	 * @throws \InvalidArgumentException wenn das Konto nicht existiert oder schon verknüpft ist,
+	 *                                   das Mitglied anonymisiert ist oder keine Mailadresse hat
 	 */
 	public function link(int $id, string $ncUserId): Member {
 		$member = $this->mapper->find($id);
+		if ($member->isRedacted()) {
+			throw new \InvalidArgumentException($this->l10n->t('Ein anonymisiertes Mitglied lässt sich nicht verknüpfen.'));
+		}
+		if (trim((string)$member->getEmail()) === '') {
+			throw new \InvalidArgumentException($this->l10n->t('Für dieses Mitglied ist keine Mailadresse hinterlegt. Der Bestätigungslink geht an diese Adresse – bitte zuerst eine hinterlegen.'));
+		}
 		if (!$this->userManager->userExists($ncUserId)) {
 			throw new \InvalidArgumentException($this->l10n->t('Dieses Nextcloud-Konto gibt es nicht: %s', [$ncUserId]));
 		}
 		$existing = $this->mapper->findByNcUserId($ncUserId);
 		if ($existing !== null && $existing->getId() !== $member->getId()) {
 			throw new \InvalidArgumentException($this->l10n->t('Dieses Nextcloud-Konto ist bereits mit einem anderen Mitglied verknüpft: %s', [$existing->displayName()]));
+		}
+		if ($member->getNcUserId() !== $ncUserId) {
+			MemberLinkConfirmationService::reset($member);
 		}
 		$member->setNcUserId($ncUserId);
 		return $this->mapper->update($member);
@@ -315,6 +330,7 @@ class MemberService {
 	public function unlink(int $id): Member {
 		$member = $this->mapper->find($id);
 		$member->setNcUserId(null);
+		MemberLinkConfirmationService::reset($member);
 		return $this->mapper->update($member);
 	}
 

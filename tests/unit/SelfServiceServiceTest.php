@@ -45,6 +45,15 @@ class SelfServiceServiceTest extends TestCase {
 		$this->userSession->method('getUser')->willReturn($user);
 	}
 
+	/** Ein Mitglied, dessen Verknüpfung mit UID bestätigt ist (#295). */
+	private function linkedMember(int $id): Member {
+		$member = new Member();
+		$member->setId($id);
+		$member->setNcUserId(self::UID);
+		$member->setNcLinkConfirmedAt('2026-01-01 00:00:00');
+		return $member;
+	}
+
 	public function testIsEnabledLiestAppEinstellung(): void {
 		$this->config->method('getValueString')
 			->with(Application::APP_ID, 'self_service_enabled', '0')
@@ -92,17 +101,33 @@ class SelfServiceServiceTest extends TestCase {
 
 	public function testCurrentMemberSuchtUeberNcUserId(): void {
 		$this->loggedInAs(self::UID);
-		$member = new Member();
-		$member->setId(3);
+		$member = $this->linkedMember(3);
 		$this->memberMapper->method('findByNcUserId')->with(self::UID)->willReturn($member);
 
 		$this->assertSame($member, $this->service()->currentMember());
 	}
 
-	public function testHasAccessAktiviertUndVerknuepft(): void {
+	/**
+	 * #295: eine Verknüpfung, die das Mitglied noch nicht über den Einmal-Link
+	 * an seine Mailadresse bestätigt hat, öffnet keinen Self-Service. Sonst
+	 * könnte ein fremdes Konto mit der Mailadresse des Mitglieds im Profil
+	 * dessen Daten lesen, sobald die Verwaltung den Vorschlag übernimmt.
+	 */
+	public function testAusstehendeVerknuepfungIstKeinMitglied(): void {
 		$this->loggedInAs(self::UID);
 		$member = new Member();
 		$member->setId(3);
+		$member->setNcUserId(self::UID);
+		$this->memberMapper->method('findByNcUserId')->with(self::UID)->willReturn($member);
+		$this->config->method('getValueString')->willReturn('1');
+
+		$this->assertNull($this->service()->currentMember());
+		$this->assertFalse($this->service()->hasAccess());
+	}
+
+	public function testHasAccessAktiviertUndVerknuepft(): void {
+		$this->loggedInAs(self::UID);
+		$member = $this->linkedMember(3);
 		$this->memberMapper->method('findByNcUserId')->willReturn($member);
 		$this->config->method('getValueString')->willReturn('1');
 
@@ -118,8 +143,7 @@ class SelfServiceServiceTest extends TestCase {
 	 */
 	public function testHasAccessDeaktiviertTrotzVerknuepfung(): void {
 		$this->loggedInAs(self::UID);
-		$member = new Member();
-		$member->setId(3);
+		$member = $this->linkedMember(3);
 		$this->memberMapper->method('findByNcUserId')->willReturn($member);
 		$this->config->method('getValueString')->willReturn('0');
 
@@ -142,8 +166,7 @@ class SelfServiceServiceTest extends TestCase {
 
 	public function testDescribeCurrentMitVerknuepfung(): void {
 		$this->loggedInAs(self::UID);
-		$member = new Member();
-		$member->setId(42);
+		$member = $this->linkedMember(42);
 		$this->memberMapper->method('findByNcUserId')->willReturn($member);
 		$this->config->method('getValueString')->willReturn('1');
 

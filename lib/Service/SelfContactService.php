@@ -44,8 +44,8 @@ class SelfContactService {
 		/** @var Member $member */
 		$member = $result['member'];
 
-		if ($member->getNcUserId() !== null) {
-			$this->activity->publish($member->getNcUserId(), SelfServiceProvider::SUBJECT_CONTACT_UPDATED, [], 'member', $memberId);
+		if ($member->confirmedNcUserId() !== null) {
+			$this->activity->publish($member->confirmedNcUserId(), SelfServiceProvider::SUBJECT_CONTACT_UPDATED, [], 'member', $memberId);
 		}
 
 		$recipient = $this->resolveRecipient($member);
@@ -75,7 +75,7 @@ class SelfContactService {
 		if ($member->getEmail() !== null && $member->getEmail() !== '') {
 			return $member->getEmail();
 		}
-		$user = $member->getNcUserId() !== null ? $this->userManager->get($member->getNcUserId()) : null;
+		$user = $member->confirmedNcUserId() !== null ? $this->userManager->get($member->confirmedNcUserId()) : null;
 		$accountEmail = $user?->getEMailAddress();
 		return ($user !== null && $accountEmail !== null && $accountEmail !== '') ? $accountEmail : null;
 	}

@@ -1654,11 +1654,25 @@ can be linked in the member's record ("Nextcloud account" (*Nextcloud-Konto*)
 → "Find suggestions" (*Vorschläge suchen*), only after your confirmation –
 the email address merely supplies the suggestion).
 
+**The member confirms the link.** Every user enters the email address in
+their Nextcloud profile themselves, unchecked. A suggestion therefore does not
+prove that the account belongs to the member. That is why a link only takes
+effect once the member confirms it: linking sends a one-time link to the
+**email address in the record** (without one, you cannot link). The member
+logs in with the linked account and confirms; it does not work with any other
+account. Until then the link shows **"Confirmation pending"** (*Bestätigung
+ausstehend*): the account sees no self-service, and notifications are not sent
+to its address. The link is valid for 7 days; in the record, *Resend
+confirmation link* (*Bestätigungslink erneut senden*) sends a new one.
+Suggestion and confirmation dialog show the account's **user ID** – any
+account can choose its display name and email address freely, but not its ID.
+Links that existed before this rule count as confirmed.
+
 The member list shows in the **"Nextcloud account?"** column (*Nextcloud-Konto?*)
-whether an account is linked: "Yes", a link **"Link suggestion …"** (exactly one
-account carries the member's email address; it is linked after a
-confirmation), a button into the record when there are several matches,
-otherwise "No".
+whether an account is linked: "Yes", "Confirmation pending", a link **"Link
+suggestion …"** with the user ID (exactly one account carries the member's
+email address; it is linked after a confirmation), a button into the record
+when there are several matches, otherwise "No".
 
 When **admitting** a member you can **create a Nextcloud account** right away
 (*Create a Nextcloud account for this member*): account name (suggested from
@@ -1667,7 +1681,8 @@ invitation with a link to set the password –, groups, storage and language,
 the same details as in the user management. Only Nextcloud administrators,
 delegated administrators and group administrators (for their groups) see the
 section; the rights and password rules are Nextcloud's. The new account is
-linked to the record. If creating it fails, the member is admitted anyway – it
+linked to the record; here too, the link only takes effect once the member
+confirms it. If creating it fails, the member is admitted anyway – it
 can be done later in the record under *Nextcloud account* → *Create a new
 Nextcloud account …*.
 
@@ -2381,7 +2396,8 @@ saving.
    Nextcloud accounts"** under *Nextcloud settings → Vereinsbuchhaltung → Fees &
    SEPA → Basic settings*. It is off by default.
 2. The member is linked to their Nextcloud account in the record (13.2) – after
-   your confirmation, never on its own.
+   your confirmation, never on its own – and has confirmed the link via the
+   link in their email.
 
 Optionally, right below it: **"Members may switch their payment method to bank
 transfer themselves under 'My contribution'"** (off by default). Only with this

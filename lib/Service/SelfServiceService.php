@@ -60,13 +60,18 @@ class SelfServiceService {
 	 * Das per `nc_user_id` verknüpfte Mitglied des angemeldeten Kontos, falls
 	 * vorhanden – unabhängig von {@see isEnabled()}, damit hasAccess() beide
 	 * Bedingungen unabhängig voneinander prüfen kann.
+	 *
+	 * Nur eine bestätigte Verknüpfung zählt (#295): solange das Konto den
+	 * Einmal-Link an die Mailadresse des Mitglieds nicht bestätigt hat, ist es
+	 * nicht dieses Mitglied.
 	 */
 	public function currentMember(): ?Member {
 		$user = $this->userSession->getUser();
 		if ($user === null) {
 			return null;
 		}
-		return $this->memberMapper->findByNcUserId($user->getUID());
+		$member = $this->memberMapper->findByNcUserId($user->getUID());
+		return $member !== null && $member->isNcLinkConfirmed() ? $member : null;
 	}
 
 	/** Ob der aktuelle Request in den Self-Service darf: Schalter UND Kontoverknüpfung. */

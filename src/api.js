@@ -201,6 +201,7 @@ export default {
 	allMemberLinkSuggestions: () => axios.get(url('/member-link-suggestions')),
 	linkMember: (id, ncUserId) => axios.post(url(`/members/${id}/link`), { ncUserId }),
 	unlinkMember: (id) => axios.post(url(`/members/${id}/unlink`)),
+	resendMemberLinkConfirmation: (id) => axios.post(url(`/members/${id}/link/resend`)),
 	// Nextcloud-Konto anlegen (Auswahlen und Rechte; das Konto selbst legt lib/nextcloudAccount.js über OCS an)
 	// und die Willkommens-Mail an die Mailadresse der Akte (Vorlage in den Einstellungen).
 	nextcloudAccountOptions: () => axios.get(url('/nextcloud-account/options')),

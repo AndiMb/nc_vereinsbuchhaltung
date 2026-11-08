@@ -1694,10 +1694,25 @@ Nextcloud-Konto; ein vorhandenes lässt sich in der Akte
 verknüpfen (*Nextcloud-Konto* → *Vorschläge suchen*, erst nach Ihrer
 Bestätigung – die Mailadresse liefert nur den Vorschlag).
 
+**Das Mitglied bestätigt die Verknüpfung.** Die Mailadresse im
+Nextcloud-Profil trägt jede Nutzerin und jeder Nutzer selbst ein, ungeprüft.
+Ein Vorschlag beweist also nicht, dass das Konto dem Mitglied gehört. Deshalb
+gilt eine Verknüpfung erst, wenn das Mitglied sie bestätigt: Beim Verknüpfen
+geht ein Einmal-Link an die **Mailadresse in der Akte** (ohne sie lässt sich
+nicht verknüpfen). Das Mitglied meldet sich mit dem verknüpften Konto an und
+bestätigt; mit einem anderen Konto geht es nicht. Bis dahin steht die
+Verknüpfung auf **„Bestätigung ausstehend"**: das Konto sieht keinen
+Self-Service, und Mitteilungen gehen nicht an seine Adresse. Der Link gilt
+7 Tage; in der Akte lässt er sich mit *Bestätigungslink erneut senden* neu
+verschicken. Vorschlag und Rückfrage nennen die **Benutzer-ID** des Kontos –
+Anzeigename und Mailadresse kann jedes Konto frei wählen, die ID nicht.
+Verknüpfungen, die schon vor dieser Regel bestanden, gelten als bestätigt.
+
 Die Mitgliederliste zeigt in der Spalte **„Nextcloud-Konto?"**, ob ein Konto
-verknüpft ist: „Ja", ein Link **„Vorschlag … verknüpfen"** (genau ein Konto
-trägt die Mailadresse des Mitglieds; verknüpft wird nach einer Rückfrage), bei
-mehreren Treffern ein Knopf in die Akte, sonst „Nein".
+verknüpft ist: „Ja", „Bestätigung ausstehend", ein Link **„Vorschlag …
+verknüpfen"** mit der Benutzer-ID (genau ein Konto trägt die Mailadresse des
+Mitglieds; verknüpft wird nach einer Rückfrage), bei mehreren Treffern ein
+Knopf in die Akte, sonst „Nein".
 
 Beim **Aufnehmen** lässt sich gleich ein **Nextcloud-Konto anlegen**
 (*Nextcloud-Konto für dieses Mitglied anlegen*): Kontoname (aus dem Namen
@@ -1707,7 +1722,8 @@ Sprache, also dieselben Angaben wie in der Benutzerverwaltung. Den Abschnitt
 sehen nur Nextcloud-Administratoren, delegierte Administratoren und
 Gruppen-Administratoren (diese für ihre Gruppen); die Rechte und
 Passwortregeln sind die von Nextcloud. Das neue Konto wird mit der Akte
-verknüpft. Scheitert das Anlegen, ist das Mitglied trotzdem aufgenommen – in
+verknüpft; auch hier gilt die Verknüpfung erst nach der Bestätigung durch das
+Mitglied. Scheitert das Anlegen, ist das Mitglied trotzdem aufgenommen – in
 der Akte unter *Nextcloud-Konto* → *Neues Nextcloud-Konto anlegen …* lässt es
 sich nachholen.
 
@@ -2402,7 +2418,8 @@ Dafür ist **keine Buchhaltungsrolle** nötig, es gibt keinen Antrag, und jede
    Beitrag" für verknüpfte Nextcloud-Konten freischalten"** ein. Ab Werk ist er
    aus.
 2. Das Mitglied ist in der Akte mit seinem Nextcloud-Konto verknüpft (13.2) –
-   nach Ihrer Bestätigung, nie von selbst.
+   nach Ihrer Bestätigung, nie von selbst – und hat die Verknüpfung über den
+   Link in seiner Mail bestätigt.
 
 Optional dazu, direkt darunter: **„Mitglieder dürfen ihre Zahlungsart unter
 „Mein Beitrag" selbst auf Überweisung umstellen"** (ab Werk aus). Erst mit

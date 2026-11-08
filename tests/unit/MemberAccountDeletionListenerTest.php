@@ -51,6 +51,7 @@ class MemberAccountDeletionListenerTest extends TestCase {
 		$member->setOrganizationName('Müller & Söhne');
 		$member->setJoinedAt('2020-01-01');
 		$member->setNcUserId('mmueller');
+		$member->setNcLinkConfirmedAt('2026-01-01 00:00:00');
 		$member->setEmail($email);
 		return $member;
 	}
@@ -78,5 +79,24 @@ class MemberAccountDeletionListenerTest extends TestCase {
 		$this->tasks->expects($this->never())->method('create');
 
 		$this->listener()->handle($this->event('info@mueller.example'));
+	}
+
+	/**
+	 * #295: bei einer nur ausstehenden Verknüpfung hat das Konto seine Adresse
+	 * selbst gesetzt – sie wird nicht ins Mitglied übernommen.
+	 */
+	public function testAusstehendeVerknuepfungUebernimmtKeineAdresse(): void {
+		$member = $this->member();
+		$member->setNcLinkConfirmedAt(null);
+		$member->setNcLinkTokenHash(str_repeat('a', 64));
+		$this->members->method('findByNcUserId')->willReturn($member);
+		$this->members->expects($this->once())->method('update');
+		$this->tasks->expects($this->never())->method('create');
+
+		$this->listener()->handle($this->event('fremd@example.org'));
+
+		$this->assertNull($member->getEmail());
+		$this->assertNull($member->getNcUserId());
+		$this->assertNull($member->getNcLinkTokenHash());
 	}
 }
