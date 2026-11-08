@@ -1334,11 +1334,16 @@ account type, bank-account flag, sphere, reserve type and reporting group. This
 only affects accounts that actually have postings in the closed year. The
 reason: turning an income account into an expense account flips the sign in
 every report – the treasurer's report of the closed year would look
-different afterwards, without anyone having touched a posting. **Freely
-changeable remain** the number, name, category, parent account and the
-active toggle; they only change the label and sorting. Anyone who still
-needs to change a locked property reopens the year (chapter 8.4) and closes
-it again afterwards.
+different afterwards, without anyone having touched a posting. This also
+applies to **assigning and removing accounts in the reporting groups
+overview** and to **deleting a group** that such an account belongs to.
+**Freely changeable remain** the number, name, category, parent account and
+the active toggle; they only change the label and sorting. One exception for
+the number: if the reporting groups are derived from the account number
+(second group of digits), that group of digits can no longer be changed –
+otherwise the account would move to another group. Anyone who still needs to
+change a locked property reopens the year (chapter 8.4) and closes it again
+afterwards.
 
 > **For the watch folder, this means:** if someone drops a statement that
 > falls into a closed year, the transactions are read in but stay

@@ -1,4 +1,5 @@
 OC.L10N.register("vereinsbuchhaltung", {
+	"Auswertungsgruppe in der Kontonummer": "Rapportagegroep in het rekeningnummer",
 	"Bestätigung ausstehend": "Bevestiging in afwachting",
 	"Vorschlag {uid} verknüpfen": "Suggestie {uid} koppelen",
 	"Bestätigungslink erneut senden": "Bevestigingslink opnieuw versturen",

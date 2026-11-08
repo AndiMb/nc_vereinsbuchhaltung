@@ -1364,11 +1364,15 @@ Auswertungsgruppe. Das betrifft nur Konten, die im abgeschlossenen Zeitraum
 auch tatsächlich bebucht sind. Der Grund: Aus einem Einnahmekonto ein
 Ausgabekonto zu machen, dreht das Vorzeichen in allen Auswertungen – der
 Kassenbericht des abgeschlossenen Geschäftsjahres sähe hinterher anders
-aus, ohne dass jemand eine Buchung angefasst hätte. **Frei änderbar
+aus, ohne dass jemand eine Buchung angefasst hätte. Das gilt auch für das
+**Zuordnen und Lösen in der Übersicht der Auswertungsgruppen** und für das
+**Löschen einer Gruppe**, an der ein solches Konto hängt. **Frei änderbar
 bleiben** Nummer, Name, Kategorie, Überkonto und der Aktiv-Schalter; sie
-ändern nur Beschriftung und Sortierung. Wer eine gesperrte Eigenschaft doch
-ändern muss, eröffnet den Zeitraum wieder (Kapitel 8.4) und schließt ihn
-danach erneut ab.
+ändern nur Beschriftung und Sortierung. Eine Ausnahme bei der Nummer: Werden
+die Auswertungsgruppen aus der Kontonummer gebildet (zweite Zahlengruppe),
+lässt sich diese Zahlengruppe nicht mehr ändern – sonst wanderte das Konto in
+eine andere Gruppe. Wer eine gesperrte Eigenschaft doch ändern muss, eröffnet
+den Zeitraum wieder (Kapitel 8.4) und schließt ihn danach erneut ab.
 
 Gesperrt ist außerdem die **Umstellung der Geschäftsjahres-Regel** und das
 Verschieben der Grenze zu einem abgeschlossenen Zeitraum (Kapitel 8.1). Die

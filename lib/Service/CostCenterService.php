@@ -45,6 +45,7 @@ class CostCenterService {
 		private TransactionRunner $transaction,
 		private AuditService $audit,
 		private IL10N $l10n,
+		private AccountEvaluationLock $evaluationLock,
 	) {
 	}
 
@@ -105,6 +106,11 @@ class CostCenterService {
 	public function delete(int $id, string $userId): void {
 		$this->transaction->run(function () use ($id, $userId): void {
 			$cc = $this->mapper->find($id, $userId);
+			// Die Konten der Gruppe fallen auf „ohne Auswertungsgruppe" zurück –
+			// in einem abgeschlossenen Jahr verschöbe das die Übersicht (#300).
+			foreach ($this->accountMapper->findByCostCenter($userId, $id) as $account) {
+				$this->evaluationLock->assertOpen($userId, $account->getId(), $account->getNumber() . ' ' . $account->getName(), ['costCenterId']);
+			}
 			$detached = $this->accountMapper->clearCostCenter($userId, $id);
 			$this->mapper->delete($cc);
 			$this->audit->log('Auswertungsgruppe gelöscht', 'costcenter', $id, [
@@ -130,17 +136,27 @@ class CostCenterService {
 			// ersten Konten an einer Kostenstelle, die es nicht gibt.
 			$target = $this->mapper->find($costCenterId, $userId);
 		}
-		$count = 0;
-		foreach ($accountIds as $id) {
-			try {
-				$account = $this->accountMapper->find((int)$id, $userId);
-			} catch (DoesNotExistException) {
-				continue;
+		// In einer Transaktion: ein gesperrtes Konto lässt nicht die halbe Zuordnung stehen.
+		$count = $this->transaction->run(function () use ($userId, $accountIds, $target): int {
+			$count = 0;
+			foreach ($accountIds as $id) {
+				try {
+					$account = $this->accountMapper->find((int)$id, $userId);
+				} catch (DoesNotExistException) {
+					continue;
+				}
+				if ($account->getCostCenterId() === $target?->getId()) {
+					$count++; // schon so zugeordnet: nichts zu ändern – und nichts zu sperren
+					continue;
+				}
+				// Dieselbe Festschreibung wie am einzelnen Konto (#300).
+				$this->evaluationLock->assertOpen($userId, $account->getId(), $account->getNumber() . ' ' . $account->getName(), ['costCenterId']);
+				$account->setCostCenterId($target?->getId());
+				$this->accountMapper->update($account);
+				$count++;
 			}
-			$account->setCostCenterId($target?->getId());
-			$this->accountMapper->update($account);
-			$count++;
-		}
+			return $count;
+		});
 		$this->audit->log('Auswertungsgruppen zugeordnet', 'costcenter', $target?->getId(), [
 			'anzahl' => $count,
 			'kostenstelle' => $target !== null ? $target->getCode() . ' ' . $target->getName() : '(keine)',
