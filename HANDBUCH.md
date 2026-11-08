@@ -2564,7 +2564,10 @@ schwärzt die App deshalb die Person und lässt die Zahlen stehen:
   die Freitexte der Historie – Sperr-, Stundungs-, Erlass- und
   Storno-Begründungen, die Begründung einer individuellen Untergrenze,
   Vertretungsnotizen und der Freitext einer Rücklastschrift. Als Debitor der
-  Forderungen steht danach „Anonymisiertes Mitglied".
+  Forderungen steht danach „Anonymisiertes Mitglied". Ebenso geschwärzt wird
+  ein aus dem Mitglied angelegter Rechnungsempfänger (Name, Anschrift,
+  Mailadresse, Notiz); er verschwindet aus der Empfängerauswahl und lässt sich
+  nicht mehr bearbeiten, Kundennummer und Rechnungen bleiben.
 - **Was bleibt.** Beträge, Daten, Zustände, Rückgabecodes und Mandatsreferenzen –
   das, was die Buchhaltung belegt. Die Akte ist danach schreibgeschützt und
   trägt den Vermerk der Anonymisierung.

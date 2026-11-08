@@ -63,6 +63,10 @@ class DebtorService {
 	 */
 	public function update(int $id, array $data): Debtor {
 		$debtor = $this->mapper->find($id);
+		// Ein geschwärzter Empfänger bleibt geschwärzt (#303, wie das Mitglied, #296).
+		if ($debtor->getRedactedAt() !== null) {
+			throw new \InvalidArgumentException($this->msg('Dieser Empfänger ist anonymisiert und kann nicht mehr bearbeitet werden.'));
+		}
 		$this->apply($debtor, $data);
 		return $this->mapper->update($debtor);
 	}

@@ -10,6 +10,8 @@ use OCA\Vereinsbuchhaltung\Db\AssignmentEventMapper;
 use OCA\Vereinsbuchhaltung\Db\AssignmentMapper;
 use OCA\Vereinsbuchhaltung\Db\DebitItem;
 use OCA\Vereinsbuchhaltung\Db\DebitItemMapper;
+use OCA\Vereinsbuchhaltung\Db\Debtor;
+use OCA\Vereinsbuchhaltung\Db\DebtorMapper;
 use OCA\Vereinsbuchhaltung\Db\Mandate;
 use OCA\Vereinsbuchhaltung\Db\MandateAmendment;
 use OCA\Vereinsbuchhaltung\Db\MandateAmendmentMapper;
@@ -56,6 +58,7 @@ class MemberAnonymizationServiceTest extends TestCase {
 	private ReimbursementMapper&MockObject $reimbursements;
 	private MandateDocumentService&MockObject $mandateDocuments;
 	private AnonymizationCandidateService&MockObject $eligibility;
+	private DebtorMapper&MockObject $debtors;
 
 	protected function setUp(): void {
 		$this->members = $this->createMock(MemberMapper::class);
@@ -70,6 +73,7 @@ class MemberAnonymizationServiceTest extends TestCase {
 		$this->reimbursements = $this->createMock(ReimbursementMapper::class);
 		$this->mandateDocuments = $this->createMock(MandateDocumentService::class);
 		$this->eligibility = $this->createMock(AnonymizationCandidateService::class);
+		$this->debtors = $this->createMock(DebtorMapper::class);
 
 		// Bewusst KEIN blanket-Default per method()->willReturn() fuer die
 		// findBy*-Aufrufe hier: ein zweiter method()-Aufruf in einem
@@ -82,7 +86,7 @@ class MemberAnonymizationServiceTest extends TestCase {
 
 		// update()/insert() geben in der echten QBMapper-Implementierung das
 		// Entity zurueck - hier reicht "gibt weiter, was reinkam".
-		foreach ([$this->members, $this->mandates, $this->amendments, $this->mandateEvents, $this->assignments, $this->assignmentEvents, $this->openItems, $this->debitItems, $this->returnedDebits, $this->reimbursements] as $mapper) {
+		foreach ([$this->members, $this->mandates, $this->amendments, $this->mandateEvents, $this->assignments, $this->assignmentEvents, $this->openItems, $this->debitItems, $this->returnedDebits, $this->reimbursements, $this->debtors] as $mapper) {
 			$mapper->method('update')->willReturnArgument(0);
 		}
 
@@ -119,6 +123,7 @@ class MemberAnonymizationServiceTest extends TestCase {
 			$this->createMock(AuditService::class),
 			$time,
 			$l10n,
+			$this->debtors,
 		);
 	}
 
@@ -181,6 +186,40 @@ class MemberAnonymizationServiceTest extends TestCase {
 		$this->assertNull($result->getInternalNote());
 		$this->assertNotNull($result->getRedactedAt());
 		$this->assertTrue($result->isRedacted());
+	}
+
+	/** #303: der aus dem Mitglied angelegte Rechnungsempfänger trägt dieselben Personendaten. */
+	public function testSchwaertDenRechnungsempfaengerDesMitglieds(): void {
+		$this->members->method('find')->willReturn($this->member());
+		$debtor = new Debtor();
+		$debtor->setId(5);
+		$debtor->setKind(Debtor::KIND_PERSON);
+		$debtor->setName('Katrin Brunner');
+		$debtor->setName2('z. Hd. Familie Brunner');
+		$debtor->setStreet('Lindenweg 3');
+		$debtor->setPostalCode('12345');
+		$debtor->setCity('Musterstadt');
+		$debtor->setCountry('DE');
+		$debtor->setEmail('katrin@example.org');
+		$debtor->setNote('ruft lieber an');
+		$debtor->setCustomerNo('M-0042');
+		$debtor->setMemberId(42);
+		$this->debtors->expects($this->once())->method('findAllByMember')->with(42)->willReturn([$debtor]);
+		$this->debtors->expects($this->once())->method('update')->with($debtor);
+
+		$this->service()->anonymize(42);
+
+		$this->assertSame(Member::REDACTED_DISPLAY_NAME, $debtor->getName());
+		$this->assertNull($debtor->getName2());
+		$this->assertNull($debtor->getStreet());
+		$this->assertNull($debtor->getPostalCode());
+		$this->assertNull($debtor->getCity());
+		$this->assertNull($debtor->getEmail());
+		$this->assertNull($debtor->getNote());
+		$this->assertNotNull($debtor->getRedactedAt());
+		// Zuordnung und Kundennummer bleiben für die Buchhaltung.
+		$this->assertSame(42, $debtor->getMemberId());
+		$this->assertSame('M-0042', $debtor->getCustomerNo());
 	}
 
 	public function testBehaeltStrukturierteMitgliedsFelder(): void {
