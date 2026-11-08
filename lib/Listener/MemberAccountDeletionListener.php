@@ -50,7 +50,8 @@ class MemberAccountDeletionListener implements IEventListener {
 		}
 
 		$rescuedEmail = null;
-		if (($member->getEmail() === null || $member->getEmail() === '')
+		// Nie in einen anonymisierten Datensatz (#296): die Adresse wäre sonst wieder da.
+		if (!$member->isRedacted() && ($member->getEmail() === null || $member->getEmail() === '')
 			&& $user->getEMailAddress() !== null && $user->getEMailAddress() !== '') {
 			$rescuedEmail = $user->getEMailAddress();
 			$member->setEmail($rescuedEmail);

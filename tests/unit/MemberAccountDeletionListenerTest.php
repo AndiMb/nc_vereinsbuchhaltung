@@ -79,4 +79,18 @@ class MemberAccountDeletionListenerTest extends TestCase {
 
 		$this->listener()->handle($this->event('info@mueller.example'));
 	}
+
+	/** #296: beim Löschen des Kontos landet keine Adresse in einem anonymisierten Datensatz. */
+	public function testAnonymisiertesMitgliedBekommtKeineAdresse(): void {
+		$member = $this->member();
+		$member->setRedactedAt('2026-01-01 00:00:00');
+		$this->members->method('findByNcUserId')->willReturn($member);
+		$this->members->expects($this->once())->method('update');
+		$this->tasks->expects($this->never())->method('create');
+
+		$this->listener()->handle($this->event('info@mueller.example'));
+
+		$this->assertNull($member->getEmail());
+		$this->assertNull($member->getNcUserId());
+	}
 }

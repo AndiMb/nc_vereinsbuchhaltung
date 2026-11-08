@@ -66,7 +66,12 @@ class SelfServiceService {
 		if ($user === null) {
 			return null;
 		}
-		return $this->memberMapper->findByNcUserId($user->getUID());
+		$member = $this->memberMapper->findByNcUserId($user->getUID());
+		// Ein anonymisiertes Mitglied hat keinen Self-Service mehr (#296): es gibt
+		// nichts mehr zu sehen, und jede Änderung schriebe Personendaten zurück
+		// in den geschwärzten Datensatz. Die Kontoverknüpfung selbst bleibt
+		// (Spec §3.8: Konto-Löschung und Anonymisierung sind entkoppelt).
+		return $member !== null && !$member->isRedacted() ? $member : null;
 	}
 
 	/** Ob der aktuelle Request in den Self-Service darf: Schalter UND Kontoverknüpfung. */

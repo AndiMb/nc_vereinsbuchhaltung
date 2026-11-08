@@ -714,4 +714,16 @@ class MemberServiceTest extends TestCase {
 		$user->method('getEMailAddress')->willReturn($email);
 		return $user;
 	}
+
+	/** #296: auch über den Self-Service-Weg bleibt ein anonymisierter Datensatz leer. */
+	public function testUpdateOwnContactDataLehntAnonymisiertesMitgliedAb(): void {
+		$member = new Member();
+		$member->setId(1);
+		$member->setRedactedAt('2026-01-01 00:00:00');
+		$this->mapper->method('find')->willReturn($member);
+		$this->mapper->expects($this->never())->method('update');
+
+		$this->expectException(\InvalidArgumentException::class);
+		$this->service()->updateOwnContactData(1, ['firstName' => 'Neu', 'lastName' => 'Name', 'street' => 'Weg 1']);
+	}
 }
