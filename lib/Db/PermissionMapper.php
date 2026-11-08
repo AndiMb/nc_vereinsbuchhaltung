@@ -86,6 +86,24 @@ class PermissionMapper extends QBMapper {
 		}
 	}
 
+	/**
+	 * Entfernt die Rolle eines Nutzers oder einer Gruppe, etwa weil es den
+	 * Prinzipal in Nextcloud nicht mehr gibt (#298).
+	 *
+	 * @return Permission[] die entfernten Einträge (für das Protokoll)
+	 */
+	public function deleteByPrincipal(string $type, string $id): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('*')->from($this->getTableName())
+			->where($qb->expr()->eq('principal_type', $qb->createNamedParameter($type)))
+			->andWhere($qb->expr()->eq('principal_id', $qb->createNamedParameter($id)));
+		$rows = $this->findEntities($qb);
+		foreach ($rows as $row) {
+			$this->delete($row);
+		}
+		return $rows;
+	}
+
 	private function findByPrincipal(string $type, string $id): ?Permission {
 		$qb = $this->db->getQueryBuilder();
 		$qb->select('*')->from($this->getTableName())
