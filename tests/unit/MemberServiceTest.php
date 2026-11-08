@@ -346,12 +346,29 @@ class MemberServiceTest extends TestCase {
 		$this->assertSame('neu@example.org', $result['member']->getEmail());
 	}
 
+	/** #305: unverändert gesendete Daten schreiben nichts und melden keine Änderung. */
+	public function testUpdateOwnContactDataOhneAenderungSchreibtNichts(): void {
+		$person = $this->fullPerson();
+		$this->mapper->method('find')->with(5)->willReturn($person);
+		$this->mapper->expects($this->never())->method('update');
+
+		$result = $this->service()->updateOwnContactData(5, [
+			'lastName' => $person->getLastName(),
+			'email' => '  ' . $person->getEmail() . ' ',
+			'phone' => $person->getPhone(),
+		]);
+
+		$this->assertFalse($result['changed']);
+		$this->assertFalse($result['emailChanged']);
+	}
+
 	public function testUpdateOwnContactDataOhneEmailAenderungMeldetKeinenWechsel(): void {
 		$this->mapper->method('find')->with(5)->willReturn($this->fullPerson());
 		$this->mapper->method('update')->willReturnArgument(0);
 
 		$result = $this->service()->updateOwnContactData(5, ['phone' => '+49 30 000']);
 
+		$this->assertTrue($result['changed']);
 		$this->assertFalse($result['emailChanged']);
 		$this->assertSame($result['oldEmail'], $result['member']->getEmail());
 	}
