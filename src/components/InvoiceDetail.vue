@@ -376,6 +376,7 @@ import InvoiceDunningDialog from './InvoiceDunningDialog.vue'
 import InvoiceMailDialog from './InvoiceMailDialog.vue'
 import InvoicePayDialog from './InvoicePayDialog.vue'
 import api from '../api.js'
+import { accountLabel } from '../lib/accountLabel.js'
 import { errMsg, formatDate, formatDateTime, formatMoney } from '../lib/format.js'
 import { displayStatusLabel, dunningLabel, formatDiscount, formatQuantity, missingEInvoiceFormats, statusClass, unitShort } from '../lib/invoices.js'
 
@@ -533,7 +534,7 @@ export default {
 
 		accountLabel(id) {
 			const a = this.accountsById[id]
-			return a ? `${a.number} ${a.name}` : ''
+			return a ? accountLabel(a) : ''
 		},
 
 		eFormatLabel(format) {

@@ -101,6 +101,7 @@ import api from '../api.js'
 import { buildAccountOptions, useAccounts } from '../composables/useAccounts.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { useRules } from '../composables/useRules.js'
+import { accountFilterBy, accountLabel } from '../lib/accountLabel.js'
 import { errMsg } from '../lib/format.js'
 import { isSelectableOption } from '../lib/selectOptions.js'
 
@@ -165,23 +166,13 @@ export default {
 		errMsg,
 		accountLabel(id) {
 			const acc = this.accountsById[id]
-			return acc ? `${acc.number} ${acc.name}` : `#${id}`
+			return acc ? accountLabel(acc) : `#${id}`
 		},
 
 		// Suchfilter fuer das Konto-Dropdown (Ziffern = Praefix der Kontonummer)
 		isSelectableOption,
 
-		accountFilterBy(option, label, search) {
-			const s = String(search || '').trim().toLowerCase()
-			if (!s) { return true }
-			if (option && option.$isDisabled) { return false }
-			if (/^[\d\s]+$/.test(s)) {
-				const digits = s.replace(/\s+/g, '')
-				const num = String((option && option.number) || '').replace(/\s+/g, '').toLowerCase()
-				return num.startsWith(digits)
-			}
-			return String(label || '').toLowerCase().includes(s)
-		},
+		accountFilterBy,
 
 		matchFieldLabel(field) {
 			return { counterparty: this.t('Zahlungspartner'), purpose: this.t('Verwendungszweck'), iban: this.t('IBAN') }[field] || field

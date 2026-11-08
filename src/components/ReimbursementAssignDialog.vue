@@ -82,6 +82,7 @@ import NcModal from '@nextcloud/vue/components/NcModal'
 import NcSelect from '@nextcloud/vue/components/NcSelect'
 import api from '../api.js'
 import { useAccounts } from '../composables/useAccounts.js'
+import { accountOption } from '../lib/accountLabel.js'
 import { errMsg, formatDate, formatMoney } from '../lib/format.js'
 
 /**
@@ -117,7 +118,7 @@ export default {
 		accountOptions() {
 			return this.accountsSorted
 				.filter((a) => a.type === 'expense' && !a.isBank && a.active !== false)
-				.map((a) => ({ id: a.id, label: `${a.number} ${a.name}` }))
+				.map((a) => accountOption(a))
 		},
 	},
 

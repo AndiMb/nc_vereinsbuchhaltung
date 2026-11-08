@@ -97,11 +97,13 @@ class AccountService {
 	 *                    Standard-Kontenrahmens abschalten – der protokolliert sich als
 	 *                    Ganzes, sonst stünden dort 14 einzelne „Konto angelegt")
 	 */
-	public function create(string $userId, string $number, string $name, string $type, ?string $category, bool $isBank, ?int $parentId = null, ?string $sphere = null, ?string $reserveKind = null, ?string $iban = null, ?int $costCenterId = null, bool $countInTotal = true, bool $audit = true): Account {
+	public function create(string $userId, string $number, string $name, string $type, ?string $category, bool $isBank, ?int $parentId = null, ?string $sphere = null, ?string $reserveKind = null, ?string $iban = null, ?int $costCenterId = null, bool $countInTotal = true, bool $audit = true, ?string $shortName = null, ?string $description = null): Account {
 		$account = new Account();
 		$account->setUserId($userId);
 		$account->setNumber(trim($number));
 		$account->setName(trim($name));
+		$account->setShortName($this->normalizeShortName($shortName));
+		$account->setDescription($this->normalizeDescription($description));
 		$account->setType($this->validateType($type));
 		$account->setCategory($this->normalizeCategory($category));
 		$account->setIsBank($isBank);
@@ -147,6 +149,12 @@ class AccountService {
 		}
 		if (isset($data['name'])) {
 			$account->setName(trim((string)$data['name']));
+		}
+		if (array_key_exists('shortName', $data)) {
+			$account->setShortName($this->normalizeShortName($data['shortName'] !== null ? (string)$data['shortName'] : null));
+		}
+		if (array_key_exists('description', $data)) {
+			$account->setDescription($this->normalizeDescription($data['description'] !== null ? (string)$data['description'] : null));
 		}
 		if (isset($data['type'])) {
 			$account->setType($this->validateType((string)$data['type']));
@@ -554,6 +562,24 @@ class AccountService {
 		$account->setOpeningBalanceCents($amountCents);
 		$account->setOpeningDate($date !== null && $date !== '' ? $date : null);
 		return $this->mapper->update($account);
+	}
+
+	/** Kurzname (#201): leer = keiner, höchstens 64 Zeichen. */
+	private function normalizeShortName(?string $shortName): ?string {
+		$shortName = trim((string)$shortName);
+		if (mb_strlen($shortName) > 64) {
+			throw new \InvalidArgumentException($this->l10n->t('Der Kurzname darf höchstens 64 Zeichen lang sein.'));
+		}
+		return $shortName !== '' ? $shortName : null;
+	}
+
+	/** Beschreibung (#201): leer = keine, höchstens 10 000 Zeichen. */
+	private function normalizeDescription(?string $description): ?string {
+		$description = trim(str_replace(["\r\n", "\r"], "\n", (string)$description));
+		if (mb_strlen($description) > 10000) {
+			throw new \InvalidArgumentException($this->l10n->t('Die Beschreibung darf höchstens 10.000 Zeichen lang sein.'));
+		}
+		return $description !== '' ? $description : null;
 	}
 
 	private function validateType(string $type): string {

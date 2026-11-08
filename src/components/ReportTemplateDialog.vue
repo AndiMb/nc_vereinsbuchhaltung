@@ -247,6 +247,7 @@ import NcSelect from '@nextcloud/vue/components/NcSelect'
 import ReportSectionList from './ReportSectionList.vue'
 import api from '../api.js'
 import { useAccounts } from '../composables/useAccounts.js'
+import { accountOption } from '../lib/accountLabel.js'
 import { errMsg } from '../lib/format.js'
 import { focusOnOpen } from '../lib/modalFocus.js'
 import {
@@ -343,7 +344,7 @@ export default {
 		accountOptions() {
 			return this.accountsSorted
 				.filter((a) => a.type === 'income' || a.type === 'expense')
-				.map((a) => ({ id: a.id, label: `${a.number} ${a.name}` }))
+				.map((a) => accountOption(a))
 		},
 
 		// Filter nach Gruppen: die eigenen der Vorlage und alle Auswertungsgruppen,

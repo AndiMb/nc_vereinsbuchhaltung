@@ -945,6 +945,24 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 
 .vbh-cat { margin-inline-start: 8px; opacity: 0.7; font-size: 0.9em; }
 
+.vbh-shortname { font-weight: normal; opacity: 0.7; font-size: 0.85em; }
+/* Erklärung zum Konto (#201) zwischen Kopf und Buchungen */
+.vbh-account-description { margin: 4px 0 12px; padding: 8px 12px; border-inline-start: 3px solid var(--color-primary-element); background: var(--color-background-hover); border-radius: var(--border-radius); overflow-wrap: anywhere; }
+
+.vbh-account-description > :first-child { margin-top: 0; }
+
+.vbh-account-description > :last-child { margin-bottom: 0; }
+
+.vbh-account-description ul, .vbh-account-description ol { padding-inline-start: 1.5em; }
+
+.vbh-account-description ul { list-style: disc; }
+
+.vbh-account-description ol { list-style: decimal; }
+
+.vbh-account-description a { text-decoration: underline; }
+
+.vbh-account-description em { font-style: italic; }
+
 .vbh-opening { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 12px 0; padding: 10px 14px; border: 1px solid var(--color-border); border-radius: var(--border-radius-large, 12px); background-color: var(--color-background-hover); }
 
 .vbh-statementbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
