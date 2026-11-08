@@ -1,4 +1,5 @@
 OC.L10N.register("vereinsbuchhaltung", {
+	"Diese Buchung gehört schon zu einer anderen Auslage.": "This entry already belongs to another expense.",
 	"Bestätigung ausstehend": "Confirmation pending",
 	"Vorschlag {uid} verknüpfen": "Link suggestion {uid}",
 	"Bestätigungslink erneut senden": "Resend confirmation link",

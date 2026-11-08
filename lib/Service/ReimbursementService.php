@@ -71,6 +71,7 @@ class ReimbursementService {
 		private BookingService $booking,
 		private JournalService $journalService,
 		private ReimbursementPaymentReverter $reverter,
+		private PeriodService $periods,
 		?ClubClock $clock = null,
 	) {
 		$this->clock = $clock ?? new ClubClock($this->time);
@@ -556,9 +557,18 @@ class ReimbursementService {
 			// Ohne Prüfung stünde am Antrag eine Buchungsnummer, die ins Leere zeigt, und die Belege
 			// hingen an einer Buchung, die es nicht gibt.
 			try {
-				$this->journalMapper->find($journalId, Application::BOOK);
+				$journal = $this->journalMapper->find($journalId, Application::BOOK);
 			} catch (DoesNotExistException) {
 				throw new \InvalidArgumentException($this->l10n->t('Die angegebene Buchung existiert nicht.'));
+			}
+			// Die Belege landen an der Buchung: in einem abgeschlossenen Geschäftsjahr
+			// darf sich daran nichts mehr ändern (#304).
+			$this->periods->assertOpen(Application::BOOK, (string)$journal->getDate());
+			// Eine Buchung belegt genau eine Auszahlung. Hinge ein zweiter Antrag an ihr,
+			// löschte dessen Rücknahme die Buchung des ersten mit.
+			$other = $this->mapper->findPaidByJournal($journalId);
+			if ($other !== null && $other->getId() !== $reimbursement->getId()) {
+				throw new \InvalidArgumentException($this->l10n->t('Diese Buchung gehört schon zu einer anderen Auslage.'));
 			}
 
 			$this->log->append($id, ReimbursementEvent::ACTION_PAID, $actorUid, ReimbursementEvent::ROLE_STAFF, null, [
