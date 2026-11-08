@@ -1,4 +1,9 @@
 OC.L10N.register("vereinsbuchhaltung", {
+	"Name auf Rechnungen (optional)": "Name on invoices (optional)",
+	"Nur nötig, wenn der Vereinsname auf Rechnungen anders lauten soll, etwa weil er sehr lang ist. Er steht dann im Briefkopf, in der Absenderzeile, in der Fußzeile, in der E-Rechnung und in den Rechnungs-Mails. Leer gilt der Vereinsname.": "Only needed if the club name should read differently on invoices, for example because it is very long. It then appears in the letterhead, the sender line, the footer, the e-invoice and the invoice emails. If empty, the club name is used.",
+	"Kontoinhaber (optional)": "Account holder (optional)",
+	"Der Name auf Rechnungen hat mehr als 70 Zeichen; im GiroCode würde er abgeschnitten. Tragen Sie den Kontoinhaber so ein, wie ihn die Bank führt.": "The name on invoices has more than 70 characters and would be cut off in the GiroCode. Enter the account holder as your bank records it.",
+	"Steht im Zahlungsblock, im GiroCode (höchstens 70 Zeichen) und in der E-Rechnung. Leer gilt der Name auf Rechnungen.": "Appears in the payment block, the GiroCode (at most 70 characters) and the e-invoice. If empty, the name on invoices is used.",
 	"Beleg übernehmen": "Add receipt",
 	"Der angezeigte Beleg „{name}“ ist noch nicht übernommen. Mit der Buchung speichern?": "The receipt shown, “{name}”, has not been added yet. Save it with the booking?",
 	"Zurück": "Back",

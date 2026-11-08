@@ -69,7 +69,10 @@ class InvoicePdfDocument extends \TCPDF {
 				// Die erste Zeile jeder Spalte (Vereinsname, „Bankverbindung“) ist die Überschrift.
 				$this->SetFont('dejavusans', $n === 0 && $i !== 1 ? 'B' : '', 7, '', true);
 				$this->SetX($x);
-				$this->MultiCell($i === 2 ? $columnWidth : $columnWidth - $gap, 3.6, $line, 0, 'L', false, 1, null, null, true, 0, false, true, 0, 'T');
+				// Ein langer Vereinsname nimmt höchstens zwei Zeilen ein, notfalls kleiner (#238).
+				$cellWidth = $i === 2 ? $columnWidth : $columnWidth - $gap;
+				$squeeze = $n === 0 && $i !== 1 && $this->getNumLines($line, $cellWidth) > 2;
+				$this->MultiCell($cellWidth, 3.6, $line, 0, 'L', false, 1, null, null, true, 0, false, true, $squeeze ? 7.2 : 0, 'T', $squeeze);
 			}
 			$x += $columnWidth;
 		}

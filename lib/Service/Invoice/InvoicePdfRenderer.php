@@ -217,18 +217,17 @@ class InvoicePdfRenderer {
 		$issuer = $data->issuer;
 		$pdf->SetFont(self::FONT, 'B', 13, '', true);
 		$pdf->SetXY(self::MARGIN_LEFT, 14);
-		$pdf->Cell(95, 6, (string)($issuer['name'] ?? ''), 0, 1, 'L');
+		// Lange Vereinsnamen brechen um (#238): höchstens drei Zeilen, notfalls
+		// mit kleinerer Schrift (fitcell), damit nichts in die Absenderzeile ragt.
+		$pdf->MultiCell(95, 6, (string)($issuer['name'] ?? ''), 0, 'L', false, 1, null, null, true, 0, false, true, 18, 'T', true);
 		$this->logo($pdf, $data->logo);
 
-		// Absenderzeile über dem Anschriftenfeld (DIN 5008: im Fensterbriefumschlag sichtbar)
-		$pdf->SetFont(self::FONT, '', 6.5, '', true);
+		// Absenderzeile über dem Anschriftenfeld (DIN 5008: im Fensterbriefumschlag sichtbar);
+		// sie bleibt einzeilig, siehe SenderLine.
+		[$sender, $senderSize] = SenderLine::fit($issuer, static fn (string $text, float $size): float => $pdf->GetStringWidth($text, self::FONT, '', $size), 85);
+		$pdf->SetFont(self::FONT, '', $senderSize, '', true);
 		$pdf->SetXY(self::MARGIN_LEFT, 45);
-		$sender = implode(' · ', array_filter([
-			$issuer['name'] ?? '',
-			$issuer['street'] ?? '',
-			trim(($issuer['postalCode'] ?? '') . ' ' . ($issuer['city'] ?? '')),
-		]));
-		$pdf->Cell(85, 4.2, $sender, 'B', 1, 'L');
+		$pdf->Cell(85, 4.2, $sender, 'B', 1, 'L', false, '', 1);
 
 		$debtor = $data->debtor;
 		$lines = array_filter([
@@ -481,11 +480,16 @@ class InvoicePdfRenderer {
 		if ($data->paymentReference !== null) {
 			$rows[] = [$this->msg('Zahlungsreferenz'), CreditorReference::format($data->paymentReference)];
 		}
-		foreach ($rows as [$label, $value]) {
+		foreach ($rows as $i => [$label, $value]) {
 			$pdf->SetTextColor(100, 100, 100);
 			$pdf->Cell(34, 4.8, $label, 0, 0, 'L');
 			$pdf->SetTextColor(0, 0, 0);
-			$pdf->Cell(50, 4.8, $value, 0, 1, 'L', false, '', 1);
+			if ($i === 0) {
+				// Der Kontoinhaber darf umbrechen statt gestaucht zu werden (#238).
+				$pdf->MultiCell(50, 4.8, $value, 0, 'L', false, 1);
+			} else {
+				$pdf->Cell(50, 4.8, $value, 0, 1, 'L', false, '', 1);
+			}
 		}
 
 		// GiroCode als Kasten rechts neben dem Zahlungsblock: kurzer Text, Code daneben.
