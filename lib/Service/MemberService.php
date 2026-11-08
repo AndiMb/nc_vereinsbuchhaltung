@@ -89,7 +89,11 @@ class MemberService {
 	 * behält den bisherigen Wert.
 	 *
 	 * @param array<string, mixed> $data
-	 * @return array{member: Member, emailChanged: bool, oldEmail: ?string}
+	 * `changed` meldet, ob sich überhaupt ein Feld geändert hat: nur dann
+	 * schreibt die Methode und nur dann verschickt der Self-Service eine
+	 * Quittung (#305).
+	 *
+	 * @return array{member: Member, changed: bool, emailChanged: bool, oldEmail: ?string}
 	 * @throws DoesNotExistException wenn es das Mitglied nicht (mehr) gibt
 	 * @throws \InvalidArgumentException bei ungültigen Eingaben
 	 */
@@ -100,6 +104,7 @@ class MemberService {
 			throw new \InvalidArgumentException($this->l10n->t('Dieses Mitglied ist anonymisiert; Stammdaten können nicht mehr bearbeitet werden.'));
 		}
 		$oldEmail = $member->getEmail();
+		$before = self::ownContactFields($member);
 
 		if ($member->getMemberType() === Member::TYPE_PERSON) {
 			$lastName = trim((string)($data['lastName'] ?? $member->getLastName()));
@@ -123,11 +128,24 @@ class MemberService {
 		$member->setCity($this->nullIfEmpty($data['city'] ?? $member->getCity()));
 		$member->setCountry($this->normalizeCountry($data['country'] ?? $member->getCountry()));
 
-		$member = $this->mapper->update($member);
+		$changed = self::ownContactFields($member) !== $before;
+		if ($changed) {
+			$member = $this->mapper->update($member);
+		}
 		return [
 			'member' => $member,
+			'changed' => $changed,
 			'emailChanged' => $member->getEmail() !== $oldEmail,
 			'oldEmail' => $oldEmail,
+		];
+	}
+
+	/** @return list<?string> die Felder mit Hoheit „Mitglied", siehe {@see updateOwnContactData()} */
+	private static function ownContactFields(Member $member): array {
+		return [
+			$member->getFirstName(), $member->getLastName(), $member->getOrganizationName(),
+			$member->getEmail(), $member->getPhone(), $member->getStreet(),
+			$member->getPostalCode(), $member->getCity(), $member->getCountry(),
 		];
 	}
 

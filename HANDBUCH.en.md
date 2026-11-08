@@ -2449,7 +2449,8 @@ but not corrected (13.2).
 **Receipt and trail.** The app confirms every change to the member by email:
 what changed, from when, and which collection is the first one affected – also
 when the board changes the fee (13.4; the email then names it as the
-originator). The
+originator). Saving the contact details unchanged sends no email; contact
+changes and activation links are limited per hour (20 and 5). The
 email is the copy; the area has no event list of its own. In addition, an entry
 appears in the member's Nextcloud **Activity** (Nextcloud only sends an email for
 it on revocation, unless the member turned that off in their personal

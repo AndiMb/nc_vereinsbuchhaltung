@@ -2473,7 +2473,9 @@ kann das Mitglied verwerfen, aber nicht korrigieren (13.2).
 **Quittung und Spur.** Jede Änderung bestätigt die App dem Mitglied per Mail:
 was sich geändert hat, ab wann und welcher Einzug als erster betroffen ist – auch
 dann, wenn der Vorstand den Beitrag ändert (13.4; die Mail nennt ihn dann als
-Urheber). Die
+Urheber). Speichert das Mitglied seine Kontaktdaten unverändert, geht keine
+Mail hinaus; Kontaktdaten-Änderungen und Aktivierungslinks sind je Stunde
+begrenzt (20 bzw. 5). Die
 Mail ist die Kopie, eine eigene Ereignisliste gibt es im Bereich nicht. Zusätzlich
 erscheint ein Eintrag in der Nextcloud-**Aktivität** des Mitglieds (eigene Mail
 dazu verschickt Nextcloud nur beim Widerruf, sofern das Mitglied es nicht in
