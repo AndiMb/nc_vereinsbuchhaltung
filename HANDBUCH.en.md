@@ -209,7 +209,9 @@ renamed freely within the watch folder; receipts moved out of the watch
 folder count as missing.
 
 Only Nextcloud administrators may choose or change a folder in another
-user's home; this also applies to the watched folder from chapter 3.3.
+user's home; this also applies to the watched folder from chapter 3.3 and to
+the folders for mandate documents, invoices and SEPA XML files, which live in
+the home of the receipt-storage user.
 Administrators of the app without those rights choose their own home, and a
 foreign folder that is already set up stays valid.
 

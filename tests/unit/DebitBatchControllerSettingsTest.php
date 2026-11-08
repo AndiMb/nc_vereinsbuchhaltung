@@ -12,6 +12,7 @@ use OCA\Vereinsbuchhaltung\Service\DebitBatchService;
 use OCA\Vereinsbuchhaltung\Service\DebitBatchXmlStorageService;
 use OCA\Vereinsbuchhaltung\Service\DebitTimelineService;
 use OCA\Vereinsbuchhaltung\Service\FolderPathValidator;
+use OCA\Vereinsbuchhaltung\Service\ForeignHomeGuard;
 use OCP\AppFramework\Http;
 use OCP\IAppConfig;
 use OCP\IL10N;
@@ -29,12 +30,14 @@ use PHPUnit\Framework\TestCase;
 class DebitBatchControllerSettingsTest extends TestCase {
 
 	private DebitBatchXmlStorageService&MockObject $xmlStorage;
+	private ForeignHomeGuard&MockObject $guard;
 	/** @var array<string, string> */
 	private array $store = [];
 
 	protected function setUp(): void {
 		$this->store = [];
 		$this->xmlStorage = $this->createMock(DebitBatchXmlStorageService::class);
+		$this->guard = $this->createMock(ForeignHomeGuard::class);
 		$this->xmlStorage->method('isEnabled')->willReturn(false);
 		$this->xmlStorage->method('isConfigured')->willReturn(true);
 		$this->xmlStorage->method('folderPath')->willReturn('SEPA-Einreichungen');
@@ -61,7 +64,20 @@ class DebitBatchControllerSettingsTest extends TestCase {
 			$this->createMock(ContributionCycleTaskService::class),
 			$this->createMock(MemberMapper::class),
 			$this->createMock(IUserManager::class),
+			$this->guard,
 		);
+	}
+
+	/** #307: einen anderen XML-Ordner im fremden Home wählt nur ein Nextcloud-Administrator. */
+	public function testXmlOrdnerImFremdenHomeWirdAbgelehnt(): void {
+		$this->guard->expects($this->once())->method('folderChangeError')->with('SEPA-Einreichungen', 'Anderswo')
+			->willReturn('Nur Nextcloud-Administratoren dürfen einen Ordner im Home eines anderen Nutzers wählen.');
+		$this->xmlStorage->expects($this->never())->method('setFolderPath');
+		$this->xmlStorage->expects($this->never())->method('setEnabled');
+
+		$response = $this->controller()->updateSettings(7, '1', 'Anderswo');
+
+		$this->assertSame(Http::STATUS_BAD_REQUEST, $response->getStatus());
 	}
 
 	public function testGueltigeEinstellungenWerdenGeschrieben(): void {

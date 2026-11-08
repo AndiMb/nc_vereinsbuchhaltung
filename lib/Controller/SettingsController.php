@@ -13,6 +13,7 @@ use OCA\Vereinsbuchhaltung\Service\AuditService;
 use OCA\Vereinsbuchhaltung\Service\ContributionYearService;
 use OCA\Vereinsbuchhaltung\Service\DunningSettings;
 use OCA\Vereinsbuchhaltung\Service\FolderPathValidator;
+use OCA\Vereinsbuchhaltung\Service\ForeignHomeGuard;
 use OCA\Vereinsbuchhaltung\Service\FrontendStateService;
 use OCA\Vereinsbuchhaltung\Service\InvoiceSettings;
 use OCA\Vereinsbuchhaltung\Service\MandateDocumentService;
@@ -60,6 +61,7 @@ class SettingsController extends Controller {
 		private IL10N $l10n,
 		private FrontendStateService $frontendState,
 		private AuditService $audit,
+		private ForeignHomeGuard $foreignHomeGuard,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -100,12 +102,39 @@ class SettingsController extends Controller {
 	 * @return string|null Fehlermeldung oder null, wenn alles in Ordnung ist
 	 */
 	private function foreignHomeError(string $user): ?string {
-		if ($user === ''
-			|| $this->permissionService->isServerAdmin()
-			|| $user === ($this->permissionService->describeCurrent()['uid'] ?? null)) {
-			return null;
+		return $this->foreignHomeGuard->error($user);
+	}
+
+	/**
+	 * Fremd-Home-Prüfung für die Unterordner im Home des Belegablage-Nutzers
+	 * (#307). Ändert derselbe Request den Belegablage-Nutzer, zählt der neue –
+	 * dessen eigene Prüfung läuft weiter unten.
+	 *
+	 * @param array<string, mixed> $params
+	 */
+	private function folderSettingsError(array $params): ?string {
+		$storageUser = array_key_exists('storage_user', $params) ? trim((string)$params['storage_user']) : null;
+		if (array_key_exists(MandateDocumentService::SETTING_FOLDER, $params)) {
+			$stored = $this->config->getValueString(Application::APP_ID, MandateDocumentService::SETTING_FOLDER, MandateDocumentService::DEFAULT_FOLDER);
+			$requested = trim(str_replace('\\', '/', (string)$params[MandateDocumentService::SETTING_FOLDER]), '/');
+			$error = $this->foreignHomeGuard->folderChangeError(
+				$stored !== '' ? $stored : MandateDocumentService::DEFAULT_FOLDER,
+				$requested !== '' ? $requested : MandateDocumentService::DEFAULT_FOLDER,
+				$storageUser,
+			);
+			if ($error !== null) {
+				return $error;
+			}
 		}
-		return $this->l10n->t('Nur Nextcloud-Administratoren dürfen einen Ordner im Home eines anderen Nutzers wählen.');
+		if (array_key_exists(InvoiceSettings::SETTING_FOLDER, $params)) {
+			$requested = trim(str_replace('\\', '/', (string)$params[InvoiceSettings::SETTING_FOLDER]), '/');
+			return $this->foreignHomeGuard->folderChangeError(
+				$this->invoiceSettings->folder(),
+				$requested !== '' ? $requested : InvoiceSettings::DEFAULT_FOLDER,
+				$storageUser,
+			);
+		}
+		return null;
 	}
 
 	/**
@@ -199,6 +228,15 @@ class SettingsController extends Controller {
 
 		$params = $this->request->getParams();
 		$appId = Application::APP_ID;
+
+		// Mandats-Nachweise und Rechnungen liegen in Unterordnern im Home des
+		// Belegablage-Nutzers: einen anderen Ordner dort wählt nur, wer auch die
+		// Belegablage dort wählen dürfte (#307). Vor allen Schreibzugriffen, damit
+		// eine Ablehnung nichts halb Gespeichertes hinterlässt.
+		$folderError = $this->folderSettingsError($params);
+		if ($folderError !== null) {
+			return new DataResponse(['message' => $folderError], Http::STATUS_BAD_REQUEST);
+		}
 
 		// Belegablage (Tripel Modus + Nutzer + Pfad): nur anfassen, wenn
 		// mindestens ein Teil gesendet wurde; die fehlenden Teile werden aus

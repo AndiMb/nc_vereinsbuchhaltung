@@ -212,7 +212,9 @@ werden; wer sie aus dem Wächter-Ordner hinausschiebt, dessen Belege gelten
 als fehlend.
 
 Einen Ordner im Home eines anderen Nutzers wählen oder ändern dürfen nur
-Nextcloud-Administratoren, das gilt auch für den Wachordner aus Abschnitt 3.3.
+Nextcloud-Administratoren, das gilt auch für den Wachordner aus Abschnitt 3.3
+und für die Ordner der Mandats-Nachweise, der Rechnungen und der SEPA-XML-
+Dateien, die im Home des Belegablage-Nutzers liegen.
 Verwalter ohne diese Rechte wählen ihr eigenes Home, ein bereits eingerichteter
 fremder Ordner bleibt gültig.
 
