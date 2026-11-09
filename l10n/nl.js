@@ -4382,5 +4382,6 @@ OC.L10N.register("vereinsbuchhaltung", {
 		"%n post van de run heeft geen inbare machtiging meer. Laad de weergave opnieuw en controleer de run: verwerpen en opnieuw vrijgeven haalt de post eruit.",
 		"%n posten van de run hebben geen inbare machtiging meer. Laad de weergave opnieuw en controleer de run: verwerpen en opnieuw vrijgeven haalt de posten eruit."
 	],
-	"Der Text enthält ungültige Zeichen.": "De tekst bevat ongeldige tekens."
+	"Der Text enthält ungültige Zeichen.": "De tekst bevat ongeldige tekens.",
+	"SEPA-Lastschrift und GiroCode gibt es nur in Euro. Die Vereinswährung ist %s.": "SEPA-incasso en GiroCode zijn alleen beschikbaar in euro. De verenigingsvaluta is %s."
 }, "nplurals=2; plural=(n != 1);");

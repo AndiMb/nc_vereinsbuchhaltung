@@ -4382,5 +4382,6 @@ OC.L10N.register("vereinsbuchhaltung", {
 		"%n item of the run no longer has a collectible mandate. Reload the view and check the run: discarding and releasing again removes the item.",
 		"%n items of the run no longer have a collectible mandate. Reload the view and check the run: discarding and releasing again removes the items."
 	],
-	"Der Text enthält ungültige Zeichen.": "The text contains invalid characters."
+	"Der Text enthält ungültige Zeichen.": "The text contains invalid characters.",
+	"SEPA-Lastschrift und GiroCode gibt es nur in Euro. Die Vereinswährung ist %s.": "SEPA direct debit and GiroCode are only available in euros. The club currency is %s."
 }, "nplurals=2; plural=(n != 1);");
