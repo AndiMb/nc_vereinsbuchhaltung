@@ -1,11 +1,13 @@
 import { getLocale } from '@nextcloud/l10n'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { resetClubCurrencyForTests, setClubCurrency } from './clubCurrency.js'
 import {
 	amountClass,
 	amountInputRaw,
 	budgetDiffClass,
 	errMsg,
 	formatAmountInput,
+	formatCurrency,
 	formatDate,
 	formatDateTime,
 	formatEuro,
@@ -314,6 +316,29 @@ describe('formatAmountInput', () => {
 
 	it('zeigt die Null als Betrag – 0,00 € ist ein gueltiger Planwert', () => {
 		expect(normalize(formatAmountInput(0))).toBe('0,00 €')
+	})
+})
+
+// Vereinswährung (Issue #202): deutsches Zahlenformat, nur das Zeichen wechselt.
+describe('andere Vereinswährung', () => {
+	const normalize = (s) => s.replace(/\s/g, ' ')
+	afterEach(() => resetClubCurrencyForTests())
+
+	it('schreibt Beträge mit dem Zeichen der Vereinswährung', () => {
+		setClubCurrency('CHF')
+		expect(normalize(formatMoney(1234.5))).toBe('1.234,50 CHF')
+		expect(normalize(formatCurrency(-42))).toBe('-42,00 CHF')
+		expect(normalize(formatEuro(1))).toBe('1,00 CHF')
+		expect(normalize(formatAmountInput(20000))).toBe('20.000,00 CHF')
+		setClubCurrency('GBP')
+		expect(normalize(formatMoney(3))).toBe('3,00 £')
+	})
+
+	it('liest Eingaben mit fremdem Zeichen, auch wenn Euro eingestellt ist', () => {
+		expect(parseAmountInput('12,50 CHF')).toBe(12.5)
+		expect(parseAmountInput('CHF 12,50')).toBe(12.5)
+		expect(parseAmountInput('£3')).toBe(3)
+		expect(parseAmountInput('1.234,56 sek')).toBe(1234.56)
 	})
 })
 

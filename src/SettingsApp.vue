@@ -147,6 +147,7 @@ import { useAccounts } from './composables/useAccounts.js'
 import { useConfirm } from './composables/useConfirm.js'
 import { usePeriods } from './composables/usePeriods.js'
 import { usePermissions } from './composables/usePermissions.js'
+import { setClubCurrency } from './lib/clubCurrency.js'
 import { setClubTimeZone } from './lib/clubTime.js'
 import { errMsg } from './lib/format.js'
 import { withPasswordConfirmation } from './lib/passwordGate.js'
@@ -254,6 +255,7 @@ export default {
 				const { data } = await api.getSettings()
 				// „Heute“ der Unterseiten in der Vereinszone (#263); diese Seite hat keinen Initial State.
 				setClubTimeZone(data.club_time_zone)
+				setClubCurrency(data.club_currency)
 				this.storageMode = data.storage_mode || 'appdata'
 				this.storageUser = data.storage_user || ''
 				this.storagePath = data.storage_path || 'Vereinsbuchhaltung/Belege'

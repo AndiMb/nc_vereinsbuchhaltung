@@ -5,6 +5,8 @@
 // Set.has() je Zeile. Bei mehreren hundert Buchungen war das kleingeschriebene
 // Zusammensetzen der Felder bei jedem Tastendruck der spürbare Teil.
 
+import { stripCurrencyTokens } from './clubCurrency.js'
+
 // Trennt die Felder im Suchtext, damit ein Treffer nicht über eine Feldgrenze
 // hinweg entsteht („Miete“ + „1200 Bank“ darf nicht „te12“ finden).
 const SEP = '\u0001'
@@ -21,7 +23,7 @@ const SEP = '\u0001'
  * @return {number|null} Betrag in Cent, null wenn die Eingabe kein Betrag ist
  */
 export function parseAmountQuery(query) {
-	const s = String(query || '').replace(/€|eur\b/gi, '').replace(/\s+/g, '').replace(/^[+-]/, '')
+	const s = stripCurrencyTokens(String(query || '')).replace(/\s+/g, '').replace(/^[+-]/, '')
 	let normalized = null
 	if (/^\d{1,3}(\.\d{3})+(,\d{1,2})?$/.test(s)) {
 		normalized = s.replace(/\./g, '').replace(',', '.')

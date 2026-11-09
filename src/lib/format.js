@@ -3,20 +3,34 @@
 // App.vue unveraendert als Komponenten-Methoden eingebunden (das Template ruft
 // formatMoney(...) etc. wie bisher auf) und sind hier unabhaengig testbar.
 import { getLocale } from '@nextcloud/l10n'
+import { currencyCode, stripCurrencyTokens } from './clubCurrency.js'
 import { t } from './l10n.js'
 
-// Einmal anlegen: ein neues Intl.NumberFormat je Aufruf war bei langen
-// Buchungslisten der teuerste Teil des Zeilen-Renderings.
-const EUR = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' })
+// Je Waehrung einmal anlegen: ein neues Intl.NumberFormat je Aufruf war bei
+// langen Buchungslisten der teuerste Teil des Zeilen-Renderings.
+const MONEY_FORMATS = new Map()
+
+// Vereinswaehrung (Issue #202): deutsches Zahlenformat, Zeichen der Vereinswaehrung.
+// currencyCode() liest einen ref – im Render wird er so als Abhaengigkeit erfasst.
+function moneyFormat() {
+	const code = currencyCode()
+	if (!MONEY_FORMATS.has(code)) {
+		MONEY_FORMATS.set(code, new Intl.NumberFormat('de-DE', { style: 'currency', currency: code }))
+	}
+	return MONEY_FORMATS.get(code)
+}
 
 export function formatMoney(v) {
-	return EUR.format(v || 0)
+	return moneyFormat().format(v || 0)
 }
 
-/** Betrag in Euro (nicht Cent) als Waehrungstext; ohne Rueckfall auf null wie formatMoney. */
-export function formatEuro(value) {
-	return EUR.format(value)
+/** Betrag (nicht Cent) als Waehrungstext; ohne Rueckfall auf null wie formatMoney. */
+export function formatCurrency(value) {
+	return moneyFormat().format(value)
 }
+
+/** Alter Name von formatCurrency, aus der Zeit, als es nur Euro gab. */
+export const formatEuro = formatCurrency
 
 const DAY_FORMATS = new Map()
 // Formatter fuer Datum+Uhrzeit bzw. reinen Tag je Gebietsschema; ein Intl.DateTimeFormat
@@ -222,7 +236,7 @@ export function parseAmountInput(s) {
 	if (typeof s === 'number') { return Number.isFinite(s) ? s : null }
 	let str = String(s ?? '')
 		.replace(/[\s\u00a0\u202f]/g, '')
-		.replace(/€|EUR/gi, '')
+	str = stripCurrencyTokens(str)
 	if (!str) { return null }
 
 	let sign = 1
