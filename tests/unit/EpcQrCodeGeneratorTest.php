@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Tests\Unit;
 
-use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubCurrencyStub;
 use chillerlan\QRCode\QRCode;
 use chillerlan\QRCode\QROptions;
 use OCA\Vereinsbuchhaltung\Service\EpcQrCodeGenerator;
+use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubCurrencyStub;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -200,7 +200,9 @@ class EpcQrCodeGeneratorTest extends TestCase {
 		$code = 'if (!extension_loaded("mbstring")) { echo "VBH-RESULT null"; exit; }'
 			. 'require ' . var_export(dirname(__DIR__) . '/bootstrap.php', true) . ';'
 			. '$thrown = null;'
-			. 'try { (new OCA\\Vereinsbuchhaltung\\Service\\EpcQrCodeGenerator())->generatePng("V", "DE02120300000000202051", null, 100, "x"); }'
+			// Im Kindprozess gibt es keine PHPUnit-Mocks: eine feste Euro-Vereinswährung (#202).
+			. '$euro = new class extends OCA\\Vereinsbuchhaltung\\Service\\ClubCurrency { public function __construct() {} public function code(): string { return "EUR"; } };'
+			. 'try { (new OCA\\Vereinsbuchhaltung\\Service\\EpcQrCodeGenerator($euro))->generatePng("V", "DE02120300000000202051", null, 100, "x"); }'
 			. 'catch (\\Throwable $e) { $thrown = ["class" => get_class($e), "message" => $e->getMessage()]; }'
 			. 'echo "VBH-RESULT " . json_encode(["gd" => extension_loaded("gd"), "thrown" => $thrown]);';
 

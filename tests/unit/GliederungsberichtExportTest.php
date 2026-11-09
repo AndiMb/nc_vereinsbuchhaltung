@@ -69,8 +69,7 @@ class GliederungsberichtExportTest extends TestCase {
 			ClubCurrencyStub::of($this, 'CHF'),
 		);
 
-		$head = explode("
-", substr($csv->gliederungsbericht($this->report())->content, 3))[0];
+		$head = explode("\n", substr($csv->gliederungsbericht($this->report())->content, 3))[0];
 
 		$this->assertStringContainsString('Plan 2026 (CHF)', $head);
 		$this->assertStringNotContainsString('EUR', $head);
