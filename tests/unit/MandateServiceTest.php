@@ -25,6 +25,7 @@ use OCA\Vereinsbuchhaltung\Service\MandateReferenceGenerator;
 use OCA\Vereinsbuchhaltung\Service\MandateService;
 use OCA\Vereinsbuchhaltung\Service\MandateStateMachine;
 use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubClockStub;
+use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubCurrencyStub;
 use OCP\IAppConfig;
 use OCP\IL10N;
 use OCP\IUser;
@@ -43,6 +44,8 @@ use PHPUnit\Framework\TestCase;
  * Datenbankzugriff auskommen.
  */
 class MandateServiceTest extends TestCase {
+	/** Vereinswährung des Dienstes (#202). */
+	private string $currencyCode = 'EUR';
 
 	private MandateMapper&MockObject $mandateMapper;
 	private MandateAmendmentMapper&MockObject $amendmentMapper;
@@ -130,6 +133,7 @@ class MandateServiceTest extends TestCase {
 			new MandateExpirySettings($config),
 			$this->activationTokens,
 			ClubClockStub::system(),
+			ClubCurrencyStub::of($this, $this->currencyCode),
 		);
 	}
 
@@ -1020,5 +1024,16 @@ class MandateServiceTest extends TestCase {
 
 		$this->assertSame(Mandate::STATUS_DRAFT, $new->getStatus());
 		$this->assertNotSame($draft->getId(), $new->getId());
+	}
+
+	/** Vereinswährung (#202): SEPA-Mandate gibt es nur in Euro. */
+	public function testOhneEuroLegtDerDienstKeinMandatAn(): void {
+		$this->currencyCode = 'CHF';
+		$this->realisticMessages = true;
+		$this->mandateMapper->expects($this->never())->method('insert');
+
+		$this->expectException(\InvalidArgumentException::class);
+		$this->expectExceptionMessage('nur in Euro');
+		$this->service()->createPaper(42, 'DE12500105170648489890', null, null, '2026-01-01');
 	}
 }

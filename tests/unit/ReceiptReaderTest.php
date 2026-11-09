@@ -107,7 +107,7 @@ class ReceiptReaderTest extends TestCase {
 		$writer = new InvoiceSuiteEInvoiceWriter();
 		$xml = $writer->buildXml($data, EInvoiceFormat::ZUGFERD);
 		$pdfData = new InvoicePdfData($data->invoice, $data->lines, $data->debtor, $data->issuer, $data->bank);
-		$pdf = (new InvoicePdfRenderer(new EpcQrCodeGenerator(), ClubClockStub::system(), ClubCurrencyStub::of($this)))->render($pdfData);
+		$pdf = (new InvoicePdfRenderer(new EpcQrCodeGenerator(ClubCurrencyStub::of($this)), ClubClockStub::system(), ClubCurrencyStub::of($this)))->render($pdfData);
 		$hybrid = $writer->embedIntoPdf($xml, $pdf, EInvoiceFormat::ZUGFERD);
 
 		$facts = $this->reader()->read('beleg.pdf', 'application/pdf', strlen($hybrid), static fn () => $hybrid);

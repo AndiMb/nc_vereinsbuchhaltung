@@ -14,9 +14,11 @@ use OCA\Vereinsbuchhaltung\Exception\InvalidActivationTokenException;
 use OCA\Vereinsbuchhaltung\Service\MandateActivationService;
 use OCA\Vereinsbuchhaltung\Service\MandateFormRenderer;
 use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubClockStub;
+use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubCurrencyStub;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http\Attribute\UserRateLimit;
 use OCP\IAppConfig;
+use OCP\IL10N;
 use OCP\IRequest;
 use OCP\IURLGenerator;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -29,6 +31,8 @@ use PHPUnit\Framework\TestCase;
  * verbraucht) zählen nicht als Fehlversuch.
  */
 class MandateConsentControllerTest extends TestCase {
+	/** Vereinswährung des Dienstes (#202). */
+	private string $currencyCode = 'EUR';
 
 	private MandateActivationService&MockObject $activation;
 	private MandateFormRenderer&MockObject $formRenderer;
@@ -49,7 +53,9 @@ class MandateConsentControllerTest extends TestCase {
 		$urlGenerator->method('linkToRoute')->willReturn('/accept');
 		$config = $this->createMock(IAppConfig::class);
 		$config->method('getValueString')->willReturnArgument(2);
-		return new MandateConsentController($this->request, $this->activation, $this->formRenderer, $urlGenerator, $config, ClubClockStub::system());
+		$l10n = $this->createMock(IL10N::class);
+		$l10n->method('t')->willReturnCallback(static fn (string $text, array $parameters = []): string => vsprintf($text, $parameters));
+		return new MandateConsentController($this->request, $this->activation, $this->formRenderer, $urlGenerator, $config, ClubClockStub::system(), ClubCurrencyStub::of($this, $this->currencyCode), $l10n);
 	}
 
 	/** @return array<string, array{\Throwable, int}> */
@@ -143,5 +149,26 @@ class MandateConsentControllerTest extends TestCase {
 			$this->assertSame($limit, $instance->getLimit(), $method);
 			$this->assertSame(3600, $instance->getPeriod(), $method);
 		}
+	}
+
+	/** Vereinswährung (#202): ohne Euro gibt es keine Lastschrift – die Seite zeigt nur einen Hinweis. */
+	public function testOhneEuroZeigtDieZustimmungsseiteNurEinenHinweis(): void {
+		$this->currencyCode = 'CHF';
+		$this->activation->expects($this->never())->method('view');
+
+		$response = $this->controller()->show('abc');
+
+		$this->assertSame('unavailable', $response->getParams()['status']);
+		$this->assertStringContainsString('nur in Euro', $response->getParams()['errorMessage']);
+		$this->assertFalse($response->isThrottled());
+	}
+
+	public function testOhneEuroNimmtDieSeiteKeineZustimmungAn(): void {
+		$this->currencyCode = 'CHF';
+		$this->activation->expects($this->never())->method('consent');
+
+		$response = $this->controller()->accept('abc');
+
+		$this->assertSame('unavailable', $response->getParams()['status']);
 	}
 }

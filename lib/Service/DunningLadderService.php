@@ -355,6 +355,10 @@ class DunningLadderService {
 	 * @return array<int, string>
 	 */
 	private function renderGiroCodes(array $pending, string $clubName, IL10N $l): array {
+		// Vereinswährung (#202): GiroCode nur in Euro – ohne Euro schlicht keiner, ohne Log-Warnung.
+		if (!$this->currency->isEuro()) {
+			return [];
+		}
 		$iban = $this->paymentAccount()?->getIban();
 		if ($iban === null) {
 			return [];

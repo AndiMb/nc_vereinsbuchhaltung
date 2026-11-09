@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Tests\Unit;
 
+use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubCurrencyStub;
 use chillerlan\QRCode\QRCode;
 use chillerlan\QRCode\QROptions;
 use OCA\Vereinsbuchhaltung\Service\EpcQrCodeGenerator;
@@ -17,9 +18,11 @@ use PHPUnit\Framework\TestCase;
  * wieder lesbares Bild, und ohne `gd` scheitert die Erzeugung fangbar.
  */
 class EpcQrCodeGeneratorTest extends TestCase {
+	/** Vereinswährung des Dienstes (#202). */
+	private string $currencyCode = 'EUR';
 
 	private function generator(): EpcQrCodeGenerator {
-		return new EpcQrCodeGenerator();
+		return new EpcQrCodeGenerator(ClubCurrencyStub::of($this, $this->currencyCode));
 	}
 
 	private function lines(string $payload): array {
@@ -213,5 +216,13 @@ class EpcQrCodeGeneratorTest extends TestCase {
 
 		$this->assertSame(1, preg_match('/VBH-RESULT (.*)$/m', $output, $match), 'Kindprozess lieferte kein Ergebnis: ' . $output);
 		return json_decode($match[1], true);
+	}
+
+	/** Vereinswährung (#202): der GiroCode (EPC) kennt nur Euro. */
+	public function testOhneEuroGibtEsKeinenGiroCode(): void {
+		$this->currencyCode = 'CHF';
+
+		$this->expectException(\InvalidArgumentException::class);
+		$this->generator()->buildPayload('Musterverein', 'DE02120300000000202051', null, 4599, 'Beitrag');
 	}
 }

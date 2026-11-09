@@ -50,7 +50,7 @@ class InvoicePdfFontPathTest extends TestCase {
 				$preview,
 			);
 
-			$pdf = (new InvoicePdfRenderer(new EpcQrCodeGenerator(), ClubClockStub::system(), ClubCurrencyStub::of($this)))->render($data, false);
+			$pdf = (new InvoicePdfRenderer(new EpcQrCodeGenerator(ClubCurrencyStub::of($this)), ClubClockStub::system(), ClubCurrencyStub::of($this)))->render($data, false);
 
 			$this->assertStringStartsWith('%PDF-', $pdf);
 			$this->assertStringContainsString('DejaVuSans', $pdf);

@@ -39,6 +39,8 @@ use PHPUnit\Framework\TestCase;
  * Klasse sie aufruft.
  */
 class MemberImportServiceTest extends TestCase {
+	/** Vereinswährung des Dienstes (#202). */
+	private string $currencyCode = 'EUR';
 
 	private MemberMapper&MockObject $memberMapper;
 	private MandateService&MockObject $mandates;
@@ -100,7 +102,7 @@ class MemberImportServiceTest extends TestCase {
 			$l10n,
 			$time,
 			new IbanValidator($l10n),
-			ClubCurrencyStub::of($this),
+			ClubCurrencyStub::of($this, $this->currencyCode),
 		);
 	}
 
@@ -792,5 +794,35 @@ class MemberImportServiceTest extends TestCase {
 
 		$this->assertSame(1, $result['summary']['ok']);
 		$this->assertSame(1, $result['summary']['warnings']);
+	}
+
+	/** Vereinswährung (#202): ohne Euro keine SEPA-Mandate – die Zeile mit IBAN scheitert schon in der Vorschau. */
+	public function testOhneEuroIstEineIbanZeileEinFehler(): void {
+		$this->currencyCode = 'CHF';
+		$this->mandates->expects($this->never())->method('createPaper');
+
+		$csv = "Name;IBAN;Mandat am\nKatrin Brunner;DE02120300000000202051;15.01.2026\n";
+		$result = $this->service()->preview($csv);
+
+		$this->assertSame(1, $result['summary']['failed']);
+		$this->assertStringContainsString('nur in Euro', $result['rows'][0]['errors'][0]);
+	}
+
+	/** Ohne Euro landet auch eine Zeile mit Mail auf Überweisung. */
+	public function testOhneEuroLandetDieZeileMitMailAufUeberweisung(): void {
+		$this->currencyCode = 'CHF';
+		$this->groupMapper->method('findAll')->willReturn([$this->group(1, 'Chormitglieder')]);
+		$this->assignments->expects($this->once())->method('create')
+			->with($this->anything(), 1, 1, 500, Assignment::PAYMENT_METHOD_TRANSFER, '2026-02-01', null, null, null, $this->anything(), $this->anything())
+			->willReturn((function () {
+				$a = new Assignment();
+				$a->setId(7);
+				return $a;
+			})());
+
+		$csv = "Name;E-Mail;Betrag;Frequenz;Start\nKatrin Brunner;k@example.org;5,00;monatlich;01.02.2026\n";
+		$result = $this->service()->import($csv, true);
+
+		$this->assertSame(7, $result['rows'][0]['assignmentId']);
 	}
 }

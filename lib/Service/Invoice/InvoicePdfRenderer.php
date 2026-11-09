@@ -520,7 +520,8 @@ class InvoicePdfRenderer {
 		$bank = $data->bank;
 		$invoice = $data->invoice;
 		$amount = $amountCents ?? $invoice->getGrossCents();
-		if ($bank === null || $bank['iban'] === '' || $amount <= 0 || $invoice->getNumber() === null) {
+		// Vereinswährung (#202): GiroCode nur in Euro.
+		if (!$this->currency->isEuro() || $bank === null || $bank['iban'] === '' || $amount <= 0 || $invoice->getNumber() === null) {
 			return null;
 		}
 		try {

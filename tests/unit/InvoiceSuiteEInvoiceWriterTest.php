@@ -126,7 +126,7 @@ class InvoiceSuiteEInvoiceWriterTest extends TestCase {
 		$data = $this->data();
 		$xml = $this->writer()->buildXml($data, EInvoiceFormat::ZUGFERD);
 		$pdfData = new InvoicePdfData($data->invoice, $data->lines, $data->debtor, $data->issuer, $data->bank);
-		$pdf = (new InvoicePdfRenderer(new EpcQrCodeGenerator(), ClubClockStub::system(), ClubCurrencyStub::of($this)))->render($pdfData);
+		$pdf = (new InvoicePdfRenderer(new EpcQrCodeGenerator(ClubCurrencyStub::of($this)), ClubClockStub::system(), ClubCurrencyStub::of($this)))->render($pdfData);
 
 		$hybrid = $this->writer()->embedIntoPdf($xml, $pdf, EInvoiceFormat::ZUGFERD);
 

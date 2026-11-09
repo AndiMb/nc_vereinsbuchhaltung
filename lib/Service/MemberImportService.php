@@ -246,6 +246,8 @@ class MemberImportService {
 		$errors = [];
 		if ($row['iban'] !== null) {
 			try {
+				// Vereinswährung (#202): eine IBAN-Zeile legt ein SEPA-Mandat an – nur in Euro.
+				$this->currency->assertSepaAvailable($this->l10n);
 				$this->ibanValidator->validate((string)$row['iban']);
 			} catch (\InvalidArgumentException $e) {
 				$errors[] = $e->getMessage();
@@ -362,7 +364,8 @@ class MemberImportService {
 			// (Spec §3.1 "Zeile ohne Mail landet auf ueberweisung") – bei einem
 			// verknüpften NC-Konto kann die aus dessen Kontodaten stammen, auch
 			// wenn die CSV-Spalte selbst leer war (siehe buildMember()).
-			$paymentMethod = $member->getEmail() !== null ? Assignment::PAYMENT_METHOD_DIRECT_DEBIT : Assignment::PAYMENT_METHOD_TRANSFER;
+			// Ohne Euro gibt es keine Lastschrift (#202).
+			$paymentMethod = $member->getEmail() !== null && $this->currency->isEuro() ? Assignment::PAYMENT_METHOD_DIRECT_DEBIT : Assignment::PAYMENT_METHOD_TRANSFER;
 			$intervalMonths = $this->intervalMonthsFor($row, $group);
 			$assignment = $this->assignments->create(
 				(int)$member->getId(),

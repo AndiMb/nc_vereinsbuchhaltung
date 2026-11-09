@@ -29,6 +29,8 @@ use PHPUnit\Framework\TestCase;
  * und der Austritts-Hook beendet offene Zuweisungen.
  */
 class AssignmentServiceTest extends TestCase {
+	/** Vereinswährung des Dienstes (#202). */
+	private string $currencyCode = 'EUR';
 
 	private AssignmentMapper&MockObject $mapper;
 	private AssignmentEventMapper&MockObject $eventMapper;
@@ -90,7 +92,7 @@ class AssignmentServiceTest extends TestCase {
 		);
 		$contributionYear = new ContributionYearService($config, ClubClockStub::system());
 		$dueDateSchedule = new DueDateScheduleService($config, $contributionYear, $l10n);
-		return new AssignmentService($this->mapper, $this->eventMapper, $this->groupMapper, $this->openItemMapper, $contributionYear, $dueDateSchedule, $time, $l10n, ClubCurrencyStub::of($this));
+		return new AssignmentService($this->mapper, $this->eventMapper, $this->groupMapper, $this->openItemMapper, $contributionYear, $dueDateSchedule, $time, $l10n, ClubCurrencyStub::of($this, $this->currencyCode));
 	}
 
 	public function testCreateLegtDieZuweisungAnUndLogtEinEreignis(): void {
@@ -540,5 +542,53 @@ class AssignmentServiceTest extends TestCase {
 		$this->assertSame('2027-01-01', $preview['periodStart']);
 		$this->assertSame('2027-12-31', $preview['periodEnd']);
 		$this->assertSame(12000, $preview['amountCents']);
+	}
+
+	/** Vereinswährung (#202): ohne Euro keine neue Lastschrift-Zuweisung. */
+	public function testOhneEuroGibtEsKeineNeueLastschriftZuweisung(): void {
+		$this->currencyCode = 'CHF';
+		$this->groupMapper->method('find')->willReturn($this->group());
+		$this->mapper->method('findByMemberAndGroup')->willReturn([]);
+		$this->mapper->expects($this->never())->method('insert');
+
+		$this->expectException(\InvalidArgumentException::class);
+		$this->expectExceptionMessage('nur in Euro');
+		$this->service()->create(7, 1, 12, 800, Assignment::PAYMENT_METHOD_DIRECT_DEBIT, '2026-06-15', null, null, null, 'staff', 'kassenwart');
+	}
+
+	public function testOhneEuroBleibtDieUeberweisungMoeglich(): void {
+		$this->currencyCode = 'CHF';
+		$this->groupMapper->method('find')->willReturn($this->group());
+		$this->mapper->method('findByMemberAndGroup')->willReturn([]);
+		$this->mapper->method('insert')->willReturnCallback($this->stubInsertAssignsId(101));
+
+		$assignment = $this->service()->create(7, 1, 12, 800, Assignment::PAYMENT_METHOD_TRANSFER, '2026-06-15', null, null, null, 'staff', 'kassenwart');
+
+		$this->assertSame(Assignment::PAYMENT_METHOD_TRANSFER, $assignment->getPaymentMethod());
+	}
+
+	public function testOhneEuroLaesstSichNichtAufLastschriftUmstellen(): void {
+		$this->currencyCode = 'CHF';
+		$assignment = $this->assignmentInGroup1();
+		$assignment->setPaymentMethod(Assignment::PAYMENT_METHOD_TRANSFER);
+		$this->mapper->method('find')->willReturn($assignment);
+		$this->groupMapper->method('find')->willReturn($this->group());
+
+		$this->expectException(\InvalidArgumentException::class);
+		$this->expectExceptionMessage('nur in Euro');
+		$this->service()->previewChange(5, null, null, null, Assignment::PAYMENT_METHOD_DIRECT_DEBIT);
+	}
+
+	/** Eine Altzuweisung auf Lastschrift bleibt änderbar (z. B. Betrag), solange die Zahlungsart gleich bleibt. */
+	public function testOhneEuroBleibtEineAlteLastschriftZuweisungAenderbar(): void {
+		$this->currencyCode = 'CHF';
+		$assignment = $this->assignmentInGroup1();
+		$assignment->setPaymentMethod(Assignment::PAYMENT_METHOD_DIRECT_DEBIT);
+		$this->mapper->method('find')->willReturn($assignment);
+		$this->groupMapper->method('find')->willReturn($this->group());
+
+		$preview = $this->service()->previewChange(5, 1500, null, null, Assignment::PAYMENT_METHOD_DIRECT_DEBIT);
+
+		$this->assertArrayHasKey('effectiveFrom', $preview);
 	}
 }

@@ -39,6 +39,8 @@ use Psr\Log\LoggerInterface;
  * beiden ereignisgetriebenen Stufe-0-Trigger.
  */
 class DunningLadderServiceTest extends TestCase {
+	/** Vereinswährung des Dienstes (#202). */
+	private string $currencyCode = 'EUR';
 
 	private OpenItemMapper&MockObject $openItems;
 	private MemberMapper&MockObject $members;
@@ -140,7 +142,7 @@ class DunningLadderServiceTest extends TestCase {
 			$this->cycleSettings,
 			$this->debtorAccount,
 			$this->createMock(AccountMapper::class),
-			new EpcQrCodeGenerator(),
+			new EpcQrCodeGenerator(ClubCurrencyStub::of($this)),
 			$this->createMock(IUserManager::class),
 			$this->mailer,
 			$this->config,
@@ -148,7 +150,7 @@ class DunningLadderServiceTest extends TestCase {
 			$this->createMock(LoggerInterface::class),
 			$this->recipientL10n($l10n),
 			$this->createMock(ClubMailBranding::class),
-			ClubCurrencyStub::of($this),
+			ClubCurrencyStub::of($this, $this->currencyCode),
 		);
 	}
 
@@ -468,7 +470,7 @@ class DunningLadderServiceTest extends TestCase {
 			$this->cycleSettings,
 			$this->debtorAccount,
 			$accounts,
-			$generator ?? new EpcQrCodeGenerator(),
+			$generator ?? new EpcQrCodeGenerator(ClubCurrencyStub::of($this)),
 			$this->createMock(IUserManager::class),
 			$mailer,
 			$this->config,
@@ -476,7 +478,7 @@ class DunningLadderServiceTest extends TestCase {
 			$logger ?? $this->createMock(LoggerInterface::class),
 			$this->recipientL10n($l10n),
 			$this->createMock(ClubMailBranding::class),
-			ClubCurrencyStub::of($this),
+			ClubCurrencyStub::of($this, $this->currencyCode),
 		);
 	}
 
@@ -734,6 +736,21 @@ class DunningLadderServiceTest extends TestCase {
 		$result = $this->giroCodeService(null, $logger, iban: null)->triggerPaymentRequest($this->claim(1, 7), fn (): string => 'Grund');
 
 		$this->assertSame(1, $result['sent']);
+		$this->assertSame(0, $this->attachedCount);
+	}
+
+	/** Vereinswährung (#202): ohne Euro kein GiroCode-Anhang und keine Warnung im Log. */
+	public function testOhneEuroKeinGiroCodeAnhang(): void {
+		$this->currencyCode = 'CHF';
+		$generator = $this->createMock(EpcQrCodeGenerator::class);
+		$generator->expects($this->never())->method('generatePng');
+		$logger = $this->createMock(LoggerInterface::class);
+		$logger->expects($this->never())->method('warning');
+		$item = $this->claim(1, 7, amountCents: 1234);
+		$this->notices->method('findByOpenItemAndStage')->willReturn(null);
+
+		$this->giroCodeService($generator, $logger)->triggerPaymentRequest($item, fn (): string => 'Grund');
+
 		$this->assertSame(0, $this->attachedCount);
 	}
 }
