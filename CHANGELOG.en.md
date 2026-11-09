@@ -26,7 +26,8 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 - SEPA direct debit and GiroCode exist only in euros: in other currencies
   mandates, the direct debit run and the SEPA settings are hidden and
   blocked. Switching away from the euro is blocked while mandates are in
-  force or a released collection is waiting to be submitted.
+  force, a released collection is waiting to be submitted or assignments are
+  still paid by direct debit.
 
 ## [0.51.0] – 2026-11-06
 

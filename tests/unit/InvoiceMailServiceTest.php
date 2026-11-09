@@ -28,6 +28,9 @@ use Psr\Log\LoggerInterface;
  */
 class InvoiceMailServiceTest extends TestCase {
 
+	/** Vereinswährung des Dienstes (#202). */
+	private string $currencyCode = 'EUR';
+
 	private IMailer&MockObject $mailer;
 	private InvoiceService&MockObject $service;
 	private InvoiceDocumentService&MockObject $documents;
@@ -58,7 +61,7 @@ class InvoiceMailServiceTest extends TestCase {
 		$l10n = $this->createMock(IL10N::class);
 		$l10n->method('t')->willReturnCallback(static fn (string $text, $params = []) => vsprintf($text, (array)$params));
 		$l10n->method('getLanguageCode')->willReturn('de');
-		return new InvoiceMailService($this->mailer, $invoices, $this->service, $this->documents, $this->settings, $this->createMock(LoggerInterface::class), $l10n, $this->createMock(ClubMailBranding::class), ClubClockStub::at('2026-03-05T10:00:00Z'), ClubCurrencyStub::of($this));
+		return new InvoiceMailService($this->mailer, $invoices, $this->service, $this->documents, $this->settings, $this->createMock(LoggerInterface::class), $l10n, $this->createMock(ClubMailBranding::class), ClubClockStub::at('2026-03-05T10:00:00Z'), ClubCurrencyStub::of($this, $this->currencyCode));
 	}
 
 	private function mockMessage(): IMessage&MockObject {
@@ -316,5 +319,13 @@ class InvoiceMailServiceTest extends TestCase {
 
 		(new InvoiceMailService($this->mailer, $invoices, $service, $documents, $settings, $this->createMock(LoggerInterface::class), $l10n, $this->createMock(ClubMailBranding::class), ClubClockStub::system(), ClubCurrencyStub::of($this)))
 			->send(1, 'a@b.example', 'Mein Betreff', 'Mein Text');
+	}
+
+	/** Vereinswährung (#202): eine Euro-Rechnung bleibt in Euro, auch nach der Umstellung auf CHF. */
+	public function testBetragStehtInDerWaehrungDerRechnung(): void {
+		$this->currencyCode = 'CHF';
+		$this->invoice->setCurrency('EUR');
+
+		$this->assertStringContainsString('1.500,50 €', $this->service()->defaults(1)['body']);
 	}
 }

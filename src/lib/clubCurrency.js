@@ -83,6 +83,19 @@ export function stripCurrencyTokens(s) {
 	return s.replace(new RegExp(CURRENCY_TOKEN_RE.source, 'gi'), '')
 }
 
+/**
+ * Teil der Einstellungs-Nutzlast für die Vereinswährung: nur bei echter
+ * Änderung. Sonst blockierte eine abgelehnte Umstellung (Mandate offen) das
+ * Speichern jeder anderen Einstellungskarte.
+ *
+ * @param {string} selected Auswahl im Formular
+ * @param {string} saved Stand des Servers
+ * @return {{club_currency?: string}}
+ */
+export function currencySettingsPayload(selected, saved) {
+	return selected && selected !== saved ? { club_currency: selected } : {}
+}
+
 /** Nur für Tests: vergisst die gesetzte Währung. */
 export function resetClubCurrencyForTests() {
 	configured.value = null

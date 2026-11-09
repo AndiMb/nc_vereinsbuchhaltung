@@ -174,9 +174,22 @@ class InvoicePdfRendererTest extends TestCase {
 		$this->currencyCode = 'CHF';
 		$epc = $this->createMock(EpcQrCodeGenerator::class);
 		$epc->expects($this->never())->method('buildPayload');
+		$invoice = $this->invoice(2);
+		$invoice->setCurrency('CHF');
 
-		$pdf = $this->render($this->invoice(2), 2, false, epc: $epc);
+		$pdf = $this->render($invoice, 2, false, epc: $epc);
 
 		$this->assertStringStartsWith('%PDF-1.7', $pdf);
+	}
+
+	/** Eine Euro-Rechnung behält ihren GiroCode, auch wenn der Verein inzwischen CHF führt. */
+	public function testEuroRechnungBehaeltDenGiroCodeNachDerUmstellung(): void {
+		$this->currencyCode = 'CHF';
+		$epc = $this->createMock(EpcQrCodeGenerator::class);
+		$epc->expects($this->once())->method('buildPayload')->willReturn('BCD');
+		$invoice = $this->invoice(2);
+		$invoice->setCurrency('EUR');
+
+		$this->render($invoice, 2, false, epc: $epc);
 	}
 }

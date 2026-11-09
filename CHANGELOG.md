@@ -27,8 +27,9 @@ verwenden, z. B. `**Neu:**`.
   Währungsangabe übernehmen die Vereinswährung.
 - SEPA-Lastschrift und GiroCode gibt es nur in Euro: In anderen Währungen
   sind Mandate, Lastschriftlauf und SEPA-Einstellungen ausgeblendet und
-  gesperrt. Die Umstellung weg vom Euro ist gesperrt, solange Mandate gelten
-  oder ein freigegebener Sammeleinzug auf die Einreichung wartet.
+  gesperrt. Die Umstellung weg vom Euro ist gesperrt, solange Mandate gelten,
+  ein freigegebener Sammeleinzug auf die Einreichung wartet oder Zuweisungen
+  per Lastschrift laufen.
 
 ## [0.51.0] – 2026-11-06
 

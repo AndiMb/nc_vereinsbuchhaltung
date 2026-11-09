@@ -395,7 +395,7 @@ class InvoiceDunningService {
 	private function fill(string $text, Invoice $invoice, int $level, int $remaining, string $today): string {
 		$snapshot = $invoice->debtorSnapshotData() ?? [];
 		$deadline = (new \DateTimeImmutable($today))->modify('+' . $this->settings->dunningGraceDays() . ' days')->format('Y-m-d');
-		$money = fn (int $cents): string => $this->currency->format($cents);
+		$money = fn (int $cents): string => $this->currency->formatIn($invoice->getCurrency(), $cents);
 		$date = static fn (?string $iso): string => $iso !== null && $iso !== '' ? (new \DateTimeImmutable(substr($iso, 0, 10)))->format('d.m.Y') : '';
 		return strtr($text, [
 			'{stufe}' => $this->dunningTitle($level),

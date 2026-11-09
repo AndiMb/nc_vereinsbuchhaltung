@@ -2632,8 +2632,6 @@ OC.L10N.register("vereinsbuchhaltung", {
 	"Falls Ihnen diese Änderung nicht bekannt vorkommt, wenden Sie sich bitte direkt an den Vorstand Ihres Vereins.": "If this change does not look familiar to you, please contact your club's board directly.",
 	"Sie haben diese Änderung selbst in „Mein Beitrag\" vorgenommen.": "You made this change yourself in “My contribution”.",
 	"Alle zugeordneten Posten dieses Umsatzes sind bereits als Rücklastschrift verbucht.": "All assigned items of this transaction have already been posted as returned direct debits.",
-	"Die zugeordneten Posten ergeben %1$s €, der Bankumsatz beträgt %2$s €: %3$s € sind keinem Posten zugeordnet. Ordnen Sie die übrigen Zeilen zu, oder buchen Sie den Umsatz unter Buchungen von Hand.": "The assigned items add up to %1$s €, the bank transaction is %2$s €: %3$s € are not assigned to any item. Assign the remaining rows, or post the transaction by hand under Bookings.",
-	"Die zugeordneten Posten ergeben %1$s €, das sind %3$s € mehr als der Bankumsatz über %2$s €. Prüfen Sie die Zuordnung.": "The assigned items add up to %1$s €, which is %3$s € more than the bank transaction of %2$s €. Please check the assignment.",
 	"Das Rücklastschriftgebühren-Konto ist zugleich das Erlöskonto einer dieser Forderungen. Wählen Sie in den Einstellungen ein eigenes Konto für die Gebühren.": "The account for returned-debit fees is also the revenue account of one of these claims. Choose a separate account for the fees in the settings.",
 	"Die Aufteilung nennt dasselbe Konto mehrfach.": "The split names the same account several times.",
 	"Aus den zugeordneten Posten lässt sich keine gültige Buchung bilden.": "No valid posting can be formed from the assigned items.",
@@ -4390,5 +4388,8 @@ OC.L10N.register("vereinsbuchhaltung", {
 	"_Nächster Lauf am %s: %n Forderung, %s_::_Nächster Lauf am %s: %n Forderungen, %s_": [
 		"Next run on %s: %n claim, %s",
 		"Next run on %s: %n claims, %s"
-	]
+	],
+	"Die zugeordneten Posten ergeben %1$s, der Bankumsatz beträgt %2$s: %3$s sind keinem Posten zugeordnet. Ordnen Sie die übrigen Zeilen zu, oder buchen Sie den Umsatz unter Buchungen von Hand.": "The assigned items add up to %1$s, the bank transaction is %2$s: %3$s are not assigned to any item. Assign the remaining rows, or post the transaction by hand under Bookings.",
+	"Die zugeordneten Posten ergeben %1$s, das sind %3$s mehr als der Bankumsatz über %2$s. Prüfen Sie die Zuordnung.": "The assigned items add up to %1$s, which is %3$s more than the bank transaction of %2$s. Please check the assignment.",
+	"Die Vereinswährung lässt sich erst umstellen, wenn keine Beitragszuweisung mehr per Lastschrift läuft (%s offen). Diese Zuweisungen auf Überweisung umstellen und es erneut versuchen.": "The club currency can only be changed once no contribution assignment is paid by direct debit any more (%s open). Switch these assignments to bank transfer and try again."
 }, "nplurals=2; plural=(n != 1);");

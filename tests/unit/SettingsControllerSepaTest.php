@@ -6,6 +6,7 @@ namespace OCA\Vereinsbuchhaltung\Tests\Unit;
 
 use OCA\Vereinsbuchhaltung\Controller\SettingsController;
 use OCA\Vereinsbuchhaltung\Db\AccountMapper;
+use OCA\Vereinsbuchhaltung\Db\AssignmentMapper;
 use OCA\Vereinsbuchhaltung\Db\BudgetMapper;
 use OCA\Vereinsbuchhaltung\Db\BudgetSnapshotMapper;
 use OCA\Vereinsbuchhaltung\Db\DebitBatchMapper;
@@ -33,6 +34,7 @@ use OCA\Vereinsbuchhaltung\Service\ReimbursementAccess;
 use OCA\Vereinsbuchhaltung\Service\ReimbursementSettings;
 use OCA\Vereinsbuchhaltung\Service\SelfServiceService;
 use OCA\Vereinsbuchhaltung\Service\SepaDebtorAccountService;
+use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubClockStub;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\IAppConfig;
@@ -138,7 +140,7 @@ class SettingsControllerSepaTest extends TestCase {
 			$this->createMock(AuditService::class),
 			$this->createMock(ForeignHomeGuard::class),
 			$currency,
-			new ClubCurrencySwitchGuard($currency, $mandates, $batches, $l10n),
+			new ClubCurrencySwitchGuard($currency, $mandates, $batches, $this->createMock(AssignmentMapper::class), ClubClockStub::system(), $l10n),
 		);
 	}
 

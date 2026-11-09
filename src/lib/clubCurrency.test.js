@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { computed } from 'vue'
-import { CURRENCY_TOKEN_RE, currencyCode, currencySymbol, isEuro, resetClubCurrencyForTests, setClubCurrency } from './clubCurrency.js'
+import { CURRENCY_TOKEN_RE, currencyCode, currencySettingsPayload, currencySymbol, isEuro, resetClubCurrencyForTests, setClubCurrency } from './clubCurrency.js'
 import { formatMoney } from './format.js'
 
 // Vereinswährung (Issue #202): Code und Zeichen kommen vom Server (me/settings).
@@ -42,5 +42,13 @@ describe('clubCurrency', () => {
 		expect(shown.value).toMatch(/€$/)
 		setClubCurrency('CHF')
 		expect(shown.value).toMatch(/CHF$/)
+	})
+})
+
+describe('currencySettingsPayload', () => {
+	// Eine abgelehnte Umstellung (Mandate offen) darf das Speichern der übrigen Karten nicht blockieren.
+	it('sendet die Währung nur, wenn sie sich geändert hat', () => {
+		expect(currencySettingsPayload('EUR', 'EUR')).toEqual({})
+		expect(currencySettingsPayload('CHF', 'EUR')).toEqual({ club_currency: 'CHF' })
 	})
 })

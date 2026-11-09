@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Tests\Unit;
 
+use OCA\Vereinsbuchhaltung\Db\AssignmentMapper;
 use OCA\Vereinsbuchhaltung\Db\DebitBatch;
 use OCA\Vereinsbuchhaltung\Db\DebitBatchMapper;
 use OCA\Vereinsbuchhaltung\Db\MandateMapper;
 use OCA\Vereinsbuchhaltung\Service\ClubCurrency;
 use OCA\Vereinsbuchhaltung\Service\ClubCurrencySwitchGuard;
+use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubClockStub;
 use OCP\IAppConfig;
 use OCP\IL10N;
 use PHPUnit\Framework\TestCase;
@@ -20,7 +22,7 @@ use PHPUnit\Framework\TestCase;
  */
 class ClubCurrencySwitchGuardTest extends TestCase {
 
-	private function guard(string $current, int $liveMandates, int $releasedBatches): ClubCurrencySwitchGuard {
+	private function guard(string $current, int $liveMandates, int $releasedBatches, int $directDebitAssignments = 0): ClubCurrencySwitchGuard {
 		$config = $this->createMock(IAppConfig::class);
 		$config->method('getValueString')->willReturnCallback(
 			fn (string $app, string $key, string $default = '') => $key === ClubCurrency::SETTING ? $current : $default
@@ -31,7 +33,9 @@ class ClubCurrencySwitchGuardTest extends TestCase {
 		$batches->method('findReleasedNotSubmitted')->willReturn(array_fill(0, $releasedBatches, new DebitBatch()));
 		$l10n = $this->createMock(IL10N::class);
 		$l10n->method('t')->willReturnCallback(fn (string $text, array $p = []) => vsprintf($text, $p));
-		return new ClubCurrencySwitchGuard(new ClubCurrency($config), $mandates, $batches, $l10n);
+		$assignments = $this->createMock(AssignmentMapper::class);
+		$assignments->method('countDirectDebitNotEndedAsOf')->willReturn($directDebitAssignments);
+		return new ClubCurrencySwitchGuard(new ClubCurrency($config), $mandates, $batches, $assignments, ClubClockStub::system(), $l10n);
 	}
 
 	public function testSupportedCurrencyWithoutSepaIsAllowed(): void {
@@ -50,6 +54,18 @@ class ClubCurrencySwitchGuardTest extends TestCase {
 
 	public function testSwitchAwayFromEuroWithReleasedBatchIsBlocked(): void {
 		$this->assertNotNull($this->guard('EUR', 0, 1)->error('CHF'));
+	}
+
+	/**
+	 * Ohne Euro gibt es keine Lastschrift – eine weiterlaufende Lastschrift-Zuweisung
+	 * erzeugte keine Forderungen mehr. Erst auf Überweisung umstellen.
+	 */
+	public function testSwitchAwayFromEuroWithDirectDebitAssignmentsIsBlocked(): void {
+		$error = $this->guard('EUR', 0, 0, 3)->error('CHF');
+
+		$this->assertNotNull($error);
+		$this->assertStringContainsString('3', $error);
+		$this->assertStringContainsString('Überweisung', $error);
 	}
 
 	public function testSwitchBackToEuroIsAlwaysAllowed(): void {

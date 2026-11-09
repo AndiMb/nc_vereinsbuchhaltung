@@ -204,7 +204,7 @@ class InvoiceMailService {
 		$due = $this->dueDate($invoice);
 		return strtr($text, [
 			'{nummer}' => $invoice->getNumber() ?? $this->l10n->t('Entwurf'),
-			'{betrag}' => $this->currency->format(abs($invoice->getGrossCents())),
+			'{betrag}' => $this->currency->formatIn($invoice->getCurrency(), abs($invoice->getGrossCents())),
 			'{faellig}' => $due !== null ? $this->date($due) : '',
 			'{verein}' => $issuer['name'],
 			'{empfaenger}' => (string)($snapshot['name'] ?? ''),

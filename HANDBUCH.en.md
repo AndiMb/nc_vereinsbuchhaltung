@@ -251,7 +251,8 @@ SEPA direct debit and GiroCode exist only in euros. In any other currency the
 app hides mandates, the direct debit run and the SEPA settings; invoices,
 payment requests and expense transfers come without a GiroCode. Switching
 away from the euro is only possible when no mandate is in force any more (all
-ended) and no released collection is waiting to be submitted. The page
+ended), no released collection is waiting to be submitted and no contribution
+assignment is still paid by direct debit – switch those to bank transfer first. The page
 reloads after saving.
 
 ### 2.6 Corporate design (optional)

@@ -16,6 +16,7 @@ use OCA\Vereinsbuchhaltung\Service\Export\GliederungsberichtRenderer;
 use OCA\Vereinsbuchhaltung\Service\PeriodService;
 use OCA\Vereinsbuchhaltung\Service\ReportService;
 use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubClockStub;
+use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubCurrencyStub;
 use OCP\IAppConfig;
 use OCP\IL10N;
 use PHPUnit\Framework\TestCase;
@@ -55,6 +56,26 @@ class GliederungsberichtExportTest extends TestCase {
 		return $l10n;
 	}
 
+	/** Vereinswährung (#202): die Spaltenköpfe tragen den Code der Vereinswährung. */
+	public function testCsvSpaltenkoepfeTragenDieVereinswaehrung(): void {
+		$csv = new CsvExportService(
+			$this->createMock(AccountMapper::class),
+			$this->createMock(JournalMapper::class),
+			$this->createMock(JournalLineMapper::class),
+			$this->createMock(ReportService::class),
+			$this->createMock(PeriodService::class),
+			$this->createMock(AccountStatementService::class),
+			$this->createMock(BudgetOverviewService::class),
+			ClubCurrencyStub::of($this, 'CHF'),
+		);
+
+		$head = explode("
+", substr($csv->gliederungsbericht($this->report())->content, 3))[0];
+
+		$this->assertStringContainsString('Plan 2026 (CHF)', $head);
+		$this->assertStringNotContainsString('EUR', $head);
+	}
+
 	public function testCsvMitEbeneArtUndLeererSpalteOhnePeriode(): void {
 		$csv = new CsvExportService(
 			$this->createMock(AccountMapper::class),
@@ -64,6 +85,7 @@ class GliederungsberichtExportTest extends TestCase {
 			$this->createMock(PeriodService::class),
 			$this->createMock(AccountStatementService::class),
 			$this->createMock(BudgetOverviewService::class),
+			ClubCurrencyStub::of($this),
 		);
 
 		$file = $csv->gliederungsbericht($this->report());

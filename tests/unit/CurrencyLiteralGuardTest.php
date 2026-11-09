@@ -22,7 +22,6 @@ class CurrencyLiteralGuardTest extends TestCase {
 		'Service/Sepa/PainXmlBuilder.php',
 		'Service/Sepa/SepaText.php',
 		'Service/Sepa/SepaMatchingService.php',
-		'Service/Sepa/BankReconciliationService.php',
 		'Service/DebitBatchTaskService.php',
 		'Service/MandateTaskService.php',
 		'Service/ContributionPreNotificationService.php',
@@ -30,9 +29,13 @@ class CurrencyLiteralGuardTest extends TestCase {
 		'Db/Invoice.php',
 	];
 
-	/** Einzelne Zeilen mit gesetzlichen Euro-Grenzen: Datei => Textstück. */
+	/**
+	 * Einzelne Zeilen, die fachlich Euro meinen: Datei => Textstück. Gesetzliche
+	 * Euro-Grenzen und der GiroCode, den es nur für Euro-Rechnungen gibt.
+	 */
 	private const ALLOWED_LINES = [
 		'Service/Export/KassenberichtRenderer.php' => 'Freigrenze',
+		'Service/Invoice/InvoicePdfRenderer.php' => "getCurrency()) !== 'EUR'",
 	];
 
 	public function testKeinFestesEuroImServercode(): void {
@@ -52,7 +55,7 @@ class CurrencyLiteralGuardTest extends TestCase {
 				if (str_starts_with($code, '//') || str_starts_with($code, '*') || str_starts_with($code, '/*')) {
 					continue;
 				}
-				if (!str_contains($line, '€') && !preg_match('/[\'"]EUR[\'"]/', $line)) {
+				if (!str_contains($line, '€') && !preg_match('/\bEUR\b/', $line)) {
 					continue;
 				}
 				if (isset(self::ALLOWED_LINES[$rel]) && str_contains($line, self::ALLOWED_LINES[$rel])) {

@@ -84,4 +84,12 @@ class ClubCurrencyTest extends TestCase {
 			$this->assertContains($t, $tokens);
 		}
 	}
+
+	/** Belege mit eigener Währung (Rechnungen) zeigen ihre Währung, nicht die aktuelle Vereinswährung. */
+	public function testFormatInNutztDieUebergebeneWaehrung(): void {
+		$chf = $this->currency('CHF');
+		$this->assertSame('1.234,50 €', $chf->formatIn('EUR', 123450));
+		$this->assertSame('1.234,50 CHF', $chf->formatIn('chf', 123450));
+		$this->assertSame('1.234,50 USD', $chf->formatIn('USD', 123450));
+	}
 }

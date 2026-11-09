@@ -149,7 +149,7 @@ import { useAccounts } from './composables/useAccounts.js'
 import { useConfirm } from './composables/useConfirm.js'
 import { usePeriods } from './composables/usePeriods.js'
 import { usePermissions } from './composables/usePermissions.js'
-import { setClubCurrency } from './lib/clubCurrency.js'
+import { currencySettingsPayload, setClubCurrency } from './lib/clubCurrency.js'
 import { setClubTimeZone } from './lib/clubTime.js'
 import { errMsg } from './lib/format.js'
 import { withPasswordConfirmation } from './lib/passwordGate.js'
@@ -295,7 +295,7 @@ export default {
 					storage_user: this.storageUser,
 					storage_path: this.storagePath || 'Vereinsbuchhaltung/Belege',
 					club_name: this.clubName,
-					club_currency: this.clubCurrency,
+					...currencySettingsPayload(this.clubCurrency, this.savedCurrency),
 					brand_color: this.brandColor,
 					amount_display: this.amountDisplay,
 					statement_watch_user: this.statementWatchUser,
@@ -322,6 +322,8 @@ export default {
 			} catch (e) {
 				const msg = (e?.response?.data?.message) || this.t('Speichern fehlgeschlagen (HTTP {status})', { status: e?.response?.status ?? this.t('Netzwerkfehler') })
 				showError(msg)
+				// Nichts gespeichert: die Währungsauswahl zeigt wieder den Stand des Servers.
+				this.clubCurrency = this.savedCurrency
 			} finally { this.storageSaving = false }
 		},
 

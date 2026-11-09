@@ -256,8 +256,9 @@ SEPA-Lastschrift und GiroCode gibt es nur in Euro. In jeder anderen Währung
 blendet die App Mandate, den Lastschriftlauf und die SEPA-Einstellungen aus;
 Rechnungen, Zahlungsaufforderungen und Auslagenüberweisungen kommen ohne
 GiroCode. Weg vom Euro lässt sich nur umstellen, wenn kein Mandat mehr gilt
-(alle erloschen) und kein freigegebener Sammeleinzug auf die Einreichung
-wartet. Nach dem Speichern lädt die Seite neu.
+(alle erloschen), kein freigegebener Sammeleinzug auf die Einreichung
+wartet und keine Beitragszuweisung mehr per Lastschrift läuft – solche
+Zuweisungen vorher auf Überweisung umstellen. Nach dem Speichern lädt die Seite neu.
 
 ### 2.6 Corporate Design (optional)
 

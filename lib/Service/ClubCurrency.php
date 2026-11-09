@@ -94,6 +94,20 @@ class ClubCurrency {
 		return $this->withSymbol($this->formatNumber($cents));
 	}
 
+	/**
+	 * Betrag in einer bestimmten Währung – für Belege, die ihre Währung selbst
+	 * tragen (Rechnungen): Eine Euro-Rechnung bleibt in Euro, auch wenn der
+	 * Verein inzwischen eine andere Währung führt. Unbekannte Codes erscheinen
+	 * als Code, ein leerer Code fällt auf die Vereinswährung zurück.
+	 */
+	public function formatIn(string $code, int $cents): string {
+		$code = strtoupper(trim($code));
+		if ($code === '') {
+			return $this->format($cents);
+		}
+		return $this->formatNumber($cents) . ' ' . (self::SUPPORTED[$code] ?? $code);
+	}
+
 	/** Hängt das Zeichen an einen schon formatierten Betrag (z. B. englische Mails). */
 	public function withSymbol(string $amount): string {
 		return $amount . ' ' . $this->symbol();

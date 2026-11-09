@@ -2627,8 +2627,6 @@ OC.L10N.register("vereinsbuchhaltung", {
 	"Falls Ihnen diese Änderung nicht bekannt vorkommt, wenden Sie sich bitte direkt an den Vorstand Ihres Vereins.": "Als deze wijziging u niet bekend voorkomt, neem dan rechtstreeks contact op met het bestuur van uw vereniging.",
 	"Sie haben diese Änderung selbst in „Mein Beitrag\" vorgenommen.": "U hebt deze wijziging zelf doorgevoerd in “Mijn contributie”.",
 	"Alle zugeordneten Posten dieses Umsatzes sind bereits als Rücklastschrift verbucht.": "Alle toegewezen posten van deze transactie zijn al als gestorneerde incasso geboekt.",
-	"Die zugeordneten Posten ergeben %1$s €, der Bankumsatz beträgt %2$s €: %3$s € sind keinem Posten zugeordnet. Ordnen Sie die übrigen Zeilen zu, oder buchen Sie den Umsatz unter Buchungen von Hand.": "De toegewezen posten komen samen op %1$s €, de banktransactie bedraagt %2$s €: %3$s € is aan geen enkele post toegewezen. Wijs de overige regels toe of boek de transactie handmatig onder Boekingen.",
-	"Die zugeordneten Posten ergeben %1$s €, das sind %3$s € mehr als der Bankumsatz über %2$s €. Prüfen Sie die Zuordnung.": "De toegewezen posten komen samen op %1$s €, dat is %3$s € meer dan de banktransactie van %2$s €. Controleer de toewijzing.",
 	"Das Rücklastschriftgebühren-Konto ist zugleich das Erlöskonto einer dieser Forderungen. Wählen Sie in den Einstellungen ein eigenes Konto für die Gebühren.": "De rekening voor stornokosten is tegelijk de opbrengstrekening van een van deze vorderingen. Kies in de instellingen een aparte rekening voor de kosten.",
 	"Die Aufteilung nennt dasselbe Konto mehrfach.": "De verdeling noemt dezelfde rekening meerdere keren.",
 	"Aus den zugeordneten Posten lässt sich keine gültige Buchung bilden.": "Uit de toegewezen posten kan geen geldige boeking worden gevormd.",
@@ -4390,5 +4388,8 @@ OC.L10N.register("vereinsbuchhaltung", {
 	"_Nächster Lauf am %s: %n Forderung, %s_::_Nächster Lauf am %s: %n Forderungen, %s_": [
 		"Volgende run op %s: %n vordering, %s",
 		"Volgende run op %s: %n vorderingen, %s"
-	]
+	],
+	"Die zugeordneten Posten ergeben %1$s, der Bankumsatz beträgt %2$s: %3$s sind keinem Posten zugeordnet. Ordnen Sie die übrigen Zeilen zu, oder buchen Sie den Umsatz unter Buchungen von Hand.": "De toegewezen posten komen samen op %1$s, de banktransactie bedraagt %2$s: %3$s is aan geen enkele post toegewezen. Wijs de overige regels toe of boek de transactie handmatig onder Boekingen.",
+	"Die zugeordneten Posten ergeben %1$s, das sind %3$s mehr als der Bankumsatz über %2$s. Prüfen Sie die Zuordnung.": "De toegewezen posten komen samen op %1$s, dat is %3$s meer dan de banktransactie van %2$s. Controleer de toewijzing.",
+	"Die Vereinswährung lässt sich erst umstellen, wenn keine Beitragszuweisung mehr per Lastschrift läuft (%s offen). Diese Zuweisungen auf Überweisung umstellen und es erneut versuchen.": "De verenigingsvaluta kan pas worden gewijzigd als er geen contributietoewijzing meer via automatische incasso loopt (%s open). Zet deze toewijzingen om naar overschrijving en probeer het opnieuw."
 }, "nplurals=2; plural=(n != 1);");
