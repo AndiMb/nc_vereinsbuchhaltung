@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Tests\Unit;
 
+use OCA\Vereinsbuchhaltung\Db\Account;
 use OCA\Vereinsbuchhaltung\Service\BudgetTree;
 use OCA\Vereinsbuchhaltung\Service\Export\KassenberichtRenderer;
+use OCA\Vereinsbuchhaltung\Service\Export\ReportFormat;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -24,7 +26,7 @@ class KassenberichtRendererTest extends TestCase {
 			['name' => 'Vermögensverwaltung', 'income' => 0.0, 'expense' => 0.0, 'result' => 0.0],
 			['name' => 'Zweckbetrieb', 'income' => 0, 'expense' => 0, 'result' => 0],
 			['name' => '(nicht zugeordnet)', 'income' => 0.0, 'expense' => 0.0, 'result' => 0.0],
-		]);
+		], '€');
 
 		$this->assertStringContainsString('Ideeller Bereich', $html);
 		$this->assertStringContainsString('1.200,00 €', $html);
@@ -43,7 +45,7 @@ class KassenberichtRendererTest extends TestCase {
 		$html = KassenberichtRenderer::sphereRows([
 			['name' => 'Wirtschaftlicher Geschäftsbetrieb', 'income' => 0.0, 'expense' => 80.0, 'result' => -80.0],
 			['name' => 'Zweckbetrieb', 'income' => 50.0, 'expense' => 0.0, 'result' => 50.0],
-		]);
+		], '€');
 
 		$this->assertSame(2, substr_count($html, '<tr>'));
 		$this->assertStringContainsString('-80,00 €', $html);
@@ -53,7 +55,7 @@ class KassenberichtRendererTest extends TestCase {
 	public function testAlleSphaerenOhneBewegungErgebenKeineZeile(): void {
 		$this->assertSame('', KassenberichtRenderer::sphereRows([
 			['name' => 'Ideeller Bereich', 'income' => 0.0, 'expense' => 0.0, 'result' => 0.0],
-		]));
+		], '€'));
 	}
 
 	/**
@@ -127,7 +129,7 @@ class KassenberichtRendererTest extends TestCase {
 			[],
 		);
 
-		$income = KassenberichtRenderer::planRows($nodes, [], 'income');
+		$income = KassenberichtRenderer::planRows($nodes, [], 'income', '€');
 		$this->assertStringContainsString('>4000<', $income);
 		$this->assertStringNotContainsString('>5300<', $income);
 	}
@@ -170,10 +172,40 @@ class KassenberichtRendererTest extends TestCase {
 	 * @param array<array-key, int> $plan
 	 * @param array<array-key, int> $ist
 	 */
+	/** Vereinswährung (#202): die Zeilen tragen das Zeichen der Vereinswährung. */
+	public function testZeilenTragenDieVereinswaehrung(): void {
+		$spheres = KassenberichtRenderer::sphereRows([
+			['name' => 'Ideeller Bereich', 'income' => 1234.5, 'expense' => 0.0, 'result' => 1234.5],
+		], 'CHF');
+		$this->assertStringContainsString('1.234,50 CHF', $spheres);
+		$this->assertStringNotContainsString('€', $spheres);
+
+		$account = new Account();
+		$account->setNumber('4000');
+		$account->setName('Beiträge');
+		$accounts = KassenberichtRenderer::accountRows([['account' => $account, 'cents' => 123450]], 'CHF');
+		$this->assertStringContainsString('1.234,50 CHF', $accounts);
+
+		$plan = $this->planHtmlIn('CHF', [['5300', 'expense', null]], ['5300' => 500000], ['5300' => 320000]);
+		$this->assertStringContainsString('5.000,00 CHF', $plan);
+		$this->assertStringNotContainsString('€', $plan);
+	}
+
+	public function testReportFormatSchreibtDasUebergebeneZeichen(): void {
+		$this->assertSame('1.234,50 CHF', ReportFormat::cents(123450, 'CHF'));
+		$this->assertSame('-0,05 €', ReportFormat::cents(-5, '€'));
+	}
+
+	private function planHtmlIn(string $symbol, array $konten, array $plan, array $ist): string {
+		$nodes = $this->planNodes($konten, $plan, $ist);
+		return KassenberichtRenderer::planRows($nodes, [], 'income', $symbol)
+			. KassenberichtRenderer::planRows($nodes, [], 'expense', $symbol);
+	}
+
 	private function planHtml(array $konten, array $plan, array $ist): string {
 		$nodes = $this->planNodes($konten, $plan, $ist);
-		return KassenberichtRenderer::planRows($nodes, [], 'income')
-			. KassenberichtRenderer::planRows($nodes, [], 'expense');
+		return KassenberichtRenderer::planRows($nodes, [], 'income', '€')
+			. KassenberichtRenderer::planRows($nodes, [], 'expense', '€');
 	}
 
 	/** Die Tabellenzeile des Kontos mit dieser Nummer. */

@@ -10,6 +10,7 @@ use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Db\Period;
 use OCA\Vereinsbuchhaltung\Service\AccountStatementService;
 use OCA\Vereinsbuchhaltung\Service\BudgetOverviewService;
+use OCA\Vereinsbuchhaltung\Service\ClubCurrency;
 use OCA\Vereinsbuchhaltung\Service\Export\CsvExportService;
 use OCA\Vereinsbuchhaltung\Service\Export\GliederungsberichtRenderer;
 use OCA\Vereinsbuchhaltung\Service\PeriodService;
@@ -81,7 +82,7 @@ class GliederungsberichtExportTest extends TestCase {
 	public function testDruckseiteZeigtWarnungMaskiertTexteUndMarkiertInaktive(): void {
 		$config = $this->createMock(IAppConfig::class);
 		$config->method('getValueString')->willReturn('Musterverein');
-		$html = (new GliederungsberichtRenderer($config, $this->l10n(), ClubClockStub::system()))->render($this->report());
+		$html = (new GliederungsberichtRenderer($config, $this->l10n(), ClubClockStub::system(), new ClubCurrency($config)))->render($this->report());
 
 		$this->assertStringContainsString('<h1>Ergebnis je Bereich</h1>', $html);
 		$this->assertStringContainsString('Diese Konten erfasst kein Abschnitt der Vorlage', $html);
