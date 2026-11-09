@@ -4382,5 +4382,12 @@ OC.L10N.register("vereinsbuchhaltung", {
 		"%n item of the run no longer has a collectible mandate. Reload the view and check the run: discarding and releasing again removes the item.",
 		"%n items of the run no longer have a collectible mandate. Reload the view and check the run: discarding and releasing again removes the items."
 	],
-	"Der Text enthält ungültige Zeichen.": "The text contains invalid characters."
+	"Der Text enthält ungültige Zeichen.": "The text contains invalid characters.",
+	"Neu: Testversand für Rechnungen und Mahnungen. „Test an mich senden“ schickt die Mail an Ihre eigene Adresse; an der Rechnung ändert sich nichts.": "New: test sending for invoices and reminders. “Send test to me” sends the email to your own address; the invoice stays unchanged.",
+	"Neu: Konten haben einen Kurznamen und eine Beschreibung. Der Kurzname steht in Auswahllisten und im Kontenbaum.": "New: accounts have a short name and a description. The short name appears in selection lists and the account tree.",
+	"Neu: Rechnungen können einen eigenen Vereinsnamen und Kontoinhaber tragen – nützlich bei langen Namen.": "New: invoices can carry their own club name and account holder – useful for long club names.",
+	"Mobil: Der Kopf ist kompakter und klappt beim Scrollen weg, die Listen bekommen mehr Platz.": "Mobile: the header is more compact and collapses when scrolling, leaving more room for lists.",
+	"Geändert: Die Verknüpfung eines Mitglieds mit einem Nextcloud-Konto gilt erst, wenn das Mitglied sie per Mail-Link bestätigt hat.": "Changed: a member’s link to a Nextcloud account only counts once the member has confirmed it via an email link.",
+	"Geändert: Der Lastschriftlauf warnt vor Posten mit widerrufenem oder gesperrtem Mandat; zum Einreichen ist eine Bestätigung nötig.": "Changed: the direct debit run warns about items with a revoked or suspended mandate; submitting requires confirmation.",
+	"Sicherheit: Einige kleinere Absicherungen im Hintergrund, etwa bei Berechtigungen, abgeschlossenen Jahren und Uploads.": "Security: a few smaller safeguards in the background, e.g. for permissions, closed years and uploads."
 }, "nplurals=2; plural=(n != 1);");

@@ -25,6 +25,19 @@ import { compareVersions, isNewerVersion } from '../lib/version.js'
 export function buildWhatsNewEntries() {
 	return [
 		{
+			version: '0.52.0',
+			roles: ['verwalter', 'buchhalter'],
+			items: [
+				t('Neu: Testversand für Rechnungen und Mahnungen. „Test an mich senden“ schickt die Mail an Ihre eigene Adresse; an der Rechnung ändert sich nichts.'),
+				t('Neu: Konten haben einen Kurznamen und eine Beschreibung. Der Kurzname steht in Auswahllisten und im Kontenbaum.'),
+				t('Neu: Rechnungen können einen eigenen Vereinsnamen und Kontoinhaber tragen – nützlich bei langen Namen.'),
+				t('Mobil: Der Kopf ist kompakter und klappt beim Scrollen weg, die Listen bekommen mehr Platz.'),
+				t('Geändert: Die Verknüpfung eines Mitglieds mit einem Nextcloud-Konto gilt erst, wenn das Mitglied sie per Mail-Link bestätigt hat.'),
+				t('Geändert: Der Lastschriftlauf warnt vor Posten mit widerrufenem oder gesperrtem Mandat; zum Einreichen ist eine Bestätigung nötig.'),
+				t('Sicherheit: Einige kleinere Absicherungen im Hintergrund, etwa bei Berechtigungen, abgeschlossenen Jahren und Uploads.'),
+			],
+		},
+		{
 			version: '0.51.0',
 			roles: ['verwalter', 'buchhalter'],
 			items: [

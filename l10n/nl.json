@@ -4383,7 +4383,14 @@
             "%n post van de run heeft geen inbare machtiging meer. Laad de weergave opnieuw en controleer de run: verwerpen en opnieuw vrijgeven haalt de post eruit.",
             "%n posten van de run hebben geen inbare machtiging meer. Laad de weergave opnieuw en controleer de run: verwerpen en opnieuw vrijgeven haalt de posten eruit."
         ],
-        "Der Text enthält ungültige Zeichen.": "De tekst bevat ongeldige tekens."
+        "Der Text enthält ungültige Zeichen.": "De tekst bevat ongeldige tekens.",
+        "Neu: Testversand für Rechnungen und Mahnungen. „Test an mich senden“ schickt die Mail an Ihre eigene Adresse; an der Rechnung ändert sich nichts.": "Nieuw: testverzending voor facturen en aanmaningen. „Test naar mij sturen” stuurt de mail naar uw eigen adres; de factuur blijft ongewijzigd.",
+        "Neu: Konten haben einen Kurznamen und eine Beschreibung. Der Kurzname steht in Auswahllisten und im Kontenbaum.": "Nieuw: rekeningen hebben een korte naam en een beschrijving. De korte naam staat in keuzelijsten en in de rekeningenboom.",
+        "Neu: Rechnungen können einen eigenen Vereinsnamen und Kontoinhaber tragen – nützlich bei langen Namen.": "Nieuw: facturen kunnen een eigen verenigingsnaam en rekeninghouder dragen – handig bij lange namen.",
+        "Mobil: Der Kopf ist kompakter und klappt beim Scrollen weg, die Listen bekommen mehr Platz.": "Mobiel: de kop is compacter en klapt bij het scrollen weg, zodat lijsten meer ruimte krijgen.",
+        "Geändert: Die Verknüpfung eines Mitglieds mit einem Nextcloud-Konto gilt erst, wenn das Mitglied sie per Mail-Link bestätigt hat.": "Gewijzigd: de koppeling van een lid aan een Nextcloud-account geldt pas als het lid die via een maillink heeft bevestigd.",
+        "Geändert: Der Lastschriftlauf warnt vor Posten mit widerrufenem oder gesperrtem Mandat; zum Einreichen ist eine Bestätigung nötig.": "Gewijzigd: de incassorun waarschuwt voor posten met een ingetrokken of geblokkeerde machtiging; indienen vraagt om bevestiging.",
+        "Sicherheit: Einige kleinere Absicherungen im Hintergrund, etwa bei Berechtigungen, abgeschlossenen Jahren und Uploads.": "Beveiliging: enkele kleinere beveiligingen op de achtergrond, bijvoorbeeld bij rechten, afgesloten jaren en uploads."
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

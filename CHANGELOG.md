@@ -17,6 +17,38 @@ als „[object Object]" (falsche Renderer-Callback-Signatur, Nextcloud-
 Core-Bug, reproduziert 23.08.2026). Stattdessen **Fettdruck als Zeilenanfang**
 verwenden, z. B. `**Neu:**`.
 
+## [0.52.0] – 2026-11-09
+
+**Neu:**
+- **Testversand** von Rechnungen und Mahnungen ([#216](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/216)): „Test an mich senden“
+  schickt die Mail mit „[TEST]“ im Betreff an die eigene Adresse. An der
+  Rechnung ändert sich nichts. Entwürfe: „Testversand …“ mit Vorschau-PDF.
+- **Konten:** Kurzname und Beschreibung ([#201](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/201)). Der Kurzname steht in
+  Auswahllisten, Journal und Kontenbaum; die Berichte zeigen den vollen Namen.
+- **Lange Vereinsnamen auf Rechnungen** ([#238](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/238)): freiwillig „Name auf
+  Rechnungen“ und „Kontoinhaber“; das PDF bricht lange Namen sauber um.
+- **Mobil:** kompakter Kopf, der beim Scrollen wegklappt; die Buchungsliste
+  bekommt deutlich mehr Platz.
+
+**Geändert:**
+- **Kontoverknüpfung eines Mitglieds** gilt erst nach Bestätigung per Mail-Link
+  durch das Mitglied; bestehende Verknüpfungen bleiben bestätigt ([#295](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/295)).
+- **Lastschriftlauf:** Posten mit widerrufenem oder gesperrtem Mandat erscheinen
+  als Abweichung; Einreichen verlangt dann eine Bestätigung ([#302](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/302)).
+
+**Sicherheit:**
+- Mehrere kleinere Absicherungen ([#295](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/295)–[#307](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/307)): Rollen gelöschter Nutzer und
+  Gruppen verfallen, abgeschlossene Jahre bleiben gesperrt, die Anonymisierung
+  greift vollständig, ein Lastschriftlauf lässt sich nicht doppelt freigeben,
+  Uploads und Importe sind gegen manipulierte Dateien begrenzt.
+
+**Behoben:**
+- **Integritätsprüfung** der Nextcloud meldete nach der ersten E-Rechnung eine
+  Zusatzdatei in `vendor/horstoeko/invoicesuite`; das Paket enthält sie jetzt.
+
+**Hinweis zum Update:** Migrationen laufen automatisch (neue Spalten für Konten
+und Kontoverknüpfung, ein Index im Lastschriftlauf).
+
 ## [0.51.0] – 2026-11-06
 
 **Neu:**
