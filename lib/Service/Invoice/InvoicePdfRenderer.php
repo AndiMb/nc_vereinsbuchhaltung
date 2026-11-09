@@ -9,6 +9,7 @@ use OCA\Vereinsbuchhaltung\Db\Invoice;
 use OCA\Vereinsbuchhaltung\Db\InvoiceLine;
 use OCA\Vereinsbuchhaltung\Exception\UserFacingException;
 use OCA\Vereinsbuchhaltung\Service\ClubClock;
+use OCA\Vereinsbuchhaltung\Service\ClubCurrency;
 use OCA\Vereinsbuchhaltung\Service\EpcQrCodeGenerator;
 use OCA\Vereinsbuchhaltung\Service\InvoiceCalculator;
 use OCP\IL10N;
@@ -44,6 +45,7 @@ class InvoicePdfRenderer {
 	public function __construct(
 		private EpcQrCodeGenerator $epc,
 		private ClubClock $clock,
+		private ClubCurrency $currency,
 		private ?IL10N $l10n = null,
 	) {
 	}
@@ -599,7 +601,7 @@ class InvoicePdfRenderer {
 	}
 
 	private function money(int $cents): string {
-		return number_format($cents / 100, 2, ',', '.') . ' €';
+		return $this->currency->format($cents);
 	}
 
 	private function date(?string $iso): string {

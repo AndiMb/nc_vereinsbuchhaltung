@@ -76,4 +76,12 @@ class ClubCurrencyTest extends TestCase {
 		$this->currency('EUR')->assertSepaAvailable($this->l10n());
 		$this->addToAssertionCount(1);
 	}
+
+	/** Eingabewerte dürfen jedes Zeichen und jeden Code der Liste tragen (Tabellenimport, #202). */
+	public function testInputTokensListAllSymbolsAndCodes(): void {
+		$tokens = ClubCurrency::inputTokens();
+		foreach (['€', '£', 'EUR', 'CHF', 'GBP', 'DKK', 'SEK', 'NOK', 'PLN', 'CZK'] as $t) {
+			$this->assertContains($t, $tokens);
+		}
+	}
 }

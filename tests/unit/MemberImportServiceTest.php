@@ -17,6 +17,7 @@ use OCA\Vereinsbuchhaltung\Service\IbanValidator;
 use OCA\Vereinsbuchhaltung\Service\MandateService;
 use OCA\Vereinsbuchhaltung\Service\MemberImportService;
 use OCA\Vereinsbuchhaltung\Service\Sepa\MemberCsvParser;
+use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubCurrencyStub;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\IL10N;
 use OCP\IUser;
@@ -99,6 +100,7 @@ class MemberImportServiceTest extends TestCase {
 			$l10n,
 			$time,
 			new IbanValidator($l10n),
+			ClubCurrencyStub::of($this),
 		);
 	}
 

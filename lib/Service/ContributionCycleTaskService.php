@@ -61,6 +61,7 @@ class ContributionCycleTaskService {
 		private ContributionCycleSettings $settings,
 		private ITimeFactory $time,
 		private IL10N $l10n,
+		private ClubCurrency $currency,
 		?ClubClock $clock = null,
 	) {
 		$this->clock = $clock ?? new ClubClock($this->time);
@@ -199,10 +200,10 @@ class ContributionCycleTaskService {
 		return [[
 			'severity' => Task::SEVERITY_HINT,
 			'message' => $this->l10n->n(
-				'%n manuelle Forderung zu diesem Termin hat kein einzugsfähiges Mandat und kommt nicht in den Lauf (%s €).',
-				'%n manuelle Forderungen zu diesem Termin haben kein einzugsfähiges Mandat und kommen nicht in den Lauf (zusammen %s €).',
+				'%n manuelle Forderung zu diesem Termin hat kein einzugsfähiges Mandat und kommt nicht in den Lauf (%s).',
+				'%n manuelle Forderungen zu diesem Termin haben kein einzugsfähiges Mandat und kommen nicht in den Lauf (zusammen %s).',
 				$count,
-				[number_format($sumCents / 100, 2, ',', '.')],
+				[$this->currency->format($sumCents)],
 			),
 			'objectType' => null,
 			'objectId' => null,
@@ -235,7 +236,7 @@ class ContributionCycleTaskService {
 		}
 		return [[
 			'severity' => Task::SEVERITY_HINT,
-			'message' => $this->l10n->n('%n überfällige Überweiser-Forderung, zusammen %s €.', '%n überfällige Überweiser-Forderungen, zusammen %s €.', $count, [number_format($sumCents / 100, 2, ',', '.')]),
+			'message' => $this->l10n->n('%n überfällige Überweiser-Forderung, zusammen %s.', '%n überfällige Überweiser-Forderungen, zusammen %s.', $count, [$this->currency->format($sumCents)]),
 			'objectType' => null,
 			'objectId' => null,
 		]];
@@ -271,10 +272,10 @@ class ContributionCycleTaskService {
 		return [[
 			'severity' => Task::SEVERITY_HINT,
 			'message' => $this->l10n->n(
-				'Nächster Lauf am %s: %n Forderung, %s €',
-				'Nächster Lauf am %s: %n Forderungen, %s €',
+				'Nächster Lauf am %s: %n Forderung, %s',
+				'Nächster Lauf am %s: %n Forderungen, %s',
 				count($sameRun),
-				[GermanDate::format($nextDue), number_format($sum / 100, 2, ',', '.')],
+				[GermanDate::format($nextDue), $this->currency->format($sum)],
 			) . ($problemCount > 0 ? ' ' . $this->l10n->n('– %n Störfall', '– %n Störfälle', $problemCount) : ''),
 			'objectType' => null,
 			'objectId' => null,

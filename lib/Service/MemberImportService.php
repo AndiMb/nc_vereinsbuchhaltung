@@ -93,6 +93,7 @@ class MemberImportService {
 		private IL10N $l10n,
 		private ITimeFactory $time,
 		private IbanValidator $ibanValidator,
+		private ClubCurrency $currency,
 		?ClubClock $clock = null,
 	) {
 		$this->clock = $clock ?? new ClubClock($this->time);
@@ -260,7 +261,7 @@ class MemberImportService {
 				$errors[] = $this->l10n->t('Dieser Turnus ist für die gewählte Beitragsgruppe nicht erlaubt.');
 			}
 			if ((int)$row['amountCents'] < $group->getMinMonthlyAmountCents()) {
-				$errors[] = $this->l10n->t('Der Monatsbeitrag darf die Untergrenze von %s € nicht unterschreiten.', [number_format($group->getMinMonthlyAmountCents() / 100, 2, ',', '.')]);
+				$errors[] = $this->l10n->t('Der Monatsbeitrag darf die Untergrenze von %s nicht unterschreiten.', [$this->currency->format($group->getMinMonthlyAmountCents())]);
 			}
 		}
 		if ($errors !== []) {

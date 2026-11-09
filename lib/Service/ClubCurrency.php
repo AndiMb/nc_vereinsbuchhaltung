@@ -66,6 +66,16 @@ class ClubCurrency {
 		return $options;
 	}
 
+	/**
+	 * Alle Zeichen und Codes der Liste – Eingabewerte (Tabellenimport) dürfen
+	 * sie tragen, sie werden vor dem Zahlenlesen entfernt.
+	 *
+	 * @return list<string>
+	 */
+	public static function inputTokens(): array {
+		return array_values(array_unique([...array_keys(self::SUPPORTED), ...array_values(self::SUPPORTED)]));
+	}
+
 	public function symbol(): string {
 		return self::SUPPORTED[$this->code()];
 	}

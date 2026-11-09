@@ -12,6 +12,7 @@ use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
 use OCA\Vereinsbuchhaltung\Db\Task;
 use OCA\Vereinsbuchhaltung\Service\DunningSettings;
 use OCA\Vereinsbuchhaltung\Service\DunningTaskService;
+use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubCurrencyStub;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\IAppConfig;
 use OCP\IL10N;
@@ -54,6 +55,7 @@ class DunningTaskServiceTest extends TestCase {
 			new DunningSettings($this->config), // final, siehe DunningLadderServiceTest-Klassendoc
 			$time,
 			$l10n,
+			ClubCurrencyStub::of($this),
 		);
 	}
 

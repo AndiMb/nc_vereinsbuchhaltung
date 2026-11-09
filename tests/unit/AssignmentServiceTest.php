@@ -16,6 +16,7 @@ use OCA\Vereinsbuchhaltung\Service\AssignmentService;
 use OCA\Vereinsbuchhaltung\Service\ContributionYearService;
 use OCA\Vereinsbuchhaltung\Service\DueDateScheduleService;
 use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubClockStub;
+use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubCurrencyStub;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\IL10N;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -89,7 +90,7 @@ class AssignmentServiceTest extends TestCase {
 		);
 		$contributionYear = new ContributionYearService($config, ClubClockStub::system());
 		$dueDateSchedule = new DueDateScheduleService($config, $contributionYear, $l10n);
-		return new AssignmentService($this->mapper, $this->eventMapper, $this->groupMapper, $this->openItemMapper, $contributionYear, $dueDateSchedule, $time, $l10n);
+		return new AssignmentService($this->mapper, $this->eventMapper, $this->groupMapper, $this->openItemMapper, $contributionYear, $dueDateSchedule, $time, $l10n, ClubCurrencyStub::of($this));
 	}
 
 	public function testCreateLegtDieZuweisungAnUndLogtEinEreignis(): void {

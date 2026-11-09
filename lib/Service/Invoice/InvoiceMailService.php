@@ -10,6 +10,7 @@ use OCA\Vereinsbuchhaltung\Db\InvoiceDocument;
 use OCA\Vereinsbuchhaltung\Db\InvoiceMapper;
 use OCA\Vereinsbuchhaltung\Exception\UserFacingException;
 use OCA\Vereinsbuchhaltung\Service\ClubClock;
+use OCA\Vereinsbuchhaltung\Service\ClubCurrency;
 use OCA\Vereinsbuchhaltung\Service\ClubMailBranding;
 use OCA\Vereinsbuchhaltung\Service\EmailValidator;
 use OCA\Vereinsbuchhaltung\Service\InvoiceService;
@@ -48,6 +49,7 @@ class InvoiceMailService {
 		private IL10N $l10n,
 		private ClubMailBranding $mailBranding,
 		private ClubClock $clock,
+		private ClubCurrency $currency,
 	) {
 	}
 
@@ -202,7 +204,7 @@ class InvoiceMailService {
 		$due = $this->dueDate($invoice);
 		return strtr($text, [
 			'{nummer}' => $invoice->getNumber() ?? $this->l10n->t('Entwurf'),
-			'{betrag}' => number_format(abs($invoice->getGrossCents()) / 100, 2, ',', '.') . ' €',
+			'{betrag}' => $this->currency->format(abs($invoice->getGrossCents())),
 			'{faellig}' => $due !== null ? $this->date($due) : '',
 			'{verein}' => $issuer['name'],
 			'{empfaenger}' => (string)($snapshot['name'] ?? ''),

@@ -12,6 +12,7 @@ use OCA\Vereinsbuchhaltung\Service\Invoice\InvoicePdfRenderer;
 use OCA\Vereinsbuchhaltung\Service\ReceiptIndex\ReceiptFacts;
 use OCA\Vereinsbuchhaltung\Service\ReceiptIndex\ReceiptReader;
 use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubClockStub;
+use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubCurrencyStub;
 use OCA\Vereinsbuchhaltung\Tests\Unit\Support\EInvoiceFixture;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
@@ -106,7 +107,7 @@ class ReceiptReaderTest extends TestCase {
 		$writer = new InvoiceSuiteEInvoiceWriter();
 		$xml = $writer->buildXml($data, EInvoiceFormat::ZUGFERD);
 		$pdfData = new InvoicePdfData($data->invoice, $data->lines, $data->debtor, $data->issuer, $data->bank);
-		$pdf = (new InvoicePdfRenderer(new EpcQrCodeGenerator(), ClubClockStub::system()))->render($pdfData);
+		$pdf = (new InvoicePdfRenderer(new EpcQrCodeGenerator(), ClubClockStub::system(), ClubCurrencyStub::of($this)))->render($pdfData);
 		$hybrid = $writer->embedIntoPdf($xml, $pdf, EInvoiceFormat::ZUGFERD);
 
 		$facts = $this->reader()->read('beleg.pdf', 'application/pdf', strlen($hybrid), static fn () => $hybrid);

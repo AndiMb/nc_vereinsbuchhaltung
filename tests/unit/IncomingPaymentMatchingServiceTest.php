@@ -9,6 +9,7 @@ use OCA\Vereinsbuchhaltung\Db\IncomingPaymentRejectionMapper;
 use OCA\Vereinsbuchhaltung\Db\OpenItem;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
 use OCA\Vereinsbuchhaltung\Service\Sepa\IncomingPaymentMatchingService;
+use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubCurrencyStub;
 use OCP\IL10N;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -31,7 +32,7 @@ class IncomingPaymentMatchingServiceTest extends TestCase {
 	private function service(): IncomingPaymentMatchingService {
 		$l10n = $this->createMock(IL10N::class);
 		$l10n->method('t')->willReturnCallback(static fn (string $text, array $params = []): string => vsprintf($text, $params));
-		return new IncomingPaymentMatchingService($this->openItems, $this->rejections, $l10n);
+		return new IncomingPaymentMatchingService($this->openItems, $this->rejections, $l10n, ClubCurrencyStub::of($this));
 	}
 
 	private function tx(int $amountCents, ?string $counterparty = null, ?string $purpose = null, ?int $id = null): BankTransaction {

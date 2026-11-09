@@ -44,6 +44,7 @@ class AssignmentService {
 		private DueDateScheduleService $dueDateSchedule,
 		private ITimeFactory $time,
 		private IL10N $l10n,
+		private ClubCurrency $currency,
 		?ClubClock $clock = null,
 	) {
 		$this->clock = $clock ?? new ClubClock($this->time);
@@ -90,7 +91,7 @@ class AssignmentService {
 		$this->assertValidPaymentMethod($paymentMethod);
 		$effectiveMin = $minMonthlyAmountOverrideCents ?? $group->getMinMonthlyAmountCents();
 		if ($monthlyAmountCents < $effectiveMin) {
-			throw new \InvalidArgumentException($this->l10n->t('Der Monatsbeitrag darf die Untergrenze von %s € nicht unterschreiten.', [number_format($effectiveMin / 100, 2, ',', '.')]));
+			throw new \InvalidArgumentException($this->l10n->t('Der Monatsbeitrag darf die Untergrenze von %s nicht unterschreiten.', [$this->currency->format($effectiveMin)]));
 		}
 		$this->assertNoOverlap($memberId, $groupId, $validFrom, $validTo, null);
 
@@ -444,7 +445,7 @@ class AssignmentService {
 	private function assertAtLeastMinimum(Assignment $assignment, ContributionGroup $group, int $monthlyAmountCents): void {
 		$effectiveMin = $assignment->effectiveMinMonthlyAmountCents($group);
 		if ($monthlyAmountCents < $effectiveMin) {
-			throw new \InvalidArgumentException($this->l10n->t('Der Monatsbeitrag darf die Untergrenze von %s € nicht unterschreiten.', [number_format($effectiveMin / 100, 2, ',', '.')]));
+			throw new \InvalidArgumentException($this->l10n->t('Der Monatsbeitrag darf die Untergrenze von %s nicht unterschreiten.', [$this->currency->format($effectiveMin)]));
 		}
 	}
 

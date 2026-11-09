@@ -12,6 +12,7 @@ use OCA\Vereinsbuchhaltung\Service\Invoice\InvoiceMailService;
 use OCA\Vereinsbuchhaltung\Service\InvoiceService;
 use OCA\Vereinsbuchhaltung\Service\InvoiceSettings;
 use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubClockStub;
+use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubCurrencyStub;
 use OCP\IL10N;
 use OCP\Mail\IAttachment;
 use OCP\Mail\IEMailTemplate;
@@ -57,7 +58,7 @@ class InvoiceMailServiceTest extends TestCase {
 		$l10n = $this->createMock(IL10N::class);
 		$l10n->method('t')->willReturnCallback(static fn (string $text, $params = []) => vsprintf($text, (array)$params));
 		$l10n->method('getLanguageCode')->willReturn('de');
-		return new InvoiceMailService($this->mailer, $invoices, $this->service, $this->documents, $this->settings, $this->createMock(LoggerInterface::class), $l10n, $this->createMock(ClubMailBranding::class), ClubClockStub::at('2026-03-05T10:00:00Z'));
+		return new InvoiceMailService($this->mailer, $invoices, $this->service, $this->documents, $this->settings, $this->createMock(LoggerInterface::class), $l10n, $this->createMock(ClubMailBranding::class), ClubClockStub::at('2026-03-05T10:00:00Z'), ClubCurrencyStub::of($this));
 	}
 
 	private function mockMessage(): IMessage&MockObject {
@@ -313,7 +314,7 @@ class InvoiceMailServiceTest extends TestCase {
 		$service = $this->createMock(InvoiceService::class);
 		$service->method('markSent')->willReturn($this->invoice);
 
-		(new InvoiceMailService($this->mailer, $invoices, $service, $documents, $settings, $this->createMock(LoggerInterface::class), $l10n, $this->createMock(ClubMailBranding::class), ClubClockStub::system()))
+		(new InvoiceMailService($this->mailer, $invoices, $service, $documents, $settings, $this->createMock(LoggerInterface::class), $l10n, $this->createMock(ClubMailBranding::class), ClubClockStub::system(), ClubCurrencyStub::of($this)))
 			->send(1, 'a@b.example', 'Mein Betreff', 'Mein Text');
 	}
 }

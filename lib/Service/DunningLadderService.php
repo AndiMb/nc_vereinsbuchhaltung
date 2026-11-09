@@ -89,6 +89,7 @@ class DunningLadderService {
 		private LoggerInterface $logger,
 		private RecipientL10n $recipientL10n,
 		private ClubMailBranding $mailBranding,
+		private ClubCurrency $currency,
 		?ClubClock $clock = null,
 	) {
 		$this->clock = $clock ?? new ClubClock($this->time);
@@ -443,7 +444,7 @@ class DunningLadderService {
 		$lines = [
 			$l->t('Empfänger') . ': ' . $clubName,
 			$l->t('IBAN') . ': ' . $this->formatIban((string)$account->getIban()),
-			$l->t('Betrag') . ': ' . number_format($item->getAmountCents() / 100, 2, ',', '.') . ' €',
+			$l->t('Betrag') . ': ' . $this->currency->format($item->getAmountCents()),
 			$l->t('Verwendungszweck') . ': ' . $this->remittanceText($item, $l),
 		];
 
@@ -459,7 +460,7 @@ class DunningLadderService {
 	}
 
 	private function positionLine(OpenItem $item, IL10N $l): string {
-		$amount = number_format($item->getAmountCents() / 100, 2, ',', '.') . ' €';
+		$amount = $this->currency->format($item->getAmountCents());
 		$label = (string)($item->getDescription() ?? $l->t('Beitrag'));
 		$months = PeriodLabel::months($item->getPeriodStart(), $item->getPeriodEnd(), $l);
 		if ($months !== null) {

@@ -13,6 +13,7 @@ use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
 use OCA\Vereinsbuchhaltung\Exception\UserFacingException;
 use OCA\Vereinsbuchhaltung\Service\AuditService;
 use OCA\Vereinsbuchhaltung\Service\ClubClock;
+use OCA\Vereinsbuchhaltung\Service\ClubCurrency;
 use OCA\Vereinsbuchhaltung\Service\ClubMailBranding;
 use OCA\Vereinsbuchhaltung\Service\EmailValidator;
 use OCA\Vereinsbuchhaltung\Service\InvoiceSettings;
@@ -58,6 +59,7 @@ class InvoiceDunningService {
 		private IL10N $l10n,
 		private ClubMailBranding $mailBranding,
 		private ClubClock $clock,
+		private ClubCurrency $currency,
 	) {
 	}
 
@@ -393,7 +395,7 @@ class InvoiceDunningService {
 	private function fill(string $text, Invoice $invoice, int $level, int $remaining, string $today): string {
 		$snapshot = $invoice->debtorSnapshotData() ?? [];
 		$deadline = (new \DateTimeImmutable($today))->modify('+' . $this->settings->dunningGraceDays() . ' days')->format('Y-m-d');
-		$money = static fn (int $cents): string => number_format($cents / 100, 2, ',', '.') . ' €';
+		$money = fn (int $cents): string => $this->currency->format($cents);
 		$date = static fn (?string $iso): string => $iso !== null && $iso !== '' ? (new \DateTimeImmutable(substr($iso, 0, 10)))->format('d.m.Y') : '';
 		return strtr($text, [
 			'{stufe}' => $this->dunningTitle($level),

@@ -22,6 +22,7 @@ use OCA\Vereinsbuchhaltung\Service\DunningSettings;
 use OCA\Vereinsbuchhaltung\Service\EpcQrCodeGenerator;
 use OCA\Vereinsbuchhaltung\Service\RecipientL10n;
 use OCA\Vereinsbuchhaltung\Service\SepaDebtorAccountService;
+use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubCurrencyStub;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\IAppConfig;
 use OCP\IL10N;
@@ -147,6 +148,7 @@ class DunningLadderServiceTest extends TestCase {
 			$this->createMock(LoggerInterface::class),
 			$this->recipientL10n($l10n),
 			$this->createMock(ClubMailBranding::class),
+			ClubCurrencyStub::of($this),
 		);
 	}
 
@@ -474,6 +476,7 @@ class DunningLadderServiceTest extends TestCase {
 			$logger ?? $this->createMock(LoggerInterface::class),
 			$this->recipientL10n($l10n),
 			$this->createMock(ClubMailBranding::class),
+			ClubCurrencyStub::of($this),
 		);
 	}
 
