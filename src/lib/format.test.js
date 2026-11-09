@@ -8,9 +8,9 @@ import {
 	errMsg,
 	formatAmountInput,
 	formatCurrency,
+	formatCurrencyWhole,
 	formatDate,
 	formatDateTime,
-	formatEuro,
 	formatMoney,
 	formatPercent,
 	formatSigned,
@@ -120,10 +120,10 @@ describe('formatDateTime', () => {
 	})
 })
 
-describe('formatEuro', () => {
+describe('formatCurrency', () => {
 	it('formatiert wie bisher euro()', () => {
-		expect(formatEuro(1234.5).replace(/\s/g, ' ')).toBe('1.234,50 €')
-		expect(formatEuro(1234.5)).toBe((1234.5).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' }))
+		expect(formatCurrency(1234.5).replace(/\s/g, ' ')).toBe('1.234,50 €')
+		expect(formatCurrency(1234.5)).toBe((1234.5).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' }))
 	})
 })
 
@@ -328,10 +328,16 @@ describe('andere Vereinswährung', () => {
 		setClubCurrency('CHF')
 		expect(normalize(formatMoney(1234.5))).toBe('1.234,50 CHF')
 		expect(normalize(formatCurrency(-42))).toBe('-42,00 CHF')
-		expect(normalize(formatEuro(1))).toBe('1,00 CHF')
+		expect(normalize(formatCurrency(1))).toBe('1,00 CHF')
 		expect(normalize(formatAmountInput(20000))).toBe('20.000,00 CHF')
 		setClubCurrency('GBP')
 		expect(normalize(formatMoney(3))).toBe('3,00 £')
+	})
+
+	it('rundet für Diagrammachsen auf ganze Beträge', () => {
+		expect(normalize(formatCurrencyWhole(1234.6))).toBe('1.235 €')
+		setClubCurrency('CHF')
+		expect(normalize(formatCurrencyWhole(1234.4))).toBe('1.234 CHF')
 	})
 
 	it('liest Eingaben mit fremdem Zeichen, auch wenn Euro eingestellt ist', () => {

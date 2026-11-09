@@ -24,7 +24,13 @@
 			</SettingsToggle>
 		</div>
 
-		<div class="vbh-card">
+		<div v-if="!isEuro()" class="vbh-card">
+			<h4>{{ t('Lastschrift') }}</h4>
+			<p class="vbh-hint">
+				{{ t('SEPA-Lastschrift steht nur zur Verfügung, wenn die Vereinswährung Euro ist.') }}
+			</p>
+		</div>
+		<div v-else class="vbh-card">
 			<h4>{{ t('Lastschrift: Gläubiger-ID und Konto') }}</h4>
 			<p class="vbh-hint">
 				{{ t('Gläubiger-ID und einziehendes Konto werden für den Sammeleinzug gebraucht. Die Gläubiger-ID vergibt die Deutsche Bundesbank auf Antrag; am einziehenden Konto muss eine IBAN hinterlegt sein.') }}
@@ -56,6 +62,7 @@ import { toRefs } from 'vue'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import SettingsToggle from './SettingsToggle.vue'
 import { useAccounts } from '../composables/useAccounts.js'
+import { isEuro } from '../lib/clubCurrency.js'
 
 /**
  * Die beiden Angaben, ohne die kein Sammeleinzug zustande kommt, und der Schalter
@@ -108,6 +115,7 @@ export default {
 	},
 
 	methods: {
+		isEuro,
 		// Kein reiner .sync-Setter: die neue Sichtbarkeit muss noch VOR dem
 		// Speichern beim Elternteil ankommen, sonst sendet saveSettings() den
 		// alten Wert (siehe App.vue::saveStorageSettings()).

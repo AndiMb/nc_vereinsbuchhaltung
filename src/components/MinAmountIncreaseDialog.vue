@@ -14,7 +14,7 @@
 				{{ t('Bereits eingezogene Perioden werden nie neu berechnet – die Änderung wirkt erst ab der nächsten Forderung.') }}
 			</p>
 			<div class="vbh-form">
-				<label>{{ t('Neue Untergrenze (€/Monat)') }}
+				<label>{{ t('Neue Untergrenze ({currency}/Monat)', { currency: currencySymbol() }) }}
 					<AmountInput
 						ref="amountInput"
 						v-model="newMinMonthlyAmount"
@@ -70,7 +70,8 @@ import NcButton from '@nextcloud/vue/components/NcButton'
 import NcModal from '@nextcloud/vue/components/NcModal'
 import AmountInput from './AmountInput.vue'
 import api from '../api.js'
-import { errMsg, formatEuro } from '../lib/format.js'
+import { currencySymbol } from '../lib/clubCurrency.js'
+import { errMsg, formatCurrency } from '../lib/format.js'
 import { focusOnOpen } from '../lib/modalFocus.js'
 
 /**
@@ -103,7 +104,8 @@ export default {
 	},
 
 	methods: {
-		euro(cents) { return formatEuro(cents / 100) },
+		currencySymbol,
+		euro(cents) { return formatCurrency(cents / 100) },
 
 		async loadPreview() {
 			try {

@@ -37,7 +37,7 @@
 						<option value="gebuehr">{{ t('Gebühr') }}</option>
 					</select>
 				</label>
-				<label>{{ t('Betrag (€)') }}
+				<label>{{ t('Betrag ({currency})', { currency: currencySymbol() }) }}
 					<AmountInput v-model="form.amount" class="vbh-short" />
 				</label>
 			</div>
@@ -73,6 +73,7 @@ import NcModal from '@nextcloud/vue/components/NcModal'
 import NcSelect from '@nextcloud/vue/components/NcSelect'
 import AmountInput from './AmountInput.vue'
 import { useMembers } from '../composables/useMembers.js'
+import { currencySymbol } from '../lib/clubCurrency.js'
 import { clubToday } from '../lib/clubTime.js'
 import { focusOnOpen } from '../lib/modalFocus.js'
 
@@ -126,6 +127,7 @@ export default {
 	},
 
 	methods: {
+		currencySymbol,
 		save() {
 			this.$emit('save', { ...this.form, memberIds: [...this.form.memberIds], members: this.selectedMembers })
 		},

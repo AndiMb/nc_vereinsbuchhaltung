@@ -12,12 +12,18 @@ const MONEY_FORMATS = new Map()
 
 // Vereinswaehrung (Issue #202): deutsches Zahlenformat, Zeichen der Vereinswaehrung.
 // currencyCode() liest einen ref – im Render wird er so als Abhaengigkeit erfasst.
-function moneyFormat() {
+function moneyFormat(whole = false) {
 	const code = currencyCode()
-	if (!MONEY_FORMATS.has(code)) {
-		MONEY_FORMATS.set(code, new Intl.NumberFormat('de-DE', { style: 'currency', currency: code }))
+	const key = code + (whole ? ':0' : '')
+	if (!MONEY_FORMATS.has(key)) {
+		MONEY_FORMATS.set(key, new Intl.NumberFormat('de-DE', { style: 'currency', currency: code, ...(whole ? { maximumFractionDigits: 0 } : {}) }))
 	}
-	return MONEY_FORMATS.get(code)
+	return MONEY_FORMATS.get(key)
+}
+
+/** Ganzer Betrag mit Waehrungszeichen, fuer Diagrammachsen: 1234.6 → „1.235 €“. */
+export function formatCurrencyWhole(value) {
+	return moneyFormat(true).format(value)
 }
 
 export function formatMoney(v) {
@@ -28,9 +34,6 @@ export function formatMoney(v) {
 export function formatCurrency(value) {
 	return moneyFormat().format(value)
 }
-
-/** Alter Name von formatCurrency, aus der Zeit, als es nur Euro gab. */
-export const formatEuro = formatCurrency
 
 const DAY_FORMATS = new Map()
 // Formatter fuer Datum+Uhrzeit bzw. reinen Tag je Gebietsschema; ein Intl.DateTimeFormat

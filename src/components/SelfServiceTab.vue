@@ -103,7 +103,7 @@
 						{{ t('Untergrenze: {amount}', { amount: formatMoney(a.effectiveMinMonthlyAmount) }) }}
 					</p>
 					<div class="vbh-form">
-						<label>{{ t('Monatsbeitrag (€)') }}
+						<label>{{ t('Monatsbeitrag ({currency})', { currency: currencySymbol() }) }}
 							<AmountInput v-model="a._form.monthlyAmount" class="vbh-short" />
 						</label>
 						<label>{{ t('Turnus') }}
@@ -142,73 +142,75 @@
 			</div>
 
 			<div class="vbh-card">
-				<h4>{{ t('Mein SEPA-Lastschriftmandat') }}</h4>
+				<template v-if="isEuro()">
+					<h4>{{ t('Mein SEPA-Lastschriftmandat') }}</h4>
 
-				<template v-if="mandate">
-					<dl class="vbh-selfservice-fields">
-						<dt>{{ t('IBAN') }}</dt>
-						<dd>{{ mandate.ibanMasked }}</dd>
-						<dt>{{ t('Kontoinhaber') }}</dt>
-						<dd>{{ mandate.accountHolder }}</dd>
-						<dt>{{ t('Status') }}</dt>
-						<dd>
-							{{ statusLabel(mandate.status) }}
-							<span v-if="mandate.storyText" class="vbh-typetag">{{ mandate.storyText }}</span>
-						</dd>
-					</dl>
+					<template v-if="mandate">
+						<dl class="vbh-selfservice-fields">
+							<dt>{{ t('IBAN') }}</dt>
+							<dd>{{ mandate.ibanMasked }}</dd>
+							<dt>{{ t('Kontoinhaber') }}</dt>
+							<dd>{{ mandate.accountHolder }}</dd>
+							<dt>{{ t('Status') }}</dt>
+							<dd>
+								{{ statusLabel(mandate.status) }}
+								<span v-if="mandate.storyText" class="vbh-typetag">{{ mandate.storyText }}</span>
+							</dd>
+						</dl>
 
-					<!-- Die Verwaltung hat den Mandatstext aktualisiert; das Mandat gilt unverändert weiter, bis das Mitglied bestätigt hat. -->
-					<p v-if="needsReconfirmation" class="vbh-hint vbh-hint--info" data-testid="self-reconfirm-hint">
-						<strong>{{ t('Mandatstext aktualisiert') }}</strong> – {{ t('Bitte lesen und bestätigen Sie die neue Fassung. Ihr Mandat und Ihre Bankverbindung bleiben unverändert und gelten bis dahin weiter.') }}
-					</p>
+						<!-- Die Verwaltung hat den Mandatstext aktualisiert; das Mandat gilt unverändert weiter, bis das Mitglied bestätigt hat. -->
+						<p v-if="needsReconfirmation" class="vbh-hint vbh-hint--info" data-testid="self-reconfirm-hint">
+							<strong>{{ t('Mandatstext aktualisiert') }}</strong> – {{ t('Bitte lesen und bestätigen Sie die neue Fassung. Ihr Mandat und Ihre Bankverbindung bleiben unverändert und gelten bis dahin weiter.') }}
+						</p>
 
-					<div class="vbh-mcard-actions">
-						<NcButton
-							v-if="needsReconfirmation"
-							variant="primary"
-							data-testid="self-reconfirm-open"
-							@click="openGrantDialog('reconfirm')">
-							{{ t('Neuen Text lesen und bestätigen') }}
-						</NcButton>
-						<template v-if="isUnconfirmedElectronicDraft">
-							<NcButton variant="primary" @click="openGrantDialog('confirm')">
-								{{ t('Jetzt bestätigen') }}
+						<div class="vbh-mcard-actions">
+							<NcButton
+								v-if="needsReconfirmation"
+								variant="primary"
+								data-testid="self-reconfirm-open"
+								@click="openGrantDialog('reconfirm')">
+								{{ t('Neuen Text lesen und bestätigen') }}
 							</NcButton>
-							<NcButton variant="tertiary" :disabled="requestingLink" @click="requestLink">
-								{{ t('Stattdessen Link per Mail zuschicken') }}
+							<template v-if="isUnconfirmedElectronicDraft">
+								<NcButton variant="primary" @click="openGrantDialog('confirm')">
+									{{ t('Jetzt bestätigen') }}
+								</NcButton>
+								<NcButton variant="tertiary" :disabled="requestingLink" @click="requestLink">
+									{{ t('Stattdessen Link per Mail zuschicken') }}
+								</NcButton>
+							</template>
+							<template v-else-if="mandate.status === 'aktiv'">
+								<NcButton variant="secondary" @click="openAccountDialog('iban')">
+									{{ t('Bankverbindung ändern') }}
+								</NcButton>
+								<NcButton variant="secondary" @click="openAccountDialog('holder')">
+									{{ t('Kontoinhaber wechseln') }}
+								</NcButton>
+								<NcButton variant="error" @click="revokeOpen = true">
+									{{ t('Mandat widerrufen') }}
+								</NcButton>
+							</template>
+							<template v-else-if="mandate.status === 'ausgesetzt'">
+								<NcButton variant="error" @click="revokeOpen = true">
+									{{ t('Mandat widerrufen') }}
+								</NcButton>
+							</template>
+							<!-- Aus einem Entwurf (elektronisch oder Papier) kommt das Mitglied sonst nicht heraus (Issue #118) -->
+							<NcButton v-if="mandate.status === 'entwurf'" variant="error" @click="discardOpen = true">
+								{{ t('Entwurf verwerfen') }}
 							</NcButton>
-						</template>
-						<template v-else-if="mandate.status === 'aktiv'">
-							<NcButton variant="secondary" @click="openAccountDialog('iban')">
-								{{ t('Bankverbindung ändern') }}
+						</div>
+					</template>
+					<template v-else>
+						<p class="vbh-hint">
+							{{ t('Kein Mandat hinterlegt.') }}
+						</p>
+						<div class="vbh-mcard-actions">
+							<NcButton variant="primary" @click="openGrantDialog('grant')">
+								{{ t('Mandat jetzt erteilen') }}
 							</NcButton>
-							<NcButton variant="secondary" @click="openAccountDialog('holder')">
-								{{ t('Kontoinhaber wechseln') }}
-							</NcButton>
-							<NcButton variant="error" @click="revokeOpen = true">
-								{{ t('Mandat widerrufen') }}
-							</NcButton>
-						</template>
-						<template v-else-if="mandate.status === 'ausgesetzt'">
-							<NcButton variant="error" @click="revokeOpen = true">
-								{{ t('Mandat widerrufen') }}
-							</NcButton>
-						</template>
-						<!-- Aus einem Entwurf (elektronisch oder Papier) kommt das Mitglied sonst nicht heraus (Issue #118) -->
-						<NcButton v-if="mandate.status === 'entwurf'" variant="error" @click="discardOpen = true">
-							{{ t('Entwurf verwerfen') }}
-						</NcButton>
-					</div>
-				</template>
-				<template v-else>
-					<p class="vbh-hint">
-						{{ t('Kein Mandat hinterlegt.') }}
-					</p>
-					<div class="vbh-mcard-actions">
-						<NcButton variant="primary" @click="openGrantDialog('grant')">
-							{{ t('Mandat jetzt erteilen') }}
-						</NcButton>
-					</div>
+						</div>
+					</template>
 				</template>
 
 				<h4 class="vbh-selfservice-subhead">
@@ -318,6 +320,7 @@ import SelfServiceMandateAccountDialog from './SelfServiceMandateAccountDialog.v
 import SelfServiceMandateGrantDialog from './SelfServiceMandateGrantDialog.vue'
 import SelfServiceMandateRevokeDialog from './SelfServiceMandateRevokeDialog.vue'
 import api from '../api.js'
+import { currencySymbol, isEuro } from '../lib/clubCurrency.js'
 import { countryName } from '../lib/countries.js'
 import { defaultCountry } from '../lib/countryDefault.js'
 import { errMsg, formatDate, formatMoney } from '../lib/format.js'
@@ -476,6 +479,8 @@ export default {
 	},
 
 	methods: {
+		isEuro,
+		currencySymbol,
 		intervalLabel,
 		formatDate,
 		formatMoney,
