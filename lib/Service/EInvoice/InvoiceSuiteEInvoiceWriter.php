@@ -57,6 +57,15 @@ use OCP\ITempManager;
  */
 class InvoiceSuiteEInvoiceWriter implements EInvoiceWriter {
 
+	/**
+	 * Namensräume, in denen die Bibliothek ihre Format-Anbieter sucht. Sie gehen
+	 * in den Namen der Cache-Datei unter vendor/horstoeko/invoicesuite/src/cache/
+	 * ein, die der Release-Build vorab erzeugt und mitsigniert
+	 * (.github/scripts/warm-invoicesuite-cache.php). Wer die Liste ändert, ändert
+	 * also auch den Dateinamen; das Skript übernimmt die Konstante von hier.
+	 */
+	public const DISCOVERY_NAMESPACES = ['horstoeko\\invoicesuite'];
+
 	private const PROVIDERS = [
 		EInvoiceFormat::ZUGFERD => 'zffxcomfort',
 		EInvoiceFormat::XRECHNUNG_CII => 'xrechnungcii',
@@ -114,7 +123,7 @@ class InvoiceSuiteEInvoiceWriter implements EInvoiceWriter {
 		// Klassen, von denen manche beim Laden abstürzen (fehlende Symfony-
 		// Traits, ein nicht abfangbarer Fatal Error). Die Anbieter liegen alle
 		// im eigenen Namensraum der Bibliothek.
-		InvoiceSuiteSettings::setDiscoveryNamespaces(['horstoeko\\invoicesuite']);
+		InvoiceSuiteSettings::setDiscoveryNamespaces(self::DISCOVERY_NAMESPACES);
 		$base = $this->tempManager !== null ? $this->tempManager->getTempBaseDir() : sys_get_temp_dir();
 		$dir = rtrim($base, '/') . '/vbh-invoicesuite-' . substr(hash('sha256', __DIR__), 0, 12);
 		if (!is_dir($dir) && !@mkdir($dir, 0700, true) && !is_dir($dir)) {
