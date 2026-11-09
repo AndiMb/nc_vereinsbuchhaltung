@@ -4383,5 +4383,8 @@ OC.L10N.register("vereinsbuchhaltung", {
 		"%n posten van de run hebben geen inbare machtiging meer. Laad de weergave opnieuw en controleer de run: verwerpen en opnieuw vrijgeven haalt de posten eruit."
 	],
 	"Der Text enthält ungültige Zeichen.": "De tekst bevat ongeldige tekens.",
-	"SEPA-Lastschrift und GiroCode gibt es nur in Euro. Die Vereinswährung ist %s.": "SEPA-incasso en GiroCode zijn alleen beschikbaar in euro. De verenigingsvaluta is %s."
+	"SEPA-Lastschrift und GiroCode gibt es nur in Euro. Die Vereinswährung ist %s.": "SEPA-incasso en GiroCode zijn alleen beschikbaar in euro. De verenigingsvaluta is %s.",
+	"Unbekannte Vereinswährung.": "Onbekende verenigingsvaluta.",
+	"Die Vereinswährung lässt sich erst umstellen, wenn kein SEPA-Mandat mehr aktiv ist (%s offen). Mandate beenden und es erneut versuchen.": "De verenigingsvaluta kan pas worden gewijzigd als er geen SEPA-machtiging meer actief is (%s open). Beëindig de machtigingen en probeer het opnieuw.",
+	"Die Vereinswährung lässt sich erst umstellen, wenn kein freigegebener Sammeleinzug mehr offen ist. Ihn einreichen oder verwerfen und es erneut versuchen.": "De verenigingsvaluta kan pas worden gewijzigd als er geen vrijgegeven incassobatch meer openstaat. Dien deze in of verwerp deze en probeer het opnieuw."
 }, "nplurals=2; plural=(n != 1);");

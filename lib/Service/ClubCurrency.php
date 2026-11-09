@@ -36,8 +36,6 @@ class ClubCurrency {
 		'CZK' => 'CZK',
 	];
 
-	private ?string $code = null;
-
 	public function __construct(
 		private IAppConfig $config,
 	) {
@@ -47,13 +45,25 @@ class ClubCurrency {
 		return array_key_exists($code, self::SUPPORTED);
 	}
 
-	/** Der eingestellte Code; leer oder unbekannt bedeutet Euro. */
+	/**
+	 * Der eingestellte Code; leer oder unbekannt bedeutet Euro.
+	 *
+	 * Bewusst ohne eigenen Zwischenspeicher: IAppConfig hält die Werte schon,
+	 * und nach dem Speichern einer neuen Währung im selben Request (siehe
+	 * SettingsController::update()) muss die Antwort den neuen Wert zeigen.
+	 */
 	public function code(): string {
-		if ($this->code === null) {
-			$stored = strtoupper(trim($this->config->getValueString(Application::APP_ID, self::SETTING, self::DEFAULT)));
-			$this->code = self::isSupported($stored) ? $stored : self::DEFAULT;
+		$stored = strtoupper(trim($this->config->getValueString(Application::APP_ID, self::SETTING, self::DEFAULT)));
+		return self::isSupported($stored) ? $stored : self::DEFAULT;
+	}
+
+	/** @return list<array{code: string, symbol: string}> Auswahlliste der Einstellungsseite */
+	public static function options(): array {
+		$options = [];
+		foreach (self::SUPPORTED as $code => $symbol) {
+			$options[] = ['code' => $code, 'symbol' => $symbol];
 		}
-		return $this->code;
+		return $options;
 	}
 
 	public function symbol(): string {

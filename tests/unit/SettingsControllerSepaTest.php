@@ -8,12 +8,16 @@ use OCA\Vereinsbuchhaltung\Controller\SettingsController;
 use OCA\Vereinsbuchhaltung\Db\AccountMapper;
 use OCA\Vereinsbuchhaltung\Db\BudgetMapper;
 use OCA\Vereinsbuchhaltung\Db\BudgetSnapshotMapper;
+use OCA\Vereinsbuchhaltung\Db\DebitBatchMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalMapper;
+use OCA\Vereinsbuchhaltung\Db\MandateMapper;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Service\AttachmentStorageService;
 use OCA\Vereinsbuchhaltung\Service\AttachmentWatchFolderService;
 use OCA\Vereinsbuchhaltung\Service\AuditService;
 use OCA\Vereinsbuchhaltung\Service\ClubClock;
+use OCA\Vereinsbuchhaltung\Service\ClubCurrency;
+use OCA\Vereinsbuchhaltung\Service\ClubCurrencySwitchGuard;
 use OCA\Vereinsbuchhaltung\Service\ContributionYearService;
 use OCA\Vereinsbuchhaltung\Service\DemoDataService;
 use OCA\Vereinsbuchhaltung\Service\DunningSettings;
@@ -49,6 +53,8 @@ class SettingsControllerSepaTest extends TestCase {
 	/** @var array<string, string> */
 	private array $store = [];
 	private ?FrontendStateService $frontendState = null;
+	/** Nicht erloschene Mandate für die Umstellsperre der Vereinswährung (#202). */
+	private int $liveMandates = 0;
 
 	protected function setUp(): void {
 		$this->store = [];
@@ -83,6 +89,11 @@ class SettingsControllerSepaTest extends TestCase {
 		$mandateExpirySettings = new MandateExpirySettings($config);
 		$invoiceSettings = new InvoiceSettings($config, new FolderPathValidator($l10n));
 		$reimbursementSettings = $this->createMock(ReimbursementSettings::class);
+		$currency = new ClubCurrency($config);
+		$mandates = $this->createMock(MandateMapper::class);
+		$mandates->method('countNotEnded')->willReturnCallback(fn () => $this->liveMandates);
+		$batches = $this->createMock(DebitBatchMapper::class);
+		$batches->method('findReleasedNotSubmitted')->willReturn([]);
 		// Den Einstellungssatz der Antworten stellt seit Issue #264 der
 		// FrontendStateService zusammen – echt, mit denselben Abhängigkeiten.
 		$frontendState = $this->frontendState = new FrontendStateService(
@@ -104,6 +115,7 @@ class SettingsControllerSepaTest extends TestCase {
 			$mandateExpirySettings,
 			$invoiceSettings,
 			$reimbursementSettings,
+			$currency,
 		);
 
 		return new SettingsController(
@@ -125,6 +137,8 @@ class SettingsControllerSepaTest extends TestCase {
 			$frontendState,
 			$this->createMock(AuditService::class),
 			$this->createMock(ForeignHomeGuard::class),
+			$currency,
+			new ClubCurrencySwitchGuard($currency, $mandates, $batches, $l10n),
 		);
 	}
 
@@ -295,5 +309,46 @@ class SettingsControllerSepaTest extends TestCase {
 		} finally {
 			ClubClock::configureZone('');
 		}
+	}
+
+	public function testVereinswaehrungIstStandardmaessigEuro(): void {
+		$data = $this->controller()->index()->getData();
+		$this->assertSame('EUR', $data['club_currency']);
+		$this->assertSame('€', $data['club_currency_symbol']);
+		$this->assertTrue($data['sepa_available']);
+		$this->assertCount(8, $data['club_currencies']);
+		$this->assertSame(['code' => 'GBP', 'symbol' => '£'], $data['club_currencies'][2]);
+	}
+
+	public function testVereinswaehrungWirdGespeichertUndZurueckgegeben(): void {
+		$response = $this->update(['club_currency' => 'chf']);
+		$this->assertSame(Http::STATUS_OK, $response->getStatus());
+		$this->assertSame('CHF', $this->store['club_currency']);
+		$this->assertSame('CHF', $response->getData()['club_currency']);
+		$this->assertFalse($response->getData()['sepa_available']);
+	}
+
+	public function testUnbekannteVereinswaehrungWirdAbgelehnt(): void {
+		$response = $this->update(['club_currency' => 'USD', 'club_name' => 'Neu']);
+		$this->assertSame(Http::STATUS_BAD_REQUEST, $response->getStatus());
+		$this->assertArrayNotHasKey('club_currency', $this->store);
+		$this->assertArrayNotHasKey('club_name', $this->store, 'eine abgelehnte Anfrage speichert nichts teilweise');
+	}
+
+	public function testUmstellungWegVonEuroMitLebendenMandatenWirdAbgelehnt(): void {
+		$this->liveMandates = 3;
+		$response = $this->update(['club_currency' => 'CHF']);
+		$this->assertSame(Http::STATUS_BAD_REQUEST, $response->getStatus());
+		$this->assertStringContainsString('3', $response->getData()['message']);
+		$this->assertArrayNotHasKey('club_currency', $this->store);
+	}
+
+	public function testMeLiefertDieVereinswaehrung(): void {
+		$this->store['club_currency'] = 'CHF';
+		$this->controller();
+		$me = $this->frontendState->me();
+		$this->assertSame('CHF', $me['clubCurrency']);
+		$this->assertSame('CHF', $me['clubCurrencySymbol']);
+		$this->assertFalse($me['sepaAvailable']);
 	}
 }

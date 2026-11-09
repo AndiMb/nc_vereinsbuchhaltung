@@ -4383,5 +4383,8 @@ OC.L10N.register("vereinsbuchhaltung", {
 		"%n items of the run no longer have a collectible mandate. Reload the view and check the run: discarding and releasing again removes the items."
 	],
 	"Der Text enthält ungültige Zeichen.": "The text contains invalid characters.",
-	"SEPA-Lastschrift und GiroCode gibt es nur in Euro. Die Vereinswährung ist %s.": "SEPA direct debit and GiroCode are only available in euros. The club currency is %s."
+	"SEPA-Lastschrift und GiroCode gibt es nur in Euro. Die Vereinswährung ist %s.": "SEPA direct debit and GiroCode are only available in euros. The club currency is %s.",
+	"Unbekannte Vereinswährung.": "Unknown club currency.",
+	"Die Vereinswährung lässt sich erst umstellen, wenn kein SEPA-Mandat mehr aktiv ist (%s offen). Mandate beenden und es erneut versuchen.": "The club currency can only be changed once no SEPA mandate is active any more (%s open). End the mandates and try again.",
+	"Die Vereinswährung lässt sich erst umstellen, wenn kein freigegebener Sammeleinzug mehr offen ist. Ihn einreichen oder verwerfen und es erneut versuchen.": "The club currency can only be changed once no released direct debit batch is open any more. Submit or discard it and try again."
 }, "nplurals=2; plural=(n != 1);");
