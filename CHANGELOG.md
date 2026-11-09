@@ -17,6 +17,19 @@ als „[object Object]" (falsche Renderer-Callback-Signatur, Nextcloud-
 Core-Bug, reproduziert 23.08.2026). Stattdessen **Fettdruck als Zeilenanfang**
 verwenden, z. B. `**Neu:**`.
 
+## [Unreleased]
+
+**Neu:**
+- **Vereinswährung** (#202): unter *Einstellungen → Verein* wählbar – Euro,
+  CHF, GBP, DKK, SEK, NOK, PLN oder CZK. Das Zeichen steht hinter jedem
+  Betrag in Oberfläche, Berichten, Exporten, Rechnungen und E-Mails; das
+  Zahlenformat bleibt deutsch (`1.234,50 CHF`). Kontoauszüge ohne
+  Währungsangabe übernehmen die Vereinswährung.
+- SEPA-Lastschrift und GiroCode gibt es nur in Euro: In anderen Währungen
+  sind Mandate, Lastschriftlauf und SEPA-Einstellungen ausgeblendet und
+  gesperrt. Die Umstellung weg vom Euro ist gesperrt, solange Mandate gelten
+  oder ein freigegebener Sammeleinzug auf die Einreichung wartet.
+
 ## [0.51.0] – 2026-11-06
 
 **Neu:**

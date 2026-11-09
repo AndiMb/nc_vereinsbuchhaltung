@@ -242,6 +242,23 @@ Absenderadresse bleibt die aus den Mail-Einstellungen der Nextcloud. Steht
 in den Einstellungen unter *Rechnungen* eine E-Mail des Vereins, gehen
 Antworten an diese Adresse.
 
+**Vereinswährung.** Auf derselben Seite steht die Karte *Vereinswährung*.
+Ab Werk rechnet die App in Euro. Zur Wahl stehen außerdem Schweizer Franken
+(CHF), Britisches Pfund (GBP), Dänische, Schwedische und Norwegische Krone
+(DKK, SEK, NOK), Złoty (PLN) und Tschechische Krone (CZK). Die Währung
+bestimmt das Zeichen hinter jedem Betrag – in der Oberfläche, in Berichten,
+Exporten, Rechnungen und E-Mails. Das Zahlenformat bleibt deutsch
+(`1.234,50 CHF`). Umgerechnet wird nichts: Alle Beträge eines Vereins stehen
+in einer Währung. Gesetzliche Grenzen wie die Freigrenze von 45.000 € oder
+die Kleinunternehmergrenzen nach § 19 UStG nennt die App weiter in Euro.
+
+SEPA-Lastschrift und GiroCode gibt es nur in Euro. In jeder anderen Währung
+blendet die App Mandate, den Lastschriftlauf und die SEPA-Einstellungen aus;
+Rechnungen, Zahlungsaufforderungen und Auslagenüberweisungen kommen ohne
+GiroCode. Weg vom Euro lässt sich nur umstellen, wenn kein Mandat mehr gilt
+(alle erloschen) und kein freigegebener Sammeleinzug auf die Einreichung
+wartet. Nach dem Speichern lädt die Seite neu.
+
 ### 2.6 Corporate Design (optional)
 
 Zahnrad → *Verein* (zweite Karte auf derselben Seite): ein **Vereinslogo**
