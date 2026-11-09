@@ -7,6 +7,7 @@ namespace OCA\Vereinsbuchhaltung\Service;
 use OCA\Vereinsbuchhaltung\Db\AssignmentEventMapper;
 use OCA\Vereinsbuchhaltung\Db\AssignmentMapper;
 use OCA\Vereinsbuchhaltung\Db\DebitItemMapper;
+use OCA\Vereinsbuchhaltung\Db\DebtorMapper;
 use OCA\Vereinsbuchhaltung\Db\Mandate;
 use OCA\Vereinsbuchhaltung\Db\MandateAmendmentMapper;
 use OCA\Vereinsbuchhaltung\Db\MandateEventMapper;
@@ -113,6 +114,7 @@ class MemberAnonymizationService {
 		private AuditService $audit,
 		private ITimeFactory $time,
 		private IL10N $l10n,
+		private DebtorMapper $debtors,
 	) {
 	}
 
@@ -136,6 +138,7 @@ class MemberAnonymizationService {
 			$this->redactClaims($memberId);
 			$this->redactReimbursements($memberId);
 			$this->redactAssignments($memberId);
+			$this->redactDebtors($memberId, $now);
 			$this->redactMember($member, $now);
 
 			$this->audit->log('Mitglied anonymisiert (DSGVO)', 'member', $memberId);
@@ -154,8 +157,34 @@ class MemberAnonymizationService {
 		$member->setCity(null);
 		$member->setCountry(null);
 		$member->setInternalNote(null);
+		// Ein noch offener Bestätigungslink der Kontoverknüpfung (#295) verfällt.
+		$member->setNcLinkTokenHash(null);
+		$member->setNcLinkTokenExpiresAt(null);
 		$member->setRedactedAt($now);
 		$this->members->update($member);
+	}
+
+	/**
+	 * Rechnungsempfänger, die aus dem Mitglied angelegt wurden (#303): Name,
+	 * Anschrift, Mailadresse und Notiz sind dieselben Personendaten wie in der
+	 * Akte. Die Kundennummer bleibt als Verweis der Buchhaltung, Rechnungen
+	 * behalten ihre Zuordnung. Mit `redacted_at` verschwindet der Empfänger aus
+	 * Suche und Auswahl, und DebtorService::forMember() legt keinen neuen an.
+	 */
+	private function redactDebtors(int $memberId, string $now): void {
+		foreach ($this->debtors->findAllByMember($memberId) as $debtor) {
+			$debtor->setName(Member::REDACTED_DISPLAY_NAME);
+			$debtor->setName2(null);
+			$debtor->setStreet(null);
+			$debtor->setPostalCode(null);
+			$debtor->setCity(null);
+			$debtor->setEmail(null);
+			$debtor->setVatId(null);
+			$debtor->setLeitwegId(null);
+			$debtor->setNote(null);
+			$debtor->setRedactedAt($now);
+			$this->debtors->update($debtor);
+		}
 	}
 
 	private function redactMandates(int $memberId, string $now): void {

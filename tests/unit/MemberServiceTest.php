@@ -10,6 +10,7 @@ use OCA\Vereinsbuchhaltung\Db\MandateMapper;
 use OCA\Vereinsbuchhaltung\Db\Member;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
+use OCA\Vereinsbuchhaltung\Service\ClubClock;
 use OCA\Vereinsbuchhaltung\Service\MemberService;
 use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubClockStub;
 use OCP\IL10N;
@@ -44,12 +45,12 @@ class MemberServiceTest extends TestCase {
 		$this->userManager = $this->createMock(IUserManager::class);
 	}
 
-	private function service(): MemberService {
+	private function service(?ClubClock $clock = null): MemberService {
 		$l10n = $this->createMock(IL10N::class);
 		$l10n->method('t')->willReturnCallback(
 			static fn (string $text, array $parameters = []): string => vsprintf(str_replace('%s', '%1$s', $text), $parameters),
 		);
-		return new MemberService($this->mapper, $this->mandateMapper, $this->assignmentMapper, $this->openItemMapper, $this->userManager, $l10n, ClubClockStub::system());
+		return new MemberService($this->mapper, $this->mandateMapper, $this->assignmentMapper, $this->openItemMapper, $this->userManager, $l10n, $clock ?? ClubClockStub::system());
 	}
 
 	// --- splitLabel(): reine Split-Heuristik (Spec §3.1 "Umbaupfad") ---
@@ -200,7 +201,8 @@ class MemberServiceTest extends TestCase {
 	public function testCreatePersonSetztFelderUndDefaultJoinedAt(): void {
 		$this->mapper->method('insert')->willReturnArgument(0);
 
-		$member = $this->service()->create([
+		// 22:30 UTC ist in der Vereinszone (Europe/Berlin) schon der nächste Tag.
+		$member = $this->service(ClubClockStub::at('2026-06-30 22:30:00'))->create([
 			'memberType' => Member::TYPE_PERSON,
 			'firstName' => 'Katrin',
 			'lastName' => ' Brunner ',
@@ -211,7 +213,7 @@ class MemberServiceTest extends TestCase {
 		$this->assertSame('Katrin', $member->getFirstName());
 		$this->assertSame('Brunner', $member->getLastName());
 		$this->assertSame('k.brunner@example.org', $member->getEmail());
-		$this->assertSame((new \DateTime())->format('Y-m-d'), $member->getJoinedAt());
+		$this->assertSame('2026-07-01', $member->getJoinedAt());
 		$this->assertNotNull($member->getCreatedAt());
 	}
 
@@ -346,12 +348,29 @@ class MemberServiceTest extends TestCase {
 		$this->assertSame('neu@example.org', $result['member']->getEmail());
 	}
 
+	/** #305: unverändert gesendete Daten schreiben nichts und melden keine Änderung. */
+	public function testUpdateOwnContactDataOhneAenderungSchreibtNichts(): void {
+		$person = $this->fullPerson();
+		$this->mapper->method('find')->with(5)->willReturn($person);
+		$this->mapper->expects($this->never())->method('update');
+
+		$result = $this->service()->updateOwnContactData(5, [
+			'lastName' => $person->getLastName(),
+			'email' => '  ' . $person->getEmail() . ' ',
+			'phone' => $person->getPhone(),
+		]);
+
+		$this->assertFalse($result['changed']);
+		$this->assertFalse($result['emailChanged']);
+	}
+
 	public function testUpdateOwnContactDataOhneEmailAenderungMeldetKeinenWechsel(): void {
 		$this->mapper->method('find')->with(5)->willReturn($this->fullPerson());
 		$this->mapper->method('update')->willReturnArgument(0);
 
 		$result = $this->service()->updateOwnContactData(5, ['phone' => '+49 30 000']);
 
+		$this->assertTrue($result['changed']);
 		$this->assertFalse($result['emailChanged']);
 		$this->assertSame($result['oldEmail'], $result['member']->getEmail());
 	}
@@ -627,8 +646,16 @@ class MemberServiceTest extends TestCase {
 		$this->assertSame([1, 2, 3], array_keys($result), 'Alle drei Mitglieder bekommen denselben Vorschlag.');
 	}
 
+	/** Ein Mitglied mit Mailadresse – ohne sie gibt es keine Verknüpfung (#295). */
+	private function memberWithEmail(int $id = 1): Member {
+		$member = new Member();
+		$member->setId($id);
+		$member->setEmail('katrin@example.org');
+		return $member;
+	}
+
 	public function testLinkOhneExistierendesKontoSchlaegtFehl(): void {
-		$this->mapper->method('find')->willReturn(new Member());
+		$this->mapper->method('find')->willReturn($this->memberWithEmail());
 		$this->userManager->method('userExists')->willReturn(false);
 
 		$this->expectException(\InvalidArgumentException::class);
@@ -636,9 +663,7 @@ class MemberServiceTest extends TestCase {
 	}
 
 	public function testLinkAnderesMitgliedSchonVerknuepftSchlaegtFehl(): void {
-		$member = new Member();
-		$member->setId(1);
-		$this->mapper->method('find')->willReturn($member);
+		$this->mapper->method('find')->willReturn($this->memberWithEmail());
 		$this->userManager->method('userExists')->willReturn(true);
 		$other = new Member();
 		$other->setId(2);
@@ -649,9 +674,7 @@ class MemberServiceTest extends TestCase {
 	}
 
 	public function testLinkSetztNcUserIdNachBestaetigung(): void {
-		$member = new Member();
-		$member->setId(1);
-		$this->mapper->method('find')->willReturn($member);
+		$this->mapper->method('find')->willReturn($this->memberWithEmail());
 		$this->userManager->method('userExists')->willReturn(true);
 		$this->mapper->method('findByNcUserId')->willReturn(null);
 		$this->mapper->method('update')->willReturnArgument(0);
@@ -659,17 +682,61 @@ class MemberServiceTest extends TestCase {
 		$result = $this->service()->link(1, 'katrin');
 
 		$this->assertSame('katrin', $result->getNcUserId());
+		// #295: erst die Bestätigung durch das Mitglied macht die Verknüpfung wirksam.
+		$this->assertFalse($result->isNcLinkConfirmed());
+		$this->assertNull($result->confirmedNcUserId());
+	}
+
+	public function testLinkAufAnderesKontoSetztDieBestaetigungZurueck(): void {
+		$member = $this->memberWithEmail();
+		$member->setNcUserId('alt');
+		$member->setNcLinkConfirmedAt('2026-01-01 00:00:00');
+		$this->mapper->method('find')->willReturn($member);
+		$this->userManager->method('userExists')->willReturn(true);
+		$this->mapper->method('findByNcUserId')->willReturn(null);
+		$this->mapper->method('update')->willReturnArgument(0);
+
+		$result = $this->service()->link(1, 'neu');
+
+		$this->assertSame('neu', $result->getNcUserId());
+		$this->assertNull($result->getNcLinkConfirmedAt());
+	}
+
+	public function testLinkOhneMailadresseSchlaegtFehl(): void {
+		$member = new Member();
+		$member->setId(1);
+		$this->mapper->method('find')->willReturn($member);
+		$this->userManager->method('userExists')->willReturn(true);
+		$this->mapper->expects($this->never())->method('update');
+
+		$this->expectException(\InvalidArgumentException::class);
+		$this->service()->link(1, 'katrin');
+	}
+
+	public function testLinkAnonymisiertesMitgliedSchlaegtFehl(): void {
+		$member = $this->memberWithEmail();
+		$member->setRedactedAt('2026-01-01 00:00:00');
+		$this->mapper->method('find')->willReturn($member);
+		$this->userManager->method('userExists')->willReturn(true);
+		$this->mapper->expects($this->never())->method('update');
+
+		$this->expectException(\InvalidArgumentException::class);
+		$this->service()->link(1, 'katrin');
 	}
 
 	public function testUnlinkLeertNcUserId(): void {
 		$member = new Member();
 		$member->setNcUserId('katrin');
+		$member->setNcLinkConfirmedAt('2026-01-01 00:00:00');
+		$member->setNcLinkTokenHash(str_repeat('a', 64));
 		$this->mapper->method('find')->willReturn($member);
 		$this->mapper->method('update')->willReturnArgument(0);
 
 		$result = $this->service()->unlink(1);
 
 		$this->assertNull($result->getNcUserId());
+		$this->assertNull($result->getNcLinkConfirmedAt());
+		$this->assertNull($result->getNcLinkTokenHash());
 	}
 
 	// --- findOrCreateByNcUserId()/createFromLabel(): Migration & CSV-Import ---
@@ -713,5 +780,17 @@ class MemberServiceTest extends TestCase {
 		$user->method('getDisplayName')->willReturn($displayName);
 		$user->method('getEMailAddress')->willReturn($email);
 		return $user;
+	}
+
+	/** #296: auch über den Self-Service-Weg bleibt ein anonymisierter Datensatz leer. */
+	public function testUpdateOwnContactDataLehntAnonymisiertesMitgliedAb(): void {
+		$member = new Member();
+		$member->setId(1);
+		$member->setRedactedAt('2026-01-01 00:00:00');
+		$this->mapper->method('find')->willReturn($member);
+		$this->mapper->expects($this->never())->method('update');
+
+		$this->expectException(\InvalidArgumentException::class);
+		$this->service()->updateOwnContactData(1, ['firstName' => 'Neu', 'lastName' => 'Name', 'street' => 'Weg 1']);
 	}
 }

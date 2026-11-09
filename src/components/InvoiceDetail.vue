@@ -56,7 +56,15 @@
 						</template>
 						{{ t('Zahlung erfassen') }}
 					</NcButton>
-					<NcButton v-if="canSend" variant="secondary" @click="mail.open = true">
+					<!-- Entwürfe gehen noch nicht an Kunden; den Testversand an die
+					     eigene Adresse gibt es trotzdem (#216). -->
+					<NcButton v-if="canTestDraft" variant="secondary" @click="openMail(true)">
+						<template #icon>
+							<NcIconSvgWrapper :path="mdiEmailOutline" :size="20" />
+						</template>
+						{{ t('Testversand …') }}
+					</NcButton>
+					<NcButton v-if="canSend" variant="secondary" @click="openMail(false)">
 						<template #icon>
 							<NcIconSvgWrapper :path="mdiEmailOutline" :size="20" />
 						</template>
@@ -341,6 +349,7 @@
 				v-if="invoice"
 				:show="mail.open"
 				:invoice="invoice"
+				:testOnly="mail.testOnly"
 				@close="mail.open = false"
 				@update:show="mail.open = $event"
 				@sent="onSent" />
@@ -367,6 +376,7 @@ import InvoiceDunningDialog from './InvoiceDunningDialog.vue'
 import InvoiceMailDialog from './InvoiceMailDialog.vue'
 import InvoicePayDialog from './InvoicePayDialog.vue'
 import api from '../api.js'
+import { accountLabel } from '../lib/accountLabel.js'
 import { errMsg, formatDate, formatDateTime, formatMoney } from '../lib/format.js'
 import { displayStatusLabel, dunningLabel, formatDiscount, formatQuantity, missingEInvoiceFormats, statusClass, unitShort } from '../lib/invoices.js'
 
@@ -398,7 +408,7 @@ export default {
 			error: '',
 			invoice: null,
 			pay: { open: false },
-			mail: { open: false },
+			mail: { open: false, testOnly: false },
 			cancel: { open: false },
 			dun: { open: false },
 			eFormat: '',
@@ -427,6 +437,8 @@ export default {
 			const i = this.invoice
 			return this.canWrite && !!i && i.kind !== 'storno' && ['issued', 'sent'].includes(i.status) && i.remainingCents > 0
 		},
+
+		canTestDraft() { return this.isAdmin && this.invoice?.status === 'draft' },
 
 		canSend() {
 			const i = this.invoice
@@ -486,6 +498,11 @@ export default {
 	},
 
 	methods: {
+		openMail(testOnly) {
+			this.mail.testOnly = testOnly
+			this.mail.open = true
+		},
+
 		formatDate,
 		formatDateTime,
 		formatDiscount,
@@ -517,7 +534,7 @@ export default {
 
 		accountLabel(id) {
 			const a = this.accountsById[id]
-			return a ? `${a.number} ${a.name}` : ''
+			return a ? accountLabel(a) : ''
 		},
 
 		eFormatLabel(format) {

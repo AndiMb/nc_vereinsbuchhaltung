@@ -77,6 +77,10 @@ class InvoiceSettings {
 	 * @var array<string, array{field: string, max: int}>
 	 */
 	private const ISSUER_KEYS = [
+		// Fassung des Vereinsnamens für Rechnungen, wenn der Vereinsname zu lang ist (#238)
+		'club_invoice_name' => ['field' => 'invoiceName', 'max' => 200],
+		// Kontoinhaber für Zahlungsblock, GiroCode und E-Rechnung; der GiroCode erlaubt 70 Zeichen
+		'club_account_holder' => ['field' => 'accountHolder', 'max' => 70],
 		'club_street' => ['field' => 'street', 'max' => 255],
 		'club_postal_code' => ['field' => 'postalCode', 'max' => 16],
 		'club_city' => ['field' => 'city', 'max' => 128],
@@ -249,7 +253,8 @@ class InvoiceSettings {
 	}
 
 	/**
-	 * Die Angaben des Ausstellers, wie sie auf der Rechnung stehen.
+	 * Die Angaben des Ausstellers, wie sie auf der Rechnung stehen. `name` ist
+	 * der Name auf Rechnungen, ohne eigene Angabe der Vereinsname.
 	 *
 	 * @return array<string, string>
 	 */
@@ -261,7 +266,16 @@ class InvoiceSettings {
 		if ($issuer['country'] === '') {
 			$issuer['country'] = 'DE';
 		}
+		if ($issuer['invoiceName'] !== '') {
+			$issuer['name'] = $issuer['invoiceName'];
+		}
 		return $issuer;
+	}
+
+	/** Kontoinhaber für Zahlungsblock, GiroCode und E-Rechnung; ohne eigene Angabe der Name auf Rechnungen. */
+	public function accountHolder(): string {
+		$issuer = $this->issuer();
+		return $issuer['accountHolder'] !== '' ? $issuer['accountHolder'] : $issuer['name'];
 	}
 
 	/**

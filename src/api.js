@@ -148,11 +148,14 @@ export default {
 	revertInvoicePayment: (id, paymentId) => axios.delete(url(`/invoices/${id}/payments/${paymentId}`)),
 	invoiceMailDefaults: (id) => axios.get(url(`/invoices/${id}/mail-defaults`)),
 	sendInvoice: (id, data) => axios.post(url(`/invoices/${id}/send`), data),
+	// Testversand an die eigene Adresse (#216); die Adresse bestimmt der Server.
+	sendInvoiceTest: (id, data) => axios.post(url(`/invoices/${id}/send-test`), data),
 	createInvoiceEInvoice: (id, format) => axios.post(url(`/invoices/${id}/e-invoice`), { format }),
 	invoicePdfUrl: (id, download = false) => url(`/invoices/${id}/pdf`) + (download ? '?download=1' : ''),
 	invoiceDocumentUrl: (id, documentId) => url(`/invoices/${id}/documents/${documentId}`),
 	invoiceDunningDefaults: (id, level) => axios.get(url(`/invoices/${id}/dunning-defaults`), { params: level ? { level } : {} }),
 	dunInvoice: (id, data) => axios.post(url(`/invoices/${id}/dunning`), data),
+	dunInvoiceTest: (id, data) => axios.post(url(`/invoices/${id}/dunning-test`), data),
 	// Sammelrechnungen aus einer Tabelle (#243): formData mit `file`, `name` und den Vorgaben
 	invoiceBatches: () => axios.get(url('/invoice-batches')),
 	previewInvoiceBatch: (formData) => axios.post(url('/invoice-batches/preview'), formData),
@@ -198,6 +201,7 @@ export default {
 	allMemberLinkSuggestions: () => axios.get(url('/member-link-suggestions')),
 	linkMember: (id, ncUserId) => axios.post(url(`/members/${id}/link`), { ncUserId }),
 	unlinkMember: (id) => axios.post(url(`/members/${id}/unlink`)),
+	resendMemberLinkConfirmation: (id) => axios.post(url(`/members/${id}/link/resend`)),
 	// Nextcloud-Konto anlegen (Auswahlen und Rechte; das Konto selbst legt lib/nextcloudAccount.js über OCS an)
 	// und die Willkommens-Mail an die Mailadresse der Akte (Vorlage in den Einstellungen).
 	nextcloudAccountOptions: () => axios.get(url('/nextcloud-account/options')),
@@ -305,7 +309,7 @@ export default {
 	// Der XML-Download ist ein per Link geöffneter GET (Browser-Navigation, kein Axios);
 	// der Endpunkt trägt dafür #[NoCSRFRequired].
 	releaseDebitBatch: (dueDate) => axios.post(url('/debit-batches'), { dueDate }),
-	submitDebitBatch: (id) => axios.post(url(`/debit-batches/${id}/submit`)),
+	submitDebitBatch: (id, acknowledgeNonCollectible = false) => axios.post(url(`/debit-batches/${id}/submit`), { acknowledgeNonCollectible }),
 	discardDebitBatch: (id, reason) => axios.post(url(`/debit-batches/${id}/discard`), { reason }),
 	rescheduleDebitBatch: (id, dueDate) => axios.post(url(`/debit-batches/${id}/reschedule`), { dueDate }),
 	debitBatchXmlUrl: (id) => generateUrl(base + `/debit-batches/${id}/xml`),

@@ -36,7 +36,7 @@ class WatchFolderService {
 	private const FAILED_FOLDER = 'fehler';
 
 	/** Größere Dateien sind kein Kontoauszug mehr, sondern ein Versehen. */
-	private const MAX_BYTES = 20 * 1024 * 1024;
+	private const MAX_BYTES = ImportService::MAX_BYTES;
 
 	public function __construct(
 		private IAppConfig $config,

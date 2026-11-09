@@ -9,6 +9,7 @@ use OCA\Vereinsbuchhaltung\Db\Invoice;
 use OCA\Vereinsbuchhaltung\Db\InvoiceDocument;
 use OCA\Vereinsbuchhaltung\Db\InvoiceMapper;
 use OCA\Vereinsbuchhaltung\Exception\UserFacingException;
+use OCA\Vereinsbuchhaltung\Service\ClubClock;
 use OCA\Vereinsbuchhaltung\Service\ClubMailBranding;
 use OCA\Vereinsbuchhaltung\Service\EmailValidator;
 use OCA\Vereinsbuchhaltung\Service\InvoiceService;
@@ -25,6 +26,11 @@ use Psr\Log\LoggerInterface;
  * geschweiften Klammern ({nummer}, {betrag}, {faellig}, {verein},
  * {empfaenger}) werden ersetzt. Beim Versand darf die Bearbeiterin beides noch
  * anpassen. Nach erfolgreichem Versand steht die Rechnung auf „versendet".
+ *
+ * Der Testversand (#216) schickt dieselbe Mail an die eigene Adresse, ohne die
+ * Rechnung anzufassen: kein „versendet", kein Protokolleintrag, kein abgelegtes
+ * PDF. Er geht auch für Entwürfe – genau dort will man Absender, Logo und Text
+ * prüfen, bevor etwas an Kunden hinausgeht.
  */
 class InvoiceMailService {
 
@@ -41,6 +47,7 @@ class InvoiceMailService {
 		private LoggerInterface $logger,
 		private IL10N $l10n,
 		private ClubMailBranding $mailBranding,
+		private ClubClock $clock,
 	) {
 	}
 
@@ -62,7 +69,7 @@ class InvoiceMailService {
 			'to' => (string)($snapshot['email'] ?? ''),
 			'subject' => $this->fill($subject, $invoice),
 			'body' => $this->fill($bodyTemplate, $invoice),
-			'fileName' => ($invoice->getNumber() ?? 'Rechnung') . '.pdf',
+			'fileName' => $invoice->getNumber() !== null ? $invoice->getNumber() . '.pdf' : $this->l10n->t('Rechnung-Entwurf') . '.pdf',
 			'boardEmail' => (string)$this->settings->boardEmail(),
 			// Die Kopie an den Vorstand ist beim Rechnungsversand eine Entscheidung je Mail.
 			'copyBoard' => false,
@@ -93,18 +100,64 @@ class InvoiceMailService {
 		if ($copyBoard && $board === null) {
 			throw new \InvalidArgumentException($this->l10n->t('Für die Kopie an den Vorstand fehlt die E-Mail-Adresse des Vorstands in den Einstellungen.'));
 		}
-		$defaults = $this->defaults($invoiceId);
-		$subject = $subject !== null && trim($subject) !== '' ? trim($subject) : $defaults['subject'];
-		$body = $body !== null && trim($body) !== '' ? trim($body) : $defaults['body'];
-
-		$pdf = $this->documents->pdfContent($invoiceId);
+		[$subject, $body] = $this->subjectAndBody($invoiceId, $subject, $body);
 		$snapshot = $invoice->debtorSnapshotData() ?? [];
-		$recipientName = (string)($snapshot['name'] ?? '');
+		$this->deliver($invoice, $to, (string)($snapshot['name'] ?? ''), $subject, $body, $this->documents->pdfContent($invoiceId), $documentIds, $board);
+		return $this->service->markSent($invoiceId);
+	}
+
+	/**
+	 * Testversand: dieselbe Mail an die eigene Adresse, Betreff mit „[TEST]“.
+	 * Ändert nichts an der Rechnung und legt kein PDF ab.
+	 *
+	 * @param string $to die Adresse des angemeldeten Nutzers (bestimmt der Controller, nicht der Browser)
+	 * @param list<int> $documentIds wie bei send()
+	 * @throws DoesNotExistException
+	 * @throws \InvalidArgumentException bei stornierter Rechnung oder fehlender Adresse
+	 * @throws \RuntimeException wenn der Mailversand scheitert
+	 */
+	public function sendTest(int $invoiceId, string $to, ?string $subject = null, ?string $body = null, array $documentIds = []): void {
+		$invoice = $this->invoices->find($invoiceId);
+		if ($invoice->getStatus() === Invoice::STATUS_CANCELLED) {
+			throw new \InvalidArgumentException($this->l10n->t('Stornierte Rechnungen lassen sich nicht versenden.'));
+		}
+		$to = trim($to);
+		if (!EmailValidator::isValid($to)) {
+			throw new \InvalidArgumentException($this->l10n->t('Für den Testversand fehlt in Ihrem Nextcloud-Konto eine gültige E-Mail-Adresse.'));
+		}
+		[$subject, $body] = $this->subjectAndBody($invoiceId, $subject, $body);
+		// Ohne Anzeigenamen: die Mail geht an die eigene Adresse, nicht an den Kunden.
+		$this->deliver($invoice, $to, '', '[TEST] ' . $subject, $body, $this->documents->pdfContentForTest($invoiceId), $documentIds, null);
+	}
+
+	/**
+	 * Betreff und Text: was im Dialog stand, sonst die Vorgaben.
+	 *
+	 * @return array{0: string, 1: string}
+	 */
+	private function subjectAndBody(int $invoiceId, ?string $subject, ?string $body): array {
+		$defaults = $this->defaults($invoiceId);
+		return [
+			$subject !== null && trim($subject) !== '' ? trim($subject) : $defaults['subject'],
+			$body !== null && trim($body) !== '' ? trim($body) : $defaults['body'],
+		];
+	}
+
+	/**
+	 * Baut die Mail und verschickt sie; ohne Folgen für die Rechnung.
+	 *
+	 * @param array{content: string, fileName: string} $pdf
+	 * @param list<int> $documentIds
+	 * @throws UserFacingException wenn der Mailversand scheitert
+	 */
+	private function deliver(Invoice $invoice, string $to, string $recipientName, string $subject, string $body, array $pdf, array $documentIds, ?string $board): void {
+		$invoiceId = (int)$invoice->getId();
+		$number = $invoice->getNumber() ?? $this->l10n->t('Entwurf');
 
 		$template = $this->mailer->createEMailTemplate('vereinsbuchhaltung.invoice');
 		$template->setSubject($subject);
 		$this->mailBranding->addHeader($template);
-		$template->addHeading($invoice->isCredit() ? $this->l10n->t('Stornorechnung %s', [(string)$invoice->getNumber()]) : $this->l10n->t('Rechnung %s', [(string)$invoice->getNumber()]));
+		$template->addHeading($invoice->isCredit() ? $this->l10n->t('Stornorechnung %s', [$number]) : $this->l10n->t('Rechnung %s', [$number]));
 		foreach (preg_split('/\R{2,}/', $body) ?: [] as $paragraph) {
 			$template->addBodyText(nl2br(htmlspecialchars(trim($paragraph), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')), trim($paragraph));
 		}
@@ -141,19 +194,31 @@ class InvoiceMailService {
 		if ($failed !== []) {
 			throw new UserFacingException($this->l10n->t('Die E-Mail wurde vom Mailserver nicht angenommen.'));
 		}
-		return $this->service->markSent($invoiceId);
 	}
 
 	private function fill(string $text, Invoice $invoice): string {
-		$snapshot = $invoice->debtorSnapshotData() ?? [];
+		$snapshot = $invoice->debtorSnapshotData() ?? ($invoice->isIssued() ? null : $this->documents->debtorSnapshot($invoice)) ?? [];
 		$issuer = $this->settings->issuer();
+		$due = $this->dueDate($invoice);
 		return strtr($text, [
-			'{nummer}' => (string)$invoice->getNumber(),
+			'{nummer}' => $invoice->getNumber() ?? $this->l10n->t('Entwurf'),
 			'{betrag}' => number_format(abs($invoice->getGrossCents()) / 100, 2, ',', '.') . ' €',
-			'{faellig}' => $invoice->getDueDate() !== null ? $this->date($invoice->getDueDate()) : '',
+			'{faellig}' => $due !== null ? $this->date($due) : '',
 			'{verein}' => $issuer['name'],
 			'{empfaenger}' => (string)($snapshot['name'] ?? ''),
 		]);
+	}
+
+	/**
+	 * Zahlungsziel; bei Entwürfen ohne eigenes das, was das Festschreiben heute
+	 * setzen würde (Rechnungsdatum bzw. heute plus Standard-Zahlungsfrist).
+	 */
+	private function dueDate(Invoice $invoice): ?string {
+		if ($invoice->getDueDate() !== null || $invoice->isIssued()) {
+			return $invoice->getDueDate();
+		}
+		$days = $invoice->isCredit() ? 0 : $this->settings->defaultDueDays();
+		return (new \DateTimeImmutable($invoice->getIssueDate() ?? $this->clock->today()))->modify('+' . $days . ' days')->format('Y-m-d');
 	}
 
 	private function date(string $iso): string {

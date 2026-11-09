@@ -353,7 +353,7 @@ class MandateActivationService {
 		if ($member->getEmail() !== null && $member->getEmail() !== '') {
 			return $member->getEmail();
 		}
-		$ncUserId = $member->getNcUserId();
+		$ncUserId = $member->confirmedNcUserId();
 		if ($ncUserId === null) {
 			return null;
 		}

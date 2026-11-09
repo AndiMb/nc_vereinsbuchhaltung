@@ -509,6 +509,8 @@ class JournalService {
 		if ($tx->getJournalId() !== $journal->getId()) {
 			return false;
 		}
+		// Auch der Umsatz darf nur in einem offenen Geschäftsjahr seinen Stand ändern (#297).
+		$this->periods->assertOpen((string)$journal->getUserId(), (string)$tx->getBookingDate());
 		$tx->setContraAccountId(null);
 		$tx->setJournalId(null);
 		$tx->setStatus('unassigned');

@@ -19,6 +19,7 @@ use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
 use OCA\Vereinsbuchhaltung\Exception\ConflictException;
 use OCA\Vereinsbuchhaltung\Exception\InvoiceNotIssuableException;
+use OCA\Vereinsbuchhaltung\Service\Text\Utf8;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\IL10N;
 use OCP\IUserSession;
@@ -671,7 +672,8 @@ class InvoiceService {
 			'noteFoot' => [2000, 'setNoteFoot'],
 		] as $key => [$max, $setter]) {
 			if (array_key_exists($key, $data)) {
-				$invoice->$setter($this->blankToNull(mb_substr(trim((string)($data[$key] ?? '')), 0, $max)));
+				$text = Utf8::wellFormed(trim((string)($data[$key] ?? '')), $this->l10n);
+				$invoice->$setter($this->blankToNull(mb_substr($text, 0, $max)));
 			}
 		}
 	}

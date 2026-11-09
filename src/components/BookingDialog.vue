@@ -638,6 +638,7 @@ import { useConfirm } from '../composables/useConfirm.js'
 import { useJournal } from '../composables/useJournal.js'
 import { usePeriods } from '../composables/usePeriods.js'
 import { useReceiptSuggestions } from '../composables/useReceiptSuggestions.js'
+import { accountFilterBy, accountLabel, accountOption } from '../lib/accountLabel.js'
 import { autogrow } from '../lib/autogrow.js'
 import { onlyDefaultMoneyAccountAdded } from '../lib/bookingSnapshot.js'
 import { opensFolderPanel, readFolderPanelOpen, writeFolderPanelOpen } from '../lib/folderPanelMemory.js'
@@ -883,7 +884,7 @@ export default {
 				.filter((a) => a.active && a.type === type)
 				.sort((a, b) => (counts[b.id] || 0) - (counts[a.id] || 0)
 					|| String(a.number).localeCompare(String(b.number), 'de', { numeric: true }))
-				.map((a) => ({ id: a.id, label: `${a.number} ${a.name}`, number: a.number }))
+				.map((a) => accountOption(a))
 		},
 
 		moneyAccountOptions() {
@@ -891,7 +892,7 @@ export default {
 				.filter((a) => a.active && (a.isBank || a.type === 'asset'))
 				.sort((a, b) => (b.isBank ? 1 : 0) - (a.isBank ? 1 : 0)
 					|| String(a.number).localeCompare(String(b.number), 'de', { numeric: true }))
-				.map((a) => ({ id: a.id, label: `${a.number} ${a.name}`, number: a.number }))
+				.map((a) => accountOption(a))
 		},
 
 		bookingFormCategoryOption: {
@@ -1313,22 +1314,12 @@ export default {
 
 		accountLabel(id) {
 			const acc = this.accountsById[id]
-			return acc ? `${acc.number} ${acc.name}` : `#${id}`
+			return acc ? accountLabel(acc) : `#${id}`
 		},
 
 		isSelectableOption,
 
-		accountFilterBy(option, label, search) {
-			const s = String(search || '').trim().toLowerCase()
-			if (!s) { return true }
-			if (option && option.$isDisabled) { return false }
-			if (/^[\d\s]+$/.test(s)) {
-				const digits = s.replace(/\s+/g, '')
-				const num = String((option && option.number) || '').replace(/\s+/g, '').toLowerCase()
-				return num.startsWith(digits)
-			}
-			return String(label || '').toLowerCase().includes(s)
-		},
+		accountFilterBy,
 
 	},
 }

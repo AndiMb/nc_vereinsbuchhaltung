@@ -164,6 +164,7 @@ return [
 		['name' => 'member#allLinkSuggestions', 'url' => '/api/member-link-suggestions', 'verb' => 'GET'],
 		['name' => 'member#link', 'url' => '/api/members/{id}/link', 'verb' => 'POST'],
 		['name' => 'member#unlink', 'url' => '/api/members/{id}/unlink', 'verb' => 'POST'],
+		['name' => 'member#resendLinkConfirmation', 'url' => '/api/members/{id}/link/resend', 'verb' => 'POST'],
 		// Willkommens-Mail an die Mailadresse der Akte, unabhängig vom Nextcloud-Konto: Vorlage in den
 		// Einstellungen, beim Aufnehmen für den einzelnen Fall überschreibbar.
 		['name' => 'welcomeMail#template', 'url' => '/api/welcome-mail/template', 'verb' => 'GET'],
@@ -221,6 +222,10 @@ return [
 		// PermissionMiddleware), die Absicherung übernimmt allein der Token.
 		['name' => 'mandateConsent#show', 'url' => '/mandate-consent/{token}', 'verb' => 'GET'],
 		['name' => 'mandateConsent#accept', 'url' => '/mandate-consent/{token}', 'verb' => 'POST'],
+		// Bestätigung der Kontoverknüpfung durch das Mitglied (#295): angemeldet, aber ohne Rolle;
+		// die Middleware überspringt den Controller, die Absicherung sind Token und angemeldetes Konto.
+		['name' => 'memberLink#show', 'url' => '/link-account/{token}', 'verb' => 'GET'],
+		['name' => 'memberLink#confirm', 'url' => '/link-account/{token}', 'verb' => 'POST'],
 
 		// Offene Posten
 		['name' => 'openItem#index', 'url' => '/api/open-items', 'verb' => 'GET'],
@@ -298,8 +303,10 @@ return [
 		['name' => 'invoice#document', 'url' => '/api/invoices/{id}/documents/{documentId}', 'verb' => 'GET'],
 		['name' => 'invoice#mailDefaults', 'url' => '/api/invoices/{id}/mail-defaults', 'verb' => 'GET'],
 		['name' => 'invoice#send', 'url' => '/api/invoices/{id}/send', 'verb' => 'POST'],
+		['name' => 'invoice#sendTest', 'url' => '/api/invoices/{id}/send-test', 'verb' => 'POST'],
 		['name' => 'invoice#dunningDefaults', 'url' => '/api/invoices/{id}/dunning-defaults', 'verb' => 'GET'],
 		['name' => 'invoice#dun', 'url' => '/api/invoices/{id}/dunning', 'verb' => 'POST'],
+		['name' => 'invoice#dunTest', 'url' => '/api/invoices/{id}/dunning-test', 'verb' => 'POST'],
 		['name' => 'invoice#cancel', 'url' => '/api/invoices/{id}/cancel', 'verb' => 'POST'],
 		['name' => 'invoice#pay', 'url' => '/api/invoices/{id}/payments', 'verb' => 'POST'],
 		['name' => 'invoice#payManually', 'url' => '/api/invoices/{id}/payments/manual', 'verb' => 'POST'],

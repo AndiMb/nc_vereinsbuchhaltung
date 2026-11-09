@@ -69,7 +69,7 @@ class RecipientL10n {
 	}
 
 	public function forMember(Member $member): IL10N {
-		return $this->forNcUser($member->getNcUserId());
+		return $this->forNcUser($member->confirmedNcUserId());
 	}
 
 	/** @param string|null $ncUserId uid des verknüpften NC-Kontos, `null` = kein Konto */

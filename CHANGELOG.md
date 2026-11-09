@@ -33,9 +33,75 @@ verwenden, z. B. `**Neu:**`.
 - **Zahlung zurücknehmen:** stellt Antrag, offenen Posten und Belege wieder
   her; gilt auch, wenn die Buchung gelöscht wird.
 - **Kachel „Offene Auslagen“** auf der Übersicht.
+- **Niederländisch** ([#279](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/279)): ganze Oberfläche und Mails an Mitglieder.
+- **Belegvorschau:** „Beleg übernehmen“ steht neben dem Dateinamen
+  ([#281](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/281)). Speichern ohne Beleg fragt nach, wenn noch eine Datei in der
+  Vorschau steht: *Übernehmen und speichern* · *Ohne Beleg speichern* · *Zurück*.
+- **Nextcloud 35** wird unterstützt (Nextcloud 33 bis 35).
 
 **Geändert:**
 - „Auszahlung buchen“ heißt „Ohne Kontoumsatz buchen“ (Barzahlung).
+- Mails an Konten in einer Sprache ohne Übersetzung (z. B. Französisch):
+  Englisch statt Deutsch. `de_AT` und `de_CH` bleiben Deutsch (Sie).
+- Handbuch und Prüfleitfaden: wer nicht Deutsch eingestellt hat, bekommt die
+  englische Fassung.
+- Die sechs täglichen Hintergrundjobs dürfen ins Wartungsfenster rutschen.
+- „Neu“-Menü, Farben und Zustimmungsseite folgen den Nextcloud-Standards
+  ([#265](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/265)); Einstellungen laufen über `IAppConfig`/`IUserConfig` ([#262](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/262)).
+
+**Sicherheit:**
+- **Passwort nötig** für „Alle Daten löschen“, Rollen vergeben oder entziehen
+  und den xbuc-Import mit „vorher alles löschen“ ([#260](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/260)).
+- **Fremdes Home:** Belegablage, Wächter-Ordner und Ordnerwahl im Home eines
+  anderen Nutzers wählt nur noch ein Nextcloud-Administrator. Bereits
+  gespeicherte Ordner bleiben gültig; Änderungen stehen im Änderungsprotokoll.
+- **Fehlermeldungen:** Dateipfade, SQL- und Mailserver-Texte landen nur im Log;
+  der Browser zeigt eine allgemeine Meldung ([#261](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/261)).
+- **Mandats-Zustimmungsseite:** ungültige und abgelaufene Links werden jetzt
+  tatsächlich gedrosselt ([#259](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/259)).
+
+**Behoben:**
+- **Paket 0.50.0 unvollständig** ([#269](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/269)): GiroCode, E-Rechnung und das Lesen
+  von Beleg-PDFs liefen ins Leere, weil Bibliothekscode im Tarball fehlte.
+  Das Release prüft jetzt alle Autoloader-Verweise.
+- **`occ`-Absturz auf Nextcloud 34** ([#268](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/268)): die mitgelieferte
+  `symfony/console` 7.4 verdrängte die des Servers (Fehler bei Befehlen
+  anderer Apps, z. B. Collabora).
+- **„Heute“ in Vereinszeit statt UTC** ([#263](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/263)): Zwischen 0 und 2 Uhr
+  deutscher Zeit war „heute“ noch gestern – in Fälligkeit, Überfälligkeit,
+  Stichtagen, Vorgabedaten, Mandats-Unterschriftsdatum und „Erstellt am“.
+  Mahnfristen zählen ab dem Vereinstag des Versands; der Zustimmungsvermerk
+  nennt Datum, Uhrzeit und Zeitzone.
+- **Kontoformular:** Nextcloud-Einstellungen für neue Konten (Pflicht-E-Mail,
+  ID erzeugen, Einladung) führten nach dem Umschalten zu einem Fehler 500
+  ([#262](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/262)).
+- **Schneller Zeitraumwechsel:** eine verspätete Antwort überschrieb Belegzähler
+  und Umsätze des neuen Zeitraums ([#255](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/255), [#256](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/256)).
+- **Belegvorschläge** blieben nach Rechnungszahlung oder Umbuchen im Kontoauszug
+  veraltet.
+- **Vorschauen** (Importe, Sammelrechnungen, Zuweisung, Fälligkeitsplan) lösten
+  bei anderen offenen Browsern „geändert von einer anderen Person“ aus
+  ([#250](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/250)). Die eigene Änderung wurde nach dem Speichern ein zweites Mal geladen
+  ([#251](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/251)).
+
+**Verbessert:**
+- **Start:** Hauptdatei 3,5 → 1,9 MB (−46 %); seltene Reiter, Dialoge und
+  Diagramme laden erst beim Öffnen. Startwerte und Übersetzungen kommen mit der
+  Seite ([#257](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/257), [#264](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/264)).
+- **Buchungsliste:** 200 Zeilen je Schritt („Weitere Buchungen anzeigen“),
+  unveränderte Zeilen werden nicht neu gezeichnet ([#254](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/254)).
+- **Nach dem Speichern:** Journal, Salden und Zeiträume laden gleichzeitig statt
+  nacheinander ([#251](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/251)).
+- **Offene Posten:** nur der gewählte Status wird geladen, Zähler kommen aus der
+  Datenbank. **Zuzuordnen:** nur offene Umsätze. **Kontoauszug und Belegzähler:**
+  nur der gewählte Zeitraum ([#255](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/255)).
+- **Aufgabenliste:** 11 statt 70 Datenbankabfragen je Aufruf (Testinstanz); beim Fensterfokus
+  höchstens einmal pro Minute ([#252](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/252)).
+- **Wächter-Ordner:** Ordnerscan bis zu 5 Minuten zwischengespeichert,
+  weniger PDF-Zugriffe je Abruf ([#256](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/256)).
+
+**Hinweis zum Update:** Migrationen laufen automatisch (Nummern für bestehende
+Auslagen, neue Datenbank-Indizes).
 
 ## [0.50.0] – 2026-11-01
 

@@ -148,4 +148,31 @@ test.describe('Kontenbaum: Saldo inkl. Unterkonten', () => {
 		await expect(haken).not.toBeChecked()
 		await expect(saldo).toHaveText(/^60,00\s*€$/)
 	})
+
+	test('Kurzname und Beschreibung (#201): Baum zeigt den Kurznamen, das Konto die Beschreibung', async ({ page, request }) => {
+		const [unterkonto] = await api.accountsByNumber(request, '4101')
+		const saved = await api.updateAccount(request, unterkonto.id, {
+			shortName: 'Spenden UK',
+			description: '**Nur** Spenden aus dem Test.\n\n<script>alert(1)</script>',
+			parentId: unterkonto.parentId,
+		})
+		expect(saved.shortName).toBe('Spenden UK')
+		expect(saved.descriptionHtml).toContain('<strong>Nur</strong>')
+		expect(saved.descriptionHtml).not.toContain('<script>')
+
+		await openApp(page, USERS.verwalter)
+		await switchTab(page, 'Konten')
+		await selectPeriod(page, String(UNTERKONTO_JAHR))
+		await openAccountTreeNode(page, SPENDEN_ACCOUNT)
+		const node = visibleSection(page).locator('.vbh-treenode', { hasText: '4101' }).first()
+		await expect(node.locator('.vbh-treename')).toHaveText('Spenden UK')
+		await node.click()
+		await expect(visibleSection(page).locator('.vbh-detailhead h3')).toContainText('Spenden Unterkonto (E2E)')
+		await expect(visibleSection(page).locator('.vbh-account-description strong')).toHaveText('Nur')
+
+		// Leer gesendet löscht beides wieder
+		const cleared = await api.updateAccount(request, unterkonto.id, { shortName: '', description: '', parentId: unterkonto.parentId })
+		expect(cleared.shortName).toBeNull()
+		expect(cleared.descriptionHtml).toBeNull()
+	})
 })

@@ -233,9 +233,10 @@ export function lineRoleLabel(role) {
 	}[role] || ''
 }
 
-/** „4000 Mitgliedsbeiträge“ – Nummer und Name eines Kontos. */
+/** „4000 Mitgliedsbeiträge“ – Nummer und Name (bzw. Kurzname) eines Kontos. */
 export function accountLabel(account) {
-	return [account?.number, account?.name].filter(Boolean).join(' ')
+	// Kurzname vor Name (#201), wie überall in den Kontolisten
+	return [account?.number, String(account?.shortName || '').trim() || account?.name].filter(Boolean).join(' ')
 }
 
 /**

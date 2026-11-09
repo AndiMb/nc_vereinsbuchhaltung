@@ -20,6 +20,8 @@ use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\IL10N;
 use OCP\IRequest;
+use OCP\IUser;
+use OCP\IUserSession;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
@@ -37,6 +39,7 @@ class InvoiceControllerTest extends TestCase {
 	private InvoiceDocumentService&MockObject $documents;
 	private InvoiceMailService&MockObject $mail;
 	private LoggerInterface&MockObject $logger;
+	private string $ownEmail = 'kassenwart@verein.example';
 
 	protected function setUp(): void {
 		$this->service = $this->createMock(InvoiceService::class);
@@ -63,7 +66,40 @@ class InvoiceControllerTest extends TestCase {
 			$this->createMock(BankTransactionMapper::class),
 			$l10n,
 			$this->logger,
+			$this->session(),
 		);
+	}
+
+	private function session(): IUserSession {
+		$user = $this->createMock(IUser::class);
+		$user->method('getEMailAddress')->willReturnCallback(fn () => $this->ownEmail === '' ? null : $this->ownEmail);
+		$session = $this->createMock(IUserSession::class);
+		$session->method('getUser')->willReturn($user);
+		return $session;
+	}
+
+	public function testTestversandGehtAnDieAdresseDesEigenenKontos(): void {
+		$this->mail->expects($this->once())->method('sendTest')->with(5, 'kassenwart@verein.example', 'Betreff', null, [3]);
+
+		$response = $this->controller()->sendTest(5, 'Betreff', null, ['3']);
+
+		$this->assertSame(['sentTo' => 'kassenwart@verein.example'], $response->getData());
+	}
+
+	public function testVorgabenNennenDieEigeneAdresseFuerDenTest(): void {
+		$this->mail->method('defaults')->willReturn(['to' => 'kunde@example.org']);
+
+		$data = $this->controller()->mailDefaults(5)->getData();
+
+		$this->assertSame('kunde@example.org', $data['to']);
+		$this->assertSame('kassenwart@verein.example', $data['testTo']);
+	}
+
+	public function testOhneEigeneAdresseIstDieTestadresseLeer(): void {
+		$this->ownEmail = '';
+		$this->mail->method('defaults')->willReturn(['to' => 'kunde@example.org']);
+
+		$this->assertSame('', $this->controller()->mailDefaults(5)->getData()['testTo']);
 	}
 
 	public function testPdfFehlerVerraetKeinePfade(): void {

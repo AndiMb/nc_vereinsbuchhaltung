@@ -21,6 +21,10 @@ use OCP\IUserManager;
  * Adresse (bzw. das NC-Konto, falls (noch) keine Mitglieds-Mailadresse
  * hinterlegt ist), zusätzlich ein eigener Warn-Text an die ALTE Adresse
  * ({@see SelfServiceReceiptMailService::sendOldAddressWarning()}).
+ *
+ * Quittung, Warnung und Activity nur, wenn sich wirklich etwas geändert hat
+ * (#305): sonst verschickte jedes unveränderte Speichern eine Mail im Namen
+ * des Vereins. Das Ratenlimit am Endpunkt begrenzt den Rest.
  */
 class SelfContactService {
 
@@ -43,9 +47,12 @@ class SelfContactService {
 		$result = $this->memberService->updateOwnContactData($memberId, $data);
 		/** @var Member $member */
 		$member = $result['member'];
+		if (!$result['changed']) {
+			return $member;
+		}
 
-		if ($member->getNcUserId() !== null) {
-			$this->activity->publish($member->getNcUserId(), SelfServiceProvider::SUBJECT_CONTACT_UPDATED, [], 'member', $memberId);
+		if ($member->confirmedNcUserId() !== null) {
+			$this->activity->publish($member->confirmedNcUserId(), SelfServiceProvider::SUBJECT_CONTACT_UPDATED, [], 'member', $memberId);
 		}
 
 		$recipient = $this->resolveRecipient($member);
@@ -75,7 +82,7 @@ class SelfContactService {
 		if ($member->getEmail() !== null && $member->getEmail() !== '') {
 			return $member->getEmail();
 		}
-		$user = $member->getNcUserId() !== null ? $this->userManager->get($member->getNcUserId()) : null;
+		$user = $member->confirmedNcUserId() !== null ? $this->userManager->get($member->confirmedNcUserId()) : null;
 		$accountEmail = $user?->getEMailAddress();
 		return ($user !== null && $accountEmail !== null && $accountEmail !== '') ? $accountEmail : null;
 	}

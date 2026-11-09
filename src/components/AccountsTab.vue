@@ -63,7 +63,7 @@
 					<span class="vbh-treenum">{{ node.number }}</span>
 					<!-- Die Spalte ist fest breit und kuerzt lange Namen mit "…" ab;
 					     der Tooltip zeigt sie vollstaendig. -->
-					<span class="vbh-treename" :title="node.number + ' ' + node.name">{{ node.name }}</span>
+					<span class="vbh-treename" :title="node.number + ' ' + node.name">{{ accountDisplayName(node) }}</span>
 					<span v-if="!node.active" class="vbh-treeinactive" :title="t('Inaktiv – taucht in keiner Auswahlliste mehr auf')">{{ t('inaktiv') }}</span>
 					<span class="vbh-treesaldo" :class="[amountClass(balanceFor(node.id)), { zero: !balanceFor(node.id) }]">{{ formatMoney(balanceFor(node.id)) }}</span>
 				</div>
@@ -83,7 +83,10 @@
 			<template v-else>
 				<div class="vbh-detailhead">
 					<div>
-						<h3>{{ selectedAccount.number }} · {{ selectedAccount.name }}</h3>
+						<h3>
+							{{ selectedAccount.number }} · {{ selectedAccount.name }}
+							<span v-if="selectedAccount.shortName" class="vbh-shortname">({{ selectedAccount.shortName }})</span>
+						</h3>
 						<span class="vbh-typetag" :class="selectedAccount.type">{{ typeLabel(selectedAccount.type) }}</span>
 						<span v-if="selectedAccount.category" class="vbh-cat">{{ selectedAccount.category }}</span>
 					</div>
@@ -96,6 +99,11 @@
 						</NcButton>
 					</span>
 				</div>
+
+				<!-- Erklärung zum Konto (#201): serverseitig aus Markdown erzeugt und escaped
+				     (Account::jsonSerialize(), HandbookMarkdownRenderer). -->
+				<!-- eslint-disable-next-line vue/no-v-html -- serverseitig erzeugtes, escaptes HTML -->
+				<div v-if="selectedAccount.descriptionHtml" class="vbh-account-description" v-html="selectedAccount.descriptionHtml" />
 
 				<!-- Eröffnungssaldo nur für Geldkonten: nur deren Bestand geht über die
 				     Grenze eines Geschäftsjahres hinweg. -->
@@ -383,6 +391,7 @@ import { useAuth } from '../composables/useAuth.js'
 import { useBalances } from '../composables/useBalances.js'
 import { usePeriods } from '../composables/usePeriods.js'
 import { useSort } from '../composables/useSort.js'
+import { accountDisplayName, accountOption } from '../lib/accountLabel.js'
 import { amountClass, formatDate, formatMoney, typeLabel } from '../lib/format.js'
 import { statementRowKeys } from '../lib/rowKeys.js'
 
@@ -503,7 +512,7 @@ export default {
 			const out = []
 			const walk = (acc, depth) => {
 				const kids = this.childrenOf[acc.id] || []
-				out.push({ id: acc.id, number: acc.number, name: acc.name, type: acc.type, active: acc.active !== false, depth, hasChildren: kids.length > 0 })
+				out.push({ id: acc.id, number: acc.number, name: acc.name, shortName: acc.shortName, type: acc.type, active: acc.active !== false, depth, hasChildren: kids.length > 0 })
 				if (kids.length && this.expanded[acc.id]) { for (const k of byNum(kids)) { walk(k, depth + 1) } }
 			}
 			for (const r of roots) { walk(r, 0) }
@@ -514,7 +523,7 @@ export default {
 			const s = this.accountSearch.trim().toLowerCase()
 			if (!s) { return this.visibleTree }
 			const matchingIds = new Set(this.accounts
-				.filter((a) => a.name.toLowerCase().includes(s) || String(a.number).includes(s))
+				.filter((a) => a.name.toLowerCase().includes(s) || String(a.shortName || '').toLowerCase().includes(s) || String(a.number).includes(s))
 				.map((a) => a.id))
 			const addAncestors = (id) => {
 				const acc = this.accountsById[id]
@@ -528,7 +537,7 @@ export default {
 			const out = []
 			const walk = (acc, depth) => {
 				const kids = (this.childrenOf[acc.id] || []).filter((k) => matchingIds.has(k.id))
-				out.push({ id: acc.id, number: acc.number, name: acc.name, type: acc.type, active: acc.active !== false, depth, hasChildren: kids.length > 0 })
+				out.push({ id: acc.id, number: acc.number, name: acc.name, shortName: acc.shortName, type: acc.type, active: acc.active !== false, depth, hasChildren: kids.length > 0 })
 				for (const k of byNum(kids)) { walk(k, depth + 1) }
 			}
 			for (const r of byNum(this.accounts.filter((a) => !a.parentId && matchingIds.has(a.id)))) { walk(r, 0) }
@@ -565,7 +574,7 @@ export default {
 			const opts = []
 			for (const [cat, list] of Object.entries(groups)) {
 				opts.push({ id: null, label: cat, $isDisabled: true })
-				for (const acc of list) { opts.push({ id: acc.id, label: `${acc.number} ${acc.name}`, number: acc.number }) }
+				for (const acc of list) { opts.push(accountOption(acc)) }
 			}
 			return opts
 		},
@@ -598,6 +607,8 @@ export default {
 	},
 
 	methods: {
+		accountDisplayName,
+
 		formatMoney,
 		formatDate,
 		typeLabel,

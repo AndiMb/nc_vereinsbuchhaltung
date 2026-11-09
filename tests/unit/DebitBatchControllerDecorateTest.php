@@ -13,6 +13,7 @@ use OCA\Vereinsbuchhaltung\Service\DebitBatchService;
 use OCA\Vereinsbuchhaltung\Service\DebitBatchXmlStorageService;
 use OCA\Vereinsbuchhaltung\Service\DebitTimelineService;
 use OCA\Vereinsbuchhaltung\Service\FolderPathValidator;
+use OCA\Vereinsbuchhaltung\Service\ForeignHomeGuard;
 use OCP\AppFramework\Http;
 use OCP\IAppConfig;
 use OCP\IL10N;
@@ -55,6 +56,7 @@ class DebitBatchControllerDecorateTest extends TestCase {
 			$this->createMock(ContributionCycleTaskService::class),
 			$this->createMock(MemberMapper::class),
 			$this->createMock(IUserManager::class),
+			$this->createMock(ForeignHomeGuard::class),
 		);
 	}
 

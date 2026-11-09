@@ -44,33 +44,32 @@ class ImportController extends Controller {
 	}
 
 	/**
-	 * @return array{content:string, filename:string}|null
+	 * @return array{content:string, filename:string}
+	 * @throws \InvalidArgumentException wenn keine Datei kam oder sie zu groß ist
 	 */
-	private function readUpload(): ?array {
+	private function readUpload(): array {
 		$file = $this->request->getUploadedFile('file');
-		if ($file === null || !isset($file['tmp_name']) || !is_uploaded_file($file['tmp_name'])) {
-			// Fallback für Tests/JSON-Payload mit Base64/Plaintext
-			$raw = $this->request->getParam('content');
-			if (is_string($raw) && $raw !== '') {
-				return ['content' => $raw, 'filename' => (string)($this->request->getParam('filename') ?? 'upload.csv')];
-			}
-			return null;
+		$uploaded = $file !== null && isset($file['tmp_name']) && is_uploaded_file($file['tmp_name']);
+		// Ohne Datei: Fallback für Tests/JSON-Payload mit Base64/Plaintext
+		$raw = $this->request->getParam('content');
+		$raw = is_string($raw) ? $raw : '';
+		$size = $uploaded ? (int)filesize($file['tmp_name']) : strlen($raw);
+		if ($size === 0) {
+			throw new \InvalidArgumentException($this->l10n->t('Keine Datei empfangen'));
 		}
-		$content = file_get_contents($file['tmp_name']);
-		if ($content === false) {
-			return null;
+		if ($size > ImportService::MAX_BYTES) {
+			throw new \InvalidArgumentException($this->l10n->t('Die Datei ist zu groß (höchstens %s MB).', [(string)(ImportService::MAX_BYTES / 1024 / 1024)]));
 		}
-		return ['content' => $content, 'filename' => (string)($file['name'] ?? 'upload.csv')];
+		return $uploaded
+			? ['content' => (string)file_get_contents($file['tmp_name']), 'filename' => (string)($file['name'] ?? 'upload.csv')]
+			: ['content' => $raw, 'filename' => (string)($this->request->getParam('filename') ?? 'upload.csv')];
 	}
 
 	#[NoAdminRequired]
 	#[NoRevisionBump]
 	public function preview(): DataResponse {
-		$upload = $this->readUpload();
-		if ($upload === null) {
-			return new DataResponse(['message' => $this->l10n->t('Keine Datei empfangen')], Http::STATUS_BAD_REQUEST);
-		}
 		try {
+			$upload = $this->readUpload();
 			return new DataResponse($this->importService->preview($this->userId(), $upload['content']));
 		} catch (\Throwable $e) {
 			return $this->importFailed($e);
@@ -79,12 +78,9 @@ class ImportController extends Controller {
 
 	#[NoAdminRequired]
 	public function commit(): DataResponse {
-		$upload = $this->readUpload();
-		if ($upload === null) {
-			return new DataResponse(['message' => $this->l10n->t('Keine Datei empfangen')], Http::STATUS_BAD_REQUEST);
-		}
 		$applyRules = filter_var($this->request->getParam('applyRules', true), FILTER_VALIDATE_BOOLEAN);
 		try {
+			$upload = $this->readUpload();
 			$result = $this->importService->commit($this->userId(), $upload['content'], $applyRules);
 			$this->audit->log('CSV-Import', 'import', null, [
 				'filename' => $upload['filename'],
@@ -134,11 +130,8 @@ class ImportController extends Controller {
 	#[NoAdminRequired]
 	#[NoRevisionBump]
 	public function xbucPreview(): DataResponse {
-		$upload = $this->readUpload();
-		if ($upload === null) {
-			return new DataResponse(['message' => $this->l10n->t('Keine Datei empfangen')], Http::STATUS_BAD_REQUEST);
-		}
 		try {
+			$upload = $this->readUpload();
 			return new DataResponse($this->xbucService->preview($this->userId(), $upload['content'], $this->periodOverride()));
 		} catch (\Throwable $e) {
 			return $this->importFailed($e);
@@ -170,15 +163,12 @@ class ImportController extends Controller {
 	}
 
 	private function runXbucImport(bool $reset): DataResponse {
-		$upload = $this->readUpload();
-		if ($upload === null) {
-			return new DataResponse(['message' => $this->l10n->t('Keine Datei empfangen')], Http::STATUS_BAD_REQUEST);
-		}
 		$clampDates = filter_var($this->request->getParam('clampDates', false), FILTER_VALIDATE_BOOLEAN);
 		if ($reset && !$this->permissionService->isAdmin()) {
 			return new DataResponse(['message' => $this->l10n->t('Nur Verwalter dürfen beim Import alle Daten löschen.')], Http::STATUS_FORBIDDEN);
 		}
 		try {
+			$upload = $this->readUpload();
 			$result = $this->xbucService->import($this->userId(), $upload['content'], $reset, $clampDates, $this->periodOverride());
 			$this->audit->log('xbuc-Import', 'import', null, [
 				'geschaeftsjahr' => $result['period']['label'] ?? null,

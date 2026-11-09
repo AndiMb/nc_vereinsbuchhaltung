@@ -41,6 +41,7 @@
 <script>
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcSelect from '@nextcloud/vue/components/NcSelect'
+import { accountFilterBy } from '../lib/accountLabel.js'
 import { isSelectableOption } from '../lib/selectOptions.js'
 
 /**
@@ -78,17 +79,7 @@ export default {
 		// Logik wie in SettingsRules.vue/AccountDialog.vue.
 		isSelectableOption,
 
-		accountFilterBy(option, label, search) {
-			const s = String(search || '').trim().toLowerCase()
-			if (!s) { return true }
-			if (option && option.$isDisabled) { return false }
-			if (/^[\d\s]+$/.test(s)) {
-				const digits = s.replace(/\s+/g, '')
-				const num = String((option && option.number) || '').replace(/\s+/g, '').toLowerCase()
-				return num.startsWith(digits)
-			}
-			return String(label || '').toLowerCase().includes(s)
-		},
+		accountFilterBy,
 	},
 }
 </script>

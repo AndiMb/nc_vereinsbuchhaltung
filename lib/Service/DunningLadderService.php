@@ -482,7 +482,7 @@ class DunningLadderService {
 		if ($member->getEmail() !== null && $member->getEmail() !== '') {
 			return [$member->getEmail(), $name];
 		}
-		$user = $member->getNcUserId() !== null ? $this->userManager->get($member->getNcUserId()) : null;
+		$user = $member->confirmedNcUserId() !== null ? $this->userManager->get($member->confirmedNcUserId()) : null;
 		$accountEmail = $user?->getEMailAddress();
 		if ($user !== null && $accountEmail !== null && $accountEmail !== '') {
 			return [$accountEmail, $user->getDisplayName()];

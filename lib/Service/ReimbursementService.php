@@ -19,6 +19,7 @@ use OCA\Vereinsbuchhaltung\Db\ReimbursementFileMapper;
 use OCA\Vereinsbuchhaltung\Db\ReimbursementMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
 use OCA\Vereinsbuchhaltung\Exception\ForbiddenException;
+use OCA\Vereinsbuchhaltung\Service\Text\Utf8;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\IL10N;
@@ -45,6 +46,8 @@ use OCP\IL10N;
 class ReimbursementService {
 
 	public const MAX_PURPOSE_LENGTH = 500;
+	/** Mehr Belege je Antrag sind kein Anwendungsfall und würden nur den Speicher belasten. */
+	public const MAX_FILES = 10;
 	// Längen wie die Spalten der Migration 171.
 	private const MAX_INVOICE_NUMBER_LENGTH = 100;
 	private const MAX_SUPPLIER_LENGTH = 255;
@@ -71,6 +74,7 @@ class ReimbursementService {
 		private BookingService $booking,
 		private JournalService $journalService,
 		private ReimbursementPaymentReverter $reverter,
+		private PeriodService $periods,
 		?ClubClock $clock = null,
 	) {
 		$this->clock = $clock ?? new ClubClock($this->time);
@@ -199,7 +203,7 @@ class ReimbursementService {
 			throw new \InvalidArgumentException($this->l10n->t('Der Betrag muss größer als 0 sein.'));
 		}
 		$expenseDate = $this->validDate($expenseDate);
-		$purpose = trim($purpose);
+		$purpose = Utf8::wellFormed(trim($purpose), $this->l10n);
 		if ($purpose === '') {
 			throw new \InvalidArgumentException($this->l10n->t('Bitte einen Verwendungszweck angeben.'));
 		}
@@ -219,6 +223,9 @@ class ReimbursementService {
 		}
 		if ($uploads === []) {
 			throw new \InvalidArgumentException($this->l10n->t('Bitte mindestens einen Beleg hochladen.'));
+		}
+		if (count($uploads) > self::MAX_FILES) {
+			throw new \InvalidArgumentException($this->l10n->t('Zu viele Dateien (höchstens %d je Antrag).', [self::MAX_FILES]));
 		}
 
 		$required = $this->settings->requiredApprovals();
@@ -379,15 +386,25 @@ class ReimbursementService {
 	// --- Belege nachreichen / entfernen -----------------------------------
 
 	/**
-	 * Eine weitere Belegdatei, solange keine Freigabe vorliegt.
+	 * Eine weitere Belegdatei, solange keine Freigabe vorliegt und der Antrag
+	 * weniger als {@see MAX_FILES} Belege hat. Mit ausgeschalteter
+	 * Auslagenerstattung sehen Mitglieder ihre Anträge nur noch.
 	 *
-	 * @throws \InvalidArgumentException wenn schon freigegeben wurde
+	 * @throws \InvalidArgumentException wenn schon freigegeben wurde, die Obergrenze erreicht ist oder die Funktion aus ist
 	 * @throws DoesNotExistException wenn der Antrag nicht dem Mitglied gehört
 	 */
 	public function addReceipt(int $id, int $memberId, string $actorUid, string $name, string $content): ReimbursementFile {
+		if (!$this->settings->isEnabled()) {
+			throw new \InvalidArgumentException($this->l10n->t('Die Auslagenerstattung ist nicht aktiv.'));
+		}
 		return $this->atomically(function () use ($id, $memberId, $actorUid, $name, $content): ReimbursementFile {
 			$reimbursement = $this->findForMember($id, $memberId);
 			$this->assertReceiptsEditable($reimbursement);
+			// In der Transaktion gezählt: zwei gleichzeitige Aufrufe stoßen beim
+			// Verlaufseintrag auf denselben Index, einer wiederholt und zählt neu.
+			if ($this->fileMapper->countActive($id) >= self::MAX_FILES) {
+				throw new \InvalidArgumentException($this->l10n->t('Zu viele Dateien (höchstens %d je Antrag).', [self::MAX_FILES]));
+			}
 			$file = $this->files->add($reimbursement, $name, $content);
 			$this->log->append($id, ReimbursementEvent::ACTION_RECEIPT_ADDED, $actorUid, ReimbursementEvent::ROLE_MEMBER, null, ['file' => $file->getFileName()]);
 			foreach ($this->files->duplicatesOf($file) as $other) {
@@ -556,9 +573,18 @@ class ReimbursementService {
 			// Ohne Prüfung stünde am Antrag eine Buchungsnummer, die ins Leere zeigt, und die Belege
 			// hingen an einer Buchung, die es nicht gibt.
 			try {
-				$this->journalMapper->find($journalId, Application::BOOK);
+				$journal = $this->journalMapper->find($journalId, Application::BOOK);
 			} catch (DoesNotExistException) {
 				throw new \InvalidArgumentException($this->l10n->t('Die angegebene Buchung existiert nicht.'));
+			}
+			// Die Belege landen an der Buchung: in einem abgeschlossenen Geschäftsjahr
+			// darf sich daran nichts mehr ändern (#304).
+			$this->periods->assertOpen(Application::BOOK, (string)$journal->getDate());
+			// Eine Buchung belegt genau eine Auszahlung. Hinge ein zweiter Antrag an ihr,
+			// löschte dessen Rücknahme die Buchung des ersten mit.
+			$other = $this->mapper->findPaidByJournal($journalId);
+			if ($other !== null && $other->getId() !== $reimbursement->getId()) {
+				throw new \InvalidArgumentException($this->l10n->t('Diese Buchung gehört schon zu einer anderen Auslage.'));
 			}
 
 			$this->log->append($id, ReimbursementEvent::ACTION_PAID, $actorUid, ReimbursementEvent::ROLE_STAFF, null, [
@@ -652,10 +678,10 @@ class ReimbursementService {
 	 * Der getrimmte Text; null, wenn nichts angegeben wurde.
 	 *
 	 * @param string $label Name des Feldes für die Fehlermeldung (wird übersetzt)
-	 * @throws \InvalidArgumentException wenn der Text über `$max` Zeichen hat
+	 * @throws \InvalidArgumentException wenn der Text über `$max` Zeichen hat oder kein gültiges UTF-8 ist
 	 */
 	private function bounded(?string $text, int $max, string $label): ?string {
-		$text = trim((string)$text);
+		$text = Utf8::wellFormed(trim((string)$text), $this->l10n);
 		if (mb_strlen($text) > $max) {
 			throw new \InvalidArgumentException($this->l10n->t('%1$s ist zu lang (höchstens %2$d Zeichen).', [$this->l10n->t($label), $max]));
 		}

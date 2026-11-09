@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Db;
 
+use OCA\Vereinsbuchhaltung\Service\HandbookMarkdownRenderer;
 use OCP\AppFramework\Db\Entity;
 
 /**
@@ -37,6 +38,10 @@ use OCP\AppFramework\Db\Entity;
  * @method void setIban(?string $iban)
  * @method int|null getCostCenterId()
  * @method void setCostCenterId(?int $costCenterId)
+ * @method string|null getShortName()
+ * @method void setShortName(?string $shortName)
+ * @method string|null getDescription()
+ * @method void setDescription(?string $description)
  */
 class Account extends Entity implements \JsonSerializable, AccountNature {
 	protected $userId;
@@ -63,6 +68,10 @@ class Account extends Entity implements \JsonSerializable, AccountNature {
 	 * Modus 'manual' ausgewertet, siehe ReportService::costCenterReport().
 	 */
 	protected $costCenterId;
+	/** Kurzname für schmale Auswahllisten (#201); null = der Name. */
+	protected $shortName;
+	/** Erklärung zum Konto in Markdown (#201), steht über dem Kontoauszug. */
+	protected $description;
 
 	/** Gültige Werte für die steuerliche Sphäre (Account::$sphere). */
 	public const SPHERES = ['ideell', 'vermoegensverwaltung', 'zweckbetrieb', 'wirtschaftlich'];
@@ -171,6 +180,12 @@ class Account extends Entity implements \JsonSerializable, AccountNature {
 			'reserveKind' => $this->reserveKind,
 			'iban' => $this->iban,
 			'costCenterId' => $this->costCenterId,
+			'shortName' => $this->shortName,
+			'description' => $this->description,
+			// Serverseitig gerendert und escaped: das Frontend gibt es per v-html aus.
+			'descriptionHtml' => $this->description !== null && $this->description !== ''
+				? (new HandbookMarkdownRenderer())->render($this->description)
+				: null,
 		];
 	}
 }

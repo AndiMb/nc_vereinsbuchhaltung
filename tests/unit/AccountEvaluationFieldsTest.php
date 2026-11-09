@@ -30,7 +30,18 @@ class AccountEvaluationFieldsTest extends TestCase {
 			'sphere' => 'ideell',
 			'reserveKind' => null,
 			'costCenterId' => null,
+			'costCode' => '01',
 		];
+	}
+
+	/**
+	 * #299: im Modus 'group' ist die zweite Zahlengruppe der Kontonummer die
+	 * Kostenstelle. Wechselt sie, wandert das Konto in eine andere Zeile.
+	 */
+	public function testKostenstellenGruppeDerKontonummer(): void {
+		$this->assertSame(['costCode'], AccountService::changedEvaluationFields($this->snapshot(), $this->snapshot(['costCode' => '51'])));
+		// Eine Umnummerierung innerhalb derselben Gruppe bleibt frei.
+		$this->assertSame([], AccountService::changedEvaluationFields($this->snapshot(), $this->snapshot(['costCode' => '01'])));
 	}
 
 	public function testUnveraendertesKontoMeldetNichts(): void {

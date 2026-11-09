@@ -86,6 +86,8 @@ class SelfContributionServiceTest extends TestCase {
 		$member->setLastName('Brunner');
 		$member->setEmail($email);
 		$member->setNcUserId($ncUserId);
+		// Bestätigte Verknüpfung (#295): nur sie zählt für Mail, Sprache und Activity.
+		$member->setNcLinkConfirmedAt('2026-01-01 00:00:00');
 		return $member;
 	}
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Middleware;
 
 use OCA\Vereinsbuchhaltung\Controller\MandateConsentController;
+use OCA\Vereinsbuchhaltung\Controller\MemberLinkController;
 use OCA\Vereinsbuchhaltung\Controller\PageController;
 use OCA\Vereinsbuchhaltung\Controller\PermissionController;
 use OCA\Vereinsbuchhaltung\Controller\SelfController;
@@ -62,6 +63,11 @@ class PermissionMiddleware extends Middleware {
 			return;
 		}
 		if ($controller instanceof MandateConsentController) {
+			return;
+		}
+		// Bestätigung der Kontoverknüpfung (#295): das Konto hat noch keine Rolle
+		// und noch keinen Self-Service – die Absicherung sind Token und Anmeldung.
+		if ($controller instanceof MemberLinkController) {
 			return;
 		}
 		if ($controller instanceof SelfController) {

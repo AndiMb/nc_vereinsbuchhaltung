@@ -20,6 +20,14 @@
 				<label class="vbh-grow">{{ t('Bezeichnung') }}<input v-model="form.name" :placeholder="t('Kontoname')"></label>
 			</div>
 			<div class="vbh-form">
+				<label class="vbh-grow">{{ t('Kurzname (optional)') }}
+					<input v-model="form.shortName" maxlength="64" :placeholder="t('z. B. Jugend-Events')">
+				</label>
+			</div>
+			<p class="vbh-hint">
+				{{ t('Steht in den Auswahllisten und im Journal statt der Bezeichnung – praktisch bei langen Namen. Gesucht wird weiter in beiden.') }}
+			</p>
+			<div class="vbh-form">
 				<label>{{ t('Typ') }}
 					<select v-model="form.type">
 						<option value="income">{{ t('Ertrag (Einnahme)') }}</option>
@@ -101,6 +109,19 @@
 					</select>
 				</label>
 			</div>
+			<div class="vbh-form">
+				<label class="vbh-grow">{{ t('Beschreibung (optional)') }}
+					<textarea
+						v-model="form.description"
+						class="vbh-note-textarea"
+						rows="4"
+						maxlength="10000"
+						:placeholder="t('Wofür ist das Konto da, was wird hier gebucht?')" />
+				</label>
+			</div>
+			<p class="vbh-hint">
+				{{ t('Steht im Konto über den Buchungen. Markdown geht: **fett**, *kursiv*, Listen mit „-“ und Links wie [Satzung](https://…).') }}
+			</p>
 			<!-- Nur beim Bearbeiten: ein neues Konto ist immer aktiv. Der Weg
 			     hierher fuehrt oft ueber den Loeschversuch eines bebuchten
 			     Kontos, den AccountService::delete() genau hierauf verweist. -->
@@ -132,13 +153,14 @@ import NcModal from '@nextcloud/vue/components/NcModal'
 import NcSelect from '@nextcloud/vue/components/NcSelect'
 import { useAccounts } from '../composables/useAccounts.js'
 import { useCostCenters } from '../composables/useCostCenters.js'
+import { accountFilterBy, accountOption } from '../lib/accountLabel.js'
 import { focusOnOpen } from '../lib/modalFocus.js'
 
 /**
  *
  */
 function emptyForm() {
-	return { number: '', name: '', type: 'income', category: '', isBank: false, countInTotal: true, parentId: null, sphere: '', reserveKind: '', iban: '', costCenterId: null, active: true }
+	return { number: '', name: '', shortName: '', description: '', type: 'income', category: '', isBank: false, countInTotal: true, parentId: null, sphere: '', reserveKind: '', iban: '', costCenterId: null, active: true }
 }
 
 export default {
@@ -197,7 +219,7 @@ export default {
 		accountParentOptions() {
 			return [
 				{ id: null, label: this.t('– kein Überkonto –') },
-				...this.parentOptions.map((a) => ({ id: a.id, label: `${a.number} ${a.name}`, number: a.number })),
+				...this.parentOptions.map((a) => accountOption(a)),
 			]
 		},
 
@@ -219,17 +241,7 @@ export default {
 	methods: {
 		// Suchfilter fuer das Konto-Dropdown (Ziffern = Praefix der Kontonummer),
 		// dieselbe reine Logik wie in SettingsRules.vue.
-		accountFilterBy(option, label, search) {
-			const s = String(search || '').trim().toLowerCase()
-			if (!s) { return true }
-			if (option && option.$isDisabled) { return false }
-			if (/^[\d\s]+$/.test(s)) {
-				const digits = s.replace(/\s+/g, '')
-				const num = String((option && option.number) || '').replace(/\s+/g, '').toLowerCase()
-				return num.startsWith(digits)
-			}
-			return String(label || '').toLowerCase().includes(s)
-		},
+		accountFilterBy,
 
 		save() {
 			this.$emit('save', { ...this.form })

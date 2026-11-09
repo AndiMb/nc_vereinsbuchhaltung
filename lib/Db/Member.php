@@ -55,6 +55,12 @@ use OCP\AppFramework\Db\Entity;
  * @method void setCreatedAt(string $createdAt)
  * @method string|null getRedactedAt()
  * @method void setRedactedAt(?string $redactedAt)
+ * @method string|null getNcLinkConfirmedAt()
+ * @method void setNcLinkConfirmedAt(?string $ncLinkConfirmedAt)
+ * @method string|null getNcLinkTokenHash()
+ * @method void setNcLinkTokenHash(?string $ncLinkTokenHash)
+ * @method string|null getNcLinkTokenExpiresAt()
+ * @method void setNcLinkTokenExpiresAt(?string $ncLinkTokenExpiresAt)
  */
 class Member extends Entity implements \JsonSerializable {
 	protected $memberType = self::TYPE_PERSON;
@@ -75,6 +81,10 @@ class Member extends Entity implements \JsonSerializable {
 	protected $createdAt;
 	// DSGVO-Anonymisierung (Spec §3.8, Issue #78) - siehe MemberAnonymizationService.
 	protected $redactedAt;
+	// Bestätigung der Kontoverknüpfung (#295) - siehe MemberLinkConfirmationService.
+	protected $ncLinkConfirmedAt;
+	protected $ncLinkTokenHash;
+	protected $ncLinkTokenExpiresAt;
 
 	public const TYPE_PERSON = 'person';
 	public const TYPE_ORGANIZATION = 'organisation';
@@ -82,6 +92,21 @@ class Member extends Entity implements \JsonSerializable {
 
 	/** Anzeigename eines anonymisierten Mitglieds (Spec §3.8) - Name/Kontakt sind geschwärzt, die Mitglieds-ID bleibt der einzige Wiedererkennungswert. */
 	public const REDACTED_DISPLAY_NAME = 'Anonymisiertes Mitglied';
+
+	/**
+	 * Ob die Kontoverknüpfung gilt (#295): ein verknüpftes Konto ist erst dann
+	 * „dieses Mitglied", wenn es den Einmal-Link an die Mailadresse des
+	 * Mitglieds bestätigt hat. Bis dahin ist die Verknüpfung nur ausstehend und
+	 * öffnet weder Self-Service noch Benachrichtigungen an das Konto.
+	 */
+	public function isNcLinkConfirmed(): bool {
+		return $this->ncUserId !== null && $this->ncUserId !== '' && $this->ncLinkConfirmedAt !== null;
+	}
+
+	/** Die uid des verknüpften Kontos, aber nur bei bestätigter Verknüpfung (#295) – sonst `null`. */
+	public function confirmedNcUserId(): ?string {
+		return $this->isNcLinkConfirmed() ? $this->ncUserId : null;
+	}
 
 	public function isRedacted(): bool {
 		return $this->redactedAt !== null;
@@ -158,6 +183,8 @@ class Member extends Entity implements \JsonSerializable {
 			'leftAt' => $this->leftAt,
 			'active' => $this->isActive(),
 			'ncUserId' => $this->ncUserId,
+			'ncLinkConfirmed' => $this->isNcLinkConfirmed(),
+			'ncLinkTokenExpiresAt' => $this->isNcLinkConfirmed() ? null : $this->ncLinkTokenExpiresAt,
 			'internalNote' => $this->internalNote,
 			'createdAt' => $this->createdAt,
 			'redactedAt' => $this->redactedAt,

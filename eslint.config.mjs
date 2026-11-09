@@ -1,7 +1,18 @@
 import { recommendedJavascript } from '@nextcloud/eslint-config'
-import pluginVue from 'eslint-plugin-vue'
-import pluginJsdoc from 'eslint-plugin-jsdoc'
-import pluginStylistic from '@stylistic/eslint-plugin'
+
+// Die Plugins bringt @nextcloud/eslint-config selbst mit. Wir nehmen genau
+// diese Instanzen, statt sie ein zweites Mal zu installieren: ESLint bricht mit
+// "Cannot redefine plugin" ab, sobald unter demselben Namen ein anderes
+// Plugin-Objekt registriert wird - so geschehen, als Dependabot unser
+// eslint-plugin-jsdoc auf 65 hob, waehrend die Nextcloud-Konfiguration noch
+// 63 mitbrachte (PR #287).
+function nextcloudPlugin(name) {
+	const plugin = recommendedJavascript.find((config) => config.plugins?.[name])?.plugins[name]
+	if (!plugin) {
+		throw new Error(`@nextcloud/eslint-config registriert kein Plugin "${name}" mehr`)
+	}
+	return plugin
+}
 
 export default [
 	...recommendedJavascript,
@@ -11,9 +22,9 @@ export default [
 		// ihre Regeln ueberschrieben werden - ererben von recommendedJavascript
 		// reicht dafuer nicht.
 		plugins: {
-			vue: pluginVue,
-			jsdoc: pluginJsdoc,
-			'@stylistic': pluginStylistic,
+			vue: nextcloudPlugin('vue'),
+			jsdoc: nextcloudPlugin('jsdoc'),
+			'@stylistic': nextcloudPlugin('@stylistic'),
 		},
 		rules: {
 			'vue/no-unused-vars': 'warn',

@@ -46,6 +46,13 @@ class AttachmentWatchFolderService {
 	 */
 	public const MAX_FILES = 5000;
 
+	/**
+	 * Obergrenze aller Einträge, die der Scan ansieht, auch Ordner und
+	 * übersprungene Dateien (Belege aus Auslagenanträgen, andere Dateitypen).
+	 * Sie begrenzt die Laufzeit, {@see MAX_FILES} die Liste.
+	 */
+	public const MAX_VISITED = 4 * self::MAX_FILES;
+
 	/** Höchstens so viele Dateien je Verschiebe-Aufruf; die Oberfläche teilt größere Mengen auf. */
 	public const MAX_MOVE = 500;
 
@@ -135,7 +142,12 @@ class AttachmentWatchFolderService {
 	 * Cache, solange sich der ETag des Ordners nicht ändert – Übersicht,
 	 * Belegvorschläge und Eingangskorb lesen den Baum dann nicht jedes Mal neu.
 	 *
-	 * @return array{files: list<array{fileId:int, name:string, folder:string, size:int, mtime:int, mime:string}>, capped: bool}|null
+	 * Dateien von Auslagenanträgen zählen nicht mit: sie stehen nur als
+	 * Kennung in `reimbursementFileIds`. Sonst könnten Mitglieder mit ihren
+	 * Belegen die Obergrenze füllen, und Dokumente des Vorstands erschienen
+	 * nicht mehr im Eingang.
+	 *
+	 * @return array{files: list<array{fileId:int, name:string, folder:string, size:int, mtime:int, mime:string}>, reimbursementFileIds: array<int,true>, capped: bool}|null
 	 */
 	public function scan(): ?array {
 		$folder = $this->storage->watchFolder();
@@ -146,15 +158,43 @@ class AttachmentWatchFolderService {
 		if ($this->scanCache !== null) {
 			$key = 'scan-' . $folder->getId() . '-' . $folder->getEtag();
 			$cached = $this->scanCache->get($key);
-			if (is_array($cached) && is_array($cached['files'] ?? null) && is_bool($cached['capped'] ?? null)) {
-				/** @var array{files: list<array{fileId:int, name:string, folder:string, size:int, mtime:int, mime:string}>, capped: bool} $cached */
+			if (is_array($cached) && is_array($cached['files'] ?? null) && is_array($cached['reimbursementFileIds'] ?? null) && is_bool($cached['capped'] ?? null)) {
+				/** @var array{files: list<array{fileId:int, name:string, folder:string, size:int, mtime:int, mime:string}>, reimbursementFileIds: array<int,true>, capped: bool} $cached */
 				return $cached;
 			}
 		}
+		$reimbursement = $this->reimbursementFiles->activeFileIds();
 		$files = [];
-		$capped = $this->collect($folder, '', $files);
+		$skipped = [];
+		$visited = 0;
+		$capped = false;
+		foreach ($this->walk($folder, '') as [$node, $prefix]) {
+			if (++$visited > self::MAX_VISITED) {
+				$capped = true;
+				break;
+			}
+			if (!$node instanceof File || !self::isReceipt($node->getMimetype())) {
+				continue;
+			}
+			if (isset($reimbursement[$node->getId()])) {
+				$skipped[$node->getId()] = true;
+				continue;
+			}
+			$files[] = [
+				'fileId' => $node->getId(),
+				'name' => $node->getName(),
+				'folder' => $prefix,
+				'size' => (int)$node->getSize(),
+				'mtime' => (int)$node->getMTime(),
+				'mime' => $node->getMimetype(),
+			];
+			if (count($files) >= self::MAX_FILES) {
+				$capped = true;
+				break;
+			}
+		}
 		usort($files, static fn (array $a, array $b): int => $b['mtime'] <=> $a['mtime'] ?: strcmp($a['name'], $b['name']));
-		$result = ['files' => $files, 'capped' => $capped];
+		$result = ['files' => $files, 'reimbursementFileIds' => $skipped, 'capped' => $capped];
 		if ($key !== null) {
 			$this->scanCache?->set($key, $result, self::SCAN_CACHE_TTL);
 		}
@@ -162,37 +202,22 @@ class AttachmentWatchFolderService {
 	}
 
 	/**
-	 * @param list<array<string,mixed>> $files
-	 * @return bool ob die Obergrenze erreicht wurde
+	 * Alle nicht versteckten Einträge des Baums, Ordner eingeschlossen, mit
+	 * dem Pfad ihres Ordners relativ zum Wächter-Ordner.
+	 *
+	 * @return \Generator<int, array{0: Node, 1: string}>
 	 */
-	private function collect(Folder $folder, string $prefix, array &$files): bool {
+	private function walk(Folder $folder, string $prefix): \Generator {
 		foreach ($folder->getDirectoryListing() as $node) {
 			$name = $node->getName();
 			if (self::isHidden($name)) {
 				continue;
 			}
+			yield [$node, $prefix];
 			if ($node instanceof Folder) {
-				if ($this->collect($node, $prefix === '' ? $name : $prefix . '/' . $name, $files)) {
-					return true;
-				}
-				continue;
-			}
-			if (!$node instanceof File || !self::isReceipt($node->getMimetype())) {
-				continue;
-			}
-			$files[] = [
-				'fileId' => $node->getId(),
-				'name' => $name,
-				'folder' => $prefix,
-				'size' => (int)$node->getSize(),
-				'mtime' => (int)$node->getMTime(),
-				'mime' => $node->getMimetype(),
-			];
-			if (count($files) >= self::MAX_FILES) {
-				return true;
+				yield from $this->walk($node, $prefix === '' ? $name : $prefix . '/' . $name);
 			}
 		}
-		return false;
 	}
 
 	/**
@@ -223,7 +248,9 @@ class AttachmentWatchFolderService {
 		// Dateien von Auslagenanträgen gehören nicht in den Eingangskorb: sie hängen an
 		// einem Antrag, nicht an einer Buchung, und niemand soll sie versehentlich einer
 		// fremden Buchung zuordnen oder verschieben. Bei der Auszahlung werden sie
-		// automatisch mit der Buchung verknüpft.
+		// automatisch mit der Buchung verknüpft. Der Scan lässt sie schon aus; die
+		// Abfrage hier fängt Dateien ab, die erst nach einem zwischengespeicherten
+		// Scan einem Antrag zugeordnet wurden.
 		$reimbursementFileIds = $this->reimbursementFiles->reimbursementIdsByFileIds(array_column($scan['files'], 'fileId'));
 		$files = [];
 		foreach ($scan['files'] as $file) {
@@ -238,7 +265,7 @@ class AttachmentWatchFolderService {
 			'capped' => $scan['capped'],
 			'limit' => self::MAX_FILES,
 			'files' => $files,
-			'missing' => $this->missingAmong($linked, $scan['files']),
+			'missing' => $this->missingAmong($linked, $scan['files'], $scan['reimbursementFileIds']),
 		];
 	}
 
@@ -418,10 +445,11 @@ class AttachmentWatchFolderService {
 	 *
 	 * @param Attachment[] $linked
 	 * @param list<array{fileId:int}> $scanned
+	 * @param array<int,true> $scannedReimbursement Dateien von Auslagenanträgen, die der Scan gesehen hat
 	 * @return Attachment[]
 	 */
-	private function missingAmong(array $linked, array $scanned): array {
-		$seen = [];
+	private function missingAmong(array $linked, array $scanned, array $scannedReimbursement): array {
+		$seen = $scannedReimbursement;
 		foreach ($scanned as $file) {
 			$seen[$file['fileId']] = true;
 		}

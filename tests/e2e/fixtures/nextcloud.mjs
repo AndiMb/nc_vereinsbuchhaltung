@@ -2,6 +2,7 @@ import { expect } from '@playwright/test'
 import { existsSync, mkdirSync, readFileSync } from 'fs'
 import { dirname, join } from 'path'
 import { fileURLToPath } from 'url'
+import { confirmMemberLink } from './member-link.mjs'
 
 // Gemeinsame Helfer der E2E-Suite: Anmeldung mit Zustands-Cache und die
 // API-Aufrufe, mit denen sich die Specs ihren Buchungsbestand aufsetzen.
@@ -722,8 +723,18 @@ export const api = {
 		return call(request, 'DELETE', `/members/${id}`, { user })
 	},
 
-	async linkMember(request, id, ncUserId, { user = 'admin', expectOk = true } = {}) {
-		return call(request, 'POST', `/members/${id}/link`, { user, expectOk, data: { ncUserId } })
+	/**
+	 * Verknüpft ein Mitglied mit einem Nextcloud-Konto. Seit #295 gilt eine
+	 * Verknüpfung erst, wenn das Mitglied sie bestätigt; `confirm` (Standard)
+	 * erledigt das gleich mit (siehe fixtures/member-link.mjs). `confirm: false`
+	 * lässt sie ausstehend.
+	 */
+	async linkMember(request, id, ncUserId, { user = 'admin', expectOk = true, confirm = true } = {}) {
+		const resp = await call(request, 'POST', `/members/${id}/link`, { user, expectOk, data: { ncUserId } })
+		if (confirm && resp.ok()) {
+			await confirmMemberLink(id)
+		}
+		return resp
 	},
 
 	async unlinkMember(request, id, { user = 'admin', expectOk = true } = {}) {

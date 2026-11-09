@@ -6,6 +6,7 @@
 // und mit dem Namen des Feldes gemeldet wird. Massgeblich bleibt der Server
 // (SettingsController, DebitBatchController, SepaImportController): dessen
 // Meldung zeigen die Karten an, wenn sie dennoch eintrifft.
+import { accountDisplayName } from './accountLabel.js'
 import { t, tRaw } from './l10n.js'
 
 /** Plausibilitaetsgrenzen der Tage-Einstellungen, wie ContributionCycleSettings/DunningSettings/MandateExpirySettings. */
@@ -71,7 +72,7 @@ export function daysError(value, label) {
 export function accountOptions(accounts, type, selectedId) {
 	const compare = (a, b) => String(a.number).localeCompare(String(b.number), 'de', { numeric: true })
 	const fitting = accounts.filter((a) => a.type === type && !a.isBank && a.active).sort(compare)
-	const options = fitting.map((a) => ({ id: a.id, label: `${a.number} · ${a.name}`, unsuitable: false }))
+	const options = fitting.map((a) => ({ id: a.id, label: `${a.number} · ${accountDisplayName(a)}`, unsuitable: false }))
 	const selected = selectedId ? accounts.find((a) => a.id === selectedId) : null
 	if (selected && !fitting.includes(selected)) {
 		options.push({ id: selected.id, label: `${selected.number} · ${selected.name}`, unsuitable: true })
