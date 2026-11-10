@@ -44,9 +44,13 @@ if (!is_file($autoload)) {
 }
 require $autoload;
 
-$cacheDir = dirname((string)(new ReflectionClass(InvoiceSuiteClassFinder::class))->getFileName(), 2) . '/cache';
-if (!str_starts_with((string)realpath($cacheDir), (string)realpath($appDir) . DIRECTORY_SEPARATOR)) {
-	fwrite(STDERR, "::error::Die Bibliothek wurde nicht aus $appDir geladen ($cacheDir).\n");
+// Geprueft wird das Bibliotheksverzeichnis (src), nicht der Cache-Ordner: den
+// legt ein frisches `composer install` nicht an, die Bibliothek erzeugt ihn
+// erst beim Schreiben - realpath() liefert fuer ihn false.
+$libSrcDir = dirname((string)(new ReflectionClass(InvoiceSuiteClassFinder::class))->getFileName(), 2);
+$cacheDir = $libSrcDir . '/cache';
+if (!str_starts_with((string)realpath($libSrcDir), (string)realpath($appDir) . DIRECTORY_SEPARATOR)) {
+	fwrite(STDERR, "::error::Die Bibliothek wurde nicht aus $appDir geladen ($libSrcDir).\n");
 	exit(2);
 }
 
