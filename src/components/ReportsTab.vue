@@ -870,6 +870,9 @@
 			<StructuredReportView
 				v-if="reportView === 'structure'"
 				:refreshKey="structuredRefreshKey"
+				:isMobile="isMobile"
+				:view="structuredView"
+				@update:view="$emit('update:structured-view', $event)"
 				@openSpheres="spherePanelOpen = true" />
 
 			<!-- ÄNDERUNGSPROTOKOLL -->
@@ -1035,9 +1038,11 @@ export default {
 		// App.vue zaehlt hoch, wenn der Gliederungsbericht neu laden soll
 		// (Zeitraum-Umstellung durch andere, fremde Aenderungen).
 		structuredRefreshKey: { type: Number, default: 0 },
+		// Tabelle oder visuelle Ansicht des Gliederungsberichts (URL, localStorage)
+		structuredView: { type: String, default: 'table' },
 	},
 
-	emits: ['budget-changed', 'budget-compare-changed', 'cost-centers-changed', 'help', 'snapshots-changed', 'spheres-changed', 'update:cost-center-mode', 'update:rename-name', 'update:report-view', 'update:selected-c-c-code', 'update:selected-sphere-code'],
+	emits: ['budget-changed', 'budget-compare-changed', 'cost-centers-changed', 'help', 'snapshots-changed', 'spheres-changed', 'update:cost-center-mode', 'update:rename-name', 'update:report-view', 'update:selected-c-c-code', 'update:selected-sphere-code', 'update:structured-view'],
 
 	setup() {
 		const auth = useAuth()

@@ -36,6 +36,8 @@ class StructuredReportService {
 
 	/**
 	 * @param array{id:string, name:string, definition:array<string, mixed>} $template
+	 * @param list<array{source:string, periodOffset:int}>|null $columnsOverride ersetzt die Spalten der Vorlage (nur für diesen Aufruf)
+	 * @param string|null $actualUntil `YYYY-MM-DD`; begrenzt das Ist der gewählten Periode (Offset 0), frühere Perioden bleiben vollständig
 	 * @return array{
 	 *     template: array{id:string, name:string},
 	 *     period: Period,
@@ -45,8 +47,11 @@ class StructuredReportService {
 	 *     hasSpheres: bool,
 	 * }
 	 */
-	public function build(string $userId, array $template, ?int $periodId): array {
+	public function build(string $userId, array $template, ?int $periodId, ?array $columnsOverride = null, ?string $actualUntil = null): array {
 		$def = $template['definition'];
+		if ($columnsOverride !== null) {
+			$def['columns'] = $columnsOverride;
+		}
 		$period = $this->periods->selectedOrCurrent($userId, $periodId);
 		$accounts = $this->accountMapper->findAll($userId);
 
@@ -75,7 +80,7 @@ class StructuredReportService {
 			}
 			$pid = (int)$p->getId();
 			$plans[$pid] ??= $this->planCents($userId, $pid);
-			$actuals[$pid] ??= $this->actualCents($userId, $p, $accounts);
+			$actuals[$pid] ??= $this->actualCents($userId, $p, $accounts, $offset === 0 ? $actualUntil : null);
 			$values[] = match ($c['source']) {
 				'plan' => $plans[$pid],
 				'actual' => $actuals[$pid],
@@ -144,6 +149,22 @@ class StructuredReportService {
 			'rows' => $result['rows'],
 			'warnings' => $result['warnings'],
 			'hasSpheres' => $hasSpheres,
+		];
+	}
+
+	/**
+	 * Plan und Ist je Konto einer Periode – dieselben Werte, die build() für
+	 * die Spalten mit Offset 0 verwendet. Plan in Cent je Konto-ID, Ist als
+	 * Nettowert je Einnahmen-/Ausgabenkonto.
+	 *
+	 * @return array{accounts: Account[], plan: array<int, int>, actual: array<int, int>}
+	 */
+	public function planActual(string $userId, Period $period, ?string $actualUntil = null): array {
+		$accounts = $this->accountMapper->findAll($userId);
+		return [
+			'accounts' => $accounts,
+			'plan' => $this->planCents($userId, (int)$period->getId()),
+			'actual' => $this->actualCents($userId, $period, $accounts, $actualUntil),
 		];
 	}
 
@@ -278,8 +299,8 @@ class StructuredReportService {
 	 * @param Account[] $accounts
 	 * @return array<int, int>
 	 */
-	private function actualCents(string $userId, Period $p, array $accounts): array {
-		$sums = $this->lineMapper->sumByAccount($userId, $p->getStartDate(), $p->getEndDate());
+	private function actualCents(string $userId, Period $p, array $accounts, ?string $until = null): array {
+		$sums = $this->lineMapper->sumByAccount($userId, $p->getStartDate(), $until ?? $p->getEndDate());
 		$out = [];
 		foreach ($accounts as $a) {
 			if ($a->isBudgetable()) {
