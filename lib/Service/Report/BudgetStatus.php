@@ -8,13 +8,15 @@ namespace OCA\Vereinsbuchhaltung\Service\Report;
  * Die Ampel des Gliederungsberichts: Plan gegen Ist zu einer Stufe.
  *
  * Stufen: `good`, `warn`, `crit`, `unplanned` (Ist ohne Plan) und `none`
- * (nichts zu vergleichen). Der Faktor ist der Anteil des Plans, der zum Stand
- * schon „fällig“ ist (1.0 = ganzes Jahr, 0.5 = halbes Jahr); bei 0 gibt es
- * keinen Vergleich. Alle Beträge sind Cent, Schwellen sind Prozent.
+ * (nichts zu vergleichen). Der zum Stand „fällige“ Anteil des Plans ist der
+ * Bruch `$elapsed / $total` (1/1 = ganzes Jahr, 6/12 = halbes Jahr); bei
+ * `$elapsed` 0 gibt es keinen Vergleich. Alle Beträge sind Cent, Schwellen
+ * sind ganze Prozent.
  *
- * Die Grenzwerte werden in Ganzzahl-Prozenten gegen Cent verglichen
- * (`Ist × 100` gegen `Schwelle × Bezug`), damit „genau 80 %“ nicht an
- * Gleitkomma-Rundung scheitert.
+ * Verglichen wird nur in Ganzzahlen: statt `Ist × 100` gegen
+ * `Schwelle × Plan × elapsed / total` wird mit `total` durchmultipliziert
+ * (`Ist × 100 × total` gegen `Schwelle × Plan × elapsed`). So liegt ein Ist,
+ * das genau auf dem (zeitanteiligen) Grenzwert liegt, auch genau darauf.
  *
  * Wie {@see \OCA\Vereinsbuchhaltung\Service\BudgetTree} statisch und ohne
  * Datenbank.
@@ -41,38 +43,40 @@ final class BudgetStatus {
 	 * @param string $nature `income`, `expense` oder `result`
 	 * @param int $plan Plan in Cent
 	 * @param int $actual Ist in Cent
-	 * @param float $factor Anteil des Plans, der zum Stand fällig ist
-	 * @param array<string, int|float> $thresholds Schwellen in Prozent (siehe DEFAULTS)
+	 * @param int $elapsed fälliger Anteil des Plans: Zähler (Jahresbasis 1)
+	 * @param int $total fälliger Anteil des Plans: Nenner (Jahresbasis 1)
+	 * @param array<string, int|float> $thresholds Schwellen in Prozent (siehe DEFAULTS; fehlende Einträge von dort)
 	 * @return array{level:string, ratio:?float} ratio = Ist ÷ Bezug (null bei Ergebnis, ohne Plan und ohne Vergleich)
 	 */
-	public static function of(string $nature, int $plan, int $actual, float $factor, array $thresholds): array {
-		$t = $thresholds + self::DEFAULTS;
+	public static function of(string $nature, int $plan, int $actual, int $elapsed, int $total, array $thresholds): array {
+		$t = array_map('intval', $thresholds + self::DEFAULTS);
 		if ($plan === 0 && $actual === 0) {
 			return self::result(self::NONE);
 		}
 		if ($nature === 'result') {
-			return self::result(self::ofResult($plan, $actual, $factor, (float)$t['resTol']));
+			return self::result(self::ofResult($plan, $actual, $elapsed, $total, $t['resTol']));
 		}
 		if ($plan === 0) {
 			return self::result(self::UNPLANNED);
 		}
-		if ($factor <= 0.0) {
+		// Ein negativer Plan kehrt den Vergleich um – dafür gibt es keine Ampel.
+		if ($plan < 0 || $elapsed <= 0 || $total <= 0) {
 			return self::result(self::NONE);
 		}
 
-		$reference = $plan * $factor;
-		$scaled = $actual * 100;
-		$ratio = $actual / $reference;
+		$lhs = $actual * 100 * $total;
+		$reference = $plan * $elapsed;
+		$ratio = (float)($actual * $total) / $reference;
 		if ($nature === 'income') {
-			if ($scaled >= $t['incGood'] * $reference) {
+			if ($lhs >= $t['incGood'] * $reference) {
 				return self::result(self::GOOD, $ratio);
 			}
-			return self::result($scaled >= $t['incWarn'] * $reference ? self::WARN : self::CRIT, $ratio);
+			return self::result($lhs >= $t['incWarn'] * $reference ? self::WARN : self::CRIT, $ratio);
 		}
-		if ($scaled < $t['expWarn'] * $reference) {
+		if ($lhs < $t['expWarn'] * $reference) {
 			return self::result(self::GOOD, $ratio);
 		}
-		return self::result($scaled <= $t['expCrit'] * $reference ? self::WARN : self::CRIT, $ratio);
+		return self::result($lhs <= $t['expCrit'] * $reference ? self::WARN : self::CRIT, $ratio);
 	}
 
 	/**
@@ -93,18 +97,19 @@ final class BudgetStatus {
 	/**
 	 * Ergebnis: Abweichung vom zeitanteiligen Plan, Toleranz in Prozent des
 	 * Bezugs (mindestens 100 Cent, damit ein Plan von 0 nicht jede
-	 * Abweichung zum Rot macht).
+	 * Abweichung zum Rot macht). Wie in {@see of()} mit `total`
+	 * durchmultipliziert, damit alles ganzzahlig bleibt.
 	 */
-	private static function ofResult(int $plan, int $actual, float $factor, float $tolerance): string {
-		if ($factor <= 0.0) {
+	private static function ofResult(int $plan, int $actual, int $elapsed, int $total, int $tolerance): string {
+		if ($elapsed <= 0 || $total <= 0) {
 			return self::NONE;
 		}
-		$reference = $plan * $factor;
-		$diff = $actual - $reference;
+		$reference = $plan * $elapsed;
+		$diff = $actual * $total - $reference;
 		if ($diff >= 0) {
 			return self::GOOD;
 		}
-		return $diff * 100 >= -$tolerance * max(abs($reference), 100.0) ? self::WARN : self::CRIT;
+		return $diff * 100 >= -$tolerance * max(abs($reference), 100 * $total) ? self::WARN : self::CRIT;
 	}
 
 	/**

@@ -94,6 +94,37 @@ class VisualReportServiceTest extends TestCase {
 		$this->assertSame(50000, $result['kpis']['expense']['actual']);
 	}
 
+	public function testSubAccountsCoveredByParentPlanAreNeutral(): void {
+		$row = static fn (int $id, string $number, int $plan, int $actual): array => [
+			'kind' => 'account', 'depth' => 1, 'label' => 'Konto ' . $number, 'nature' => 'expense',
+			'accountId' => $id, 'number' => $number, 'flags' => [], 'values' => [$plan, $actual],
+		];
+		$report = $this->report();
+		$report['rows'] = [$row(1, '5000', 100000, 50000), $row(2, '5000 01', 0, 30000), $row(4, '6000', 0, 10000)];
+		$this->structured = $this->createMock(StructuredReportService::class);
+		$this->structured->method('build')->willReturn($report);
+		$this->structured->method('planActual')->willReturn([
+			'accounts' => [
+				$this->account(1, null, 'expense', '5000'),
+				$this->account(2, 1, 'expense', '5000 01'),
+				$this->account(3, 1, 'expense', '5000 02'),
+				$this->account(4, null, 'expense', '6000'),
+			],
+			'plan' => [1 => 100000],
+			'actual' => [2 => 30000, 3 => 20000, 4 => 10000],
+		]);
+
+		$rows = $this->service()->build('u', self::TEMPLATE, null, null)['rows'];
+
+		$this->assertSame([], $rows[0]['flags']);
+		$this->assertSame('good', $rows[0]['status']['year']['level']);
+		$this->assertSame(['covered'], $rows[1]['flags']);
+		$this->assertSame('none', $rows[1]['status']['year']['level']);
+		$this->assertSame('none', $rows[1]['status']['time']['level']);
+		$this->assertSame([], $rows[2]['flags']);
+		$this->assertSame('unplanned', $rows[2]['status']['year']['level']);
+	}
+
 	public function testInvalidAsOfThrows(): void {
 		$this->structured->expects($this->never())->method('build');
 		$this->expectException(\InvalidArgumentException::class);

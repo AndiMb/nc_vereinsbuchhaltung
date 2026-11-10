@@ -41,10 +41,10 @@ class VisualReportService {
 
 		$report = $this->structured->build($userId, $template, $periodId, self::COLUMNS, $resolved['until']);
 		$data = $this->structured->planActual($userId, $period, $resolved['until']);
-		[$planLevel, $totals] = $this->planLevel($data['accounts'], $data['plan'], $data['actual']);
+		[$planLevel, $totals, $coveredIds] = $this->planLevel($data['accounts'], $data['plan'], $data['actual']);
 
 		$thresholds = BudgetStatus::DEFAULTS;
-		$visual = VisualReportBuilder::build($report['rows'], $planLevel, $totals, $resolved['elapsed'], $resolved['total'], $thresholds);
+		$visual = VisualReportBuilder::build($report['rows'], $planLevel, $totals, $resolved['elapsed'], $resolved['total'], $thresholds, $coveredIds);
 
 		return [
 			'template' => $report['template'],
@@ -62,12 +62,14 @@ class VisualReportService {
 
 	/**
 	 * Konten der Planungsebene (sichtbare Knoten ohne sichtbares Kind) und die
-	 * Gesamtsummen – wie die Soll-Ist-Ansicht sie aufbaut.
+	 * Gesamtsummen – wie die Soll-Ist-Ansicht sie aufbaut. Dazu die Konten,
+	 * die selbst kein Planposten sind, deren Plan aber auf einem Vorfahren
+	 * liegt (`coveredBy`): Sie bekommen im Bericht keine Ampel.
 	 *
 	 * @param Account[] $accounts
 	 * @param array<int, int> $plan
 	 * @param array<int, int> $actual
-	 * @return array{0: list<array{id:int, type:string, number:string, name:string, plan:int, actual:int}>, 1: array{income: array{plan:int, actual:int}, expense: array{plan:int, actual:int}}}
+	 * @return array{0: list<array{id:int, type:string, number:string, name:string, plan:int, actual:int}>, 1: array{income: array{plan:int, actual:int}, expense: array{plan:int, actual:int}}, 2: list<int>}
 	 */
 	private function planLevel(array $accounts, array $plan, array $actual): array {
 		$names = [];
@@ -88,6 +90,12 @@ class VisualReportService {
 			'plan',
 			'actual',
 		);
+		$coveredIds = [];
+		foreach ($nodes as $node) {
+			if ($node['coveredBy'] !== null && !$node['isPlanItem']) {
+				$coveredIds[] = (int)$node['id'];
+			}
+		}
 		$planTotals = BudgetTree::totals($nodes, 'plan');
 		$actualTotals = BudgetTree::totals($nodes, 'actual');
 
@@ -116,6 +124,6 @@ class VisualReportService {
 		return [$planLevel, [
 			'income' => ['plan' => $planTotals['income'], 'actual' => $actualTotals['income']],
 			'expense' => ['plan' => $planTotals['expense'], 'actual' => $actualTotals['expense']],
-		]];
+		], $coveredIds];
 	}
 }

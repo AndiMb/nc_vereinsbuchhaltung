@@ -24,17 +24,20 @@ final class VisualReportBuilder {
 	 * @param list<array{id:int, type:string, number:string, name:string, plan:int, actual:int}> $planLevel
 	 * @param array{income: array{plan:int, actual:int}, expense: array{plan:int, actual:int}} $totals
 	 * @param array<string, int> $thresholds
+	 * @param list<int> $coveredIds Konten ohne eigenen Plan, deren Plan auf einem Vorfahren liegt
 	 * @return array{rows: list<array<string, mixed>>, kpis: array<string, mixed>,
 	 *               distribution: array<string, mixed>, deviations: array<string, mixed>}
 	 */
-	public static function build(array $rows, array $planLevel, array $totals, int $elapsed, int $total, array $thresholds): array {
+	public static function build(array $rows, array $planLevel, array $totals, int $elapsed, int $total, array $thresholds, array $coveredIds = []): array {
+		// Fälliger Anteil des Plans als Bruch [Zähler, Nenner], damit
+		// BudgetStatus ganzzahlig vergleichen kann.
 		$factors = [
-			'year' => 1.0,
-			'time' => $total > 0 ? $elapsed / $total : 0.0,
+			'year' => [1, 1],
+			'time' => [$elapsed, $total],
 		];
 
 		return [
-			'rows' => self::buildRows($rows, $factors, $thresholds),
+			'rows' => self::buildRows($rows, $factors, $thresholds, array_fill_keys($coveredIds, true)),
 			'kpis' => self::buildKpis($totals, $factors, $elapsed, $total, $thresholds),
 			'distribution' => self::buildDistribution($planLevel, $factors, $thresholds),
 			'deviations' => self::buildDeviations($planLevel, $factors, $thresholds),
@@ -43,11 +46,12 @@ final class VisualReportBuilder {
 
 	/**
 	 * @param list<array<string, mixed>> $rows
-	 * @param array<string, float> $factors
+	 * @param array<string, array{int, int}> $factors
 	 * @param array<string, int> $thresholds
+	 * @param array<int, true> $covered Konto-Ids, deren Plan auf einem Vorfahren liegt
 	 * @return list<array<string, mixed>>
 	 */
-	private static function buildRows(array $rows, array $factors, array $thresholds): array {
+	private static function buildRows(array $rows, array $factors, array $thresholds, array $covered): array {
 		$out = [];
 		foreach ($rows as $row) {
 			$kind = $row['kind'] ?? '';
@@ -64,28 +68,36 @@ final class VisualReportBuilder {
 			unset($row['values']);
 			$row['plan'] = $plan;
 			$row['actual'] = $actual;
-			$row['status'] = self::status((string)($row['nature'] ?? 'expense'), $plan, $actual, $factors, $thresholds);
+			// Ein Unterkonto unter einem geplanten Oberkonto hat keinen eigenen
+			// Plan, ist aber nicht „ungeplant“: seine Buchungen zählen dort mit.
+			if ($kind === 'account' && $plan === 0 && isset($covered[(int)($row['accountId'] ?? 0)])) {
+				$none = ['level' => BudgetStatus::NONE, 'ratio' => null];
+				$row['status'] = array_fill_keys(self::BASES, $none);
+				$row['flags'] = [...(is_array($row['flags'] ?? null) ? $row['flags'] : []), 'covered'];
+			} else {
+				$row['status'] = self::status((string)($row['nature'] ?? 'expense'), $plan, $actual, $factors, $thresholds);
+			}
 			$out[] = $row;
 		}
 		return $out;
 	}
 
 	/**
-	 * @param array<string, float> $factors
+	 * @param array<string, array{int, int}> $factors
 	 * @param array<string, int> $thresholds
 	 * @return array<string, array{level:string, ratio:?float}>
 	 */
 	private static function status(string $nature, int $plan, int $actual, array $factors, array $thresholds): array {
 		$status = [];
 		foreach (self::BASES as $basis) {
-			$status[$basis] = BudgetStatus::of($nature, $plan, $actual, $factors[$basis], $thresholds);
+			$status[$basis] = BudgetStatus::of($nature, $plan, $actual, $factors[$basis][0], $factors[$basis][1], $thresholds);
 		}
 		return $status;
 	}
 
 	/**
 	 * @param array<string, array{plan:int, actual:int}> $totals
-	 * @param array<string, float> $factors
+	 * @param array<string, array{int, int}> $factors
 	 * @param array<string, int> $thresholds
 	 * @return array<string, array<string, mixed>>
 	 */
@@ -125,7 +137,7 @@ final class VisualReportBuilder {
 
 	/**
 	 * @param list<array{id:int, type:string, number:string, name:string, plan:int, actual:int}> $planLevel
-	 * @param array<string, float> $factors
+	 * @param array<string, array{int, int}> $factors
 	 * @param array<string, int> $thresholds
 	 * @return array<string, array<string, array<string, int>>>
 	 */
@@ -142,7 +154,7 @@ final class VisualReportBuilder {
 				continue;
 			}
 			foreach (self::BASES as $basis) {
-				$level = BudgetStatus::of($nature, $account['plan'], $account['actual'], $factors[$basis], $thresholds)['level'];
+				$level = BudgetStatus::of($nature, $account['plan'], $account['actual'], $factors[$basis][0], $factors[$basis][1], $thresholds)['level'];
 				if (isset($dist[$basis][$nature][$level])) {
 					$dist[$basis][$nature][$level]++;
 				}
@@ -153,7 +165,7 @@ final class VisualReportBuilder {
 
 	/**
 	 * @param list<array{id:int, type:string, number:string, name:string, plan:int, actual:int}> $planLevel
-	 * @param array<string, float> $factors
+	 * @param array<string, array{int, int}> $factors
 	 * @param array<string, int> $thresholds
 	 * @return array<string, array<string, list<array<string, mixed>>>>
 	 */
@@ -164,7 +176,8 @@ final class VisualReportBuilder {
 			foreach (['income', 'expense'] as $nature) {
 				$dev[$basis][$nature] = [];
 			}
-			if ($factors[$basis] <= 0.0) {
+			[$e, $t] = $factors[$basis];
+			if ($e <= 0 || $t <= 0) {
 				continue;
 			}
 			foreach ($accounts as $account) {
@@ -172,7 +185,7 @@ final class VisualReportBuilder {
 				if ($nature !== 'income' && $nature !== 'expense') {
 					continue;
 				}
-				$reference = $account['plan'] * $factors[$basis];
+				$reference = $account['plan'] * $e / $t;
 				$amount = $nature === 'expense' ? $account['actual'] - $reference : $reference - $account['actual'];
 				if ($amount <= self::MIN_DEVIATION) {
 					continue;
@@ -182,7 +195,7 @@ final class VisualReportBuilder {
 					'number' => $account['number'],
 					'label' => $account['name'],
 					'amount' => (int)round($amount),
-					'level' => BudgetStatus::of($nature, $account['plan'], $account['actual'], $factors[$basis], $thresholds)['level'],
+					'level' => BudgetStatus::of($nature, $account['plan'], $account['actual'], $e, $t, $thresholds)['level'],
 				];
 			}
 			foreach (['income', 'expense'] as $nature) {

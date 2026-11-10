@@ -29,8 +29,8 @@ class VisualReportBuilderTest extends TestCase {
 	 * @param list<array<string, mixed>> $planLevel
 	 * @return array<string, mixed>
 	 */
-	private static function build(array $planLevel, int $elapsed = 6, array $rows = []): array {
-		return VisualReportBuilder::build($rows, $planLevel, self::TOTALS, $elapsed, 12, BudgetStatus::DEFAULTS);
+	private static function build(array $planLevel, int $elapsed = 6, array $rows = [], array $coveredIds = []): array {
+		return VisualReportBuilder::build($rows, $planLevel, self::TOTALS, $elapsed, 12, BudgetStatus::DEFAULTS, $coveredIds);
 	}
 
 	public function testRowsDropNotesAndReplaceValues(): void {
@@ -118,6 +118,54 @@ class VisualReportBuilderTest extends TestCase {
 
 		$this->assertSame(60000, $dev['year']['income'][0]['amount']);
 		$this->assertSame(10000, $dev['time']['income'][0]['amount']);
+	}
+
+	public function testExpenseOverrunOnTimeBasis(): void {
+		$dev = self::build([
+			self::account(1, 'expense', 120000, 70000),
+			self::account(2, 'expense', 1000, 1000),
+		], 7)['deviations'];
+
+		// Bezug 120000 × 7/12 = 70000: genau im Plan, keine Abweichung
+		$this->assertNotContains(1, array_column($dev['time']['expense'], 'accountId'));
+		// Bezug 1000 × 7/12 = 583,33 Cent → 416,67 → ganze Cent
+		$this->assertSame([[
+			'accountId' => 2,
+			'number' => '1002',
+			'label' => 'Konto 2',
+			'amount' => 417,
+			'level' => 'crit',
+		]], $dev['time']['expense']);
+		$this->assertSame([], $dev['year']['expense']);
+	}
+
+	public function testExactTimeProportionalPlanIsGood(): void {
+		$rows = [['kind' => 'account', 'depth' => 1, 'label' => 'Beiträge', 'nature' => 'income', 'accountId' => 1, 'values' => [13200, 7700]]];
+		$out = self::build([self::account(1, 'income', 13200, 7700)], 7, $rows);
+
+		$this->assertSame('good', $out['rows'][0]['status']['time']['level']);
+		$this->assertSame(1.0, $out['rows'][0]['status']['time']['ratio']);
+		$this->assertSame(1, $out['distribution']['time']['income']['good']);
+		$this->assertSame([], $out['deviations']['time']['income']);
+	}
+
+	public function testCoveredSubAccountsAreNeutral(): void {
+		$rows = [
+			['kind' => 'account', 'depth' => 2, 'label' => 'GEMA', 'nature' => 'expense', 'accountId' => 5, 'flags' => ['inactive'], 'values' => [0, 30000]],
+			['kind' => 'account', 'depth' => 2, 'label' => 'Strom', 'nature' => 'expense', 'accountId' => 6, 'flags' => [], 'values' => [0, 20000]],
+			['kind' => 'account', 'depth' => 1, 'label' => 'Miete', 'nature' => 'expense', 'accountId' => 7, 'flags' => [], 'values' => [100000, 60000]],
+		];
+		$out = self::build([], 6, $rows, [5, 7])['rows'];
+
+		$none = ['level' => 'none', 'ratio' => null];
+		$this->assertSame(['year' => $none, 'time' => $none], $out[0]['status']);
+		$this->assertSame(['inactive', 'covered'], $out[0]['flags']);
+		// nicht gedeckt: bleibt ungeplant
+		$this->assertSame('unplanned', $out[1]['status']['year']['level']);
+		$this->assertSame([], $out[1]['flags']);
+		// eigener Plan: zählt nicht als gedeckt
+		$this->assertSame('good', $out[2]['status']['year']['level']);
+		$this->assertSame([], $out[2]['flags']);
 	}
 
 	public function testNoElapsedMonths(): void {

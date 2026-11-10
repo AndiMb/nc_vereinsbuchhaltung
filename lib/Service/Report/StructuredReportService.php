@@ -36,7 +36,7 @@ class StructuredReportService {
 
 	/**
 	 * @param array{id:string, name:string, definition:array<string, mixed>} $template
-	 * @param list<array{source:string, periodOffset:int}>|null $columns ersetzt die Spalten der Vorlage (nur für diesen Aufruf)
+	 * @param list<array{source:string, periodOffset:int}>|null $columnsOverride ersetzt die Spalten der Vorlage (nur für diesen Aufruf)
 	 * @param string|null $actualUntil `YYYY-MM-DD`; begrenzt das Ist der gewählten Periode (Offset 0), frühere Perioden bleiben vollständig
 	 * @return array{
 	 *     template: array{id:string, name:string},
@@ -47,10 +47,10 @@ class StructuredReportService {
 	 *     hasSpheres: bool,
 	 * }
 	 */
-	public function build(string $userId, array $template, ?int $periodId, ?array $columns = null, ?string $actualUntil = null): array {
+	public function build(string $userId, array $template, ?int $periodId, ?array $columnsOverride = null, ?string $actualUntil = null): array {
 		$def = $template['definition'];
-		if ($columns !== null) {
-			$def['columns'] = $columns;
+		if ($columnsOverride !== null) {
+			$def['columns'] = $columnsOverride;
 		}
 		$period = $this->periods->selectedOrCurrent($userId, $periodId);
 		$accounts = $this->accountMapper->findAll($userId);
