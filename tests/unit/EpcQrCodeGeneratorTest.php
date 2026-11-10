@@ -7,6 +7,7 @@ namespace OCA\Vereinsbuchhaltung\Tests\Unit;
 use chillerlan\QRCode\QRCode;
 use chillerlan\QRCode\QROptions;
 use OCA\Vereinsbuchhaltung\Service\EpcQrCodeGenerator;
+use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubCurrencyStub;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -17,9 +18,11 @@ use PHPUnit\Framework\TestCase;
  * wieder lesbares Bild, und ohne `gd` scheitert die Erzeugung fangbar.
  */
 class EpcQrCodeGeneratorTest extends TestCase {
+	/** Vereinswährung des Dienstes (#202). */
+	private string $currencyCode = 'EUR';
 
 	private function generator(): EpcQrCodeGenerator {
-		return new EpcQrCodeGenerator();
+		return new EpcQrCodeGenerator(ClubCurrencyStub::of($this, $this->currencyCode));
 	}
 
 	private function lines(string $payload): array {
@@ -197,7 +200,9 @@ class EpcQrCodeGeneratorTest extends TestCase {
 		$code = 'if (!extension_loaded("mbstring")) { echo "VBH-RESULT null"; exit; }'
 			. 'require ' . var_export(dirname(__DIR__) . '/bootstrap.php', true) . ';'
 			. '$thrown = null;'
-			. 'try { (new OCA\\Vereinsbuchhaltung\\Service\\EpcQrCodeGenerator())->generatePng("V", "DE02120300000000202051", null, 100, "x"); }'
+			// Im Kindprozess gibt es keine PHPUnit-Mocks: eine feste Euro-Vereinswährung (#202).
+			. '$euro = new class extends OCA\\Vereinsbuchhaltung\\Service\\ClubCurrency { public function __construct() {} public function code(): string { return "EUR"; } };'
+			. 'try { (new OCA\\Vereinsbuchhaltung\\Service\\EpcQrCodeGenerator($euro))->generatePng("V", "DE02120300000000202051", null, 100, "x"); }'
 			. 'catch (\\Throwable $e) { $thrown = ["class" => get_class($e), "message" => $e->getMessage()]; }'
 			. 'echo "VBH-RESULT " . json_encode(["gd" => extension_loaded("gd"), "thrown" => $thrown]);';
 
@@ -213,5 +218,13 @@ class EpcQrCodeGeneratorTest extends TestCase {
 
 		$this->assertSame(1, preg_match('/VBH-RESULT (.*)$/m', $output, $match), 'Kindprozess lieferte kein Ergebnis: ' . $output);
 		return json_decode($match[1], true);
+	}
+
+	/** Vereinswährung (#202): der GiroCode (EPC) kennt nur Euro. */
+	public function testOhneEuroGibtEsKeinenGiroCode(): void {
+		$this->currencyCode = 'CHF';
+
+		$this->expectException(\InvalidArgumentException::class);
+		$this->generator()->buildPayload('Musterverein', 'DE02120300000000202051', null, 4599, 'Beitrag');
 	}
 }

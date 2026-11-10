@@ -9,6 +9,7 @@ use OCA\Vereinsbuchhaltung\Db\Invoice;
 use OCA\Vereinsbuchhaltung\Db\InvoiceLine;
 use OCA\Vereinsbuchhaltung\Exception\UserFacingException;
 use OCA\Vereinsbuchhaltung\Service\ClubClock;
+use OCA\Vereinsbuchhaltung\Service\ClubCurrency;
 use OCA\Vereinsbuchhaltung\Service\EpcQrCodeGenerator;
 use OCA\Vereinsbuchhaltung\Service\InvoiceCalculator;
 use OCP\IL10N;
@@ -41,9 +42,13 @@ class InvoicePdfRenderer {
 		'LS' => 'pauschal', 'KMT' => 'km', 'MTR' => 'm', 'MTK' => 'm²', 'LTR' => 'l', 'KGM' => 'kg', 'P1' => '%',
 	];
 
+	/** Währung der gerade gerenderten Rechnung (#202) – Beträge stehen in ihr, nicht in der aktuellen Vereinswährung. */
+	private string $documentCurrency = '';
+
 	public function __construct(
 		private EpcQrCodeGenerator $epc,
 		private ClubClock $clock,
+		private ClubCurrency $currency,
 		private ?IL10N $l10n = null,
 	) {
 	}
@@ -54,6 +59,7 @@ class InvoicePdfRenderer {
 	 * @throws \RuntimeException wenn die PDF-Bibliothek nicht verfügbar ist
 	 */
 	public function render(InvoicePdfData $data, bool $compress = true): string {
+		$this->documentCurrency = $data->invoice->getCurrency();
 		// InvoicePdfDocument erweitert TCPDF aus vendor/: erst den Autoloader, dann die Klasse (#265).
 		Application::loadComposerAutoloader();
 		if (!class_exists(\TCPDF::class)) {
@@ -121,6 +127,7 @@ class InvoicePdfRenderer {
 	 * @throws \RuntimeException wenn die PDF-Bibliothek nicht verfügbar ist
 	 */
 	public function renderDunning(InvoicePdfData $data, int $level, string $body, int $remainingCents, string $letterDate, bool $compress = true): string {
+		$this->documentCurrency = $data->invoice->getCurrency();
 		// InvoicePdfDocument erweitert TCPDF aus vendor/: erst den Autoloader, dann die Klasse (#265).
 		Application::loadComposerAutoloader();
 		if (!class_exists(\TCPDF::class)) {
@@ -518,7 +525,8 @@ class InvoicePdfRenderer {
 		$bank = $data->bank;
 		$invoice = $data->invoice;
 		$amount = $amountCents ?? $invoice->getGrossCents();
-		if ($bank === null || $bank['iban'] === '' || $amount <= 0 || $invoice->getNumber() === null) {
+		// GiroCode nur für Euro-Rechnungen (#202) – maßgeblich ist die Währung der Rechnung.
+		if (strtoupper($invoice->getCurrency()) !== 'EUR' || $bank === null || $bank['iban'] === '' || $amount <= 0 || $invoice->getNumber() === null) {
 			return null;
 		}
 		try {
@@ -599,7 +607,7 @@ class InvoicePdfRenderer {
 	}
 
 	private function money(int $cents): string {
-		return number_format($cents / 100, 2, ',', '.') . ' €';
+		return $this->currency->formatIn($this->documentCurrency, $cents);
 	}
 
 	private function date(?string $iso): string {

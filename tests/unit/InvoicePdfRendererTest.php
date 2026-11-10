@@ -10,6 +10,7 @@ use OCA\Vereinsbuchhaltung\Service\EpcQrCodeGenerator;
 use OCA\Vereinsbuchhaltung\Service\Invoice\InvoicePdfData;
 use OCA\Vereinsbuchhaltung\Service\Invoice\InvoicePdfRenderer;
 use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubClockStub;
+use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubCurrencyStub;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -19,6 +20,8 @@ use PHPUnit\Framework\TestCase;
  * das erzeugte PDF.
  */
 class InvoicePdfRendererTest extends TestCase {
+	/** Vereinswährung des Dienstes (#202). */
+	private string $currencyCode = 'EUR';
 
 	protected function setUp(): void {
 		if (!class_exists(\TCPDF::class)) {
@@ -59,7 +62,7 @@ class InvoicePdfRendererTest extends TestCase {
 	}
 
 	/** @param array<string, string>|null $bank */
-	private function render(Invoice $inv, int $lineCount, bool $preview = false, ?array $bank = ['iban' => 'DE02120300000000202051', 'bic' => 'BYLADEM1001', 'holder' => 'TSV Beispiel e. V.'], ?string $preceding = null, ?string $logo = null, string $clubName = 'TSV Beispiel e. V.'): string {
+	private function render(Invoice $inv, int $lineCount, bool $preview = false, ?array $bank = ['iban' => 'DE02120300000000202051', 'bic' => 'BYLADEM1001', 'holder' => 'TSV Beispiel e. V.'], ?string $preceding = null, ?string $logo = null, string $clubName = 'TSV Beispiel e. V.', ?EpcQrCodeGenerator $epc = null): string {
 		$data = new InvoicePdfData(
 			$inv,
 			$this->lines($lineCount),
@@ -72,7 +75,7 @@ class InvoicePdfRendererTest extends TestCase {
 			null,
 			$logo,
 		);
-		return (new InvoicePdfRenderer(new EpcQrCodeGenerator(), ClubClockStub::system()))->render($data, false);
+		return (new InvoicePdfRenderer($epc ?? new EpcQrCodeGenerator(ClubCurrencyStub::of($this, $this->currencyCode)), ClubClockStub::system(), ClubCurrencyStub::of($this, $this->currencyCode)))->render($data, false);
 	}
 
 	private function pages(string $pdf): int {
@@ -156,5 +159,37 @@ class InvoicePdfRendererTest extends TestCase {
 		$pdf = $this->render($this->invoice(2), 2, false, null);
 
 		$this->assertStringStartsWith('%PDF-1.7', $pdf);
+	}
+
+	/** Gegenprobe: in Euro fragt der Renderer den GiroCode an. */
+	public function testInEuroEntstehtDerGiroCode(): void {
+		$epc = $this->createMock(EpcQrCodeGenerator::class);
+		$epc->expects($this->once())->method('buildPayload')->willReturn('BCD');
+
+		$this->render($this->invoice(2), 2, false, epc: $epc);
+	}
+
+	/** Vereinswährung (#202): ohne Euro kein GiroCode auf der Rechnung. */
+	public function testOhneEuroKeinGiroCode(): void {
+		$this->currencyCode = 'CHF';
+		$epc = $this->createMock(EpcQrCodeGenerator::class);
+		$epc->expects($this->never())->method('buildPayload');
+		$invoice = $this->invoice(2);
+		$invoice->setCurrency('CHF');
+
+		$pdf = $this->render($invoice, 2, false, epc: $epc);
+
+		$this->assertStringStartsWith('%PDF-1.7', $pdf);
+	}
+
+	/** Eine Euro-Rechnung behält ihren GiroCode, auch wenn der Verein inzwischen CHF führt. */
+	public function testEuroRechnungBehaeltDenGiroCodeNachDerUmstellung(): void {
+		$this->currencyCode = 'CHF';
+		$epc = $this->createMock(EpcQrCodeGenerator::class);
+		$epc->expects($this->once())->method('buildPayload')->willReturn('BCD');
+		$invoice = $this->invoice(2);
+		$invoice->setCurrency('EUR');
+
+		$this->render($invoice, 2, false, epc: $epc);
 	}
 }

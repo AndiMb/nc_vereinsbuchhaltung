@@ -11,6 +11,7 @@ use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Exception\ConflictException;
 use OCA\Vereinsbuchhaltung\Service\AccountStatementService;
+use OCA\Vereinsbuchhaltung\Service\ClubCurrency;
 use OCA\Vereinsbuchhaltung\Service\JournalService;
 use OCA\Vereinsbuchhaltung\Service\LedgerAggregator;
 use OCA\Vereinsbuchhaltung\Service\PeriodService;
@@ -36,6 +37,7 @@ class JournalController extends Controller {
 		private JournalService $journalService,
 		private AccountStatementService $statements,
 		private IL10N $l10n,
+		private ClubCurrency $currency,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -274,10 +276,10 @@ class JournalController extends Controller {
 			'missing_account' => $this->l10n->t('Jede Buchungszeile braucht ein Konto.'),
 			'duplicate_account' => $this->l10n->t('Jedes Konto darf in einer Buchung nur einmal vorkommen.'),
 			'unbalanced' => $this->l10n->t(
-				'Soll und Haben sind nicht ausgeglichen (%s € gegen %s €).',
+				'Soll und Haben sind nicht ausgeglichen (%s gegen %s).',
 				[
-					number_format($params['debit'] / 100, 2, ',', '.'),
-					number_format($params['credit'] / 100, 2, ',', '.'),
+					$this->currency->format((int)$params['debit']),
+					$this->currency->format((int)$params['credit']),
 				],
 			),
 			'zero_total' => $this->l10n->t('Betrag muss größer als 0 sein'),

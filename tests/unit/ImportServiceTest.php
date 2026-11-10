@@ -20,6 +20,7 @@ use OCA\Vereinsbuchhaltung\Service\InvoiceSettings;
 use OCA\Vereinsbuchhaltung\Service\Sepa\SepaImportExtractionService;
 use OCA\Vereinsbuchhaltung\Service\Statement\RowNormalizer;
 use OCA\Vereinsbuchhaltung\Service\Statement\StatementParserRegistry;
+use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubCurrencyStub;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
@@ -51,7 +52,7 @@ class ImportServiceTest extends TestCase {
 		$this->sepaDetails = $this->createMock(SepaImportExtractionService::class);
 	}
 
-	private function service(?StatementParserRegistry $parsers = null, ?AccountService $accounts = null): ImportService {
+	private function service(?StatementParserRegistry $parsers = null, ?AccountService $accounts = null, string $currency = 'EUR'): ImportService {
 		$rules = $this->createMock(RuleMapper::class);
 		$rules->method('findAll')->willReturn([]);
 		$journals = $this->createMock(JournalMapper::class);
@@ -69,6 +70,7 @@ class ImportServiceTest extends TestCase {
 			$transaction,
 			$this->sepaDetails,
 			$accounts ?? $this->createMock(AccountService::class),
+			ClubCurrencyStub::of($this, $currency),
 		);
 	}
 
@@ -90,6 +92,25 @@ class ImportServiceTest extends TestCase {
 			'ownAccount' => null,
 			'sepaDetails' => $sepaDetails,
 		];
+	}
+
+	/** Vereinswährung (#202): ohne Währung im Auszug gilt die Vereinswährung. */
+	public function testOhneWaehrungImAuszugGiltDieVereinswaehrung(): void {
+		$saved = [];
+		$this->txMapper = $this->createMock(BankTransactionMapper::class);
+		$this->txMapper->method('findExistingHashes')->willReturn([]);
+		$this->txMapper->method('findDedupKeys')->willReturn([]);
+		$this->txMapper->method('insert')->willReturnCallback(static function (BankTransaction $tx) use (&$saved): BankTransaction {
+			$saved[] = $tx->getCurrency();
+			return $tx;
+		});
+		$this->sepaDetails->method('extract')->willReturn(0);
+
+		$withEuro = $this->row('h2', 500);
+		$withEuro['currency'] = 'EUR';
+		$this->service(null, null, 'CHF')->commitRows('book', [$this->row('h1', 6000), $withEuro], 'mt940');
+
+		$this->assertSame(['CHF', 'EUR'], $saved);
 	}
 
 	public function testDieErkanntenRuecklastschriftenAllerNeuenZeilenWerdenGezaehlt(): void {
@@ -201,10 +222,10 @@ class ImportServiceTest extends TestCase {
 			$transaction,
 			$this->sepaDetails,
 			$this->createMock(AccountService::class),
+			ClubCurrencyStub::of($this),
 			$matching,
 			$payments,
-			$settings,
-		);
+			$settings);
 	}
 
 	public function testEindeutigerRechnungstreffergehtJederRegelVor(): void {

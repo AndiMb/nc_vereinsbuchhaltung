@@ -10,6 +10,7 @@ use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Db\OpenItem;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
 use OCA\Vereinsbuchhaltung\Service\ClubClock;
+use OCA\Vereinsbuchhaltung\Service\ClubCurrency;
 use OCA\Vereinsbuchhaltung\Service\ContributionYearService;
 use OCP\IAppConfig;
 use OCP\IL10N;
@@ -52,6 +53,7 @@ class BeitragsbescheinigungRenderer {
 		private IAppConfig $config,
 		private IL10N $l10n,
 		private ClubClock $clock,
+		private ClubCurrency $currency,
 	) {
 	}
 
@@ -176,9 +178,9 @@ class BeitragsbescheinigungRenderer {
 		foreach ($rows as $item) {
 			$h .= '<tr><td>' . PrintableReportPage::escape($this->periodLabel($item)) . '</td>'
 				. '<td>' . PrintableReportPage::escape((string)($item->getDescription() ?? '')) . '</td>'
-				. '<td class="num">' . ReportFormat::cents($item->getAmountCents()) . '</td></tr>';
+				. '<td class="num">' . ReportFormat::cents($item->getAmountCents(), $this->currency->symbol()) . '</td></tr>';
 		}
-		$h .= '<tr class="sum"><td colspan="2">' . $this->l10n->t('Summe') . '</td><td class="num">' . ReportFormat::cents($sumCents) . '</td></tr>';
+		$h .= '<tr class="sum"><td colspan="2">' . $this->l10n->t('Summe') . '</td><td class="num">' . ReportFormat::cents($sumCents, $this->currency->symbol()) . '</td></tr>';
 		return $h . '</table></section>';
 	}
 

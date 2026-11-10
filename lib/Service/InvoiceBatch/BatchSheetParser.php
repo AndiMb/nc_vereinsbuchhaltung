@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Service\InvoiceBatch;
 
+use OCA\Vereinsbuchhaltung\Service\ClubCurrency;
 use OCA\Vereinsbuchhaltung\Service\EmailValidator;
 use OCA\Vereinsbuchhaltung\Service\InvoiceCalculator;
 use OCA\Vereinsbuchhaltung\Service\OptionalL10n;
@@ -410,7 +411,7 @@ class BatchSheetParser {
 	 * Ausnahme: mehrere Punkte (`1.234.567`) sind Tausenderpunkte.
 	 */
 	public static function number(string $text): ?float {
-		$t = str_replace(["\u{00A0}", "\u{202F}", ' ', '€', 'EUR', 'eur'], '', trim($text));
+		$t = str_ireplace(ClubCurrency::inputTokens(), '', str_replace(["\u{00A0}", "\u{202F}", ' '], '', trim($text)));
 		if ($t === '') {
 			return null;
 		}

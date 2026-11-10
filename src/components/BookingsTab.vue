@@ -646,7 +646,7 @@
 					<h4>{{ t('Neuer offener Posten') }}</h4>
 					<div class="vbh-form">
 						<label class="vbh-grow">{{ t('Debitor') }}<input v-model="openItemForm.debtor" :placeholder="t('z. B. Max Mustermann')"></label>
-						<label>{{ t('Betrag (€)') }}<AmountInput
+						<label>{{ t('Betrag ({currency})', { currency: currencySymbol() }) }}<AmountInput
 							v-model="openItemForm.amount"
 							class="vbh-num" /></label>
 						<label>{{ t('Fällig am') }}<input v-model="openItemForm.dueDate" type="date"></label>
@@ -829,6 +829,7 @@ import { useSort } from '../composables/useSort.js'
 import { journalRowMatchesAccountFilter } from '../lib/accountFilter.js'
 import { accountFilterBy, accountLabel } from '../lib/accountLabel.js'
 import { claimTypeLabel } from '../lib/claims.js'
+import { currencySymbol } from '../lib/clubCurrency.js'
 import { bookingFlow, flowClass, flowLabel, formatFlowMoney, transactionFlow } from '../lib/flow.js'
 import { amountClass, errMsg, formatDate, formatMoney } from '../lib/format.js'
 import { openItemStatusLabel } from '../lib/openItems.js'
@@ -1231,6 +1232,7 @@ export default {
 	},
 
 	methods: {
+		currencySymbol,
 		formatMoney,
 		formatDate,
 		levelIcon,

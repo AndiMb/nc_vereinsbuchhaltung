@@ -7,6 +7,7 @@ namespace OCA\Vereinsbuchhaltung\Tests\Unit;
 use OCA\Vereinsbuchhaltung\Activity\SelfServiceProvider;
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Service\SelfServiceMandateService;
+use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubCurrencyStub;
 use OCP\Activity\Exceptions\UnknownActivityException;
 use OCP\Activity\IEvent;
 use OCP\IL10N;
@@ -34,7 +35,7 @@ class SelfServiceProviderTest extends TestCase {
 		$urlGenerator = $this->createMock(IURLGenerator::class);
 		$urlGenerator->method('imagePath')->with(Application::APP_ID, 'app-dark.svg')->willReturn('/apps/vereinsbuchhaltung/img/app-dark.svg');
 		$urlGenerator->method('getAbsoluteURL')->willReturnCallback(static fn (string $url): string => 'https://cloud.example' . $url);
-		return new SelfServiceProvider($factory, $urlGenerator);
+		return new SelfServiceProvider($factory, $urlGenerator, ClubCurrencyStub::of($this));
 	}
 
 	private function event(string $subject, array $params, string $app = Application::APP_ID): IEvent&MockObject {

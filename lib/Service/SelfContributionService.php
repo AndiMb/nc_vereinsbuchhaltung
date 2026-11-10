@@ -52,6 +52,7 @@ class SelfContributionService {
 		private IUserManager $userManager,
 		private ITimeFactory $time,
 		private IL10N $l10n,
+		private ClubCurrency $currency,
 		?ClubClock $clock = null,
 	) {
 		$this->clock = $clock ?? new ClubClock($this->time);
@@ -125,7 +126,7 @@ class SelfContributionService {
 
 		$whatParts = [];
 		if ($after->getMonthlyAmountCents() !== $before->getMonthlyAmountCents()) {
-			$whatParts[] = $this->l10n->t('Ihr Monatsbeitrag wurde von %1$s € auf %2$s € geändert.', [$this->euro($before->getMonthlyAmountCents()), $this->euro($after->getMonthlyAmountCents())]);
+			$whatParts[] = $this->l10n->t('Ihr Monatsbeitrag wurde von %1$s auf %2$s geändert.', [$this->euro($before->getMonthlyAmountCents()), $this->euro($after->getMonthlyAmountCents())]);
 			if ($ncUserId !== null) {
 				$this->activity->publish($ncUserId, SelfServiceProvider::SUBJECT_CONTRIBUTION_AMOUNT_CHANGED, [
 					'from' => $before->getMonthlyAmountCents(), 'to' => $after->getMonthlyAmountCents(), 'effectiveFrom' => $preview['effectiveFrom'],
@@ -182,7 +183,7 @@ class SelfContributionService {
 	}
 
 	private function euro(int $cents): string {
-		return number_format($cents / 100, 2, ',', '.');
+		return $this->currency->format($cents);
 	}
 
 	/**

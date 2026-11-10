@@ -8,6 +8,7 @@ use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Service\BudgetComparison;
 use OCA\Vereinsbuchhaltung\Service\BudgetOverviewService;
 use OCA\Vereinsbuchhaltung\Service\ClubClock;
+use OCA\Vereinsbuchhaltung\Service\ClubCurrency;
 use OCP\IAppConfig;
 use OCP\IL10N;
 
@@ -32,6 +33,7 @@ class FinanzplanRenderer {
 		private IAppConfig $config,
 		private IL10N $l10n,
 		private ClubClock $clock,
+		private ClubCurrency $currency,
 	) {
 	}
 
@@ -67,9 +69,9 @@ class FinanzplanRenderer {
 		$planResult = $t['planIncome'] - $t['planExpense'];
 		$h .= '<section><table>';
 		$h .= '<tr class="result"><td>' . $this->l10n->t('Ergebnis') . '</td>'
-			. '<td class="num">' . ReportFormat::cents($planResult) . '</td>'
-			. '<td class="num">' . ReportFormat::cents($t['actualIncome'] - $t['actualExpense']) . '</td>'
-			. '<td class="num">' . ReportFormat::cents(($t['actualIncome'] - $t['actualExpense']) - $planResult) . '</td>'
+			. '<td class="num">' . ReportFormat::cents($planResult, $this->currency->symbol()) . '</td>'
+			. '<td class="num">' . ReportFormat::cents($t['actualIncome'] - $t['actualExpense'], $this->currency->symbol()) . '</td>'
+			. '<td class="num">' . ReportFormat::cents(($t['actualIncome'] - $t['actualExpense']) - $planResult, $this->currency->symbol()) . '</td>'
 			. '<td class="num"></td>'
 			. ($cmpHead === null ? '' : $this->compareCells($planResult, $t['compareIncome'] - $t['compareExpense']))
 			. '</tr>';
@@ -108,17 +110,17 @@ class FinanzplanRenderer {
 			$h .= '<tr><td' . $style . '>'
 				. ($strong ? '<strong>' : '') . PrintableReportPage::escape($label) . ($strong ? '</strong>' : '')
 				. ($marks !== '' ? '<span style="white-space:nowrap">' . $marks . '</span>' : '') . '</td>'
-				. '<td class="num">' . ReportFormat::cents($n['sum']['plan']) . '</td>'
-				. '<td class="num">' . ReportFormat::cents($n['sum']['actual']) . '</td>'
-				. '<td class="num">' . ($n['comparable'] ? ReportFormat::cents($n['sum']['actual'] - $n['sum']['plan']) : '') . '</td>'
+				. '<td class="num">' . ReportFormat::cents($n['sum']['plan'], $this->currency->symbol()) . '</td>'
+				. '<td class="num">' . ReportFormat::cents($n['sum']['actual'], $this->currency->symbol()) . '</td>'
+				. '<td class="num">' . ($n['comparable'] ? ReportFormat::cents($n['sum']['actual'] - $n['sum']['plan'], $this->currency->symbol()) : '') . '</td>'
 				. '<td class="num">' . ($n['comparable'] ? $this->percent($n['sum']['plan'], $n['sum']['actual']) : '') . '</td>'
 				. ($cmpHead === null ? '' : $this->compareCells($n['sum']['plan'], $n['sum']['compare'], $n['comparable']))
 				. '</tr>';
 		}
 		$h .= '<tr class="sum"><td>' . PrintableReportPage::escape($this->l10n->t('Summe %s', [$title])) . '</td>'
-			. '<td class="num">' . ReportFormat::cents($plan) . '</td>'
-			. '<td class="num">' . ReportFormat::cents($actual) . '</td>'
-			. '<td class="num">' . ReportFormat::cents($actual - $plan) . '</td>'
+			. '<td class="num">' . ReportFormat::cents($plan, $this->currency->symbol()) . '</td>'
+			. '<td class="num">' . ReportFormat::cents($actual, $this->currency->symbol()) . '</td>'
+			. '<td class="num">' . ReportFormat::cents($actual - $plan, $this->currency->symbol()) . '</td>'
 			. '<td class="num">' . $this->percent($plan, $actual) . '</td>'
 			. ($cmpHead === null ? '' : $this->compareCells($plan, $compare))
 			. '</tr>';
@@ -138,11 +140,11 @@ class FinanzplanRenderer {
 	 */
 	private function compareCells(int $plan, int $compare, bool $comparable = true): string {
 		if (!$comparable) {
-			return '<td class="num">' . ReportFormat::cents($compare) . '</td><td class="num"></td><td class="num"></td>';
+			return '<td class="num">' . ReportFormat::cents($compare, $this->currency->symbol()) . '</td><td class="num"></td><td class="num"></td>';
 		}
 		$percent = BudgetComparison::percent($plan, $compare);
-		return '<td class="num">' . ReportFormat::cents($compare) . '</td>'
-			. '<td class="num">' . ReportFormat::signedMoney(BudgetComparison::delta($plan, $compare)) . ' €</td>'
+		return '<td class="num">' . ReportFormat::cents($compare, $this->currency->symbol()) . '</td>'
+			. '<td class="num">' . ReportFormat::signedMoney(BudgetComparison::delta($plan, $compare)) . ' ' . $this->currency->symbol() . '</td>'
 			. '<td class="num">' . ($percent === null ? '–' : ReportFormat::signedPercent($percent) . ' %') . '</td>';
 	}
 

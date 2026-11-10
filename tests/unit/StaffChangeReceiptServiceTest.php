@@ -11,6 +11,7 @@ use OCA\Vereinsbuchhaltung\Db\Member;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Service\SelfServiceReceiptMailService;
 use OCA\Vereinsbuchhaltung\Service\StaffChangeReceiptService;
+use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubCurrencyStub;
 use OCP\Config\IUserConfig;
 use OCP\IConfig;
 use OCP\IL10N;
@@ -55,7 +56,7 @@ class StaffChangeReceiptServiceTest extends TestCase {
 	}
 
 	private function service(): StaffChangeReceiptService {
-		return new StaffChangeReceiptService($this->receiptMail, $this->members, $this->groups, $this->userManager, $this->config, $this->l10nFactory, $this->l10n(), $this->logger, $this->userConfig);
+		return new StaffChangeReceiptService($this->receiptMail, $this->members, $this->groups, $this->userManager, $this->config, $this->l10nFactory, $this->l10n(), $this->logger, ClubCurrencyStub::of($this), $this->userConfig);
 	}
 
 	private function member(?string $email = 'katrin@example.org', ?string $ncUserId = null): Member {

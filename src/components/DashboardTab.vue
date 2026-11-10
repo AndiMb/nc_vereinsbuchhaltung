@@ -304,7 +304,7 @@ import { usePermissions } from '../composables/usePermissions.js'
 import { loadChart } from '../lib/chartLoader.js'
 import { chartTheme, onThemeChange, withAlpha } from '../lib/chartTheme.js'
 import { bookingFlow, flowClass, flowLabel, formatFlowMoney } from '../lib/flow.js'
-import { formatDate, formatMoney } from '../lib/format.js'
+import { formatCurrency, formatCurrencyWhole, formatDate, formatMoney } from '../lib/format.js'
 import { levelIcon, suggestionTitle } from '../lib/receiptSuggestions.js'
 
 /**
@@ -660,7 +660,7 @@ export default {
 						legend: { labels: { color: theme.text, font: { size: 12 } } },
 						tooltip: {
 							callbacks: {
-								label: (ctx) => ` ${ctx.dataset.label}: ${new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(ctx.raw)}`,
+								label: (ctx) => ` ${ctx.dataset.label}: ${formatCurrency(ctx.raw)}`,
 							},
 						},
 					},
@@ -674,7 +674,7 @@ export default {
 						y: {
 							ticks: {
 								color: theme.mutedText,
-								callback: (v) => new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(v),
+								callback: (v) => formatCurrencyWhole(v),
 							},
 
 							grid: { color: theme.grid },

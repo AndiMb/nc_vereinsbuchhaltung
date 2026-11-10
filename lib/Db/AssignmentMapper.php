@@ -116,6 +116,25 @@ class AssignmentMapper extends QBMapper {
 		return $found;
 	}
 
+	/**
+	 * Lastschrift-Zuweisungen, die an `$date` laufen oder erst später beginnen –
+	 * Sperre für die Umstellung der Vereinswährung weg von Euro (#202).
+	 */
+	public function countDirectDebitNotEndedAsOf(string $date): int {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select($qb->func()->count('*', 'cnt'))
+			->from($this->getTableName())
+			->where($qb->expr()->eq('payment_method', $qb->createNamedParameter(Assignment::PAYMENT_METHOD_DIRECT_DEBIT)))
+			->andWhere($qb->expr()->orX(
+				$qb->expr()->isNull('valid_to'),
+				$qb->expr()->gte('valid_to', $qb->createNamedParameter($date)),
+			));
+		$res = $qb->executeQuery();
+		$count = (int)$res->fetchOne();
+		$res->closeCursor();
+		return $count;
+	}
+
 	public function count(): int {
 		$qb = $this->db->getQueryBuilder();
 		$qb->select($qb->func()->count('*', 'cnt'))

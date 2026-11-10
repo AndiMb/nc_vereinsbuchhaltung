@@ -29,6 +29,7 @@ use OCA\Vereinsbuchhaltung\Service\DunningSettings;
 use OCA\Vereinsbuchhaltung\Service\DunningTaskService;
 use OCA\Vereinsbuchhaltung\Service\TaskTargetResolver;
 use OCA\Vereinsbuchhaltung\Tests\Unit\Support\AppConfigStub;
+use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubCurrencyStub;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\IL10N;
 use OCP\IUserManager;
@@ -126,7 +127,7 @@ class ClaimOverviewServiceTest extends TestCase {
 			new ContributionCycleSettings($config),
 			new DirectDebitEligibilityResolver($this->assignments, $this->mandates),
 			$this->cycleTasks,
-			new DunningTaskService($this->openItems, $this->notices, $this->members, $dunningSettings, $time, $l10n),
+			new DunningTaskService($this->openItems, $this->notices, $this->members, $dunningSettings, $time, $l10n, ClubCurrencyStub::of($this)),
 			new TaskTargetResolver($this->members, $this->mandates, $this->assignments, $this->openItems),
 			$this->userManager,
 			$time,

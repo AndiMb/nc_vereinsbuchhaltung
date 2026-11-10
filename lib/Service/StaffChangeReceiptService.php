@@ -50,6 +50,7 @@ class StaffChangeReceiptService {
 		private IFactory $l10nFactory,
 		private IL10N $l10n,
 		private LoggerInterface $logger,
+		private ClubCurrency $currency,
 		?IUserConfig $userConfig = null,
 	) {
 		$this->userConfig = $userConfig ?? Server::get(IUserConfig::class);
@@ -115,7 +116,7 @@ class StaffChangeReceiptService {
 			]);
 		}
 		if ($after->getMonthlyAmountCents() !== $before['amountCents']) {
-			$what[] = $l->t('Der Vorstand hat Ihren Monatsbeitrag von %1$s € auf %2$s € geändert.', [
+			$what[] = $l->t('Der Vorstand hat Ihren Monatsbeitrag von %1$s auf %2$s geändert.', [
 				$this->euro($before['amountCents']),
 				$this->euro($after->getMonthlyAmountCents()),
 			]);
@@ -160,6 +161,6 @@ class StaffChangeReceiptService {
 	}
 
 	private function euro(int $cents): string {
-		return number_format($cents / 100, 2, ',', '.');
+		return $this->currency->format($cents);
 	}
 }

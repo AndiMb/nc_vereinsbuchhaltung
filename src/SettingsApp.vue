@@ -5,6 +5,8 @@
 				<SettingsClub
 					v-model:clubName="clubName"
 					v-model:brandColor="brandColor"
+					v-model:clubCurrency="clubCurrency"
+					:clubCurrencies="clubCurrencies"
 					:hasLogo="hasLogo"
 					:storageSaving="storageSaving"
 					:saveStorageSettings="saveSettings"
@@ -147,6 +149,7 @@ import { useAccounts } from './composables/useAccounts.js'
 import { useConfirm } from './composables/useConfirm.js'
 import { usePeriods } from './composables/usePeriods.js'
 import { usePermissions } from './composables/usePermissions.js'
+import { currencySettingsPayload, setClubCurrency } from './lib/clubCurrency.js'
 import { setClubTimeZone } from './lib/clubTime.js'
 import { errMsg } from './lib/format.js'
 import { withPasswordConfirmation } from './lib/passwordGate.js'
@@ -202,6 +205,11 @@ export default {
 			storagePath: '',
 			clubName: '',
 			brandColor: '',
+			// Vereinswährung (#202); savedCurrency ist der Stand des Servers –
+			// ändert er sich, lädt die Seite neu, damit alle Beträge passen.
+			clubCurrency: 'EUR',
+			savedCurrency: 'EUR',
+			clubCurrencies: [],
 			hasLogo: false,
 			// Betragsdarstellung in den Buchungslisten: 'plain' | 'signed'
 			amountDisplay: 'plain',
@@ -254,6 +262,10 @@ export default {
 				const { data } = await api.getSettings()
 				// „Heute“ der Unterseiten in der Vereinszone (#263); diese Seite hat keinen Initial State.
 				setClubTimeZone(data.club_time_zone)
+				setClubCurrency(data.club_currency)
+				this.clubCurrency = data.club_currency || 'EUR'
+				this.savedCurrency = this.clubCurrency
+				this.clubCurrencies = data.club_currencies || []
 				this.storageMode = data.storage_mode || 'appdata'
 				this.storageUser = data.storage_user || ''
 				this.storagePath = data.storage_path || 'Vereinsbuchhaltung/Belege'
@@ -283,6 +295,7 @@ export default {
 					storage_user: this.storageUser,
 					storage_path: this.storagePath || 'Vereinsbuchhaltung/Belege',
 					club_name: this.clubName,
+					...currencySettingsPayload(this.clubCurrency, this.savedCurrency),
 					brand_color: this.brandColor,
 					amount_display: this.amountDisplay,
 					statement_watch_user: this.statementWatchUser,
@@ -296,6 +309,11 @@ export default {
 				// Die Auswahl „intern" räumt den Nutzer serverseitig ab – die Felder
 				// sollen danach dasselbe zeigen wie der Server.
 				this.storageUser = data.storage_user || ''
+				// Neue Vereinswährung: SEPA-Abschnitte, Beschriftungen und Beträge hängen daran.
+				if (data.club_currency && data.club_currency !== this.savedCurrency) {
+					window.location.reload()
+					return
+				}
 				if (data.storage_backfilled > 0) {
 					showSuccess(this.t('Einstellungen gespeichert. {n} vorhandene Belege wurden dem Wächter-Ordner zugeordnet.', { n: data.storage_backfilled }))
 				} else {
@@ -304,6 +322,8 @@ export default {
 			} catch (e) {
 				const msg = (e?.response?.data?.message) || this.t('Speichern fehlgeschlagen (HTTP {status})', { status: e?.response?.status ?? this.t('Netzwerkfehler') })
 				showError(msg)
+				// Nichts gespeichert: die Währungsauswahl zeigt wieder den Stand des Servers.
+				this.clubCurrency = this.savedCurrency
 			} finally { this.storageSaving = false }
 		},
 

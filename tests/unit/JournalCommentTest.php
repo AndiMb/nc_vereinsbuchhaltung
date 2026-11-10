@@ -16,6 +16,7 @@ use OCA\Vereinsbuchhaltung\Service\AuditService;
 use OCA\Vereinsbuchhaltung\Service\EntryNumberService;
 use OCA\Vereinsbuchhaltung\Service\JournalService;
 use OCA\Vereinsbuchhaltung\Service\PeriodService;
+use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubCurrencyStub;
 use OCP\IL10N;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -64,6 +65,7 @@ class JournalCommentTest extends TestCase {
 			$this->createMock(EntryNumberService::class),
 			$transaction,
 			$l10n,
+			ClubCurrencyStub::of($this),
 		);
 	}
 

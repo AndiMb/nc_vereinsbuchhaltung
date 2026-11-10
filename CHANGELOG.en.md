@@ -15,6 +15,20 @@ Markdown headings as "[object Object]" since `marked` v18 (wrong renderer
 callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 **bold lead-in** at the start of a line instead, e.g. `**New:**`.
 
+## [Unreleased]
+
+**New:**
+- **Club currency** (#202): selectable under *Settings → Club* – euro, CHF,
+  GBP, DKK, SEK, NOK, PLN or CZK. The sign follows every amount in the
+  interface, reports, exports, invoices and emails; the number format stays
+  German (`1.234,50 CHF`). Bank statements without a currency take the club
+  currency.
+- SEPA direct debit and GiroCode exist only in euros: in other currencies
+  mandates, the direct debit run and the SEPA settings are hidden and
+  blocked. Switching away from the euro is blocked while mandates are in
+  force, a released collection is waiting to be submitted or assignments are
+  still paid by direct debit.
+
 ## [0.52.0] – 2026-11-09
 
 **New:**

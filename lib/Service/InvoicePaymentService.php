@@ -46,6 +46,7 @@ class InvoicePaymentService {
 		private TransactionRunner $transaction,
 		private AuditService $audit,
 		private IUserSession $userSession,
+		private ClubCurrency $currency,
 		private ?IL10N $l10n = null,
 	) {
 	}
@@ -184,12 +185,12 @@ class InvoicePaymentService {
 			throw new \InvalidArgumentException($this->msg('Die Rechnung ist bereits vollständig bezahlt.'));
 		}
 		if ($amount <= 0) {
-			throw new \InvalidArgumentException($this->msg('Der Betrag muss größer als 0 € sein.'));
+			throw new \InvalidArgumentException($this->msg('Der Betrag muss größer als %s sein.', [$this->currency->withSymbol('0')]));
 		}
 		if ($amount > $remaining) {
 			throw new \InvalidArgumentException($this->msg(
-				'Der Betrag (%1$s €) übersteigt den offenen Rest der Rechnung (%2$s €). Bitte den Umsatz aufteilen und den Rest einem anderen Konto zuordnen.',
-				[number_format($amount / 100, 2, ',', '.'), number_format($remaining / 100, 2, ',', '.')],
+				'Der Betrag (%1$s) übersteigt den offenen Rest der Rechnung (%2$s). Bitte den Umsatz aufteilen und den Rest einem anderen Konto zuordnen.',
+				[$this->currency->format($amount), $this->currency->format($remaining)],
 			));
 		}
 	}

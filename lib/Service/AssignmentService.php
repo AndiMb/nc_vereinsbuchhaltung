@@ -44,6 +44,7 @@ class AssignmentService {
 		private DueDateScheduleService $dueDateSchedule,
 		private ITimeFactory $time,
 		private IL10N $l10n,
+		private ClubCurrency $currency,
 		?ClubClock $clock = null,
 	) {
 		$this->clock = $clock ?? new ClubClock($this->time);
@@ -88,9 +89,10 @@ class AssignmentService {
 			throw new \InvalidArgumentException($this->l10n->t('Ende der Zuweisung darf nicht vor ihrem Beginn liegen.'));
 		}
 		$this->assertValidPaymentMethod($paymentMethod);
+		$this->assertDirectDebitAvailable($paymentMethod, null);
 		$effectiveMin = $minMonthlyAmountOverrideCents ?? $group->getMinMonthlyAmountCents();
 		if ($monthlyAmountCents < $effectiveMin) {
-			throw new \InvalidArgumentException($this->l10n->t('Der Monatsbeitrag darf die Untergrenze von %s € nicht unterschreiten.', [number_format($effectiveMin / 100, 2, ',', '.')]));
+			throw new \InvalidArgumentException($this->l10n->t('Der Monatsbeitrag darf die Untergrenze von %s nicht unterschreiten.', [$this->currency->format($effectiveMin)]));
 		}
 		$this->assertNoOverlap($memberId, $groupId, $validFrom, $validTo, null);
 
@@ -140,6 +142,7 @@ class AssignmentService {
 		$effectiveFrom = $this->effectiveFromFor($assignment);
 		if ($paymentMethod !== null) {
 			$this->assertValidPaymentMethod($paymentMethod);
+			$this->assertDirectDebitAvailable($paymentMethod, $assignment->getPaymentMethod());
 		}
 
 		if ($groupId !== null && $groupId !== $assignment->getGroupId()) {
@@ -396,6 +399,7 @@ class AssignmentService {
 			// Nur die Gültigkeit – die Zahlungsart ändert weder Periode noch Betrag, die Vorschau soll aber
 			// dieselbe Ablehnung liefern wie update() gleich.
 			$this->assertValidPaymentMethod($paymentMethod);
+			$this->assertDirectDebitAvailable($paymentMethod, $assignment->getPaymentMethod());
 		}
 		$groupChanged = $groupId !== null && $groupId !== $assignment->getGroupId();
 		$group = $this->groupMapper->find($groupChanged ? $groupId : $assignment->getGroupId());
@@ -444,13 +448,24 @@ class AssignmentService {
 	private function assertAtLeastMinimum(Assignment $assignment, ContributionGroup $group, int $monthlyAmountCents): void {
 		$effectiveMin = $assignment->effectiveMinMonthlyAmountCents($group);
 		if ($monthlyAmountCents < $effectiveMin) {
-			throw new \InvalidArgumentException($this->l10n->t('Der Monatsbeitrag darf die Untergrenze von %s € nicht unterschreiten.', [number_format($effectiveMin / 100, 2, ',', '.')]));
+			throw new \InvalidArgumentException($this->l10n->t('Der Monatsbeitrag darf die Untergrenze von %s nicht unterschreiten.', [$this->currency->format($effectiveMin)]));
 		}
 	}
 
 	private function assertValidInterval(ContributionGroup $group, int $intervalMonths): void {
 		if (!in_array($intervalMonths, $group->getAllowedIntervalsArray(), true)) {
 			throw new \InvalidArgumentException($this->l10n->t('Dieser Turnus ist für die gewählte Beitragsgruppe nicht erlaubt.'));
+		}
+	}
+
+	/**
+	 * Vereinswährung (#202): Lastschrift gibt es nur in Euro. Eine bestehende
+	 * Lastschrift-Zuweisung bleibt änderbar (Betrag, Turnus), solange die
+	 * Zahlungsart gleich bleibt – nur der Wechsel auf Lastschrift ist gesperrt.
+	 */
+	private function assertDirectDebitAvailable(string $paymentMethod, ?string $current): void {
+		if ($paymentMethod === Assignment::PAYMENT_METHOD_DIRECT_DEBIT && $current !== Assignment::PAYMENT_METHOD_DIRECT_DEBIT) {
+			$this->currency->assertSepaAvailable($this->l10n);
 		}
 	}
 

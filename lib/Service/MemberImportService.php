@@ -93,6 +93,7 @@ class MemberImportService {
 		private IL10N $l10n,
 		private ITimeFactory $time,
 		private IbanValidator $ibanValidator,
+		private ClubCurrency $currency,
 		?ClubClock $clock = null,
 	) {
 		$this->clock = $clock ?? new ClubClock($this->time);
@@ -245,6 +246,8 @@ class MemberImportService {
 		$errors = [];
 		if ($row['iban'] !== null) {
 			try {
+				// Vereinswährung (#202): eine IBAN-Zeile legt ein SEPA-Mandat an – nur in Euro.
+				$this->currency->assertSepaAvailable($this->l10n);
 				$this->ibanValidator->validate((string)$row['iban']);
 			} catch (\InvalidArgumentException $e) {
 				$errors[] = $e->getMessage();
@@ -260,7 +263,7 @@ class MemberImportService {
 				$errors[] = $this->l10n->t('Dieser Turnus ist für die gewählte Beitragsgruppe nicht erlaubt.');
 			}
 			if ((int)$row['amountCents'] < $group->getMinMonthlyAmountCents()) {
-				$errors[] = $this->l10n->t('Der Monatsbeitrag darf die Untergrenze von %s € nicht unterschreiten.', [number_format($group->getMinMonthlyAmountCents() / 100, 2, ',', '.')]);
+				$errors[] = $this->l10n->t('Der Monatsbeitrag darf die Untergrenze von %s nicht unterschreiten.', [$this->currency->format($group->getMinMonthlyAmountCents())]);
 			}
 		}
 		if ($errors !== []) {
@@ -361,7 +364,8 @@ class MemberImportService {
 			// (Spec §3.1 "Zeile ohne Mail landet auf ueberweisung") – bei einem
 			// verknüpften NC-Konto kann die aus dessen Kontodaten stammen, auch
 			// wenn die CSV-Spalte selbst leer war (siehe buildMember()).
-			$paymentMethod = $member->getEmail() !== null ? Assignment::PAYMENT_METHOD_DIRECT_DEBIT : Assignment::PAYMENT_METHOD_TRANSFER;
+			// Ohne Euro gibt es keine Lastschrift (#202).
+			$paymentMethod = $member->getEmail() !== null && $this->currency->isEuro() ? Assignment::PAYMENT_METHOD_DIRECT_DEBIT : Assignment::PAYMENT_METHOD_TRANSFER;
 			$intervalMonths = $this->intervalMonthsFor($row, $group);
 			$assignment = $this->assignments->create(
 				(int)$member->getId(),

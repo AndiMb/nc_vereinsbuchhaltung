@@ -6,6 +6,7 @@ namespace OCA\Vereinsbuchhaltung\Service\Export;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Service\ClubClock;
+use OCA\Vereinsbuchhaltung\Service\ClubCurrency;
 use OCA\Vereinsbuchhaltung\Service\Report\StructuredReportBuilder;
 use OCA\Vereinsbuchhaltung\Service\Report\StructuredReportService;
 use OCP\IAppConfig;
@@ -26,6 +27,7 @@ class GliederungsberichtRenderer {
 		private IAppConfig $config,
 		private IL10N $l10n,
 		private ClubClock $clock,
+		private ClubCurrency $currency,
 	) {
 	}
 
@@ -124,7 +126,7 @@ class GliederungsberichtRenderer {
 	private function cells(array $values): string {
 		$h = '';
 		foreach ($values as $v) {
-			$h .= '<td class="num">' . ($v === null ? '–' : ReportFormat::cents($v)) . '</td>';
+			$h .= '<td class="num">' . ($v === null ? '–' : ReportFormat::cents($v, $this->currency->symbol())) . '</td>';
 		}
 		return $h;
 	}

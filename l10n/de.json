@@ -36,10 +36,8 @@
         "Mit einem Klick auf die Schaltfläche sehen Sie den vollständigen Mandatstext und können zustimmen.": "Mit einem Klick auf die Schaltfläche siehst du den vollständigen Mandatstext und kannst zustimmen.",
         "Ihre Kontaktdaten wurden aktualisiert": "Deine Kontaktdaten wurden aktualisiert",
         "Ihre Kontaktdaten wurden soeben in der Vereinsbuchhaltung aktualisiert.": "Deine Kontaktdaten wurden soeben in der Vereinsbuchhaltung aktualisiert.",
-        "Ihr Monatsbeitrag wurde von %1$s € auf %2$s € geändert.": "Dein Monatsbeitrag wurde von %1$s € auf %2$s € geändert.",
         "Ihr Zahlungsturnus wurde von alle %1$d Monate auf alle %2$d Monate geändert.": "Dein Zahlungsturnus wurde von alle %1$d Monate auf alle %2$d Monate geändert.",
         "Ihr Beitrag wurde geändert": "Dein Beitrag wurde geändert",
-        "Der Vorstand hat Ihren Monatsbeitrag von %1$s € auf %2$s € geändert.": "Der Vorstand hat deinen Monatsbeitrag von %1$s € auf %2$s € geändert.",
         "Der Vorstand hat Ihren Zahlungsturnus von %1$s auf %2$s geändert.": "Der Vorstand hat deinen Zahlungsturnus von %1$s auf %2$s geändert.",
         "Der Vorstand hat Ihre Beitragsgruppe von „%1$s\" auf „%2$s\" gewechselt.": "Der Vorstand hat deine Beitragsgruppe von „%1$s\" auf „%2$s\" gewechselt.",
         "Sie haben ein SEPA-Lastschriftmandat elektronisch erteilt (Referenz %s).": "Du hast ein SEPA-Lastschriftmandat elektronisch erteilt (Referenz %s).",
@@ -84,10 +82,8 @@
         "Neue Auslagen lassen sich derzeit nicht einreichen. Ihre bisherigen Anträge sehen Sie weiterhin.": "Neue Auslagen lassen sich derzeit nicht einreichen. Deine bisherigen Anträge siehst du weiterhin.",
         "Mit „Auslage einreichen“ legen Sie den ersten Antrag an.": "Mit „Auslage einreichen“ legst du den ersten Antrag an.",
         "Ihre Auslage wurde freigegeben": "Deine Auslage wurde freigegeben",
-        "Ihrem Antrag auf Erstattung von %1$s € wurde stattgegeben: %2$s": "Deinem Antrag auf Erstattung von %1$s € wurde stattgegeben: %2$s",
         "Der Betrag wird in Kürze auf Ihr angegebenes Konto überwiesen. Sie bekommen eine weitere Nachricht, sobald die Überweisung vermerkt ist.": "Der Betrag wird in Kürze auf dein angegebenes Konto überwiesen. Du bekommst eine weitere Nachricht, sobald die Überweisung vermerkt ist.",
         "Ihre Auslage wurde abgelehnt": "Deine Auslage wurde abgelehnt",
-        "Ihr Antrag auf Erstattung von %1$s € wurde abgelehnt: %2$s": "Dein Antrag auf Erstattung von %1$s € wurde abgelehnt: %2$s",
         "Bei Fragen wenden Sie sich bitte an den Vorstand.": "Bei Fragen wende dich bitte an den Vorstand.",
         "Ihre Auslage wurde erstattet": "Deine Auslage wurde erstattet",
         "Der letzte Beleg lässt sich nicht entfernen. Ziehen Sie den Antrag zurück oder laden Sie zuerst einen anderen Beleg hoch.": "Der letzte Beleg lässt sich nicht entfernen. Ziehe den Antrag zurück oder lade zuerst einen anderen Beleg hoch.",
@@ -103,7 +99,11 @@
         "Laden Sie den Beleg hoch und nennen Sie den Betrag. Die Verwalter prüfen den Antrag, danach überweist der Verein.": "Lade den Beleg hoch und nenne den Betrag. Die Verwalter prüfen den Antrag, danach überweist der Verein.",
         "Der Verein überweist an diesen Kontoinhaber. Soll das Geld auf das Konto einer anderen Person gehen, tragen Sie deren Namen ein.": "Der Verein überweist an diesen Kontoinhaber. Soll das Geld auf das Konto einer anderen Person gehen, trage deren Namen ein.",
         "Mehrere Rechnungen? Reichen Sie jede als eigenen Antrag ein. Mit „Einreichen und weitere erfassen“ bleiben Kontoverbindung und Erklärung ausgefüllt.": "Mehrere Rechnungen? Reiche jede als eigenen Antrag ein. Mit „Einreichen und weitere erfassen“ bleiben Kontoverbindung und Erklärung ausgefüllt.",
-        "Aus Ihrem SEPA-Mandat übernommen – bei Bedarf ändern Sie sie hier.": "Aus deinem SEPA-Mandat übernommen – bei Bedarf änderst du sie hier."
+        "Aus Ihrem SEPA-Mandat übernommen – bei Bedarf ändern Sie sie hier.": "Aus deinem SEPA-Mandat übernommen – bei Bedarf änderst du sie hier.",
+        "Ihrem Antrag auf Erstattung von %1$s wurde stattgegeben: %2$s": "Deinem Antrag auf Erstattung von %1$s wurde stattgegeben: %2$s",
+        "Ihr Antrag auf Erstattung von %1$s wurde abgelehnt: %2$s": "Dein Antrag auf Erstattung von %1$s wurde abgelehnt: %2$s",
+        "Ihr Monatsbeitrag wurde von %1$s auf %2$s geändert.": "Dein Monatsbeitrag wurde von %1$s auf %2$s geändert.",
+        "Der Vorstand hat Ihren Monatsbeitrag von %1$s auf %2$s geändert.": "Der Vorstand hat deinen Monatsbeitrag von %1$s auf %2$s geändert."
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

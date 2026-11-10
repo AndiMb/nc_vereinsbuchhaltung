@@ -27,7 +27,7 @@
 				</label>
 			</div>
 			<div class="vbh-form">
-				<label>{{ t('Monatsbeitrag (€)') }}
+				<label>{{ t('Monatsbeitrag ({currency})', { currency: currencySymbol() }) }}
 					<AmountInput ref="amountInput" v-model="form.monthlyAmount" class="vbh-short" />
 				</label>
 				<label>{{ t('Turnus') }}
@@ -39,7 +39,7 @@
 				</label>
 				<label v-if="!isGroupMode">{{ t('Zahlungsart') }}
 					<select v-model="form.paymentMethod">
-						<option value="direct_debit">{{ t('Lastschrift') }}</option>
+						<option v-if="isEuro() || assignment?.paymentMethod === 'direct_debit'" value="direct_debit">{{ t('Lastschrift') }}</option>
 						<option value="ueberweisung">{{ t('Überweisung') }}</option>
 					</select>
 				</label>
@@ -87,7 +87,8 @@ import NcModal from '@nextcloud/vue/components/NcModal'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import AmountInput from './AmountInput.vue'
 import api from '../api.js'
-import { errMsg, formatDate, formatEuro } from '../lib/format.js'
+import { currencySymbol, isEuro } from '../lib/clubCurrency.js'
+import { errMsg, formatCurrency, formatDate } from '../lib/format.js'
 import { intervalLabel } from '../lib/frequency.js'
 import { focusOnOpen } from '../lib/modalFocus.js'
 
@@ -209,9 +210,11 @@ export default {
 	beforeUnmount() { clearTimeout(this.timer) },
 
 	methods: {
+		isEuro,
+		currencySymbol,
 		intervalLabel,
 		formatDate,
-		euro(cents) { return formatEuro(cents / 100) },
+		euro(cents) { return formatCurrency(cents / 100) },
 
 		/**
 		 * Wechselt die Gruppe, gelten ihre Regeln: ein Turnus, den sie nicht kennt, wird durch ihren Standard-Turnus
