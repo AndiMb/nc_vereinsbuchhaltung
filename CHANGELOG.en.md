@@ -29,6 +29,39 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   force, a released collection is waiting to be submitted or assignments are
   still paid by direct debit.
 
+## [0.52.0] – 2026-11-09
+
+**New:**
+- **Test sending** of invoices and reminders ([#216](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/216)): "Send test to me" sends
+  the email with "[TEST]" in the subject to your own address. The invoice stays
+  unchanged. Drafts: "Test send …" with a preview PDF.
+- **Accounts:** short name and description ([#201](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/201)). The short name appears in
+  selection lists, the journal and the account tree; reports show the full name.
+- **Long club names on invoices** ([#238](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/238)): optional "Name on invoices" and
+  "Account holder"; the PDF wraps long names cleanly.
+- **Mobile:** compact header that collapses when scrolling; the booking list
+  gets much more room.
+
+**Changed:**
+- **A member's link to a Nextcloud account** only counts once the member has
+  confirmed it via an email link; existing links stay confirmed ([#295](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/295)).
+- **Direct debit run:** items with a revoked or suspended mandate show up as a
+  deviation; submitting then requires confirmation ([#302](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/302)).
+
+**Security:**
+- Several smaller safeguards ([#295](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/295)–[#307](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/307)): roles of deleted users and
+  groups expire, closed years stay locked, anonymisation is complete, a direct
+  debit run cannot be released twice, uploads and imports are limited against
+  manipulated files.
+
+**Fixed:**
+- Nextcloud's **integrity check** reported an extra file in
+  `vendor/horstoeko/invoicesuite` after the first e-invoice; the package now
+  includes it.
+
+**Update note:** migrations run automatically (new columns for accounts and
+account links, an index for the direct debit run).
+
 ## [0.51.0] – 2026-11-06
 
 **New:**
