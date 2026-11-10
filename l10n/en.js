@@ -4398,5 +4398,12 @@ OC.L10N.register("vereinsbuchhaltung", {
 	"deutlich unter Plan": "well below plan",
 	"unter Plan": "below plan",
 	"ungeplant": "unplanned",
-	"ohne Werte": "no values"
+	"ohne Werte": "no values",
+	"Ist {actual} von Soll {plan} ({percent} %)": "Actual {actual} of plan {plan} ({percent} %)",
+	"Ist {actual}, Soll {plan}": "Actual {actual}, plan {plan}",
+	"Ausschöpfung": "Utilisation",
+	"Zeitanteiliges Soll": "Time-proportional plan",
+	"Hochrechnung": "Forecast",
+	"Lineare Fortschreibung; saisonale Posten verzerren.": "Linear projection; seasonal items distort it.",
+	"Keine Konten in dieser Gruppe.": "No accounts in this group."
 }, "nplurals=2; plural=(n != 1);");

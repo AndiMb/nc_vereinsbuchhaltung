@@ -4398,5 +4398,12 @@ OC.L10N.register("vereinsbuchhaltung", {
 	"deutlich unter Plan": "ruim onder plan",
 	"unter Plan": "onder plan",
 	"ungeplant": "niet gepland",
-	"ohne Werte": "geen waarden"
+	"ohne Werte": "geen waarden",
+	"Ist {actual} von Soll {plan} ({percent} %)": "Werkelijk {actual} van begroot {plan} ({percent} %)",
+	"Ist {actual}, Soll {plan}": "Werkelijk {actual}, begroot {plan}",
+	"Ausschöpfung": "Benutting",
+	"Zeitanteiliges Soll": "Tijdsevenredig begroot",
+	"Hochrechnung": "Prognose",
+	"Lineare Fortschreibung; saisonale Posten verzerren.": "Lineaire extrapolatie; seizoensgebonden posten vertekenen dit.",
+	"Keine Konten in dieser Gruppe.": "Geen rekeningen in deze groep."
 }, "nplurals=2; plural=(n != 1);");
