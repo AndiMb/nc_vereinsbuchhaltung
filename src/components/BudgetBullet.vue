@@ -71,6 +71,12 @@ export default {
 	background-color: var(--vbh-visual-tone, var(--color-text-maxcontrast));
 }
 
+/* Ungeplante Ausgabe: gleicher Ton wie „überschritten“, aber schraffiert –
+   unterscheidbar auch ohne Farbe. */
+.vbh-visual-tone--serious .vbh-visual-bullet__fill {
+	background-image: repeating-linear-gradient(45deg, var(--color-main-background) 0 2px, transparent 2px 5px);
+}
+
 .vbh-visual-bullet__over {
 	position: absolute;
 	top: 0;
@@ -90,13 +96,13 @@ export default {
 	background-color: var(--color-main-text);
 }
 
-.vbh-visual-tone--good { --vbh-visual-tone: var(--color-success); }
+.vbh-visual-tone--good { --vbh-visual-tone: var(--color-element-success); }
 
-.vbh-visual-tone--warn { --vbh-visual-tone: var(--color-warning); }
+.vbh-visual-tone--warn { --vbh-visual-tone: var(--color-element-warning); }
 
-.vbh-visual-tone--crit { --vbh-visual-tone: var(--color-error); }
+.vbh-visual-tone--crit { --vbh-visual-tone: var(--color-element-error); }
 
-.vbh-visual-tone--serious { --vbh-visual-tone: var(--color-error); }
+.vbh-visual-tone--serious { --vbh-visual-tone: var(--color-element-error); }
 
 .vbh-visual-tone--none { --vbh-visual-tone: var(--color-text-maxcontrast); }
 </style>

@@ -134,11 +134,11 @@
 					</p>
 					<template v-else>
 						<div v-if="!isMobile" class="vbh-visual-row vbh-visual-row--head" aria-hidden="true">
-							<span>{{ t('Bezeichnung') }}</span>
-							<span>{{ t('Ampel') }}</span>
-							<span>{{ t('Ist zu Plan') }}</span>
-							<span class="vbh-visual-row__num">{{ t('Ist') }}</span>
-							<span class="vbh-visual-row__num">{{ t('Plan') }}</span>
+							<span class="vbh-visual-row__label">{{ t('Bezeichnung') }}</span>
+							<span class="vbh-visual-row__status">{{ t('Ampel') }}</span>
+							<span class="vbh-visual-row__bar">{{ t('Ist zu Plan') }}</span>
+							<span class="vbh-visual-row__num vbh-visual-row__actual">{{ t('Ist') }}</span>
+							<span class="vbh-visual-row__num vbh-visual-row__plan">{{ t('Plan') }}</span>
 						</div>
 						<ul class="vbh-visual-tree">
 							<li
@@ -445,17 +445,18 @@ export default {
 <style scoped>
 .vbh-visual { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 
-.vbh-visual-controls { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 12px 24px; }
+.vbh-visual-controls { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px 24px; }
 
 .vbh-visual-asof { display: flex; flex-direction: column; gap: 2px; min-width: min(280px, 100%); }
 
 .vbh-visual-asof__meaning { margin: 0; }
 
-.vbh-visual-basis { display: flex; flex-direction: column; gap: 4px; }
+/* Beschriftung neben dem Umschalter statt darüber: spart auf dem Handy eine Zeile. */
+.vbh-visual-basis { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
 
 .vbh-visual-basis__label { font-weight: 600; }
 
-.vbh-visual-basis__hint { margin: 0; max-width: 40em; }
+.vbh-visual-basis__hint { flex-basis: 100%; margin: 0; max-width: 40em; }
 
 .vbh-visual-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
 
@@ -472,7 +473,9 @@ export default {
 	background-color: var(--color-main-background);
 }
 
-.vbh-visual-breakdown { min-width: 0; }
+/* Container-Abfrage statt eines weiteren JS-Umbruchpunkts: der Aufriss
+   richtet sich nach seiner eigenen Breite (isMobile bleibt der einzige). */
+.vbh-visual-breakdown { min-width: 0; container-type: inline-size; }
 
 .vbh-visual-breakdown__title { margin: 0 0 8px; font-weight: 600; }
 
@@ -495,12 +498,26 @@ export default {
 .vbh-visual-row {
 	display: grid;
 	grid-template-columns: minmax(0, 1fr) 10.5em minmax(60px, 10em) 7em 7em;
+	grid-template-areas: "label status bar actual plan";
 	align-items: center;
 	gap: 4px 12px;
 	padding: 6px 0;
 }
 
 .vbh-visual-row--head { padding: 4px 0; color: var(--color-text-maxcontrast); font-size: 0.9em; border-bottom: 1px solid var(--color-border-dark); }
+
+/* Zu schmal für fünf Spalten: der Balken weicht in eine eigene Zeile aus,
+   die Bezeichnung behält ihren Platz. */
+@container (max-width: 760px) {
+	.vbh-visual-row {
+		grid-template-columns: minmax(0, 1fr) auto 7em 7em;
+		grid-template-areas:
+			"label status actual plan"
+			"bar bar bar bar";
+	}
+
+	.vbh-visual-row--head .vbh-visual-row__bar { display: none; }
+}
 
 .vbh-visual--mobile .vbh-visual-row {
 	grid-template-columns: minmax(0, 1fr) auto;
@@ -510,17 +527,19 @@ export default {
 		"actual plan";
 }
 
-.vbh-visual--mobile .vbh-visual-row__label { grid-area: label; }
+.vbh-visual-row__label { grid-area: label; }
 
-.vbh-visual--mobile .vbh-visual-row__status { grid-area: status; }
+.vbh-visual-row__status { grid-area: status; }
 
-.vbh-visual--mobile .vbh-visual-row__bar { grid-area: bar; }
+.vbh-visual-row__bar { grid-area: bar; }
 
-.vbh-visual--mobile .vbh-visual-row__actual { grid-area: actual; text-align: start; }
+.vbh-visual-row__actual { grid-area: actual; }
 
-.vbh-visual--mobile .vbh-visual-row__plan { grid-area: plan; }
+.vbh-visual-row__plan { grid-area: plan; }
 
-.vbh-visual-row__label { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; min-width: 0; overflow-wrap: anywhere; }
+.vbh-visual--mobile .vbh-visual-row__actual { text-align: start; }
+
+.vbh-visual-row__label { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; min-width: 0; overflow-wrap: break-word; hyphens: auto; }
 
 .vbh-visual-row__toggle {
 	display: inline-flex;
@@ -539,8 +558,7 @@ export default {
 
 .vbh-visual-row__text--account { padding-inline-start: 22px; }
 
-.vbh-visual-row__status { min-width: 0; }
-
+.vbh-visual-row__status,
 .vbh-visual-row__bar { min-width: 0; }
 
 .vbh-visual-row__num { text-align: end; font-variant-numeric: tabular-nums; white-space: nowrap; }

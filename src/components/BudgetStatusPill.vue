@@ -52,13 +52,13 @@ export default {
 	font-weight: 700;
 }
 
-.vbh-visual-tone--good { --vbh-visual-tone: var(--color-success); }
+.vbh-visual-tone--good { --vbh-visual-tone: var(--color-element-success); }
 
-.vbh-visual-tone--warn { --vbh-visual-tone: var(--color-warning); }
+.vbh-visual-tone--warn { --vbh-visual-tone: var(--color-element-warning); }
 
-.vbh-visual-tone--crit { --vbh-visual-tone: var(--color-error); }
+.vbh-visual-tone--crit { --vbh-visual-tone: var(--color-element-error); }
 
-.vbh-visual-tone--serious { --vbh-visual-tone: var(--color-error); border-style: dashed; }
+.vbh-visual-tone--serious { --vbh-visual-tone: var(--color-element-error); border-style: dashed; }
 
 .vbh-visual-tone--none { --vbh-visual-tone: var(--color-text-maxcontrast); }
 </style>

@@ -77,7 +77,7 @@ export default {
 
 .vbh-visual-dev__entry--link:hover { background-color: var(--color-background-hover); }
 
-.vbh-visual-dev__label { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+.vbh-visual-dev__label { flex: 1 1 auto; min-width: 0; overflow-wrap: break-word; hyphens: auto; }
 
 .vbh-visual-dev__amount { flex: 0 0 auto; font-variant-numeric: tabular-nums; font-weight: 600; }
 </style>

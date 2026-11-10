@@ -96,9 +96,39 @@ describe('visibleRows', () => {
 		expect(visibleRows(withLine, new Set([0]), null, 'year').map((e) => e.index)).toEqual([0, 1, 2])
 	})
 
-	it('filtert auf Art und Stufe der Basis, Überschriften bleiben', () => {
+	it('filtert auf Art und Stufe der Basis, Überschriften mit Treffer bleiben', () => {
 		const out = visibleRows(rows, new Set(), { nature: 'expense', level: 'crit' }, 'year')
 		expect(out.map((e) => e.index)).toEqual([0, 1, 2])
+	})
+
+	it('lässt Überschriften ohne Treffer weg', () => {
+		expect(visibleRows(rows, new Set(), { nature: 'income', level: 'good' }, 'year')).toEqual([])
+	})
+
+	it('zeigt jedes Konto nur beim ersten Auftreten', () => {
+		const twice = [
+			{ kind: 'heading', depth: 0, label: 'Abschnitt' },
+			{ kind: 'account', depth: 1, accountId: 7, label: 'A', nature: 'expense', status: status('crit') },
+			{ kind: 'heading', depth: 0, label: 'Zusammenfassung' },
+			{ kind: 'account', depth: 1, accountId: 7, label: 'A', nature: 'expense', status: status('crit') },
+			{ kind: 'account', depth: 1, accountId: 8, label: 'B', nature: 'expense', status: status('crit') },
+		]
+		expect(visibleRows(twice, new Set(), { nature: 'expense', level: 'crit' }, 'year').map((e) => e.index)).toEqual([0, 1, 2, 4])
+		const onlyTwice = twice.slice(0, 4)
+		expect(visibleRows(onlyTwice, new Set(), { nature: 'expense', level: 'crit' }, 'year').map((e) => e.index)).toEqual([0, 1])
+	})
+
+	it('behält die Vorfahren einer tieferen Überschrift mit Treffer', () => {
+		const nested = [
+			{ kind: 'heading', depth: 0, label: 'Einnahmen' },
+			{ kind: 'heading', depth: 1, label: 'Ideeller Bereich' },
+			{ kind: 'account', depth: 2, accountId: 1, label: 'A', nature: 'income', status: status('good') },
+			{ kind: 'heading', depth: 1, label: 'Projekte' },
+			{ kind: 'account', depth: 2, accountId: 2, label: 'B', nature: 'income', status: status('crit') },
+			{ kind: 'heading', depth: 0, label: 'Ausgaben' },
+			{ kind: 'account', depth: 1, accountId: 3, label: 'C', nature: 'expense', status: status('crit') },
+		]
+		expect(visibleRows(nested, new Set(), { nature: 'income', level: 'crit' }, 'year').map((e) => e.index)).toEqual([0, 3, 4])
 	})
 
 	it('nutzt die gewählte Basis', () => {

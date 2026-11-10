@@ -81,11 +81,36 @@ export function hasChildren(rows, index) {
 }
 
 /**
+ * Steht unter der Überschrift (bis zur nächsten Überschrift gleicher oder
+ * höherer Ebene) eine der Zeilen aus `matched`?
+ *
+ * @param {Array<object>} rows Berichtszeilen
+ * @param {number} index Index der Überschrift
+ * @param {Set<number>} matched Indizes der Treffer
+ * @return {boolean} ja/nein
+ */
+function headingHasMatch(rows, index, matched) {
+	const depth = rows[index].depth
+	for (let i = index + 1; i < rows.length; i++) {
+		if (rows[i].kind === 'heading' && rows[i].depth <= depth) {
+			return false
+		}
+		if (matched.has(i)) {
+			return true
+		}
+	}
+	return false
+}
+
+/**
  * Sichtbare Zeilen mit ihrem Originalindex.
  *
  * Ohne Filter blenden zugeklappte Kontozeilen (Index in `collapsed`) ihre
  * tieferen Kontozeilen aus. Mit Filter ({ nature, level }) bleiben nur
- * Überschriften und passende Kontozeilen; Zuklappen gilt dann nicht.
+ * passende Kontozeilen, jedes Konto (`accountId`) nur beim ersten Auftreten
+ * – eine Vorlage darf ein Konto in mehreren Abschnitten führen –, dazu die
+ * Überschriften, unter denen (bis zur nächsten Überschrift gleicher oder
+ * höherer Ebene) eine davon steht. Zuklappen gilt dann nicht.
  *
  * @param {Array<object>} rows Berichtszeilen
  * @param {Set<number>} collapsed Indizes zugeklappter Kontozeilen
@@ -96,11 +121,24 @@ export function hasChildren(rows, index) {
 export function visibleRows(rows, collapsed, filter, basis) {
 	const out = []
 	if (filter) {
+		const seen = new Set()
+		const matched = new Set()
 		rows.forEach((row, index) => {
-			if (row.kind === 'heading'
-				|| (row.kind === 'account'
-					&& row.nature === filter.nature
-					&& row.status?.[basis]?.level === filter.level)) {
+			if (row.kind !== 'account'
+				|| row.nature !== filter.nature
+				|| row.status?.[basis]?.level !== filter.level) {
+				return
+			}
+			if (row.accountId !== undefined && row.accountId !== null) {
+				if (seen.has(row.accountId)) {
+					return
+				}
+				seen.add(row.accountId)
+			}
+			matched.add(index)
+		})
+		rows.forEach((row, index) => {
+			if (matched.has(index) || (row.kind === 'heading' && headingHasMatch(rows, index, matched))) {
 				out.push({ row, index })
 			}
 		})

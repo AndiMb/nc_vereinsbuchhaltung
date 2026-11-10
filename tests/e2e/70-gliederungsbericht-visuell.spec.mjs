@@ -147,11 +147,11 @@ test.describe('Gliederungsbericht visuell', () => {
 		await expenseDist.getByRole('button', { name: 'überschritten: 1' }).click()
 		await expect(breakdown.locator('.vbh-visual-filter')).toContainText('Ausgaben – überschritten')
 		// Die Vorlage führt das Konto zweimal (Abschnitt und Zusammenfassung);
-		// jede gezeigte Kontozeile muss dieses Konto sein.
+		// der Filter zeigt es nur einmal.
 		const accounts = breakdown.locator('.vbh-visual-row__text--account, .vbh-visual-row__toggle')
 		await expect(accounts.first()).toBeVisible()
 		const shown = await accounts.allInnerTexts()
-		expect(shown.length).toBeGreaterThan(0)
+		expect(shown.length, shown.join(' | ')).toBe(1)
 		expect(shown.every((text) => text.trim() === `${EXPENSE_ACCOUNT} Raum- / Mietkosten`), shown.join(' | ')).toBe(true)
 		await expect(breakdown).not.toContainText('Mitgliedsbeiträge')
 

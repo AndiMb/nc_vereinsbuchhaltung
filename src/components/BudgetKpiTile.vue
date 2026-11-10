@@ -120,9 +120,21 @@ export default {
 	margin: 0;
 }
 
-.vbh-visual-tile__rows dt { color: var(--color-text-maxcontrast); }
+/* Nextcloud formt dt/dd global (inline-block, padding 12px, dt 130px breit
+   und rechtsbündig) – hier zurücksetzen wie .vbh-dl in styles.css. */
+.vbh-visual-tile__rows dt,
+.vbh-visual-tile__rows dd {
+	display: block;
+	width: auto;
+	margin: 0;
+	padding: 0;
+	line-height: 1.5;
+	white-space: normal;
+}
 
-.vbh-visual-tile__rows dd { margin: 0; text-align: end; font-variant-numeric: tabular-nums; }
+.vbh-visual-tile__rows dt { color: var(--color-text-maxcontrast); text-align: start; }
+
+.vbh-visual-tile__rows dd { text-align: end; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
 .vbh-visual-tile__hint { margin: 0; }
 </style>

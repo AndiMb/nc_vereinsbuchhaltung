@@ -43,8 +43,7 @@ final class BudgetStatus {
 	 * @param int $actual Ist in Cent
 	 * @param float $factor Anteil des Plans, der zum Stand fällig ist
 	 * @param array<string, int|float> $thresholds Schwellen in Prozent (siehe DEFAULTS)
-	 * @return array{level:string, ratio:?float} ratio = Ist ÷ Bezug, bei
-	 *         Ergebnis, ohne Plan und ohne Vergleich null
+	 * @return array{level:string, ratio:?float} ratio = Ist ÷ Bezug (null bei Ergebnis, ohne Plan und ohne Vergleich)
 	 */
 	public static function of(string $nature, int $plan, int $actual, float $factor, array $thresholds): array {
 		$t = $thresholds + self::DEFAULTS;
