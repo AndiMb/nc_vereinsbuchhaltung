@@ -82,6 +82,7 @@ return [
 		['name' => 'reportTemplate#update', 'url' => '/api/report-templates/{id}', 'verb' => 'PUT'],
 		['name' => 'reportTemplate#destroy', 'url' => '/api/report-templates/{id}', 'verb' => 'DELETE'],
 		['name' => 'reportTemplate#evaluate', 'url' => '/api/report/structured', 'verb' => 'GET'],
+		['name' => 'reportTemplate#visual', 'url' => '/api/report/structured/visual', 'verb' => 'GET'],
 
 		// Finanzplan / Budget
 		['name' => 'budget#index', 'url' => '/api/budget', 'verb' => 'GET'],

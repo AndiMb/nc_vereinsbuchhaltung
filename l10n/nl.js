@@ -3094,6 +3094,7 @@ OC.L10N.register("vereinsbuchhaltung", {
 	"(Summenzeile)": "(totaalregel)",
 	"(Gesamtzeile)": "(eindtotaal)",
 	"Vorlage nicht gefunden": "Sjabloon niet gevonden",
+	"Ungültiger Stand": "Ongeldige peildatum",
 	"Stand: %s": "Stand per: %s",
 	"Konto nicht mehr aktiv": "Rekening niet meer actief",
 	"Konto ist in mehreren Abschnitten gezählt": "Rekening wordt in meerdere secties geteld",

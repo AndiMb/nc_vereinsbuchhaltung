@@ -8,6 +8,7 @@ use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Service\Export\GliederungsberichtRenderer;
 use OCA\Vereinsbuchhaltung\Service\Report\ReportTemplateService;
 use OCA\Vereinsbuchhaltung\Service\Report\StructuredReportService;
+use OCA\Vereinsbuchhaltung\Service\Report\VisualReportService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
@@ -30,6 +31,7 @@ class ReportTemplateController extends Controller {
 		IRequest $request,
 		private ReportTemplateService $templates,
 		private StructuredReportService $structured,
+		private VisualReportService $visualReport,
 		private GliederungsberichtRenderer $renderer,
 		private IL10N $l10n,
 	) {
@@ -104,6 +106,43 @@ class ReportTemplateController extends Controller {
 			'template' => $report['template'],
 			'period' => ['id' => (int)$p->getId(), 'label' => $p->getLabel()],
 			'columns' => $report['columns'],
+			'rows' => $report['rows'],
+			'warnings' => array_map(fn (array $w): array => $w + ['message' => $this->renderer->warning($w)], $report['warnings']),
+			'hasSpheres' => $report['hasSpheres'],
+		]);
+	}
+
+	/**
+	 * Die visuelle Auswertung (Plan gegen Ist bis zum gewählten Stand).
+	 *
+	 * @param ?string $asOf `YYYY-MM` oder `current`; leer = Vorgabe
+	 */
+	#[NoAdminRequired]
+	public function visual(string $template, ?int $period = null, ?string $asOf = null): DataResponse {
+		$userId = $this->userId();
+		$found = $this->templates->find($userId, $template);
+		if ($found === null) {
+			return $this->notFound();
+		}
+		try {
+			$report = $this->visualReport->build($userId, $found, $period, $asOf === '' ? null : $asOf);
+		} catch (\InvalidArgumentException) {
+			return new DataResponse(['message' => $this->l10n->t('Ungültiger Stand')], Http::STATUS_UNPROCESSABLE_ENTITY);
+		}
+		$p = $report['period'];
+		return new DataResponse([
+			'template' => $report['template'],
+			'period' => [
+				'id' => (int)$p->getId(),
+				'label' => $p->getLabel(),
+				'startDate' => $p->getStartDate(),
+				'endDate' => $p->getEndDate(),
+			],
+			'asOf' => $report['asOf'],
+			'thresholds' => $report['thresholds'],
+			'kpis' => $report['kpis'],
+			'distribution' => $report['distribution'],
+			'deviations' => $report['deviations'],
 			'rows' => $report['rows'],
 			'warnings' => array_map(fn (array $w): array => $w + ['message' => $this->renderer->warning($w)], $report['warnings']),
 			'hasSpheres' => $report['hasSpheres'],

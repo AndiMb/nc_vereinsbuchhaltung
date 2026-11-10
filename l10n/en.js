@@ -3099,6 +3099,7 @@ OC.L10N.register("vereinsbuchhaltung", {
 	"(Summenzeile)": "(total line)",
 	"(Gesamtzeile)": "(grand total)",
 	"Vorlage nicht gefunden": "Template not found",
+	"Ungültiger Stand": "Invalid as-of date",
 	"Stand: %s": "As of: %s",
 	"Konto nicht mehr aktiv": "Account no longer active",
 	"Konto ist in mehreren Abschnitten gezählt": "Account is counted in several sections",
