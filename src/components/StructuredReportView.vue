@@ -1,17 +1,17 @@
 <template>
 	<div class="vbh-structured">
 		<div class="vbh-sectionhead">
-			<h4>{{ t('Gliederungsbericht') }}{{ report ? ' ' + report.period.label : '' }}</h4>
+			<h4>{{ t('Gliederungsbericht') }}{{ headPeriod ? ' ' + headPeriod.label : '' }}</h4>
 			<div class="vbh-structured-actions">
 				<a
-					v-if="selected"
+					v-if="selected && view === 'table'"
 					:href="printUrl"
 					target="_blank"
 					rel="noopener"
 					class="vbh-export-btn"
 					:title="t('Druckfertiger Gliederungsbericht (öffnet in neuem Tab, dort drucken oder als PDF speichern)')"><NcIconSvgWrapper :path="mdiPrinter" :size="16" inline /> {{ t('Drucken / PDF') }}</a>
 				<a
-					v-if="selected"
+					v-if="selected && view === 'table'"
 					:href="csvUrl"
 					download
 					class="vbh-export-btn"
@@ -31,6 +31,28 @@
 					label="label"
 					:inputLabel="t('Vorlage')"
 					@update:modelValue="selectTemplate($event && $event.id)" />
+			</div>
+			<div
+				v-if="templates.length"
+				class="vbh-segmented vbh-structured-view"
+				role="group"
+				:aria-label="t('Darstellung des Gliederungsberichts')">
+				<button
+					type="button"
+					class="vbh-segmented-item"
+					:class="{ active: view === 'table' }"
+					:aria-pressed="view === 'table' ? 'true' : 'false'"
+					@click="$emit('update:view', 'table')">
+					{{ t('Tabelle') }}
+				</button>
+				<button
+					type="button"
+					class="vbh-segmented-item"
+					:class="{ active: view === 'visual' }"
+					:aria-pressed="view === 'visual' ? 'true' : 'false'"
+					@click="$emit('update:view', 'visual')">
+					{{ t('Visuell') }}
+				</button>
 			</div>
 			<template v-if="canWrite">
 				<NcButton variant="secondary" @click="openNew">
@@ -85,59 +107,69 @@
 			</template>
 		</NcEmptyContent>
 
-		<NcNoteCard v-if="report && selected && !report.hasSpheres" type="info">
-			<p>{{ t('Noch kein Einnahmen- oder Ausgabenkonto hat eine Sphäre. Die Standardvorlagen trennen danach den ideellen Bereich von den Projekten – bis dahin steht alles unter „Ohne Sphäre“.') }}</p>
-			<NcButton v-if="canWrite" variant="secondary" @click="$emit('open-spheres')">
-				{{ t('Sphären zuordnen') }}
-			</NcButton>
-		</NcNoteCard>
-		<NcNoteCard v-for="w in (report && selected ? report.warnings : [])" :key="w.code" type="warning">
-			{{ w.message }}
-		</NcNoteCard>
+		<StructuredReportVisual
+			v-if="view === 'visual' && selected"
+			:templateId="templateId"
+			:periodId="selectedPeriodId"
+			:refreshKey="visualRefreshKey"
+			:isMobile="isMobile"
+			@loaded="visualPeriod = $event"
+			@openSpheres="$emit('open-spheres')" />
+		<template v-else-if="view === 'table'">
+			<NcNoteCard v-if="report && selected && !report.hasSpheres" type="info">
+				<p>{{ t('Noch kein Einnahmen- oder Ausgabenkonto hat eine Sphäre. Die Standardvorlagen trennen danach den ideellen Bereich von den Projekten – bis dahin steht alles unter „Ohne Sphäre“.') }}</p>
+				<NcButton v-if="canWrite" variant="secondary" @click="$emit('open-spheres')">
+					{{ t('Sphären zuordnen') }}
+				</NcButton>
+			</NcNoteCard>
+			<NcNoteCard v-for="w in (report && selected ? report.warnings : [])" :key="w.code" type="warning">
+				{{ w.message }}
+			</NcNoteCard>
 
-		<NcLoadingIcon v-if="loading && !report" :size="32" />
-		<div v-else-if="report && selected" class="vbh-tablecard">
-			<table class="vbh-table vbh-stack vbh-structured-table">
-				<thead>
-					<tr>
-						<th class="nowrap vbh-col-hide-sm vbh-structured-nr">
-							{{ t('Nr.') }}
-						</th>
-						<th>{{ t('Bezeichnung') }}</th>
-						<th v-for="(c, i) in report.columns" :key="i" class="num">
-							{{ c.label }}
-						</th>
-					</tr>
-				</thead>
-				<tbody>
-					<tr v-for="(row, r) in report.rows" :key="r" :class="rowClass(row)">
-						<template v-if="row.kind === 'heading' || row.kind === 'note'">
-							<td class="vbh-col-hide-sm" />
-							<td :colspan="report.columns.length + 1" :style="indent(row)">
-								{{ row.label }}
-							</td>
-						</template>
-						<template v-else>
-							<td class="nowrap vbh-col-hide-sm">
-								{{ row.number || '' }}
-							</td>
-							<td :style="indent(row)">
-								{{ row.label }}
-								<span v-if="hasFlag(row, 'inactive')" class="vbh-pill">{{ t('nicht mehr aktiv') }}</span>
-								<span v-if="hasFlag(row, 'duplicate')" class="vbh-pill vbh-pill--warn">{{ t('doppelt gezählt') }}</span>
-							</td>
-							<td
-								v-for="(v, i) in row.values"
-								:key="i"
-								class="num nowrap"
-								:class="valueClass(row, i, v)">
-								{{ v === null ? '–' : money(v) }}
-							</td>
-						</template>
-					</tr>
-				</tbody>
-			</table>
-		</div>
+			<NcLoadingIcon v-if="loading && !report" :size="32" />
+			<div v-else-if="report && selected" class="vbh-tablecard">
+				<table class="vbh-table vbh-stack vbh-structured-table">
+					<thead>
+						<tr>
+							<th class="nowrap vbh-col-hide-sm vbh-structured-nr">
+								{{ t('Nr.') }}
+							</th>
+							<th>{{ t('Bezeichnung') }}</th>
+							<th v-for="(c, i) in report.columns" :key="i" class="num">
+								{{ c.label }}
+							</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr v-for="(row, r) in report.rows" :key="r" :class="rowClass(row)">
+							<template v-if="row.kind === 'heading' || row.kind === 'note'">
+								<td class="vbh-col-hide-sm" />
+								<td :colspan="report.columns.length + 1" :style="indent(row)">
+									{{ row.label }}
+								</td>
+							</template>
+							<template v-else>
+								<td class="nowrap vbh-col-hide-sm">
+									{{ row.number || '' }}
+								</td>
+								<td :style="indent(row)">
+									{{ row.label }}
+									<span v-if="hasFlag(row, 'inactive')" class="vbh-pill">{{ t('nicht mehr aktiv') }}</span>
+									<span v-if="hasFlag(row, 'duplicate')" class="vbh-pill vbh-pill--warn">{{ t('doppelt gezählt') }}</span>
+								</td>
+								<td
+									v-for="(v, i) in row.values"
+									:key="i"
+									class="num nowrap"
+									:class="valueClass(row, i, v)">
+									{{ v === null ? '–' : money(v) }}
+								</td>
+							</template>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+		</template>
 
 		<ReportTemplateDialog
 			v-if="editor"
@@ -162,6 +194,7 @@ import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import NcSelect from '@nextcloud/vue/components/NcSelect'
 import ReportTemplateDialog from './ReportTemplateDialog.vue'
+import StructuredReportVisual from './StructuredReportVisual.vue'
 import api from '../api.js'
 import { useAuth } from '../composables/useAuth.js'
 import { useConfirm } from '../composables/useConfirm.js'
@@ -179,12 +212,15 @@ const STORAGE_KEY = 'vbh.structuredReport.template'
  */
 export default {
 	name: 'StructuredReportView',
-	components: { NcActionButton, NcActions, NcButton, NcEmptyContent, NcIconSvgWrapper, NcLoadingIcon, NcNoteCard, NcSelect, ReportTemplateDialog },
+	components: { NcActionButton, NcActions, NcButton, NcEmptyContent, NcIconSvgWrapper, NcLoadingIcon, NcNoteCard, NcSelect, ReportTemplateDialog, StructuredReportVisual },
 	props: {
 		refreshKey: { type: Number, default: 0 },
+		isMobile: { type: Boolean, required: true },
+		// 'table' oder 'visual'; App.vue hält die Wahl (URL, localStorage)
+		view: { type: String, required: true, validator: (v) => ['table', 'visual'].includes(v) },
 	},
 
-	emits: ['open-spheres'],
+	emits: ['open-spheres', 'update:view'],
 
 	setup() {
 		const auth = useAuth()
@@ -215,6 +251,11 @@ export default {
 			editor: null,
 			// Nur die zuletzt gestellte Anfrage darf das Ergebnis setzen.
 			requestNo: 0,
+			// Die visuelle Ansicht lädt selbst; hochzählen = neu laden
+			// (geänderte Vorlagen, fremde Änderungen).
+			visualRefreshKey: 0,
+			// Periode der zuletzt geladenen visuellen Ansicht (für die Überschrift)
+			visualPeriod: null,
 		}
 	},
 
@@ -231,13 +272,29 @@ export default {
 			return this.templateOptions.find((o) => o.id === this.templateId) || null
 		},
 
+		headPeriod() {
+			if (this.view === 'visual') { return this.visualPeriod }
+			return this.report ? this.report.period : null
+		},
+
 		printUrl() { return api.gliederungsberichtUrl(this.templateId, this.selectedPeriodId) },
 		csvUrl() { return api.gliederungsberichtCsvUrl(this.templateId, this.selectedPeriodId) },
 	},
 
 	watch: {
-		selectedPeriodId() { this.loadReport() },
+		selectedPeriodId() {
+			if (this.view === 'table') { this.loadReport() }
+		},
+
 		refreshKey() { this.loadTemplates() },
+		// Jede Ansicht lädt ihre Daten erst, wenn sie gezeigt wird; die
+		// visuelle beim Einhängen, die Tabelle hier.
+		view(v) {
+			if (v === 'table') {
+				this.report = null
+				this.loadReport()
+			}
+		},
 	},
 
 	mounted() {
@@ -265,6 +322,10 @@ export default {
 				this.report = null
 				return
 			}
+			if (this.view === 'visual') {
+				this.visualRefreshKey++
+				return
+			}
 			await this.loadReport()
 		},
 
@@ -289,7 +350,7 @@ export default {
 			if (!id || id === this.templateId) { return }
 			this.templateId = id
 			localStorage.setItem(STORAGE_KEY, id)
-			this.loadReport()
+			if (this.view === 'table') { this.loadReport() }
 		},
 
 		openNew() {
@@ -394,6 +455,8 @@ export default {
 .vbh-structured-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 
 .vbh-structured-toolbar { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px; margin: 8px 0 12px; }
+
+.vbh-structured-view { align-self: flex-end; margin-bottom: 4px; }
 
 .vbh-structured-picker { display: flex; flex-direction: column; gap: 2px; min-width: min(420px, 100%); }
 

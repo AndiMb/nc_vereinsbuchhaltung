@@ -114,6 +114,8 @@ export default {
 	updateReportTemplate: (id, name, definition) => axios.put(url(`/report-templates/${encodeURIComponent(id)}`), { name, definition }),
 	deleteReportTemplate: (id) => axios.delete(url(`/report-templates/${encodeURIComponent(id)}`)),
 	structuredReport: (template, period) => axios.get(url('/report/structured'), { params: { template, period: period || undefined } }),
+	// asOf: 'YYYY-MM', 'current' oder null (Vorgabe des Servers)
+	visualReport: (template, period, asOf) => axios.get(url('/report/structured/visual'), { params: { template, period: period || undefined, asOf: asOf || undefined } }),
 
 	// Finanzplan / Budget
 	// compare: null = Periode davor (Vorgabe des Servers), 0 = kein Vergleich, sonst Perioden-ID

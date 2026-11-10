@@ -265,7 +265,9 @@
 					:costCenterMode="costCenterMode"
 					:saveCostCenterMode="saveCostCenterMode"
 					:structuredRefreshKey="structuredRefreshKey"
+					:structuredView="structuredView"
 					@update:reportView="reportView = $event"
+					@update:structuredView="structuredView = $event"
 					@update:selectedCCCode="selectedCCCode = $event"
 					@update:selectedSphereCode="selectedSphereCode = $event"
 					@update:renameName="renameName = $event"
@@ -569,6 +571,13 @@ const ROUTE_META = {
 	'self-reimbursements': { tab: 'self', selfView: 'auslagen' },
 }
 
+// Tabelle oder visuelle Ansicht des Gliederungsberichts, im Browser gemerkt
+const STRUCTURED_VIEW_KEY = 'vbh.structuredReport.view'
+
+function storedStructuredView() {
+	try { return localStorage.getItem(STRUCTURED_VIEW_KEY) === 'visual' ? 'visual' : 'table' } catch { return 'table' }
+}
+
 /** Erkennungsmerkmal einer Datei, um dieselbe Auswahl nicht doppelt zu sammeln. */
 const dateiSchluessel = (f) => `${f.name}|${f.size}|${f.lastModified}`
 
@@ -708,6 +717,9 @@ export default {
 			reportView: 'summary',
 			// Gliederungsbericht laedt selbst; hochzaehlen = neu laden (fremde Aenderungen)
 			structuredRefreshKey: 0,
+			// 'table' | 'visual'; in der URL als view=visual (Startwert: URL,
+			// sonst localStorage)
+			structuredView: storedStructuredView(),
 			contribView: 'members',
 			budgetData: null,
 			// Vergleich im Finanzplan (Issue #114): null = Periode davor (wählt
@@ -1182,6 +1194,7 @@ export default {
 				if (this.reportView === 'costcenters' && this.selectedCCCode !== false) { query.cc = this.selectedCCCode }
 				if (this.reportView === 'spheres' && this.selectedSphereCode !== false) { query.sphere = this.selectedSphereCode }
 				if (this.reportView === 'budget' && this.snapshotView.open && this.snapshotView.data) { query.snapshot = this.snapshotView.data.id }
+				if (this.reportView === 'structure' && this.structuredView === 'visual') { query.view = 'visual' }
 				return { name: names[this.reportView] || 'reports', query }
 			}
 			if (this.activeTab === 'contributions') {
@@ -1229,6 +1242,10 @@ export default {
 			if (!this.$router || !this.routeReady) { return }
 			const target = this.$router.resolve(loc).fullPath
 			if (target !== this.$route.fullPath) { this.$router.push(loc) }
+		},
+
+		structuredView(v) {
+			try { localStorage.setItem(STRUCTURED_VIEW_KEY, v) } catch { /* voll/gesperrt – dann eben ohne */ }
 		},
 
 		reportView(v) {
@@ -1516,6 +1533,12 @@ export default {
 					}
 				} else if (this.snapshotView.open && !query.snapshot) {
 					this.closeSnapshot()
+				}
+				// Ohne view in der Start-URL gilt die gemerkte Wahl; danach (Zurück,
+				// Vor, Links) steht eine URL ohne view für die Tabelle.
+				if (meta.reportView === 'structure' && (this.routeReady || query.view !== undefined)) {
+					const view = query.view === 'visual' ? 'visual' : 'table'
+					if (this.structuredView !== view) { this.structuredView = view }
 				}
 			}
 
