@@ -4391,7 +4391,15 @@
         "Mobil: Der Kopf ist kompakter und klappt beim Scrollen weg, die Listen bekommen mehr Platz.": "Mobile: the header is more compact and collapses when scrolling, leaving more room for lists.",
         "Geändert: Die Verknüpfung eines Mitglieds mit einem Nextcloud-Konto gilt erst, wenn das Mitglied sie per Mail-Link bestätigt hat.": "Changed: a member’s link to a Nextcloud account only counts once the member has confirmed it via an email link.",
         "Geändert: Der Lastschriftlauf warnt vor Posten mit widerrufenem oder gesperrtem Mandat; zum Einreichen ist eine Bestätigung nötig.": "Changed: the direct debit run warns about items with a revoked or suspended mandate; submitting requires confirmation.",
-        "Sicherheit: Einige kleinere Absicherungen im Hintergrund, etwa bei Berechtigungen, abgeschlossenen Jahren und Uploads.": "Security: a few smaller safeguards in the background, e.g. for permissions, closed years and uploads."
+        "Sicherheit: Einige kleinere Absicherungen im Hintergrund, etwa bei Berechtigungen, abgeschlossenen Jahren und Uploads.": "Security: a few smaller safeguards in the background, e.g. for permissions, closed years and uploads.",
+        "im Rahmen": "within budget",
+        "im Plan": "on plan",
+        "leicht unter Plan": "slightly below plan",
+        "beobachten": "watch",
+        "deutlich unter Plan": "well below plan",
+        "unter Plan": "below plan",
+        "ungeplant": "unplanned",
+        "ohne Werte": "no values"
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

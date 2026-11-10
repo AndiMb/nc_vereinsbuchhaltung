@@ -4390,5 +4390,13 @@ OC.L10N.register("vereinsbuchhaltung", {
 	"Mobil: Der Kopf ist kompakter und klappt beim Scrollen weg, die Listen bekommen mehr Platz.": "Mobiel: de kop is compacter en klapt bij het scrollen weg, zodat lijsten meer ruimte krijgen.",
 	"Geändert: Die Verknüpfung eines Mitglieds mit einem Nextcloud-Konto gilt erst, wenn das Mitglied sie per Mail-Link bestätigt hat.": "Gewijzigd: de koppeling van een lid aan een Nextcloud-account geldt pas als het lid die via een maillink heeft bevestigd.",
 	"Geändert: Der Lastschriftlauf warnt vor Posten mit widerrufenem oder gesperrtem Mandat; zum Einreichen ist eine Bestätigung nötig.": "Gewijzigd: de incassorun waarschuwt voor posten met een ingetrokken of geblokkeerde machtiging; indienen vraagt om bevestiging.",
-	"Sicherheit: Einige kleinere Absicherungen im Hintergrund, etwa bei Berechtigungen, abgeschlossenen Jahren und Uploads.": "Beveiliging: enkele kleinere beveiligingen op de achtergrond, bijvoorbeeld bij rechten, afgesloten jaren en uploads."
+	"Sicherheit: Einige kleinere Absicherungen im Hintergrund, etwa bei Berechtigungen, abgeschlossenen Jahren und Uploads.": "Beveiliging: enkele kleinere beveiligingen op de achtergrond, bijvoorbeeld bij rechten, afgesloten jaren en uploads.",
+	"im Rahmen": "binnen budget",
+	"im Plan": "volgens plan",
+	"leicht unter Plan": "iets onder plan",
+	"beobachten": "in de gaten houden",
+	"deutlich unter Plan": "ruim onder plan",
+	"unter Plan": "onder plan",
+	"ungeplant": "niet gepland",
+	"ohne Werte": "geen waarden"
 }, "nplurals=2; plural=(n != 1);");
