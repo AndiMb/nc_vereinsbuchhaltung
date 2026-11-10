@@ -4431,5 +4431,6 @@ OC.L10N.register("vereinsbuchhaltung", {
 	"Aktuell (alle Buchungen)": "Actueel (alle boekingen)",
 	"Zeitanteil: {elapsed} von {total} Monaten": "Tijdsaandeel: {elapsed} van {total} maanden",
 	"Alle Buchungen der Periode": "Alle boekingen van de periode",
-	"Ist bis {datum}": "Werkelijk tot en met {datum}"
+	"Ist bis {datum}": "Werkelijk tot en met {datum}",
+	"Für diese Periode ist noch kein Plan erfasst; alle Konten mit Buchungen gelten als ungeplant. Die Planwerte tragen Sie im Finanzplan ein.": "Voor deze periode is nog geen begroting ingevoerd; alle rekeningen met boekingen gelden als niet gepland. De begrote bedragen voert u in bij de begroting in."
 }, "nplurals=2; plural=(n != 1);");

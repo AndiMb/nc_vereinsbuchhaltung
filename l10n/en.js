@@ -4431,5 +4431,6 @@ OC.L10N.register("vereinsbuchhaltung", {
 	"Aktuell (alle Buchungen)": "Current (all entries)",
 	"Zeitanteil: {elapsed} von {total} Monaten": "Time share: {elapsed} of {total} months",
 	"Alle Buchungen der Periode": "All entries of the period",
-	"Ist bis {datum}": "Actual up to {datum}"
+	"Ist bis {datum}": "Actual up to {datum}",
+	"Für diese Periode ist noch kein Plan erfasst; alle Konten mit Buchungen gelten als ungeplant. Die Planwerte tragen Sie im Finanzplan ein.": "No plan has been entered for this period yet; all accounts with entries count as unplanned. Enter the plan values in the budget."
 }, "nplurals=2; plural=(n != 1);");

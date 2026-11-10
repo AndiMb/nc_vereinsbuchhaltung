@@ -42,6 +42,9 @@
 				</div>
 			</div>
 
+			<NcNoteCard v-if="hasNoPlan && !isEmpty" type="info">
+				<p>{{ t('Für diese Periode ist noch kein Plan erfasst; alle Konten mit Buchungen gelten als ungeplant. Die Planwerte tragen Sie im Finanzplan ein.') }}</p>
+			</NcNoteCard>
 			<NcNoteCard v-if="!data.hasSpheres" type="info">
 				<p>{{ t('Noch kein Einnahmen- oder Ausgabenkonto hat eine Sphäre. Die Standardvorlagen trennen danach den ideellen Bereich von den Projekten – bis dahin steht alles unter „Ohne Sphäre“.') }}</p>
 				<NcButton v-if="canWrite" variant="secondary" @click="$emit('open-spheres')">
@@ -152,7 +155,7 @@
 								<div v-else class="vbh-visual-row">
 									<span class="vbh-visual-row__label" :style="indent(entry.row)">
 										<button
-											v-if="!filter && hasChildren(data.rows, entry.index)"
+											v-if="!filter && entry.row.kind === 'account' && hasChildren(data.rows, entry.index)"
 											type="button"
 											class="vbh-visual-row__toggle"
 											:aria-expanded="collapsed.has(entry.index) ? 'false' : 'true'"
@@ -301,9 +304,14 @@ export default {
 			return this.t('Ist bis {datum}', { datum: formatDate(until) }) + ' · ' + share
 		},
 
+		hasNoPlan() {
+			const { income, expense } = this.data.kpis
+			return income.plan === 0 && expense.plan === 0
+		},
+
 		isEmpty() {
 			const { income, expense } = this.data.kpis
-			return income.plan === 0 && expense.plan === 0 && income.actual === 0 && expense.actual === 0
+			return this.hasNoPlan && income.actual === 0 && expense.actual === 0
 		},
 
 		hasValueRows() {
