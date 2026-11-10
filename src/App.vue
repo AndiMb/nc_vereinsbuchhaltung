@@ -1570,15 +1570,20 @@ export default {
 		 * die Deep-Link-URL. Klickt jemand in dieser Zeit schon einen Reiter an oder
 		 * oeffnet den Buchungsdialog, bleibt die URL deshalb auf der Startseite, und
 		 * das Zurueck des Browsers, ein Reload oder ein geteilter Link passten nicht
-		 * zur Ansicht. Verglichen werden nur Pfad (= Reiter/Ansicht) und ?booking=;
-		 * der Zeitraum und andere Parameter hat der Erstabgleich schon aufgeloest.
+		 * zur Ansicht. Verglichen werden nur Pfad (= Reiter/Ansicht), ?booking= und
+		 * ?view= (die Wahl des Gliederungsberichts kann allein aus localStorage
+		 * kommen); der Zeitraum und andere Parameter hat der Erstabgleich schon
+		 * aufgeloest. Fehlt nur ?view=, wird die URL ersetzt statt gepusht - sonst
+		 * fuehrte Zurueck auf dieselbe Seite ohne view, also in die Tabelle.
 		 */
 		syncUrlAfterBoot() {
 			const target = this.$router.resolve(this.vbhRouteLocation)
 			const current = this.$route
-			const bookingOf = (r) => String((r.query && r.query.booking) || '')
-			if (target.path !== current.path || bookingOf(target) !== bookingOf(current)) {
+			const param = (r, key) => String((r.query && r.query[key]) || '')
+			if (target.path !== current.path || param(target, 'booking') !== param(current, 'booking')) {
 				this.$router.push(this.vbhRouteLocation)
+			} else if (param(target, 'view') !== param(current, 'view')) {
+				this.$router.replace(this.vbhRouteLocation)
 			}
 		},
 

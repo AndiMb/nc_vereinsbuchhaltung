@@ -168,10 +168,11 @@
 											class="vbh-visual-row__text"
 											:class="{ 'vbh-visual-row__text--account': entry.row.kind === 'account' }">{{ rowLabel(entry.row) }}</span>
 										<span v-if="hasFlag(entry.row, 'inactive')" class="vbh-pill">{{ t('nicht mehr aktiv') }}</span>
-										<span v-if="hasFlag(entry.row, 'duplicate')" class="vbh-pill vbh-visual-pill--warn">{{ t('doppelt gezählt') }}</span>
+										<span v-if="hasFlag(entry.row, 'duplicate')" class="vbh-pill vbh-pill--warning">{{ t('doppelt gezählt') }}</span>
 									</span>
 									<span class="vbh-visual-row__status">
-										<BudgetStatusPill :level="rowLevel(entry.row)" :nature="entry.row.nature" />
+										<span v-if="hasFlag(entry.row, 'covered')" class="vbh-pill">{{ t('im Oberkonto geplant') }}</span>
+										<BudgetStatusPill v-else :level="rowLevel(entry.row)" :nature="entry.row.nature" />
 									</span>
 									<span class="vbh-visual-row__bar">
 										<BudgetBullet
@@ -415,6 +416,8 @@ export default {
 		},
 
 		rowTone(row) {
+			// Gedeckte Unterkonten haben keinen eigenen Plan – neutraler Balken.
+			if (this.hasFlag(row, 'covered')) { return 'none' }
 			return statusMeta(this.rowLevel(row), row.nature).tone
 		},
 
@@ -516,6 +519,9 @@ export default {
 			"bar bar bar bar";
 	}
 
+	/* Die Kopfzeile hat keinen Balken – ohne eigene Fläche bliebe eine leere zweite Zeile. */
+	.vbh-visual-row--head { grid-template-areas: "label status actual plan"; }
+
 	.vbh-visual-row--head .vbh-visual-row__bar { display: none; }
 }
 
@@ -541,7 +547,12 @@ export default {
 
 .vbh-visual-row__label { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; min-width: 0; overflow-wrap: break-word; hyphens: auto; }
 
-.vbh-visual-row__toggle {
+/* Doppelte Klasse gegen Nextclouds Grundstil nackter Knöpfe, auch bei
+   :hover/:focus/:active (siehe Kopf von src/styles.css). */
+.vbh-visual-row__toggle.vbh-visual-row__toggle,
+.vbh-visual-row__toggle.vbh-visual-row__toggle:hover,
+.vbh-visual-row__toggle.vbh-visual-row__toggle:focus,
+.vbh-visual-row__toggle.vbh-visual-row__toggle:active {
 	display: inline-flex;
 	align-items: center;
 	gap: 4px;
@@ -556,6 +567,12 @@ export default {
 	cursor: pointer;
 }
 
+.vbh-visual-row__toggle.vbh-visual-row__toggle:focus-visible {
+	border-radius: var(--border-radius);
+	outline: 2px solid var(--color-primary-element);
+	outline-offset: 2px;
+}
+
 .vbh-visual-row__text--account { padding-inline-start: 22px; }
 
 .vbh-visual-row__status,
@@ -564,6 +581,4 @@ export default {
 .vbh-visual-row__num { text-align: end; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
 .vbh-visual-row__numlabel { margin-inline-end: 4px; color: var(--color-text-maxcontrast); font-weight: normal; }
-
-.vbh-visual-pill--warn { background: var(--color-warning); color: var(--color-warning-text); }
 </style>

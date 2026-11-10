@@ -4393,6 +4393,7 @@ OC.L10N.register("vereinsbuchhaltung", {
 	"Sicherheit: Einige kleinere Absicherungen im Hintergrund, etwa bei Berechtigungen, abgeschlossenen Jahren und Uploads.": "Security: a few smaller safeguards in the background, e.g. for permissions, closed years and uploads.",
 	"im Rahmen": "within budget",
 	"im Plan": "on plan",
+	"im Oberkonto geplant": "planned on parent account",
 	"leicht unter Plan": "slightly below plan",
 	"beobachten": "watch",
 	"deutlich unter Plan": "well below plan",

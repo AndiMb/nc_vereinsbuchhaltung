@@ -98,10 +98,18 @@ export default {
 	background-color: var(--color-background-dark);
 }
 
-.vbh-visual-dist__segment {
+/* Segmente und Legende sind nackte <button>: doppelte Klasse gegen Nextclouds
+   Grundstil, auch für :hover/:focus/:active, die sonst Hintergrund und Rahmen
+   überschreiben (siehe Kopf von src/styles.css). */
+.vbh-visual-dist__segment.vbh-visual-dist__segment,
+.vbh-visual-dist__segment.vbh-visual-dist__segment:hover,
+.vbh-visual-dist__segment.vbh-visual-dist__segment:focus,
+.vbh-visual-dist__segment.vbh-visual-dist__segment:active {
 	flex: 1 1 0;
 	min-width: 6px;
 	height: 100%;
+	min-height: 0;
+	margin: 0;
 	padding: 0;
 	border: 0;
 	border-radius: 0;
@@ -109,11 +117,19 @@ export default {
 	cursor: pointer;
 }
 
-.vbh-visual-dist__segment.vbh-visual-tone--serious {
+.vbh-visual-dist__segment.vbh-visual-dist__segment.vbh-visual-tone--serious {
 	background-image: repeating-linear-gradient(45deg, var(--color-main-background) 0 2px, transparent 2px 5px);
 }
 
-.vbh-visual-dist__segment.is-active { outline: 2px solid var(--color-main-text); outline-offset: -2px; }
+/* Gewählt: Innenrahmen in Schriftfarbe mit Abstandsring, auf jedem Ton sichtbar. */
+.vbh-visual-dist__segment.vbh-visual-dist__segment.is-active {
+	box-shadow: inset 0 0 0 2px var(--color-main-text), inset 0 0 0 4px var(--color-main-background);
+}
+
+.vbh-visual-dist__segment.vbh-visual-dist__segment:focus-visible {
+	outline: 2px solid var(--color-primary-element);
+	outline-offset: -2px;
+}
 
 .vbh-visual-dist__legend {
 	display: flex;
@@ -124,7 +140,10 @@ export default {
 	list-style: none;
 }
 
-.vbh-visual-dist__legend-item {
+.vbh-visual-dist__legend-item.vbh-visual-dist__legend-item,
+.vbh-visual-dist__legend-item.vbh-visual-dist__legend-item:hover,
+.vbh-visual-dist__legend-item.vbh-visual-dist__legend-item:focus,
+.vbh-visual-dist__legend-item.vbh-visual-dist__legend-item:active {
 	display: inline-flex;
 	align-items: center;
 	gap: 6px;
@@ -136,9 +155,14 @@ export default {
 	cursor: pointer;
 }
 
-.vbh-visual-dist__legend-item.vbh-visual-tone--serious { border-style: dashed; }
+.vbh-visual-dist__legend-item.vbh-visual-dist__legend-item.vbh-visual-tone--serious { border-style: dashed; }
 
-.vbh-visual-dist__legend-item.is-active { background-color: var(--color-background-dark); font-weight: 700; }
+.vbh-visual-dist__legend-item.vbh-visual-dist__legend-item.is-active { background-color: var(--color-background-dark); font-weight: 700; }
+
+.vbh-visual-dist__legend-item.vbh-visual-dist__legend-item:focus-visible {
+	outline: 2px solid var(--color-primary-element);
+	outline-offset: 2px;
+}
 
 .vbh-visual-dist__icon { color: var(--vbh-visual-tone, var(--color-text-maxcontrast)); font-weight: 700; }
 

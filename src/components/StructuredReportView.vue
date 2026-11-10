@@ -290,6 +290,9 @@ export default {
 		// Jede Ansicht lädt ihre Daten erst, wenn sie gezeigt wird; die
 		// visuelle beim Einhängen, die Tabelle hier.
 		view(v) {
+			// Die visuelle Ansicht meldet ihre Periode nach dem Laden neu; bis
+			// dahin keine veraltete Überschrift.
+			this.visualPeriod = null
 			if (v === 'table') {
 				this.report = null
 				this.loadReport()

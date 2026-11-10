@@ -144,7 +144,16 @@ test.describe('Gliederungsbericht visuell', () => {
 		// Rote Stufe im Verteilungsbalken der Ausgaben
 		const expenseDist = visibleSection(page).locator('.vbh-visual-dist')
 			.filter({ has: page.getByRole('heading', { name: 'Ampel der Ausgabenkonten' }) })
-		await expenseDist.getByRole('button', { name: 'überschritten: 1' }).click()
+		// Nach dem Klick (Fokus und Maus auf dem Segment) bleibt es rot und ist
+		// als gewählt markiert – Nextclouds Hover-/Fokusstil nackter Knöpfe
+		// färbte es vorher grau.
+		const critSegment = expenseDist.getByRole('button', { name: 'überschritten: 1' })
+		const colourOf = (el) => getComputedStyle(el).backgroundColor
+		const colourBefore = await critSegment.evaluate(colourOf)
+		expect(colourBefore).not.toBe('rgba(0, 0, 0, 0)')
+		await critSegment.click()
+		await expect(critSegment).toHaveAttribute('aria-pressed', 'true')
+		await expect.poll(() => critSegment.evaluate(colourOf)).toBe(colourBefore)
 		await expect(breakdown.locator('.vbh-visual-filter')).toContainText('Ausgaben – überschritten')
 		// Die Vorlage führt das Konto zweimal (Abschnitt und Zusammenfassung);
 		// der Filter zeigt es nur einmal.
@@ -209,6 +218,15 @@ test.describe('Gliederungsbericht visuell', () => {
 		await expect(visibleSection(page).locator('.vbh-structured-table')).toHaveCount(0)
 	})
 
+	test('gemerkte Wahl ohne view in der Start-URL ergänzt view=visual', async ({ page }) => {
+		await openApp(page, USERS.verwalter)
+		await page.evaluate(() => localStorage.setItem('vbh.structuredReport.view', 'visual'))
+		await page.goto(`${BASE_URL}/index.php/apps/vereinsbuchhaltung/reports/structure`)
+		await waitForAppLoaded(page)
+		await expect(visibleSection(page).locator('.vbh-visual-tiles')).toBeVisible()
+		await expect(page).toHaveURL(/[?&]view=visual/)
+	})
+
 	test.describe('Handybreite', () => {
 		test.use({ viewport: { width: 390, height: 844 }, hasTouch: true })
 
@@ -231,6 +249,74 @@ test.describe('Gliederungsbericht visuell', () => {
 			const pageOverflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
 			expect(pageOverflow, 'Seite scrollt waagerecht').toBeLessThanOrEqual(0)
 		})
+	})
+})
+
+// Plan auf dem Oberkonto 5000, gebucht auf ein Unterkonto; eine eigene Vorlage
+// zeigt alle Kontoebenen. Das Unterkonto ist dann nicht „ungeplant“.
+test.describe('Gliederungsbericht visuell: Unterkonto unter geplantem Oberkonto', () => {
+	const CHILD_LABEL = `${EXPENSE_ACCOUNT} 99 Nebenkosten (E2E)`
+	let child
+	let template
+
+	test.beforeAll(async ({ request }) => {
+		await api.resetBook(request)
+		await api.seedDefaultAccounts(request)
+		const [bank, expense] = await api.accountsByNumber(request, BANK_ACCOUNT, EXPENSE_ACCOUNT)
+		child = await api.createAccount(request, { number: `${EXPENSE_ACCOUNT} 99`, name: 'Nebenkosten (E2E)', type: 'expense', parentId: expense.id })
+		const { id: period, firstDay } = await currentPeriod(request)
+		await api.raw(request, 'POST', '/budget', { data: { accountId: expense.id, period, amount: 1000 } })
+		await api.createBooking(request, {
+			date: firstDay,
+			description: 'Nebenkosten auf dem Unterkonto',
+			debitAccountId: child.id,
+			creditAccountId: bank.id,
+			amount: 300,
+		})
+		const created = await api.raw(request, 'POST', '/report-templates', {
+			data: {
+				name: 'Alle Ausgabenkonten (E2E)',
+				definition: {
+					columns: [{ source: 'plan', periodOffset: 0 }, { source: 'actual', periodOffset: 0 }],
+					sections: [{ title: 'Ausgaben', filter: { types: ['expense'] }, levels: [{ by: 'account', depth: 'all' }] }],
+				},
+			},
+		})
+		expect(created.status()).toBe(201)
+		template = await created.json()
+	})
+
+	test('Zeile ohne Ampel, nicht unter „ungeplant“ (API)', async ({ request }) => {
+		const data = await api.getJson(request, `${VISUAL_ROUTE}?template=${template.id}&asOf=current`)
+		const row = data.rows.find((r) => r.kind === 'account' && r.accountId === child.id)
+		expect(row).toMatchObject({ plan: 0, actual: 30000 })
+		expect(row.flags).toContain('covered')
+		expect(row.status.year.level).toBe('none')
+		expect(row.status.time.level).toBe('none')
+		expect(data.distribution.year.expense.unplanned).toBe(0)
+	})
+
+	test('Hinweis „im Oberkonto geplant“, Filter „ungeplant“ leer', async ({ page }) => {
+		await openApp(page, USERS.verwalter)
+		await page.evaluate((id) => {
+			localStorage.setItem('vbh.structuredReport.template', id)
+			localStorage.setItem('vbh.structuredReport.view', 'visual')
+		}, String(template.id))
+		await page.goto(`${BASE_URL}/index.php/apps/vereinsbuchhaltung/reports/structure?view=visual`)
+		await waitForAppLoaded(page)
+		const breakdown = visibleSection(page).locator('.vbh-visual-breakdown')
+		await expect(breakdown).toBeVisible()
+
+		const childRow = breakdown.locator('.vbh-visual-row', { hasText: CHILD_LABEL })
+		await expect(childRow.locator('.vbh-pill')).toHaveText('im Oberkonto geplant')
+		await expect(childRow.locator('.vbh-visual-pill')).toHaveCount(0)
+
+		const expenseDist = visibleSection(page).locator('.vbh-visual-dist')
+			.filter({ has: page.getByRole('heading', { name: 'Ampel der Ausgabenkonten' }) })
+		await expenseDist.locator('.vbh-visual-dist__legend-item', { hasText: 'ungeplant' }).click()
+		await expect(breakdown.locator('.vbh-visual-filter')).toContainText('Ausgaben – ungeplant')
+		await expect(breakdown).toContainText('Kein Konto der Gliederung hat diese Ampelstufe.')
+		await expect(breakdown).not.toContainText(CHILD_LABEL)
 	})
 })
 

@@ -25,7 +25,7 @@
 
 <script>
 import BudgetStatusPill from './BudgetStatusPill.vue'
-import { formatSigned } from '../lib/format.js'
+import { formatMoney, formatSigned } from '../lib/format.js'
 
 /**
  * Liste der größten Abweichungen. Nur mit `linkable` sind die Einträge
@@ -46,8 +46,10 @@ export default {
 	emits: ['open-account'],
 
 	methods: {
+		// Überschreitungen mit Vorzeichen; eine Lücke bei Einnahmen ist ein
+		// Fehlbetrag, ein „+“ davor läse sich wie ein Mehrertrag.
 		money(cents) {
-			return formatSigned(cents / 100)
+			return this.nature === 'income' ? formatMoney(cents / 100) : formatSigned(cents / 100)
 		},
 	},
 }

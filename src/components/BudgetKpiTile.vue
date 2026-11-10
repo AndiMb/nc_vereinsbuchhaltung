@@ -7,7 +7,9 @@
 			<span class="vbh-visual-tile__actual">{{ money(kpi.actual) }}</span>
 			<BudgetStatusPill :level="status.level" :nature="nature" />
 		</div>
+		<!-- Ergebnis ohne Balken: wie im Aufriss; bei Plan ≤ 0 wäre er sinnlos. -->
 		<BudgetBullet
+			v-if="nature !== 'result'"
 			:plan="kpi.plan"
 			:actual="kpi.actual"
 			:timeFactor="timeFactor"
