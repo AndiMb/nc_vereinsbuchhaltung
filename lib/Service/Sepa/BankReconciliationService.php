@@ -26,6 +26,7 @@ use OCA\Vereinsbuchhaltung\Exception\PeriodClosedException;
 use OCA\Vereinsbuchhaltung\Exception\SettlementBlockedException;
 use OCA\Vereinsbuchhaltung\Service\AccountService;
 use OCA\Vereinsbuchhaltung\Service\BookingService;
+use OCA\Vereinsbuchhaltung\Service\ClubCurrency;
 use OCA\Vereinsbuchhaltung\Service\PeriodService;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Utility\ITimeFactory;
@@ -114,6 +115,7 @@ class BankReconciliationService {
 		private IUserSession $userSession,
 		private ITimeFactory $time,
 		private IL10N $l10n,
+		private ClubCurrency $currency,
 	) {
 	}
 
@@ -425,19 +427,19 @@ class BankReconciliationService {
 	 */
 	private function splitBlocker(array $error, bool $isReturn): array {
 		$params = $error['params'] ?? [];
-		$euro = static fn (int $cents): string => number_format($cents / 100, 2, ',', '.');
+		$euro = fn (int $cents): string => $this->currency->format($cents);
 		return match ($error['code']) {
 			'too_little' => [
 				'code' => self::BLOCKER_SUM_MISMATCH,
 				'message' => $this->l10n->t(
-					'Die zugeordneten Posten ergeben %1$s €, der Bankumsatz beträgt %2$s €: %3$s € sind keinem Posten zugeordnet. Ordnen Sie die übrigen Zeilen zu, oder buchen Sie den Umsatz unter Buchungen von Hand.',
+					'Die zugeordneten Posten ergeben %1$s, der Bankumsatz beträgt %2$s: %3$s sind keinem Posten zugeordnet. Ordnen Sie die übrigen Zeilen zu, oder buchen Sie den Umsatz unter Buchungen von Hand.',
 					[$euro($params['sum'] ?? 0), $euro($params['total'] ?? 0), $euro($params['diff'] ?? 0)],
 				),
 			],
 			'too_much' => [
 				'code' => self::BLOCKER_SUM_MISMATCH,
 				'message' => $this->l10n->t(
-					'Die zugeordneten Posten ergeben %1$s €, das sind %3$s € mehr als der Bankumsatz über %2$s €. Prüfen Sie die Zuordnung.',
+					'Die zugeordneten Posten ergeben %1$s, das sind %3$s mehr als der Bankumsatz über %2$s. Prüfen Sie die Zuordnung.',
 					[$euro($params['sum'] ?? 0), $euro($params['total'] ?? 0), $euro($params['diff'] ?? 0)],
 				),
 			],

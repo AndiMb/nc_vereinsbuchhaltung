@@ -238,6 +238,23 @@ and in the footer instead of the Nextcloud's name. The sender address stays
 the one from the Nextcloud mail settings. If a club email is set in the
 settings under *Invoices*, replies go to that address.
 
+**Club currency.** The same page has a *Club currency* card. Out of the box
+the app works in euros. You can also choose Swiss franc (CHF), British pound
+(GBP), Danish, Swedish and Norwegian krone (DKK, SEK, NOK), złoty (PLN) and
+Czech koruna (CZK). The currency sets the sign after every amount – in the
+interface, reports, exports, invoices and emails. The number format stays
+German (`1.234,50 CHF`). Nothing is converted: all of a club's amounts are in
+one currency. Statutory limits such as the €45,000 threshold or the
+small-business limits under § 19 UStG remain in euros.
+
+SEPA direct debit and GiroCode exist only in euros. In any other currency the
+app hides mandates, the direct debit run and the SEPA settings; invoices,
+payment requests and expense transfers come without a GiroCode. Switching
+away from the euro is only possible when no mandate is in force any more (all
+ended), no released collection is waiting to be submitted and no contribution
+assignment is still paid by direct debit – switch those to bank transfer first. The page
+reloads after saving.
+
 ### 2.6 Corporate design (optional)
 
 Gear icon → *Club* (second card on the same page): upload a **club logo**

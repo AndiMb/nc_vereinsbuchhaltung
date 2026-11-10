@@ -1,6 +1,7 @@
 import { computed, reactive } from 'vue'
 import api from '../api.js'
 import { takeBootState } from '../lib/bootState.js'
+import { setClubCurrency } from '../lib/clubCurrency.js'
 import { setClubTimeZone } from '../lib/clubTime.js'
 
 // Singleton-Zustand: EIN gemeinsamer Datenbestand je Installation
@@ -22,6 +23,7 @@ async function loadMe() {
 	if (boot) {
 		state.me = boot
 		setClubTimeZone(boot.clubTimeZone)
+		setClubCurrency(boot.clubCurrency)
 		return state.me
 	}
 	try {
@@ -29,6 +31,8 @@ async function loadMe() {
 		state.me = data
 		// „Heute“ der Oberfläche in der Vereinszone (#263).
 		setClubTimeZone(data.clubTimeZone)
+		// Vereinswährung (#202): auch „Mein Bereich“ zeigt Beträge.
+		setClubCurrency(data.clubCurrency)
 	} catch {
 		state.me = { role: 'none', canRead: false, canWrite: false, isAdmin: false }
 	}

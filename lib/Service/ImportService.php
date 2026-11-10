@@ -34,6 +34,7 @@ class ImportService {
 		private TransactionRunner $transaction,
 		private SepaImportExtractionService $sepaDetails,
 		private AccountService $accounts,
+		private ClubCurrency $currency,
 		private ?InvoiceMatchingService $invoiceMatching = null,
 		private ?InvoicePaymentService $invoicePayments = null,
 		private ?InvoiceSettings $invoiceSettings = null,
@@ -319,7 +320,8 @@ class ImportService {
 		$tx->setBookingDate($row['bookingDate']);
 		$tx->setValueDate($row['valueDate']);
 		$tx->setAmountCents($row['amountCents']);
-		$tx->setCurrency($row['currency'] ?? 'EUR');
+		// Liefert der Auszug keine Währung, gilt die Vereinswährung (#202).
+		$tx->setCurrency($row['currency'] ?? $this->currency->code());
 		$tx->setBookingText($row['bookingText']);
 		$tx->setPurpose($row['purpose']);
 		$tx->setCounterparty($row['counterparty']);

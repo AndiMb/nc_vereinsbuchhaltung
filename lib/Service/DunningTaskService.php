@@ -39,6 +39,7 @@ final class DunningTaskService {
 		private DunningSettings $settings,
 		private ITimeFactory $time,
 		private IL10N $l10n,
+		private ClubCurrency $currency,
 		?ClubClock $clock = null,
 	) {
 		$this->clock = $clock ?? new ClubClock($this->time);
@@ -68,10 +69,10 @@ final class DunningTaskService {
 				continue;
 			}
 			$name = $this->members->displayNameOr($item->getMemberId(), $this->l10n->t('unbekanntes Mitglied'));
-			$amount = number_format($item->getAmountCents() / 100, 2, ',', '.');
+			$amount = $this->currency->format($item->getAmountCents());
 			$tasks[] = [
 				'severity' => Task::SEVERITY_ACTION_REQUIRED,
-				'message' => $this->l10n->t('Mahnstufe an Vorstand eskaliert: %1$s, %2$s € (%3$s).', [$name, $amount, (string)($item->getDescription() ?? $this->l10n->t('Beitrag'))]),
+				'message' => $this->l10n->t('Mahnstufe an Vorstand eskaliert: %1$s, %2$s (%3$s).', [$name, $amount, (string)($item->getDescription() ?? $this->l10n->t('Beitrag'))]),
 				'objectType' => 'claim',
 				'objectId' => (int)$item->getId(),
 			];

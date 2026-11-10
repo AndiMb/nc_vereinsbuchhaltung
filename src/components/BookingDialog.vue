@@ -71,9 +71,9 @@
 								hideCurrency
 								placeholder="0,00"
 								class="vbh-bigamount-input"
-								:aria-label="t('Betrag in Euro')"
+								:aria-label="t('Betrag in {currency}', { currency: currencySymbol() })"
 								:disabled="bookingLocked" />
-							<span class="vbh-bigamount-cur">€</span>
+							<span class="vbh-bigamount-cur">{{ currencySymbol() }}</span>
 						</div>
 						<div class="vbh-mfields">
 							<template v-if="bookingMode === 'simple'">
@@ -202,7 +202,7 @@
 								class="vbh-short"
 								:placeholder="t('optional')"
 								:disabled="bookingLocked"></label>
-							<label>{{ formSplitMode ? t('Gesamtbetrag (€)') : t('Betrag (€)') }}<AmountInput
+							<label>{{ formSplitMode ? t('Gesamtbetrag ({currency})', { currency: currencySymbol() }) : t('Betrag ({currency})', { currency: currencySymbol() }) }}<AmountInput
 								v-model="formAmount"
 								class="vbh-num"
 								:disabled="bookingLocked" /></label>
@@ -641,6 +641,7 @@ import { useReceiptSuggestions } from '../composables/useReceiptSuggestions.js'
 import { accountFilterBy, accountLabel, accountOption } from '../lib/accountLabel.js'
 import { autogrow } from '../lib/autogrow.js'
 import { onlyDefaultMoneyAccountAdded } from '../lib/bookingSnapshot.js'
+import { currencySymbol } from '../lib/clubCurrency.js'
 import { opensFolderPanel, readFolderPanelOpen, writeFolderPanelOpen } from '../lib/folderPanelMemory.js'
 import { formatFileSize, formatMoney } from '../lib/format.js'
 import { newUid } from '../lib/rowKeys.js'
@@ -1063,6 +1064,7 @@ export default {
 	},
 
 	methods: {
+		currencySymbol,
 		formatMoney,
 		formatFileSize,
 		/** Aktuelle Auswahl einer Aufteilungszeile als NcSelect-Option. */

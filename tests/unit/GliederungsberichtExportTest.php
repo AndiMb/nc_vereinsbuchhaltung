@@ -10,11 +10,13 @@ use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Db\Period;
 use OCA\Vereinsbuchhaltung\Service\AccountStatementService;
 use OCA\Vereinsbuchhaltung\Service\BudgetOverviewService;
+use OCA\Vereinsbuchhaltung\Service\ClubCurrency;
 use OCA\Vereinsbuchhaltung\Service\Export\CsvExportService;
 use OCA\Vereinsbuchhaltung\Service\Export\GliederungsberichtRenderer;
 use OCA\Vereinsbuchhaltung\Service\PeriodService;
 use OCA\Vereinsbuchhaltung\Service\ReportService;
 use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubClockStub;
+use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubCurrencyStub;
 use OCP\IAppConfig;
 use OCP\IL10N;
 use PHPUnit\Framework\TestCase;
@@ -54,6 +56,25 @@ class GliederungsberichtExportTest extends TestCase {
 		return $l10n;
 	}
 
+	/** Vereinswährung (#202): die Spaltenköpfe tragen den Code der Vereinswährung. */
+	public function testCsvSpaltenkoepfeTragenDieVereinswaehrung(): void {
+		$csv = new CsvExportService(
+			$this->createMock(AccountMapper::class),
+			$this->createMock(JournalMapper::class),
+			$this->createMock(JournalLineMapper::class),
+			$this->createMock(ReportService::class),
+			$this->createMock(PeriodService::class),
+			$this->createMock(AccountStatementService::class),
+			$this->createMock(BudgetOverviewService::class),
+			ClubCurrencyStub::of($this, 'CHF'),
+		);
+
+		$head = explode("\n", substr($csv->gliederungsbericht($this->report())->content, 3))[0];
+
+		$this->assertStringContainsString('Plan 2026 (CHF)', $head);
+		$this->assertStringNotContainsString('EUR', $head);
+	}
+
 	public function testCsvMitEbeneArtUndLeererSpalteOhnePeriode(): void {
 		$csv = new CsvExportService(
 			$this->createMock(AccountMapper::class),
@@ -63,6 +84,7 @@ class GliederungsberichtExportTest extends TestCase {
 			$this->createMock(PeriodService::class),
 			$this->createMock(AccountStatementService::class),
 			$this->createMock(BudgetOverviewService::class),
+			ClubCurrencyStub::of($this),
 		);
 
 		$file = $csv->gliederungsbericht($this->report());
@@ -81,7 +103,7 @@ class GliederungsberichtExportTest extends TestCase {
 	public function testDruckseiteZeigtWarnungMaskiertTexteUndMarkiertInaktive(): void {
 		$config = $this->createMock(IAppConfig::class);
 		$config->method('getValueString')->willReturn('Musterverein');
-		$html = (new GliederungsberichtRenderer($config, $this->l10n(), ClubClockStub::system()))->render($this->report());
+		$html = (new GliederungsberichtRenderer($config, $this->l10n(), ClubClockStub::system(), new ClubCurrency($config)))->render($this->report());
 
 		$this->assertStringContainsString('<h1>Ergebnis je Bereich</h1>', $html);
 		$this->assertStringContainsString('Diese Konten erfasst kein Abschnitt der Vorlage', $html);

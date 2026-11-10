@@ -34,6 +34,7 @@ class ReimbursementMailService {
 		private MemberMapper $members,
 		private ReimbursementSettings $settings,
 		private LoggerInterface $logger,
+		private ClubCurrency $currency,
 	) {
 	}
 
@@ -56,7 +57,7 @@ class ReimbursementMailService {
 				$l->t('Neue Auslage zur Freigabe'),
 				[
 					$l->t('Guten Tag %s,', [$user->getDisplayName()]),
-					$l->t('%1$s hat eine Auslage über %2$s € eingereicht: %3$s', [$memberName, $this->euro($reimbursement->getAmountCents(), $l), $reimbursement->getPurpose()]),
+					$l->t('%1$s hat eine Auslage über %2$s eingereicht: %3$s', [$memberName, $this->euro($reimbursement->getAmountCents(), $l), $reimbursement->getPurpose()]),
 					$l->t('Sie finden den Antrag unter „Buchungen → Auslagen“. Freigegeben wird er, sobald %d Verwalter zugestimmt haben.', [$reimbursement->getRequiredApprovals()]),
 				],
 			);
@@ -69,7 +70,7 @@ class ReimbursementMailService {
 			$l->t('Ihre Auslage wurde freigegeben'),
 			[
 				$l->t('Guten Tag %s,', [$m->displayName()]),
-				$l->t('Ihrem Antrag auf Erstattung von %1$s € wurde stattgegeben: %2$s', [$amount, $r->getPurpose()]),
+				$l->t('Ihrem Antrag auf Erstattung von %1$s wurde stattgegeben: %2$s', [$amount, $r->getPurpose()]),
 				$l->t('Der Betrag wird in Kürze auf Ihr angegebenes Konto überwiesen. Sie bekommen eine weitere Nachricht, sobald die Überweisung vermerkt ist.'),
 			],
 		]);
@@ -80,7 +81,7 @@ class ReimbursementMailService {
 			$l->t('Ihre Auslage wurde abgelehnt'),
 			[
 				$l->t('Guten Tag %s,', [$m->displayName()]),
-				$l->t('Ihr Antrag auf Erstattung von %1$s € wurde abgelehnt: %2$s', [$amount, $r->getPurpose()]),
+				$l->t('Ihr Antrag auf Erstattung von %1$s wurde abgelehnt: %2$s', [$amount, $r->getPurpose()]),
 				$l->t('Begründung: %s', [(string)$r->getRejectionReason()]),
 				$l->t('Bei Fragen wenden Sie sich bitte an den Vorstand.'),
 			],
@@ -92,7 +93,7 @@ class ReimbursementMailService {
 			$l->t('Ihre Auslage wurde erstattet'),
 			[
 				$l->t('Guten Tag %s,', [$m->displayName()]),
-				$l->t('Die Erstattung von %1$s € für „%2$s“ wurde am %3$s überwiesen.', [$amount, $r->getPurpose(), GermanDate::format($r->getPaidAt())]),
+				$l->t('Die Erstattung von %1$s für „%2$s“ wurde am %3$s überwiesen.', [$amount, $r->getPurpose(), GermanDate::format($r->getPaidAt())]),
 			],
 		]);
 	}
@@ -164,10 +165,10 @@ class ReimbursementMailService {
 		}
 	}
 
-	/** Betrag in der Schreibweise der Mailsprache: 12,50 auf Deutsch, 12.50 auf Englisch. */
+	/** Betrag in der Schreibweise der Mailsprache mit Zeichen der Vereinswährung: 12,50 € auf Deutsch, 12.50 € auf Englisch. */
 	private function euro(int $cents, IL10N $l): string {
-		return str_starts_with($l->getLanguageCode(), 'en')
+		return $this->currency->withSymbol(str_starts_with($l->getLanguageCode(), 'en')
 			? number_format($cents / 100, 2, '.', ',')
-			: number_format($cents / 100, 2, ',', '.');
+			: number_format($cents / 100, 2, ',', '.'));
 	}
 }

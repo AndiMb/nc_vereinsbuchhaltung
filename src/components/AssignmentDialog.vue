@@ -67,12 +67,12 @@
 						</option>
 					</select>
 				</label>
-				<label>{{ t('Monatsbeitrag (€)') }}
+				<label>{{ t('Monatsbeitrag ({currency})', { currency: currencySymbol() }) }}
 					<AmountInput v-model="form.monthlyAmount" class="vbh-short" />
 				</label>
 				<label>{{ t('Zahlungsart') }}
 					<select v-model="form.paymentMethod">
-						<option value="direct_debit">{{ t('Lastschrift') }}</option>
+						<option v-if="isEuro()" value="direct_debit">{{ t('Lastschrift') }}</option>
 						<option value="ueberweisung">{{ t('Überweisung') }}</option>
 					</select>
 				</label>
@@ -119,8 +119,9 @@ import AmountInput from './AmountInput.vue'
 import api from '../api.js'
 import { useContributionGroups } from '../composables/useContributionGroups.js'
 import { useMembers } from '../composables/useMembers.js'
+import { currencySymbol, isEuro } from '../lib/clubCurrency.js'
 import { clubToday } from '../lib/clubTime.js'
-import { errMsg, formatDate, formatEuro } from '../lib/format.js'
+import { errMsg, formatCurrency, formatDate } from '../lib/format.js'
 import { intervalLabel } from '../lib/frequency.js'
 import { focusOnOpen } from '../lib/modalFocus.js'
 
@@ -130,7 +131,7 @@ function emptyForm() {
 		groupId: null,
 		intervalMonths: 12,
 		monthlyAmount: '',
-		paymentMethod: 'direct_debit',
+		paymentMethod: isEuro() ? 'direct_debit' : 'ueberweisung',
 		validFrom: clubToday(),
 		validTo: '',
 	}
@@ -213,9 +214,11 @@ export default {
 	},
 
 	methods: {
+		isEuro,
+		currencySymbol,
 		intervalLabel,
 		formatDate,
-		euro(cents) { return formatEuro(cents / 100) },
+		euro(cents) { return formatCurrency(cents / 100) },
 
 		async createQuickMember() {
 			try {

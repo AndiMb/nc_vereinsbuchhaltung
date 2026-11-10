@@ -17,6 +17,7 @@ use OCA\Vereinsbuchhaltung\Db\ReturnedDebitMapper;
 use OCA\Vereinsbuchhaltung\Db\Task;
 use OCA\Vereinsbuchhaltung\Service\ClaimFollowUpTaskService;
 use OCA\Vereinsbuchhaltung\Service\DirectDebitEligibilityResolver;
+use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubCurrencyStub;
 use OCP\IL10N;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -48,7 +49,7 @@ class ClaimFollowUpTaskServiceTest extends TestCase {
 		$l10n->method('n')->willReturnCallback(static function (string $singular, string $plural, int $count, array $params = []): string {
 			return vsprintf(str_replace('%n', (string)$count, $count === 1 ? $singular : $plural), $params);
 		});
-		return new ClaimFollowUpTaskService($this->openItems, $this->returnedDebits, $this->debitItems, $this->mandates, new DirectDebitEligibilityResolver($this->assignments, $this->mandates), $l10n);
+		return new ClaimFollowUpTaskService($this->openItems, $this->returnedDebits, $this->debitItems, $this->mandates, new DirectDebitEligibilityResolver($this->assignments, $this->mandates), $l10n, ClubCurrencyStub::of($this));
 	}
 
 	private function claim(int $id, int $memberId, int $amountCents = 1000, string $status = 'open', ?int $assignmentId = null): OpenItem {

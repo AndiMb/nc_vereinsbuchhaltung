@@ -13,6 +13,25 @@
 		</div>
 
 		<div class="vbh-card">
+			<h4>{{ t('Vereinswährung') }}</h4>
+			<p class="vbh-hint">
+				{{ t('Gilt für alle Beträge in Listen, Berichten, Rechnungen und Mails. Die Zahlen bleiben in deutscher Schreibweise, nur das Währungszeichen wechselt. Bestehende Beträge werden nicht umgerechnet. SEPA-Lastschrift und GiroCode gibt es nur in Euro.') }}
+			</p>
+			<div class="vbh-form">
+				<label class="vbh-grow">{{ t('Währung') }}
+					<select v-model="clubCurrencyModel">
+						<option v-for="c in clubCurrencies" :key="c.code" :value="c.code">
+							{{ c.code === c.symbol ? c.code : c.code + ' (' + c.symbol + ')' }}
+						</option>
+					</select>
+				</label>
+				<NcButton variant="primary" :disabled="storageSaving" @click="saveStorageSettings">
+					{{ t('Speichern') }}
+				</NcButton>
+			</div>
+		</div>
+
+		<div class="vbh-card">
 			<h4>{{ t('Corporate Design') }}</h4>
 			<p class="vbh-hint">
 				{{ t('Logo und Akzentfarbe erscheinen im Kurzbericht für Vorstandssitzungen (Berichte → Auswertung).') }}
@@ -77,6 +96,9 @@ export default {
 		// des Einstellungsdialogs gebraucht wird, z. B. SetupChecklist-Prop)
 		clubName: { type: String, required: true },
 		brandColor: { type: String, required: true },
+		// Vereinswährung (#202): Code und Auswahlliste aus dem Einstellungssatz
+		clubCurrency: { type: String, required: true },
+		clubCurrencies: { type: Array, required: true },
 		// nur lesend - Upload/Loeschen laden hier direkt per api.js nach (siehe
 		// onLogoSelected/removeLogo), @changed signalisiert dem Elternteil,
 		// hasLogo per loadStorageSettings() neu zu laden.
@@ -87,7 +109,7 @@ export default {
 		saveStorageSettings: { type: Function, required: true },
 	},
 
-	emits: ['changed', 'update:brandColor', 'update:clubName'],
+	emits: ['changed', 'update:brandColor', 'update:clubCurrency', 'update:clubName'],
 
 	data() {
 		return {
@@ -103,6 +125,11 @@ export default {
 		clubNameModel: {
 			get() { return this.clubName },
 			set(v) { this.$emit('update:clubName', v) },
+		},
+
+		clubCurrencyModel: {
+			get() { return this.clubCurrency },
+			set(v) { this.$emit('update:clubCurrency', v) },
 		},
 
 		brandColorModel: {

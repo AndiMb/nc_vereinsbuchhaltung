@@ -30,6 +30,13 @@ class Mt940ParserTest extends TestCase {
 		$this->assertSame('BYLADEM1001', $rows[0]['counterpartyBic']);
 	}
 
+	/** MT940 nennt keine Währung je Zeile – der Import setzt dann die Vereinswährung (#202). */
+	public function testOhneWaehrungsangabeBleibtDieWaehrungOffen(): void {
+		$rows = $this->parser->parse($this->fixture());
+
+		$this->assertNull($rows[0]['currency']);
+	}
+
 	/**
 	 * Der Verwendungszweck ist in :86: auf ?20, ?21 … verteilt und mitten im
 	 * Wort umbrochen. Werden die Teile nicht zusammengesetzt, steht in der

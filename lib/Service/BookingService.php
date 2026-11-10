@@ -40,6 +40,7 @@ class BookingService {
 		private EntryNumberService $entryNumbers,
 		private TransactionRunner $transaction,
 		private IL10N $l10n,
+		private ClubCurrency $currency,
 		private ?InvoicePaymentLedger $invoicePayments = null,
 		private ?ReimbursementPaymentReverter $reimbursementPayments = null,
 	) {
@@ -138,26 +139,26 @@ class BookingService {
 	private function translatePartsError(array $error): string {
 		$params = $error['params'] ?? [];
 		return match ($error['code']) {
-			'zero_total' => $this->l10n->t('Ein Umsatz über 0 € lässt sich nicht zuordnen.'),
+			'zero_total' => $this->l10n->t('Ein Umsatz über %s lässt sich nicht zuordnen.', [$this->currency->withSymbol('0')]),
 			'missing_contra' => $this->l10n->t('Es fehlt das Gegenkonto.'),
 			'too_many_parts' => $this->l10n->t('Ein Umsatz lässt sich auf höchstens %d Konten aufteilen.', [$params['max']]),
 			'missing_account' => $this->l10n->t('Jeder Teilbetrag braucht ein Konto.'),
 			'zero_amount' => $this->l10n->t('Jeder Teilbetrag muss größer als 0 sein.'),
 			'duplicate_account' => $this->l10n->t('Jedes Konto darf in der Aufteilung nur einmal vorkommen.'),
 			'too_little' => $this->l10n->t(
-				'Die Aufteilung ergibt %1$s € statt %2$s € – es fehlen noch %3$s €.',
+				'Die Aufteilung ergibt %1$s statt %2$s – es fehlen noch %3$s.',
 				[
-					number_format($params['sum'] / 100, 2, ',', '.'),
-					number_format($params['total'] / 100, 2, ',', '.'),
-					number_format($params['diff'] / 100, 2, ',', '.'),
+					$this->currency->format((int)$params['sum']),
+					$this->currency->format((int)$params['total']),
+					$this->currency->format((int)$params['diff']),
 				],
 			),
 			'too_much' => $this->l10n->t(
-				'Die Aufteilung ergibt %1$s € statt %2$s € – das sind %3$s € zu viel.',
+				'Die Aufteilung ergibt %1$s statt %2$s – das sind %3$s zu viel.',
 				[
-					number_format($params['sum'] / 100, 2, ',', '.'),
-					number_format($params['total'] / 100, 2, ',', '.'),
-					number_format($params['diff'] / 100, 2, ',', '.'),
+					$this->currency->format((int)$params['sum']),
+					$this->currency->format((int)$params['total']),
+					$this->currency->format((int)$params['diff']),
 				],
 			),
 			default => $error['code'],
@@ -232,8 +233,8 @@ class BookingService {
 			'date' => $tx->getBookingDate(),
 			'amount' => $tx->getAmountCents() / 100,
 			'contra' => implode(', ', array_map(
-				static fn (array $c): string => $c['account']->getNumber() . ' ' . $c['account']->getName()
-					. ($isSplit ? ' (' . number_format($c['amountCents'] / 100, 2, ',', '.') . ' €)' : ''),
+				fn (array $c): string => $c['account']->getNumber() . ' ' . $c['account']->getName()
+					. ($isSplit ? ' (' . $this->currency->format((int)$c['amountCents']) . ')' : ''),
 				$contras,
 			)),
 		]);

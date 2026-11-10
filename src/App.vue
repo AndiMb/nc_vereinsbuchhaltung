@@ -501,6 +501,7 @@ import { useTasks } from './composables/useTasks.js'
 import { buildWhatsNewEntries, filterWhatsNewEntries } from './data/whatsNew.js'
 import { accountLabel, accountOption } from './lib/accountLabel.js'
 import { takeBootState } from './lib/bootState.js'
+import { setClubCurrency } from './lib/clubCurrency.js'
 import { clubToday, setClubTimeZone } from './lib/clubTime.js'
 import { amountClass, budgetDiffClass, errMsg, formatDate, formatDateTime, formatMoney, typeLabel } from './lib/format.js'
 import { createHeaderCollapse } from './lib/headerCollapse.js'
@@ -1714,6 +1715,7 @@ export default {
 				this.storageMode = data.storage_mode || 'appdata'
 				this.clubName = data.club_name || ''
 				setClubTimeZone(data.club_time_zone)
+				setClubCurrency(data.club_currency)
 				this.demoActive = !!data.demo_active
 				this.membershipActive = !!data.membership_active
 				this.invoicesActive = !!data.invoice_module_active

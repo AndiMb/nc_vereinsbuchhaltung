@@ -32,6 +32,7 @@ class ReimbursementTransferService {
 		private EpcQrCodeGenerator $qrCode,
 		private LoggerInterface $logger,
 		private IL10N $l10n,
+		private ClubCurrency $currency,
 	) {
 	}
 
@@ -99,6 +100,10 @@ class ReimbursementTransferService {
 	}
 
 	private function qrPng(Reimbursement $reimbursement, string $recipient, string $iban, string $remittance): ?string {
+		// Vereinswährung (#202): GiroCode nur in Euro; die Felder zum Abtippen bleiben.
+		if (!$this->currency->isEuro()) {
+			return null;
+		}
 		try {
 			return base64_encode($this->qrCode->generatePng($recipient, $iban, null, $reimbursement->getAmountCents(), $remittance));
 		} catch (\Throwable $e) {

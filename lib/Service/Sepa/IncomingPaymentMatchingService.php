@@ -9,6 +9,7 @@ use OCA\Vereinsbuchhaltung\Db\IncomingPaymentRejectionMapper;
 use OCA\Vereinsbuchhaltung\Db\OpenItem;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
 use OCA\Vereinsbuchhaltung\Service\ClaimStateResolver;
+use OCA\Vereinsbuchhaltung\Service\ClubCurrency;
 use OCP\IL10N;
 
 /**
@@ -38,6 +39,7 @@ class IncomingPaymentMatchingService {
 		private OpenItemMapper $openItems,
 		private IncomingPaymentRejectionMapper $rejections,
 		private IL10N $l10n,
+		private ClubCurrency $currency,
 	) {
 	}
 
@@ -92,7 +94,7 @@ class IncomingPaymentMatchingService {
 					'openItemId' => (int)$item->getId(),
 					'memberId' => $item->getMemberId(),
 					'reason' => $byReference
-						? $this->l10n->t('Betrag %1$s € passt zur offenen Forderung von %2$s, deren Nummer F-%3$d im Zahlungstext steht.', [number_format($amount / 100, 2, ',', '.'), trim($item->getDebtor()), (int)$item->getId()])
+						? $this->l10n->t('Betrag %1$s passt zur offenen Forderung von %2$s, deren Nummer F-%3$d im Zahlungstext steht.', [$this->currency->format($amount), trim($item->getDebtor()), (int)$item->getId()])
 						: $this->reason($item, $amount, $haystack),
 				];
 				// Die Forderung, deren Nummer im Zahlungstext steht, kommt zuerst.
@@ -121,11 +123,11 @@ class IncomingPaymentMatchingService {
 	}
 
 	private function reason(OpenItem $item, int $amount, string $haystack): string {
-		$amountText = number_format($amount / 100, 2, ',', '.');
+		$amountText = $this->currency->format($amount);
 		$debtor = trim($item->getDebtor());
 		if ($debtor !== '' && $haystack !== '' && str_contains($haystack, mb_strtolower($debtor))) {
-			return $this->l10n->t('Betrag %1$s € passt zur offenen Forderung von %2$s, dessen Name auch im Zahlungstext steht.', [$amountText, $debtor]);
+			return $this->l10n->t('Betrag %1$s passt zur offenen Forderung von %2$s, dessen Name auch im Zahlungstext steht.', [$amountText, $debtor]);
 		}
-		return $this->l10n->t('Betrag %1$s € passt zur offenen Forderung von %2$s.', [$amountText, $debtor]);
+		return $this->l10n->t('Betrag %1$s passt zur offenen Forderung von %2$s.', [$amountText, $debtor]);
 	}
 }

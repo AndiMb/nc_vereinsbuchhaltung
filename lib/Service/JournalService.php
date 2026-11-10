@@ -50,6 +50,7 @@ class JournalService {
 		private EntryNumberService $entryNumbers,
 		private TransactionRunner $transaction,
 		private IL10N $l10n,
+		private ClubCurrency $currency,
 		private ?InvoicePaymentLedger $invoicePayments = null,
 		private ?ReimbursementPaymentReverter $reimbursementPayments = null,
 	) {
@@ -601,10 +602,10 @@ class JournalService {
 			'missing_account' => $this->l10n->t('Jede Buchungszeile braucht ein Konto.'),
 			'duplicate_account' => $this->l10n->t('Jedes Konto darf in einer Buchung nur einmal vorkommen.'),
 			'unbalanced' => $this->l10n->t(
-				'Soll und Haben sind nicht ausgeglichen (%s € gegen %s €).',
+				'Soll und Haben sind nicht ausgeglichen (%s gegen %s).',
 				[
-					number_format($params['debit'] / 100, 2, ',', '.'),
-					number_format($params['credit'] / 100, 2, ',', '.'),
+					$this->currency->format((int)$params['debit']),
+					$this->currency->format((int)$params['credit']),
 				],
 			),
 			'zero_total' => $this->l10n->t('Betrag muss größer als 0 sein'),

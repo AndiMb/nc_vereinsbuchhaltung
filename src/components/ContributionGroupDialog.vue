@@ -16,10 +16,10 @@
 				</label>
 			</div>
 			<div class="vbh-form">
-				<label>{{ t('Untergrenze (€/Monat)') }}
+				<label>{{ t('Untergrenze ({currency}/Monat)', { currency: currencySymbol() }) }}
 					<AmountInput v-model="form.minMonthlyAmount" class="vbh-short" placeholder="5,00" />
 				</label>
-				<label>{{ t('Standardbeitrag (€/Monat)') }}
+				<label>{{ t('Standardbeitrag ({currency}/Monat)', { currency: currencySymbol() }) }}
 					<AmountInput v-model="form.defaultMonthlyAmount" class="vbh-short" placeholder="8,00" />
 				</label>
 			</div>
@@ -71,6 +71,7 @@ import NcButton from '@nextcloud/vue/components/NcButton'
 import NcCheckboxRadioSwitch from '@nextcloud/vue/components/NcCheckboxRadioSwitch'
 import NcModal from '@nextcloud/vue/components/NcModal'
 import AmountInput from './AmountInput.vue'
+import { currencySymbol } from '../lib/clubCurrency.js'
 import { intervalLabel } from '../lib/frequency.js'
 import { focusOnOpen } from '../lib/modalFocus.js'
 
@@ -117,6 +118,7 @@ export default {
 	},
 
 	methods: {
+		currencySymbol,
 		intervalLabel,
 
 		/** Die Häkchen schalten je einen Turnus; die Liste bleibt aufsteigend sortiert. */

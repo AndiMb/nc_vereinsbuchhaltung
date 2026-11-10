@@ -193,7 +193,7 @@ import { useConfirm } from '../composables/useConfirm.js'
 import { useContributionGroups } from '../composables/useContributionGroups.js'
 import { useMembers } from '../composables/useMembers.js'
 import { clubToday } from '../lib/clubTime.js'
-import { errMsg, formatDate, formatEuro } from '../lib/format.js'
+import { errMsg, formatCurrency, formatDate } from '../lib/format.js'
 import { intervalLabel } from '../lib/frequency.js'
 import { assignmentStatusLabel, assignmentStatusTone, isLiveAssignment } from '../lib/memberRow.js'
 
@@ -276,7 +276,7 @@ export default {
 			await this.loadAssignments({ force: true })
 		},
 
-		euro(cents) { return formatEuro(cents / 100) },
+		euro(cents) { return formatCurrency(cents / 100) },
 
 		memberName(memberId) {
 			const m = this.members.find((x) => x.id === memberId)

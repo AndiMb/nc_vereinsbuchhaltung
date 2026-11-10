@@ -112,7 +112,7 @@
 					<AmountInput
 						v-model="openingAmount"
 						class="vbh-num"
-						:aria-label="t('Eröffnungssaldo in Euro')" />
+						:aria-label="t('Eröffnungssaldo in {currency}', { currency: currencySymbol() })" />
 					<input v-model="openingDate" type="date">
 					<NcButton variant="primary" size="small" @click="saveOpening(selectedAccount)">
 						{{ t('Speichern') }}
@@ -392,6 +392,7 @@ import { useBalances } from '../composables/useBalances.js'
 import { usePeriods } from '../composables/usePeriods.js'
 import { useSort } from '../composables/useSort.js'
 import { accountDisplayName, accountOption } from '../lib/accountLabel.js'
+import { currencySymbol } from '../lib/clubCurrency.js'
 import { amountClass, formatDate, formatMoney, typeLabel } from '../lib/format.js'
 import { statementRowKeys } from '../lib/rowKeys.js'
 
@@ -607,6 +608,7 @@ export default {
 	},
 
 	methods: {
+		currencySymbol,
 		accountDisplayName,
 
 		formatMoney,

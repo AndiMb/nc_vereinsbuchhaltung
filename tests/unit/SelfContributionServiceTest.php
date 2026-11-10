@@ -14,6 +14,7 @@ use OCA\Vereinsbuchhaltung\Service\SelfContributionService;
 use OCA\Vereinsbuchhaltung\Service\SelfServiceActivityPublisher;
 use OCA\Vereinsbuchhaltung\Service\SelfServiceReceiptMailService;
 use OCA\Vereinsbuchhaltung\Service\SelfServiceService;
+use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubCurrencyStub;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\IL10N;
@@ -65,7 +66,7 @@ class SelfContributionServiceTest extends TestCase {
 		$l10n->method('t')->willReturnCallback(static fn (string $text, array $parameters = []): string => vsprintf($text, $parameters));
 		$time = $this->createMock(ITimeFactory::class);
 		$time->method('getDateTime')->willReturn(new \DateTime($today));
-		return new SelfContributionService($this->actorContext, $this->assignments, $this->selfService, $this->members, $this->receiptMail, $this->activity, $this->userManager, $time, $l10n);
+		return new SelfContributionService($this->actorContext, $this->assignments, $this->selfService, $this->members, $this->receiptMail, $this->activity, $this->userManager, $time, $l10n, ClubCurrencyStub::of($this));
 	}
 
 	private function ownAssignment(int $amountCents = 1000, int $intervalMonths = 1, string $paymentMethod = Assignment::PAYMENT_METHOD_DIRECT_DEBIT): Assignment {

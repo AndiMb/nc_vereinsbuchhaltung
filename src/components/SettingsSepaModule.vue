@@ -11,8 +11,10 @@
 		<NcLoadingIcon v-else-if="!loaded" :size="24" />
 		<template v-else>
 			<SettingsSepaCycle />
-			<SettingsSepaXmlStorage :storageUser="storageUser" />
-			<SettingsSepaMandates :storageUser="storageUser" />
+			<template v-if="isEuro()">
+				<SettingsSepaXmlStorage :storageUser="storageUser" />
+				<SettingsSepaMandates :storageUser="storageUser" />
+			</template>
 			<SettingsSepaReturns />
 		</template>
 	</div>
@@ -27,6 +29,7 @@ import SettingsSepaMandates from './SettingsSepaMandates.vue'
 import SettingsSepaReturns from './SettingsSepaReturns.vue'
 import SettingsSepaXmlStorage from './SettingsSepaXmlStorage.vue'
 import { useSepaSettings } from '../composables/useSepaSettings.js'
+import { isEuro } from '../lib/clubCurrency.js'
 
 /**
  * Die übrigen Einstellungen des Beitrags-/SEPA-Moduls (Spec §4 „Neue
@@ -49,7 +52,7 @@ export default {
 
 	setup() {
 		const { state, loadSepaSettings } = useSepaSettings()
-		return { ...toRefs(state), loadSepaSettings }
+		return { ...toRefs(state), loadSepaSettings, isEuro }
 	},
 
 	mounted() {

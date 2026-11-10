@@ -155,6 +155,7 @@ import DebitTimeline from './DebitTimeline.vue'
 import DueDateScheduleDialog from './DueDateScheduleDialog.vue'
 import { useDebitRuns } from '../composables/useDebitRuns.js'
 import { useEinzugRequest } from '../composables/useEinzugRequest.js'
+import { isEuro } from '../lib/clubCurrency.js'
 import { liveBatches } from '../lib/debitRun.js'
 
 /**
@@ -206,7 +207,8 @@ export default {
 	data() {
 		return {
 			mdiCalendarEdit,
-			segment: 'timeline',
+			// Lastschrift-Läufe gibt es nur in Euro (#202); Forderungen und Bankabgleich bleiben.
+			segment: isEuro() ? 'timeline' : 'claims',
 			showSchedule: false,
 		}
 	},
@@ -217,7 +219,7 @@ export default {
 				{ id: 'timeline', label: this.t('Zeitstrahl & Läufe') },
 				{ id: 'claims', label: this.t('Forderungen') },
 				{ id: 'bankabgleich', label: this.t('Bankabgleich') },
-			]
+			].filter((seg) => seg.id !== 'timeline' || isEuro())
 		},
 
 		// Die Karte zeigt, was an diesem Termin noch freizugeben ist – nicht, was schon vollständig im Lauf steckt.

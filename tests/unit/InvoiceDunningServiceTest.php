@@ -17,6 +17,7 @@ use OCA\Vereinsbuchhaltung\Service\Invoice\InvoiceDocumentService;
 use OCA\Vereinsbuchhaltung\Service\Invoice\InvoiceDunningService;
 use OCA\Vereinsbuchhaltung\Service\InvoiceSettings;
 use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubClockStub;
+use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubCurrencyStub;
 use OCP\IL10N;
 use OCP\IUserSession;
 use OCP\Mail\IAttachment;
@@ -105,7 +106,7 @@ class InvoiceDunningServiceTest extends TestCase {
 		$l10n = $this->createMock(IL10N::class);
 		$l10n->method('t')->willReturnCallback(static fn (string $text, $params = []) => vsprintf($text, (array)$params));
 		$l10n->method('getLanguageCode')->willReturn('de');
-		return new InvoiceDunningService($this->mailer, $this->invoices, $openItems, $this->dunnings, $this->documents, $settings, $this->createMock(AuditService::class), $this->createMock(LoggerInterface::class), $this->createMock(IUserSession::class), $l10n, $this->createMock(ClubMailBranding::class), ClubClockStub::system());
+		return new InvoiceDunningService($this->mailer, $this->invoices, $openItems, $this->dunnings, $this->documents, $settings, $this->createMock(AuditService::class), $this->createMock(LoggerInterface::class), $this->createMock(IUserSession::class), $l10n, $this->createMock(ClubMailBranding::class), ClubClockStub::system(), ClubCurrencyStub::of($this));
 	}
 
 	private function row(): array {

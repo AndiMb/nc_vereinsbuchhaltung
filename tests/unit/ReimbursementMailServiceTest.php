@@ -11,6 +11,7 @@ use OCA\Vereinsbuchhaltung\Service\ClubMailBranding;
 use OCA\Vereinsbuchhaltung\Service\RecipientL10n;
 use OCA\Vereinsbuchhaltung\Service\ReimbursementMailService;
 use OCA\Vereinsbuchhaltung\Service\ReimbursementSettings;
+use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubCurrencyStub;
 use OCP\IL10N;
 use OCP\IUser;
 use OCP\IUserManager;
@@ -74,7 +75,7 @@ class ReimbursementMailServiceTest extends TestCase {
 		$this->logger = $this->createMock(LoggerInterface::class);
 	}
 
-	private function service(string $language = 'de_DE'): ReimbursementMailService {
+	private function service(string $language = 'de_DE', string $currency = 'EUR'): ReimbursementMailService {
 		$l10n = $this->createMock(IL10N::class);
 		$l10n->method('t')->willReturnCallback(static fn (string $text, array $parameters = []): string => vsprintf($text, $parameters));
 		$l10n->method('getLanguageCode')->willReturn($language);
@@ -90,6 +91,7 @@ class ReimbursementMailServiceTest extends TestCase {
 			$this->members,
 			$this->settings,
 			$this->logger,
+			ClubCurrencyStub::of($this, $currency),
 		);
 	}
 
@@ -204,6 +206,20 @@ class ReimbursementMailServiceTest extends TestCase {
 		$this->bodies = [];
 		$this->service('de')->approved($r);
 		$this->assertStringContainsString('1.234,56', implode(' ', $this->bodies));
+	}
+
+	/** Vereinswährung (#202): Zeichen der Vereinswährung, Zahlenformat der Mailsprache. */
+	public function testBetraegeTragenDieVereinswaehrung(): void {
+		$this->members->method('find')->willReturn($this->member());
+		$r = $this->reimbursement();
+		$r->setAmountCents(123456);
+
+		$this->service('en', 'CHF')->approved($r);
+		$this->assertStringContainsString('1,234.56 CHF', implode(' ', $this->bodies));
+
+		$this->bodies = [];
+		$this->service('de', 'EUR')->approved($r);
+		$this->assertStringContainsString('1.234,56 €', implode(' ', $this->bodies));
 	}
 
 	public function testOhneAdresseImMitgliedNimmtDieMailDieDesKontos(): void {

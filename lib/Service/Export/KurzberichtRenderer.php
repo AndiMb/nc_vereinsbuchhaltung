@@ -10,6 +10,7 @@ use OCA\Vereinsbuchhaltung\Db\BudgetMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
 use OCA\Vereinsbuchhaltung\Service\BrandingService;
 use OCA\Vereinsbuchhaltung\Service\ClubClock;
+use OCA\Vereinsbuchhaltung\Service\ClubCurrency;
 use OCA\Vereinsbuchhaltung\Service\LedgerAggregator;
 use OCA\Vereinsbuchhaltung\Service\PeriodService;
 use OCP\IAppConfig;
@@ -39,6 +40,7 @@ class KurzberichtRenderer {
 		private IURLGenerator $urlGenerator,
 		private IL10N $l10n,
 		private ClubClock $clock,
+		private ClubCurrency $currency,
 	) {
 	}
 
@@ -112,14 +114,14 @@ class KurzberichtRenderer {
 		foreach ($vermoegen['rows'] as $row) {
 			$label = trim($row['account']->getNumber() . ' ' . $row['account']->getName());
 			$h .= '<tr><td>' . PrintableReportPage::escape($label) . '</td>'
-				. '<td class="num">' . ReportFormat::cents($row['start']) . '</td>'
-				. '<td class="num">' . ReportFormat::cents($row['end']) . '</td>'
-				. '<td class="num">' . ReportFormat::cents($row['end'] - $row['start']) . '</td></tr>';
+				. '<td class="num">' . ReportFormat::cents($row['start'], $this->currency->symbol()) . '</td>'
+				. '<td class="num">' . ReportFormat::cents($row['end'], $this->currency->symbol()) . '</td>'
+				. '<td class="num">' . ReportFormat::cents($row['end'] - $row['start'], $this->currency->symbol()) . '</td></tr>';
 		}
 		$h .= '<tr class="sum"><td>' . $this->l10n->t('Gesamt') . '</td>'
-			. '<td class="num">' . ReportFormat::cents($vermoegen['startCents']) . '</td>'
-			. '<td class="num">' . ReportFormat::cents($vermoegen['endCents']) . '</td>'
-			. '<td class="num">' . ReportFormat::cents($vermoegen['endCents'] - $vermoegen['startCents']) . '</td></tr>';
+			. '<td class="num">' . ReportFormat::cents($vermoegen['startCents'], $this->currency->symbol()) . '</td>'
+			. '<td class="num">' . ReportFormat::cents($vermoegen['endCents'], $this->currency->symbol()) . '</td>'
+			. '<td class="num">' . ReportFormat::cents($vermoegen['endCents'] - $vermoegen['startCents'], $this->currency->symbol()) . '</td></tr>';
 		return $h . '</table></section>';
 	}
 
@@ -127,12 +129,12 @@ class KurzberichtRenderer {
 	private function movementSection(array $erfolg, string $since): string {
 		$h = '<section><h2>' . $this->l10n->t('Bewegungen seit %s', [ReportFormat::date($since)]) . '</h2><table>';
 		$h .= '<tr><th colspan="2">' . $this->l10n->t('Einnahmen') . '</th><th class="num">' . $this->l10n->t('Betrag') . '</th></tr>';
-		$h .= KassenberichtRenderer::accountRows($erfolg['income']);
-		$h .= '<tr class="sum"><td colspan="2">' . $this->l10n->t('Summe Einnahmen') . '</td><td class="num">' . ReportFormat::cents($erfolg['incomeCents']) . '</td></tr>';
+		$h .= KassenberichtRenderer::accountRows($erfolg['income'], $this->currency->symbol());
+		$h .= '<tr class="sum"><td colspan="2">' . $this->l10n->t('Summe Einnahmen') . '</td><td class="num">' . ReportFormat::cents($erfolg['incomeCents'], $this->currency->symbol()) . '</td></tr>';
 		$h .= '<tr><th colspan="2">' . $this->l10n->t('Ausgaben') . '</th><th class="num">' . $this->l10n->t('Betrag') . '</th></tr>';
-		$h .= KassenberichtRenderer::accountRows($erfolg['expense']);
-		$h .= '<tr class="sum"><td colspan="2">' . $this->l10n->t('Summe Ausgaben') . '</td><td class="num">' . ReportFormat::cents($erfolg['expenseCents']) . '</td></tr>';
-		$h .= '<tr class="result"><td colspan="2">' . $this->l10n->t('Ergebnis seit Stichtag') . '</td><td class="num">' . ReportFormat::cents($erfolg['resultCents']) . '</td></tr>';
+		$h .= KassenberichtRenderer::accountRows($erfolg['expense'], $this->currency->symbol());
+		$h .= '<tr class="sum"><td colspan="2">' . $this->l10n->t('Summe Ausgaben') . '</td><td class="num">' . ReportFormat::cents($erfolg['expenseCents'], $this->currency->symbol()) . '</td></tr>';
+		$h .= '<tr class="result"><td colspan="2">' . $this->l10n->t('Ergebnis seit Stichtag') . '</td><td class="num">' . ReportFormat::cents($erfolg['resultCents'], $this->currency->symbol()) . '</td></tr>';
 		return $h . '</table></section>';
 	}
 
@@ -140,13 +142,13 @@ class KurzberichtRenderer {
 	private function planSummarySection(array $soll, string $periodLabel): string {
 		$h = '<section><h2>' . $this->l10n->t('Finanzplan %s (Kurzfassung)', [$periodLabel]) . '</h2><table>';
 		$h .= '<tr><th></th><th class="num">' . $this->l10n->t('Plan') . '</th><th class="num">' . $this->l10n->t('Ist (bisher)') . '</th></tr>';
-		$h .= '<tr><td>' . $this->l10n->t('Einnahmen') . '</td><td class="num">' . ReportFormat::cents($soll['planIncomeCents'])
-			. '</td><td class="num">' . ReportFormat::cents($soll['actualIncomeCents']) . '</td></tr>';
-		$h .= '<tr><td>' . $this->l10n->t('Ausgaben') . '</td><td class="num">' . ReportFormat::cents($soll['planExpenseCents'])
-			. '</td><td class="num">' . ReportFormat::cents($soll['actualExpenseCents']) . '</td></tr>';
+		$h .= '<tr><td>' . $this->l10n->t('Einnahmen') . '</td><td class="num">' . ReportFormat::cents($soll['planIncomeCents'], $this->currency->symbol())
+			. '</td><td class="num">' . ReportFormat::cents($soll['actualIncomeCents'], $this->currency->symbol()) . '</td></tr>';
+		$h .= '<tr><td>' . $this->l10n->t('Ausgaben') . '</td><td class="num">' . ReportFormat::cents($soll['planExpenseCents'], $this->currency->symbol())
+			. '</td><td class="num">' . ReportFormat::cents($soll['actualExpenseCents'], $this->currency->symbol()) . '</td></tr>';
 		$h .= '<tr class="result"><td>' . $this->l10n->t('Ergebnis') . '</td>'
-			. '<td class="num">' . ReportFormat::cents($soll['planIncomeCents'] - $soll['planExpenseCents']) . '</td>'
-			. '<td class="num">' . ReportFormat::cents($soll['actualIncomeCents'] - $soll['actualExpenseCents']) . '</td></tr>';
+			. '<td class="num">' . ReportFormat::cents($soll['planIncomeCents'] - $soll['planExpenseCents'], $this->currency->symbol()) . '</td>'
+			. '<td class="num">' . ReportFormat::cents($soll['actualIncomeCents'] - $soll['actualExpenseCents'], $this->currency->symbol()) . '</td></tr>';
 		return $h . '</table></section>';
 	}
 }

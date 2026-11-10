@@ -985,7 +985,7 @@ import { useSort } from '../composables/useSort.js'
 import { loadChart } from '../lib/chartLoader.js'
 import { chartTheme, onThemeChange, withAlpha } from '../lib/chartTheme.js'
 import { clubToday } from '../lib/clubTime.js'
-import { amountClass, budgetDiffClass, formatDate, formatDateTime, formatMoney, formatPercent, roleLabel, trendClass, typeLabel } from '../lib/format.js'
+import { amountClass, budgetDiffClass, formatCurrency, formatDate, formatDateTime, formatMoney, formatPercent, roleLabel, trendClass, typeLabel } from '../lib/format.js'
 import { addDays } from '../lib/invoices.js'
 import { statementRowKeys } from '../lib/rowKeys.js'
 
@@ -1379,7 +1379,7 @@ export default {
 				return
 			}
 			const theme = chartTheme()
-			const eur = (v) => new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(v)
+			const eur = (v) => formatCurrency(v)
 			const config = {
 				type: 'line',
 				data: {

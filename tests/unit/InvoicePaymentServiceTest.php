@@ -20,6 +20,7 @@ use OCA\Vereinsbuchhaltung\Service\BookingService;
 use OCA\Vereinsbuchhaltung\Service\InvoicePaymentLedger;
 use OCA\Vereinsbuchhaltung\Service\InvoicePaymentService;
 use OCA\Vereinsbuchhaltung\Service\JournalService;
+use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubCurrencyStub;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\IDBConnection;
 use OCP\IUserSession;
@@ -87,6 +88,7 @@ class InvoicePaymentServiceTest extends TestCase {
 			new TransactionRunner($this->createMock(IDBConnection::class)),
 			$this->createMock(AuditService::class),
 			$this->createMock(IUserSession::class),
+			ClubCurrencyStub::of($this),
 		);
 	}
 

@@ -17,6 +17,7 @@ use OCA\Vereinsbuchhaltung\Service\AuditService;
 use OCA\Vereinsbuchhaltung\Service\BookingService;
 use OCA\Vereinsbuchhaltung\Service\EntryNumberService;
 use OCA\Vereinsbuchhaltung\Service\PeriodService;
+use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubCurrencyStub;
 use OCP\IL10N;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -63,6 +64,7 @@ class BookingServicePeriodLockTest extends TestCase {
 			$this->entryNumbers,
 			$runner,
 			$this->createMock(IL10N::class),
+			ClubCurrencyStub::of($this),
 		);
 	}
 

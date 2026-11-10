@@ -34,8 +34,8 @@ class ExportFormatTest extends TestCase {
 	}
 
 	public function testCentBetragMitWaehrung(): void {
-		$this->assertSame('1.234,56 €', ReportFormat::cents(123456));
-		$this->assertSame('-3,00 €', ReportFormat::cents(-300));
+		$this->assertSame('1.234,56 €', ReportFormat::cents(123456, '€'));
+		$this->assertSame('-3,00 €', ReportFormat::cents(-300, '€'));
 	}
 
 	public function testDatumWirdUmgedreht(): void {

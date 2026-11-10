@@ -62,7 +62,7 @@
 						<option v-for="u in UNIT_CODES" :key="u" :value="u">{{ unitLabel(u) }}</option>
 					</select>
 				</label>
-				<label>{{ t('Einzelpreis (€)') }}
+				<label>{{ t('Einzelpreis ({currency})', { currency: currencySymbol() }) }}
 					<input
 						v-model="editing.price"
 						class="vbh-short"
@@ -116,6 +116,7 @@ import NcButton from '@nextcloud/vue/components/NcButton'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import api from '../api.js'
 import { accountLabel } from '../lib/accountLabel.js'
+import { currencySymbol } from '../lib/clubCurrency.js'
 import { errMsg, formatMoney } from '../lib/format.js'
 import { TAX_KEYS, taxKeyLabel, taxKeyOf, unitLabel } from '../lib/invoices.js'
 
@@ -148,6 +149,7 @@ export default {
 	},
 
 	methods: {
+		currencySymbol,
 		formatMoney,
 		unitLabel,
 		taxKeyLabel,
