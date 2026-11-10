@@ -4400,10 +4400,10 @@
         "unter Plan": "onder plan",
         "ungeplant": "niet gepland",
         "ohne Werte": "geen waarden",
-        "Ist {actual} von Soll {plan} ({percent} %)": "Werkelijk {actual} van begroot {plan} ({percent} %)",
-        "Ist {actual}, Soll {plan}": "Werkelijk {actual}, begroot {plan}",
+        "Ist {actual} von Plan {plan} ({percent} %)": "Werkelijk {actual} van begroot {plan} ({percent} %)",
+        "Ist {actual}, Plan {plan}": "Werkelijk {actual}, begroot {plan}",
         "Ausschöpfung": "Benutting",
-        "Zeitanteiliges Soll": "Tijdsevenredig begroot",
+        "Zeitanteiliger Plan": "Tijdsevenredig begroot",
         "Hochrechnung": "Prognose",
         "Lineare Fortschreibung; saisonale Posten verzerren.": "Lineaire extrapolatie; seizoensgebonden posten vertekenen dit.",
         "Keine Konten in dieser Gruppe.": "Geen rekeningen in deze groep."

@@ -10,12 +10,12 @@
 		<BudgetBullet
 			:plan="kpi.plan"
 			:actual="kpi.actual"
-			:timeFactor="basis === 'time' ? timeFactor : null"
+			:timeFactor="timeFactor"
 			:tone="meta.tone" />
 		<dl class="vbh-visual-tile__rows">
 			<dt>{{ t('Ist') }}</dt>
 			<dd>{{ money(kpi.actual) }}</dd>
-			<dt>{{ t('Soll') }}</dt>
+			<dt>{{ t('Plan') }}</dt>
 			<dd>{{ money(kpi.plan) }}</dd>
 			<template v-if="nature === 'result'">
 				<dt>{{ t('Differenz') }}</dt>
@@ -26,7 +26,7 @@
 				<dd>{{ utilisation }}</dd>
 			</template>
 			<template v-if="timeFactor">
-				<dt>{{ t('Zeitanteiliges Soll') }}</dt>
+				<dt>{{ t('Zeitanteiliger Plan') }}</dt>
 				<dd>{{ money(kpi.plan * timeFactor) }}</dd>
 			</template>
 			<template v-if="kpi.forecast !== null && kpi.forecast !== undefined">
@@ -47,8 +47,8 @@ import { statusMeta } from '../lib/budgetVisual.js'
 import { formatMoney, formatSigned } from '../lib/format.js'
 
 /**
- * Kennzahlen-Kachel für eine Art (Einnahmen, Ausgaben, Ergebnis): Ist, Soll,
- * Ausschöpfung, Ampel, zeitanteiliges Soll und Hochrechnung. Ausschöpfung und
+ * Kennzahlen-Kachel für eine Art (Einnahmen, Ausgaben, Ergebnis): Ist, Plan,
+ * Ausschöpfung, Ampel, zeitanteiliger Plan und Hochrechnung. Ausschöpfung und
  * Ampel folgen der gewählten Vergleichsbasis. Beträge in Cent.
  */
 export default {

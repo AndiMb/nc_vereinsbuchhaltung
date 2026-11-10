@@ -18,7 +18,7 @@ import { bulletGeometry } from '../lib/budgetVisual.js'
 import { formatMoney } from '../lib/format.js'
 
 /**
- * Bullet-Balken: die Spur ist das Soll, die Füllung das Ist, der dünne Strich
+ * Bullet-Balken: die Spur ist der Plan, die Füllung das Ist, der dünne Strich
  * der Zeitanteil. Überschreitung zeigt eine schraffierte Kappe am rechten Ende.
  * Beträge in Cent.
  */
@@ -40,13 +40,13 @@ export default {
 			const actual = formatMoney(this.actual / 100)
 			const plan = formatMoney(this.plan / 100)
 			if (this.plan > 0) {
-				return this.t('Ist {actual} von Soll {plan} ({percent} %)', {
+				return this.t('Ist {actual} von Plan {plan} ({percent} %)', {
 					actual,
 					plan,
 					percent: Math.round((this.actual / this.plan) * 100),
 				})
 			}
-			return this.t('Ist {actual}, Soll {plan}', { actual, plan })
+			return this.t('Ist {actual}, Plan {plan}', { actual, plan })
 		},
 	},
 }
