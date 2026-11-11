@@ -382,6 +382,8 @@ export default {
 	exportMultiyearUrl: () => generateUrl(base + '/export/multiyear'),
 	gliederungsberichtUrl: (template, period) => generateUrl(base + '/export/gliederungsbericht') + `?template=${encodeURIComponent(template)}` + (period ? `&period=${period}` : ''),
 	gliederungsberichtCsvUrl: (template, period) => generateUrl(base + '/export/gliederungsbericht-csv') + `?template=${encodeURIComponent(template)}` + (period ? `&period=${period}` : ''),
+	// Visuelle Ansicht (Plan gegen Ist): Stand `YYYY-MM`/`current` (leer = Vorgabe), Basis `year`/`time`.
+	gliederungsberichtVisuellUrl: (template, period, asOf, basis = 'year') => generateUrl(base + '/export/gliederungsbericht-visuell') + `?template=${encodeURIComponent(template)}` + (period ? `&period=${period}` : '') + (asOf ? `&asOf=${encodeURIComponent(asOf)}` : '') + `&basis=${encodeURIComponent(basis)}`,
 	kassenberichtUrl: (period) => generateUrl(base + '/export/kassenbericht') + (period ? `?period=${period}` : ''),
 	kurzberichtUrl: (since) => generateUrl(base + '/export/kurzbericht') + (since ? `?since=${since}` : ''),
 	exportAttachmentsUrl: (period) => generateUrl(base + '/export/attachments') + (period ? `?period=${period}` : ''),

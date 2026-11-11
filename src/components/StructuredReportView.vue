@@ -4,7 +4,7 @@
 			<h4>{{ t('Gliederungsbericht') }}{{ headPeriod ? ' ' + headPeriod.label : '' }}</h4>
 			<div class="vbh-structured-actions">
 				<a
-					v-if="selected && view === 'table'"
+					v-if="selected"
 					:href="printUrl"
 					target="_blank"
 					rel="noopener"
@@ -115,6 +115,7 @@
 			:isMobile="isMobile"
 			:isActive="isActive"
 			@loaded="visualPeriod = $event"
+			@state="visualState = $event"
 			@openSpheres="$emit('open-spheres')" />
 		<template v-else-if="view === 'table'">
 			<NcNoteCard v-if="report && selected && !report.hasSpheres" type="info">
@@ -260,6 +261,8 @@ export default {
 			visualRefreshKey: 0,
 			// Periode der zuletzt geladenen visuellen Ansicht (für die Überschrift)
 			visualPeriod: null,
+			// Stand und Basis der visuellen Ansicht (für den Drucklink)
+			visualState: { asOf: null, basis: 'year' },
 		}
 	},
 
@@ -281,7 +284,13 @@ export default {
 			return this.report ? this.report.period : null
 		},
 
-		printUrl() { return api.gliederungsberichtUrl(this.templateId, this.selectedPeriodId) },
+		printUrl() {
+			if (this.view === 'visual') {
+				return api.gliederungsberichtVisuellUrl(this.templateId, this.selectedPeriodId, this.visualState.asOf, this.visualState.basis)
+			}
+			return api.gliederungsberichtUrl(this.templateId, this.selectedPeriodId)
+		},
+
 		csvUrl() { return api.gliederungsberichtCsvUrl(this.templateId, this.selectedPeriodId) },
 	},
 

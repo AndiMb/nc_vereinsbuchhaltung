@@ -4467,7 +4467,11 @@
         "Bei den Einnahmen muss die Schwelle für Rot unter der für Grün liegen.": "For income, the red threshold must be below the green one.",
         "Ampel im Gliederungsbericht": "Status in the structured report",
         "Die Ampel-Schwellen sind unvollständig.": "The status thresholds are incomplete.",
-        "Jede Ampel-Schwelle muss eine ganze Zahl zwischen %1$d und %2$d sein.": "Each status threshold must be a whole number between %1$d and %2$d."
+        "Jede Ampel-Schwelle muss eine ganze Zahl zwischen %1$d und %2$d sein.": "Each status threshold must be a whole number between %1$d and %2$d.",
+        "Vergleich gegen: Jahresplan": "Compared against: full plan",
+        "Vergleich gegen: zeitanteiligen Plan (%1$s von %2$s Monaten)": "Compared against: time-proportional plan (%1$s of %2$s months)",
+        "Ausgabenkonten": "Expense accounts",
+        "Einnahmenkonten": "Income accounts"
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

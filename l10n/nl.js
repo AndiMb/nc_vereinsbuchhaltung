@@ -4466,5 +4466,9 @@ OC.L10N.register("vereinsbuchhaltung", {
 	"Bei den Einnahmen muss die Schwelle für Rot unter der für Grün liegen.": "Bij de inkomsten moet de drempel voor rood onder die voor groen liggen.",
 	"Ampel im Gliederungsbericht": "Status in het indelingsrapport",
 	"Die Ampel-Schwellen sind unvollständig.": "De statusdrempels zijn onvolledig.",
-	"Jede Ampel-Schwelle muss eine ganze Zahl zwischen %1$d und %2$d sein.": "Elke statusdrempel moet een geheel getal tussen %1$d en %2$d zijn."
+	"Jede Ampel-Schwelle muss eine ganze Zahl zwischen %1$d und %2$d sein.": "Elke statusdrempel moet een geheel getal tussen %1$d en %2$d zijn.",
+	"Vergleich gegen: Jahresplan": "Vergeleken met: volledige begroting",
+	"Vergleich gegen: zeitanteiligen Plan (%1$s von %2$s Monaten)": "Vergeleken met: tijdsevenredige begroting (%1$s van %2$s maanden)",
+	"Ausgabenkonten": "Uitgavenrekeningen",
+	"Einnahmenkonten": "Inkomstenrekeningen"
 }, "nplurals=2; plural=(n != 1);");

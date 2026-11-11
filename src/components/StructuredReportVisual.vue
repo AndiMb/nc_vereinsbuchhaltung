@@ -271,7 +271,8 @@ export default {
 		isActive: { type: Boolean, required: true },
 	},
 
-	emits: ['loaded', 'open-spheres'],
+	// state: { asOf, basis } für den Drucklink der Elternansicht
+	emits: ['loaded', 'open-spheres', 'state'],
 
 	setup() {
 		return { canWrite: useAuth().canWrite }
@@ -302,6 +303,11 @@ export default {
 
 		effectiveBasis() {
 			return this.timeAvailable ? this.basis : 'year'
+		},
+
+		// Stand und Basis, wie sie die Druckseite übernimmt
+		printState() {
+			return { asOf: this.asOf, basis: this.effectiveBasis }
 		},
 
 		timeFactor() {
@@ -372,6 +378,10 @@ export default {
 		},
 
 		refreshKey() { this.load() },
+		printState: {
+			handler(state) { this.$emit('state', state) },
+			immediate: true,
+		},
 	},
 
 	mounted() {

@@ -387,6 +387,7 @@ return [
 		['name' => 'export#finanzplan', 'url' => '/api/export/finanzplan', 'verb' => 'GET'],
 		['name' => 'export#gliederungsbericht', 'url' => '/api/export/gliederungsbericht', 'verb' => 'GET'],
 		['name' => 'export#gliederungsberichtCsv', 'url' => '/api/export/gliederungsbericht-csv', 'verb' => 'GET'],
+		['name' => 'export#gliederungsberichtVisuell', 'url' => '/api/export/gliederungsbericht-visuell', 'verb' => 'GET'],
 		['name' => 'export#multiyear', 'url' => '/api/export/multiyear', 'verb' => 'GET'],
 		['name' => 'export#kassenbericht', 'url' => '/api/export/kassenbericht', 'verb' => 'GET'],
 		['name' => 'export#kurzbericht', 'url' => '/api/export/kurzbericht', 'verb' => 'GET'],
