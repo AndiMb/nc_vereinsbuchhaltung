@@ -209,6 +209,14 @@
 					@click="bookingCcPanelOpen = true">
 					{{ t('Kostenstellen verwalten') }}
 				</NcButton>
+				<!-- Budget je Kostenstelle (Issue #335): einen Plan gibt es je Geschäftsjahr -->
+				<NcButton
+					v-if="canWrite && costCentersEnabled && reportView === 'allocations' && selectedPeriodId"
+					variant="secondary"
+					size="small"
+					@click="ccBudgetOpen = true">
+					{{ t('Budget planen') }}
+				</NcButton>
 				<NcButton
 					v-if="canWrite && reportView === 'spheres'"
 					variant="secondary"
@@ -978,6 +986,13 @@
 			</div>
 		</NcModal>
 
+		<CostCenterBudgetDialog
+			v-if="canWrite && ccBudgetOpen && selectedPeriodId"
+			:periodId="selectedPeriodId"
+			:periodLabel="(periods.find((p) => p.id === selectedPeriodId) || {}).label || ''"
+			@changed="allocationRefreshKey++"
+			@close="ccBudgetOpen = false" />
+
 		<NcModal
 			v-if="canWrite && bookingCcPanelOpen"
 			labelId="vbh-modal-title-booking-costcenters"
@@ -1022,6 +1037,7 @@ import NcSelect from '@nextcloud/vue/components/NcSelect'
 import BookingCostCenterPanel from './BookingCostCenterPanel.vue'
 import BudgetTreeTable from './BudgetTreeTable.vue'
 import CostCenterAllocationReport from './CostCenterAllocationReport.vue'
+import CostCenterBudgetDialog from './CostCenterBudgetDialog.vue'
 import CostCenterPanel from './CostCenterPanel.vue'
 import SphereAssignPanel from './SphereAssignPanel.vue'
 import StructuredReportView from './StructuredReportView.vue'
@@ -1042,7 +1058,7 @@ import { statementRowKeys } from '../lib/rowKeys.js'
 
 export default {
 	name: 'ReportsTab',
-	components: { NcButton, NcActions, NcActionInput, NcActionLink, NcCheckboxRadioSwitch, NcEmptyContent, NcIconSvgWrapper, NcModal, NcSelect, BookingCostCenterPanel, BudgetTreeTable, CostCenterAllocationReport, CostCenterPanel, SphereAssignPanel, StructuredReportView },
+	components: { NcButton, NcActions, NcActionInput, NcActionLink, NcCheckboxRadioSwitch, NcEmptyContent, NcIconSvgWrapper, NcModal, NcSelect, BookingCostCenterPanel, CostCenterBudgetDialog, BudgetTreeTable, CostCenterAllocationReport, CostCenterPanel, SphereAssignPanel, StructuredReportView },
 	props: {
 		// Kostenstellen-Modus (group|account|manual), gesteuert ueber den
 		// Gruppierungs-Waehler in der Kopfzeile (nur reportView==='costcenters').
@@ -1153,6 +1169,7 @@ export default {
 			// den Bericht nach einer Aenderung der Stammdaten neu laden laesst.
 			bookingCcPanelOpen: false,
 			allocationRefreshKey: 0,
+			ccBudgetOpen: false,
 		}
 	},
 

@@ -4554,5 +4554,19 @@ OC.L10N.register("vereinsbuchhaltung", {
 	"Für diese Konten ist eine Kostenstelle vorgesehen. Die Beträge sind noch keiner Kostenstelle zugeordnet – ein Klick auf das Konto führt zu den Buchungen.": "A cost centre is expected for these accounts. The amounts are not allocated to a cost centre yet – click the account to see its entries.",
 	"Rechnungspositionen": "Invoice items",
 	"Position %d: Die Kostenstelle gibt es nicht.": "Item %d: the cost centre does not exist.",
-	"Beiträge dieser Gruppe werden beim Verbuchen des Einzugs dieser Kostenstelle zugeordnet.": "Contributions of this group are assigned to this cost centre when the collection is booked."
+	"Beiträge dieser Gruppe werden beim Verbuchen des Einzugs dieser Kostenstelle zugeordnet.": "Contributions of this group are assigned to this cost centre when the collection is booked.",
+	"Planwerte dürfen nicht negativ sein.": "Planned values must not be negative.",
+	"Abweichung": "Variance",
+	"Budget planen – {period}": "Plan budget – {period}",
+	"Je Kostenstelle ein Planwert für die Einnahmen und einer für die Ausgaben des Geschäftsjahres. Gespeichert wird beim Verlassen des Feldes; ein leeres Feld heißt: kein Plan.": "One planned value for income and one for expenses per cost centre and financial year. Values are saved when you leave the field; an empty field means: no plan.",
+	"Planwerte werden geladen": "Loading planned values",
+	"Es gibt noch keine aktive Kostenstelle.": "There is no active cost centre yet.",
+	"Plan Einnahmen": "Planned income",
+	"Plan Ausgaben": "Planned expenses",
+	"Plan Einnahmen {code}": "Planned income {code}",
+	"Plan Ausgaben {code}": "Planned expenses {code}",
+	"Fertig": "Done",
+	"Die Planwerte konnten nicht geladen werden.": "The planned values could not be loaded.",
+	"Der Planwert konnte nicht gespeichert werden.": "The planned value could not be saved.",
+	"Budget planen": "Plan budget"
 }, "nplurals=2; plural=(n != 1);");

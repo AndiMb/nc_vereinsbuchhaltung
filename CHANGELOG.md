@@ -54,6 +54,10 @@ verwenden, z. B. `**Neu:**`.
   „Umsatz einer Auslage zuordnen“ fragt nach der Kostenstelle. Jede
   Beitragsgruppe kann eine Vorgabe-Kostenstelle tragen; Sammelgutschrift,
   Rücklastschrift und einzelner Zahlungseingang werden damit verbucht.
+- **Budget je Kostenstelle** (#335): Je Kostenstelle und Geschäftsjahr
+  lassen sich Planwerte für Einnahmen und Ausgaben hinterlegen (Knopf
+  „Budget planen“ im Kostenstellen-Bericht). Bericht, Druckseite und CSV
+  zeigen Plan, Ist und Abweichung.
 - Für bestehende Installationen ändert sich ohne Einschalten nichts: keine
   neue Spalte im Journal-Export, kein neues Feld, kein neuer Bericht. Wird
   die Funktion wieder ausgeschaltet, bleiben die Zuordnungen gespeichert.

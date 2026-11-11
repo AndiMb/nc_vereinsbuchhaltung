@@ -4554,5 +4554,19 @@ OC.L10N.register("vereinsbuchhaltung", {
 	"Für diese Konten ist eine Kostenstelle vorgesehen. Die Beträge sind noch keiner Kostenstelle zugeordnet – ein Klick auf das Konto führt zu den Buchungen.": "Voor deze rekeningen is een kostenplaats voorzien. De bedragen zijn nog niet aan een kostenplaats toegewezen – klik op de rekening om de boekingen te zien.",
 	"Rechnungspositionen": "Factuurregels",
 	"Position %d: Die Kostenstelle gibt es nicht.": "Regel %d: de kostenplaats bestaat niet.",
-	"Beiträge dieser Gruppe werden beim Verbuchen des Einzugs dieser Kostenstelle zugeordnet.": "Bijdragen van deze groep worden bij het boeken van de incasso aan deze kostenplaats toegewezen."
+	"Beiträge dieser Gruppe werden beim Verbuchen des Einzugs dieser Kostenstelle zugeordnet.": "Bijdragen van deze groep worden bij het boeken van de incasso aan deze kostenplaats toegewezen.",
+	"Planwerte dürfen nicht negativ sein.": "Geplande waarden mogen niet negatief zijn.",
+	"Abweichung": "Afwijking",
+	"Budget planen – {period}": "Budget plannen – {period}",
+	"Je Kostenstelle ein Planwert für die Einnahmen und einer für die Ausgaben des Geschäftsjahres. Gespeichert wird beim Verlassen des Feldes; ein leeres Feld heißt: kein Plan.": "Per kostenplaats één geplande waarde voor de inkomsten en één voor de uitgaven van het boekjaar. Opslaan gebeurt bij het verlaten van het veld; een leeg veld betekent: geen plan.",
+	"Planwerte werden geladen": "Geplande waarden worden geladen",
+	"Es gibt noch keine aktive Kostenstelle.": "Er is nog geen actieve kostenplaats.",
+	"Plan Einnahmen": "Geplande inkomsten",
+	"Plan Ausgaben": "Geplande uitgaven",
+	"Plan Einnahmen {code}": "Geplande inkomsten {code}",
+	"Plan Ausgaben {code}": "Geplande uitgaven {code}",
+	"Fertig": "Klaar",
+	"Die Planwerte konnten nicht geladen werden.": "De geplande waarden konden niet worden geladen.",
+	"Der Planwert konnte nicht gespeichert werden.": "De geplande waarde kon niet worden opgeslagen.",
+	"Budget planen": "Budget plannen"
 }, "nplurals=2; plural=(n != 1);");

@@ -11,6 +11,7 @@ use OCA\Vereinsbuchhaltung\Db\BankTxSepaDetailMapper;
 use OCA\Vereinsbuchhaltung\Db\BookingCostCenterMapper;
 use OCA\Vereinsbuchhaltung\Db\BudgetMapper;
 use OCA\Vereinsbuchhaltung\Db\ContributionGroupMapper;
+use OCA\Vereinsbuchhaltung\Db\CostCenterBudgetMapper;
 use OCA\Vereinsbuchhaltung\Db\CostCenterMapper;
 use OCA\Vereinsbuchhaltung\Db\DebitBatchMapper;
 use OCA\Vereinsbuchhaltung\Db\DebitItemMapper;
@@ -79,6 +80,7 @@ class ResetServiceTest extends TestCase {
 	private const WIPED_TABLES = [
 		'vbh_attachments',
 		'vbh_line_alloc',
+		'vbh_cc_budgets',
 		'vbh_journal_line',
 		'vbh_journal',
 		'vbh_bank_tx',
@@ -333,6 +335,7 @@ class ResetServiceTest extends TestCase {
 			new LineAllocationMapper($this->db),
 			new BookingCostCenterMapper($this->db),
 			new ContributionGroupMapper($this->db),
+			new CostCenterBudgetMapper($this->db),
 		);
 	}
 

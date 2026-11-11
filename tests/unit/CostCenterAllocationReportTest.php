@@ -72,14 +72,16 @@ class CostCenterAllocationReportTest extends TestCase {
 	/**
 	 * @param array<int, array{debit:int, credit:int}> $ledger
 	 * @param list<array{0:int, 1:int, 2:int, 3:int}> $allocations [Kostenstelle, Konto, Soll, Haben]
+	 * @param array<int, array{incomeCents:int, expenseCents:int}> $plans Kostenstelle => Planwerte
 	 * @return array<string, mixed>
 	 */
-	private function compute(array $ledger, array $allocations): array {
+	private function compute(array $ledger, array $allocations, array $plans = []): array {
 		return CostCenterAllocationReportService::compute(
 			$this->accounts(),
 			$ledger,
 			array_map(static fn (array $a): array => ['costCenterId' => $a[0], 'accountId' => $a[1], 'debit' => $a[2], 'credit' => $a[3]], $allocations),
 			$this->costCenters(),
+			$plans,
 		);
 	}
 
@@ -256,5 +258,70 @@ class CostCenterAllocationReportTest extends TestCase {
 		$this->assertCount(1, $report['centers']);
 		$this->assertSame(100000, $report['centers'][0]['expenseCents']);
 		$this->assertTrue($report['reconciled']);
+	}
+
+	// ---- Budget je Kostenstelle (Issue #335) ----
+
+	public function testKostenstelleBekommtIhrenPlan(): void {
+		$report = $this->compute(
+			[self::AUSRUESTUNG => ['debit' => 60000, 'credit' => 0], self::BANK => ['debit' => 0, 'credit' => 60000]],
+			[[self::SEN, self::AUSRUESTUNG, 60000, 0]],
+			[self::SEN => ['incomeCents' => 250000, 'expenseCents' => 180000]],
+		);
+
+		$this->assertSame(['incomeCents' => 250000, 'expenseCents' => 180000, 'resultCents' => 70000], $this->center($report, 'SEN')['plan']);
+		$this->assertTrue($report['planned']);
+	}
+
+	/** Geplant, aber noch nichts gebucht: die Kostenstelle erscheint trotzdem – sonst sähe man dem Bericht den Plan nicht an. */
+	public function testKostenstelleMitPlanOhneIstErscheint(): void {
+		$report = $this->compute(
+			[self::AUSRUESTUNG => ['debit' => 60000, 'credit' => 0], self::BANK => ['debit' => 0, 'credit' => 60000]],
+			[[self::SEN, self::AUSRUESTUNG, 60000, 0]],
+			[self::AJU => ['incomeCents' => 0, 'expenseCents' => 90000]],
+		);
+
+		$aju = $this->center($report, 'AJU');
+		$this->assertNotNull($aju);
+		$this->assertSame([], $aju['income']);
+		$this->assertSame([], $aju['expense']);
+		$this->assertSame(0, $aju['resultCents']);
+		$this->assertSame(['incomeCents' => 0, 'expenseCents' => 90000, 'resultCents' => -90000], $aju['plan']);
+		// Die Kostenstelle ohne Plan trägt null, damit die Oberfläche nicht raten muss.
+		$this->assertNull($this->center($report, 'SEN')['plan']);
+		$this->assertSame(['AJU', 'SEN'], array_column($report['centers'], 'code'));
+	}
+
+	public function testOhnePlaeneIstPlannedFalseUndPlanNull(): void {
+		$report = $this->compute(
+			[self::AUSRUESTUNG => ['debit' => 60000, 'credit' => 0], self::BANK => ['debit' => 0, 'credit' => 60000]],
+			[[self::SEN, self::AUSRUESTUNG, 60000, 0]],
+		);
+
+		$this->assertFalse($report['planned']);
+		$this->assertNull($this->center($report, 'SEN')['plan']);
+		$this->assertNull($this->center($report, 'AJU'));
+	}
+
+	/** Ein Plan ist keine Buchung: Ist-Summen und Abstimmung bleiben, wie sie ohne Plan wären. */
+	public function testPlanAendertDieIstSummenNicht(): void {
+		$ledger = [self::AUSRUESTUNG => ['debit' => 100000, 'credit' => 0], self::BANK => ['debit' => 0, 'credit' => 100000]];
+		$allocations = [[self::SEN, self::AUSRUESTUNG, 60000, 0]];
+
+		$without = $this->compute($ledger, $allocations);
+		$with = $this->compute($ledger, $allocations, [self::SEN => ['incomeCents' => 1, 'expenseCents' => 2], self::AJU => ['incomeCents' => 3, 'expenseCents' => 4]]);
+
+		$this->assertSame($without['total'], $with['total']);
+		$this->assertSame($without['unassigned'], $with['unassigned']);
+		$this->assertSame($without['reconciled'], $with['reconciled']);
+		$this->assertTrue($with['reconciled']);
+	}
+
+	/** Planwerte einer gelöschten Kostenstelle gibt es nicht (das Löschen räumt sie ab); taucht doch einer auf, zeigt der Bericht ihn nicht. */
+	public function testPlanEinerUnbekanntenKostenstelleWirdUebergangen(): void {
+		$report = $this->compute([], [], [777 => ['incomeCents' => 100, 'expenseCents' => 100]]);
+
+		$this->assertSame([], $report['centers']);
+		$this->assertFalse($report['planned']);
 	}
 }

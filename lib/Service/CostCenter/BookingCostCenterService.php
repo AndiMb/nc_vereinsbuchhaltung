@@ -6,6 +6,7 @@ namespace OCA\Vereinsbuchhaltung\Service\CostCenter;
 
 use OCA\Vereinsbuchhaltung\Db\BookingCostCenter;
 use OCA\Vereinsbuchhaltung\Db\BookingCostCenterMapper;
+use OCA\Vereinsbuchhaltung\Db\CostCenterBudgetMapper;
 use OCA\Vereinsbuchhaltung\Db\LineAllocationMapper;
 use OCA\Vereinsbuchhaltung\Service\AuditService;
 use OCA\Vereinsbuchhaltung\Service\CostCenterSettings;
@@ -35,6 +36,8 @@ class BookingCostCenterService {
 		private IL10N $l10n,
 		// Vorgaben aus Stammdaten (Regeln, …), die auf eine Kostenstelle zeigen.
 		private ?CostCenterDefaults $defaults = null,
+		// Budget je Kostenstelle (Issue #335): geht mit der Kostenstelle.
+		private ?CostCenterBudgetMapper $budgets = null,
 	) {
 	}
 
@@ -107,6 +110,8 @@ class BookingCostCenterService {
 		if ($inUse !== '') {
 			throw new \InvalidArgumentException($this->l10n->t('Die Kostenstelle „%1$s" ist noch als Vorgabe eingetragen (%2$s). Sie lässt sich deaktivieren, aber nicht löschen.', [$cc->getCode(), $inUse]));
 		}
+		// Planwerte sind keine Buchungen und halten die Kostenstelle nicht fest.
+		$this->budgets?->deleteByCostCenter((int)$cc->getId());
 		$this->mapper->delete($cc);
 		$this->audit->log('Kostenstelle gelöscht', 'booking_cost_center', $id, [
 			'code' => $cc->getCode(),

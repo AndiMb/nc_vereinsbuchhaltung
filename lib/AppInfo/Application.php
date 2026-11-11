@@ -81,6 +81,7 @@ class Application extends App implements IBootstrap {
 				$c->get(\OCP\IAppConfig::class),
 				$c->get(\OCP\IL10N::class),
 				$c->get(ClubClock::class),
+				$c->get(\OCA\Vereinsbuchhaltung\Db\CostCenterBudgetMapper::class),
 			);
 		}, true);
 

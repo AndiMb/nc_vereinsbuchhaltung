@@ -222,6 +222,7 @@ vereinsbuchhaltung/
 | `vbh_journal_line` | Soll-/Haben-Zeilen je Buchungssatz (Betrag in Cent) |
 | `vbh_booking_cc` | Kostenstellen an der Buchungszeile (Kürzel, Name, aktiv) – nicht zu verwechseln mit `vbh_costcenters` |
 | `vbh_line_alloc` | Verteilung einer Buchungszeile auf Kostenstellen (Zeile, Kostenstelle, Betrag); ohne Einträge verhält sich die App wie ohne die Funktion |
+| `vbh_cc_budgets` | Budget je Kostenstelle und Geschäftsjahr (Plan Einnahmen, Plan Ausgaben) – unabhängig vom Finanzplan je Konto in `vbh_budgets` |
 | `vbh_costcenters` | Auswertungsgruppen (Kürzel, Name); Konten verweisen über `vbh_accounts.cost_center_id` darauf. Tabellen- und Spaltenname stammen aus der Zeit, als die Auswertungsgruppe „Kostenstelle" hieß – sie bleiben, damit bestehende Installationen ohne Migration weiterlaufen |
 | `vbh_budgets` | Finanzplan (Konto × Jahr × Betrag in Cent + Notiz) |
 | `vbh_budget_snapshots` | eingefrorene Plan-Stände (Jahr, Label, Zeitpunkt) |
