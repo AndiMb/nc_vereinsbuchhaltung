@@ -108,11 +108,15 @@ test.describe('Kostenstelle an Importregeln', () => {
 		await visibleSection(page).getByRole('button', { name: 'Regeln' }).click()
 		await expect(visibleSection(page).getByText('Mitgliedsbeitrag').first()).toBeVisible()
 		await expect(visibleSection(page).locator('label', { hasText: 'Kostenstelle' })).toHaveCount(0)
-		// … und ein Speichern ohne die Angabe lässt die Vorgabe stehen.
-		await api.raw(request, 'PUT', `/rules/${rule.id}`, {
-			expectOk: true,
-			data: { matchField: 'purpose', matchValue: 'Mitgliedsbeitrag', contraAccountId: income.id, priority: 1 },
-		})
+		// … und das Speichern über das Formular schickt die Angabe nicht mit:
+		// die Vorgabe der Regel bleibt stehen.
+		const row = visibleSection(page).locator('tr', { hasText: 'Mitgliedsbeitrag' }).first()
+		await row.getByRole('button', { name: 'Regel bearbeiten' }).click()
+		await visibleSection(page).locator('label', { hasText: 'Priorität' }).locator('input').fill('1')
+		const saved = page.waitForRequest((r) => r.method() === 'PUT' && r.url().includes(`/api/rules/${rule.id}`))
+		await visibleSection(page).getByRole('button', { name: 'Speichern', exact: true }).click()
+		expect((await saved).postDataJSON()).not.toHaveProperty('costCenterId')
+		await expect(page.getByRole('status').filter({ hasText: 'Regel gespeichert.' }).first()).toBeVisible()
 		const stored = (await api.getJson(request, '/rules')).find((r) => r.id === rule.id)
 		expect(stored.costCenterId).toBe(costCenter.id)
 		expect(stored.priority).toBe(1)
@@ -121,6 +125,23 @@ test.describe('Kostenstelle an Importregeln', () => {
 		for (const line of await memberFeeLines(request, income.id)) {
 			expect(line.allocations).toEqual([])
 		}
+	})
+
+	test('ausgeschaltet: Vorschlag übernehmen schickt keine Kostenstelle mit', async ({ page, request }) => {
+		const { income } = await setup(request)
+		await setModule(request, false)
+		await api.raw(request, 'POST', '/import/commit', {
+			expectOk: true,
+			data: { content: fixture(CAMT_STATEMENT.csv), filename: 'auszug.csv', applyRules: false },
+		})
+
+		await openApp(page, USERS.verwalter)
+		await switchTab(page, 'Buchungen')
+		await visibleSection(page).locator('.vbh-subtabs').getByRole('button', { name: /Zuzuordnen/ }).click()
+		const assigned = page.waitForRequest((r) => r.method() === 'POST' && /\/api\/transactions\/\d+\/assign$/.test(r.url()))
+		await visibleSection(page).getByRole('button', { name: /Vorschlag/ }).first().click()
+		// Genau der Request von vor der Funktion: nur das Gegenkonto.
+		expect((await assigned).postDataJSON()).toEqual({ contraAccountId: income.id })
 	})
 
 	test('eine Kostenstelle, auf die eine Regel zeigt, lässt sich nicht löschen', async ({ request }) => {
