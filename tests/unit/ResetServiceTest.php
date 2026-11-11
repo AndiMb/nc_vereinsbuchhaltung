@@ -10,6 +10,7 @@ use OCA\Vereinsbuchhaltung\Db\BankTransactionMapper;
 use OCA\Vereinsbuchhaltung\Db\BankTxSepaDetailMapper;
 use OCA\Vereinsbuchhaltung\Db\BookingCostCenterMapper;
 use OCA\Vereinsbuchhaltung\Db\BudgetMapper;
+use OCA\Vereinsbuchhaltung\Db\ContributionGroupMapper;
 use OCA\Vereinsbuchhaltung\Db\CostCenterMapper;
 use OCA\Vereinsbuchhaltung\Db\DebitBatchMapper;
 use OCA\Vereinsbuchhaltung\Db\DebitItemMapper;
@@ -331,6 +332,7 @@ class ResetServiceTest extends TestCase {
 			new InvoiceBatchMapper($this->db),
 			new LineAllocationMapper($this->db),
 			new BookingCostCenterMapper($this->db),
+			new ContributionGroupMapper($this->db),
 		);
 	}
 
@@ -374,6 +376,8 @@ class ResetServiceTest extends TestCase {
 			'UPDATE vbh_mandates SET returned_debit_id=NULL',
 			// „übermittelt" gibt es ohne eingereichten Posten nicht mehr.
 			'UPDATE vbh_mandate_amendments SET status=open, debit_item_id=NULL',
+			// Beitragsgruppen bleiben, aber ihre Vorgabe-Kostenstelle (Issue #333) zeigt auf Gelöschtes.
+			'UPDATE vbh_contribution_groups SET booking_cc_id=NULL',
 		], $updates);
 		$this->assertNotContains('vbh_mandates', $this->deleted());
 		$this->assertNotContains('vbh_mandate_amendments', $this->deleted());

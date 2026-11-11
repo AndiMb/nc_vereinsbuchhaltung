@@ -32,4 +32,27 @@ class ContributionGroupMapper extends QBMapper {
 			->where($qb->expr()->eq('id', $qb->createNamedParameter($id, IQueryBuilder::PARAM_INT)));
 		return $this->findEntity($qb);
 	}
+
+	/** Beitragsgruppen, die diese Kostenstelle als Vorgabe tragen (Issue #333). */
+	public function countByBookingCostCenter(int $costCenterId): int {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select($qb->func()->count('*', 'cnt'))
+			->from($this->getTableName())
+			->where($qb->expr()->eq('booking_cc_id', $qb->createNamedParameter($costCenterId, IQueryBuilder::PARAM_INT)));
+		$result = $qb->executeQuery();
+		$count = (int)$result->fetchOne();
+		$result->closeCursor();
+		return $count;
+	}
+
+	/**
+	 * Löst die Vorgabe-Kostenstelle aller Gruppen. Gedacht für den Reset des
+	 * Buchungsbestands: die Gruppen bleiben, die Kostenstellen verschwinden.
+	 */
+	public function clearBookingCostCenters(): void {
+		$qb = $this->db->getQueryBuilder();
+		$qb->update($this->getTableName())
+			->set('booking_cc_id', $qb->createNamedParameter(null, IQueryBuilder::PARAM_NULL));
+		$qb->executeStatement();
+	}
 }

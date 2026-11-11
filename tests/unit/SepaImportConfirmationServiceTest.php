@@ -19,8 +19,10 @@ use OCA\Vereinsbuchhaltung\Exception\SettlementBlockedException;
 use OCA\Vereinsbuchhaltung\Service\AuditService;
 use OCA\Vereinsbuchhaltung\Service\BookingService;
 use OCA\Vereinsbuchhaltung\Service\ClaimService;
+use OCA\Vereinsbuchhaltung\Service\CostCenter\CostCenterDefaults;
 use OCA\Vereinsbuchhaltung\Service\DunningLadderService;
 use OCA\Vereinsbuchhaltung\Service\MandateService;
+use OCA\Vereinsbuchhaltung\Service\Sepa\ContributionCostCenterResolver;
 use OCA\Vereinsbuchhaltung\Service\Sepa\SepaImportConfirmationService;
 use OCA\Vereinsbuchhaltung\Service\Sepa\SepaImportSettingsService;
 use OCP\AppFramework\Utility\ITimeFactory;
@@ -49,6 +51,9 @@ class SepaImportConfirmationServiceTest extends TestCase {
 	private MandateService&MockObject $mandates;
 	private DunningLadderService&MockObject $dunningLadder;
 	private AuditService&MockObject $audit;
+	/** Vorgabe-Kostenstellen der Beitragsgruppen (Issue #333); null = Dienst ohne sie, wie vor der Funktion. */
+	private (ContributionCostCenterResolver&MockObject)|null $resolver = null;
+	private (CostCenterDefaults&MockObject)|null $costCenterDefaults = null;
 
 	/**
 	 * @var array<int, ReturnedDebit> DebitItem-Id => bereits vorhandene
@@ -114,6 +119,25 @@ class SepaImportConfirmationServiceTest extends TestCase {
 			$userSession,
 			$time,
 			$l10n,
+			$this->resolver,
+			$this->costCenterDefaults,
+		);
+	}
+
+	/**
+	 * Schaltet die Vorgabe-Kostenstellen ein.
+	 *
+	 * @param array<int, int|null> $byOpenItem Forderung => Kostenstelle ihrer Beitragsgruppe
+	 * @param list<int> $carryingAccounts Konten, die eine Kostenstelle tragen
+	 */
+	private function withCostCenters(array $byOpenItem, array $carryingAccounts = [42]): void {
+		$this->resolver = $this->createMock(ContributionCostCenterResolver::class);
+		$this->resolver->method('forOpenItem')->willReturnCallback(static fn (OpenItem $item): ?int => $byOpenItem[(int)$item->getId()] ?? null);
+		$this->costCenterDefaults = $this->createMock(CostCenterDefaults::class);
+		$this->costCenterDefaults->method('fullAllocation')->willReturnCallback(
+			static fn (string $userId, ?int $costCenterId, int $accountId, int $amountCents): ?array => $costCenterId !== null && $amountCents > 0 && in_array($accountId, $carryingAccounts, true)
+				? [['costCenterId' => $costCenterId, 'amountCents' => $amountCents]]
+				: null,
 		);
 	}
 
@@ -527,6 +551,119 @@ class SepaImportConfirmationServiceTest extends TestCase {
 		$this->assertSame('paid', $updated[100]->getStatus());
 		$this->assertSame(777, $updated[100]->getPaidJournalId());
 		$this->assertSame('paid', $updated[101]->getStatus());
+	}
+
+	/** Issue #333: jeder Posten bringt die Kostenstelle seiner Beitragsgruppe mit; der Teil je Erlöskonto trägt die Summen. */
+	public function testSammelbuchungTraegtDieKostenstellenDerBeitragsgruppen(): void {
+		$this->withCostCenters([100 => 3, 101 => null, 102 => 5]);
+		$tx = $this->tx(1, 6500);
+		$this->txMapper->method('find')->willReturn($tx);
+		$this->details->method('findByBankTx')->with(1)->willReturn([
+			$this->detail(1, 1, 10, 3000, false, BankTxSepaDetail::STATUS_ASSIGNED),
+			$this->detail(2, 1, 11, 2000, false, BankTxSepaDetail::STATUS_ASSIGNED),
+			$this->detail(3, 1, 12, 1500, false, BankTxSepaDetail::STATUS_ASSIGNED),
+		]);
+		$this->debitItems->method('find')->willReturnMap([
+			[10, $this->debitItem(10, 100, 3000)],
+			[11, $this->debitItem(11, 101, 2000)],
+			[12, $this->debitItem(12, 102, 1500)],
+		]);
+		$this->openItems->method('find')->willReturnMap([
+			[100, $this->openItem(100, 7, 3000, 42)],
+			[101, $this->openItem(101, 8, 2000, 42)],
+			[102, $this->openItem(102, 9, 1500, 42)],
+		]);
+		$capturedParts = null;
+		$this->bookingService->method('assignParts')->willReturnCallback(function (BankTransaction $t, array $parts) use (&$capturedParts): BankTransaction {
+			$capturedParts = $parts;
+			$t->setJournalId(777);
+			return $t;
+		});
+
+		$this->service()->settle(1);
+
+		$this->assertSame([
+			['accountId' => 42, 'amountCents' => 6500, 'allocations' => [
+				['costCenterId' => 3, 'amountCents' => 3000],
+				['costCenterId' => 5, 'amountCents' => 1500],
+			]],
+		], $capturedParts);
+	}
+
+	/** Ein Erlöskonto, das keine Kostenstelle trägt, darf die Verbuchung nicht scheitern lassen: der Teil bleibt ohne. */
+	public function testSammelbuchungAufNichtTragendemKontoBleibtOhneKostenstelle(): void {
+		$this->withCostCenters([100 => 3], carryingAccounts: []);
+		$tx = $this->tx(1, 3000);
+		$this->txMapper->method('find')->willReturn($tx);
+		$this->details->method('findByBankTx')->with(1)->willReturn([$this->detail(1, 1, 10, 3000, false, BankTxSepaDetail::STATUS_ASSIGNED)]);
+		$this->debitItems->method('find')->with(10)->willReturn($this->debitItem(10, 100, 3000));
+		$this->openItems->method('find')->with(100)->willReturn($this->openItem(100, 7, 3000, 42));
+		$capturedParts = null;
+		$this->bookingService->method('assignParts')->willReturnCallback(function (BankTransaction $t, array $parts) use (&$capturedParts): BankTransaction {
+			$capturedParts = $parts;
+			$t->setJournalId(777);
+			return $t;
+		});
+
+		$this->service()->settle(1);
+
+		$this->assertSame([['accountId' => 42, 'amountCents' => 3000]], $capturedParts);
+	}
+
+	/** Die Rückgabe nimmt den Erlös der Kostenstelle wieder heraus; die Bankgebühr gehört keiner Kostenstelle. */
+	public function testRuecklastschriftTraegtDieZuordnungUndDieGebuehrKeine(): void {
+		$this->withCostCenters([100 => 3]);
+		$tx = $this->tx(1, -5000);
+		$this->txMapper->method('find')->willReturn($tx);
+		$this->details->method('findByBankTx')->with(1)->willReturn([
+			$this->detail(1, 1, 10, -5000, true, BankTxSepaDetail::STATUS_ASSIGNED, chargesCents: 500),
+		]);
+		$this->debitItems->method('find')->with(10)->willReturn($this->debitItem(10, 100, 4500));
+		$this->openItems->method('find')->with(100)->willReturn($this->openItem(100, 7, 4500, 42));
+		$this->settings->method('returnFeeAccountId')->willReturn(99);
+		$this->settings->method('isReturnFeeRechargeEnabled')->willReturn(false);
+		$capturedParts = null;
+		$this->bookingService->method('assignParts')->willReturnCallback(function (BankTransaction $t, array $parts) use (&$capturedParts): BankTransaction {
+			$capturedParts = $parts;
+			$t->setJournalId(555);
+			return $t;
+		});
+
+		$this->service()->settle(1);
+
+		$this->assertSame([
+			['accountId' => 42, 'amountCents' => 4500, 'allocations' => [['costCenterId' => 3, 'amountCents' => 4500]]],
+			['accountId' => 99, 'amountCents' => 500],
+		], $capturedParts);
+	}
+
+	public function testZahlungseingangTraegtDieKostenstelleDerBeitragsgruppe(): void {
+		$this->withCostCenters([100 => 3]);
+		$this->txMapper->method('find')->willReturn($this->tx(1, 4500));
+		$this->openItems->method('find')->with(100)->willReturn($this->openItem(100, 7, 4500, 42));
+		$this->bookingService->expects($this->once())->method('assign')
+			->with($this->anything(), 42, [['costCenterId' => 3, 'amountCents' => 4500]])
+			->willReturnCallback(static function (BankTransaction $t) {
+				$t->setJournalId(900);
+				return $t;
+			});
+
+		$this->service()->confirmIncomingPayment(1, 100);
+	}
+
+	/** Ohne Vorgabe sagt der Aufruf nichts zur Kostenstelle – wie vor der Funktion. */
+	public function testZahlungseingangOhneVorgabeSagtNichtsZurKostenstelle(): void {
+		$this->withCostCenters([]);
+		$this->txMapper->method('find')->willReturn($this->tx(1, 4500));
+		$this->openItems->method('find')->with(100)->willReturn($this->openItem(100, 7, 4500, 42));
+		$this->bookingService->expects($this->once())->method('assign')
+			->with($this->anything(), 42, null)
+			->willReturnCallback(static function (BankTransaction $t) {
+				$t->setJournalId(900);
+				return $t;
+			});
+
+		$this->service()->confirmIncomingPayment(1, 100);
 	}
 
 	public function testSammelbuchungOhneErloeskontoWirft(): void {

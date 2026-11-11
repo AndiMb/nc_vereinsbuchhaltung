@@ -10,6 +10,7 @@ use OCA\Vereinsbuchhaltung\Db\BankTransactionMapper;
 use OCA\Vereinsbuchhaltung\Db\BankTxSepaDetailMapper;
 use OCA\Vereinsbuchhaltung\Db\BookingCostCenterMapper;
 use OCA\Vereinsbuchhaltung\Db\BudgetMapper;
+use OCA\Vereinsbuchhaltung\Db\ContributionGroupMapper;
 use OCA\Vereinsbuchhaltung\Db\CostCenterMapper;
 use OCA\Vereinsbuchhaltung\Db\IncomingPaymentRejectionMapper;
 use OCA\Vereinsbuchhaltung\Db\InvoiceBatchMapper;
@@ -70,6 +71,7 @@ class ResetService {
 		private InvoiceBatchMapper $invoiceBatchMapper,
 		private LineAllocationMapper $lineAllocations,
 		private BookingCostCenterMapper $bookingCostCenters,
+		private ContributionGroupMapper $contributionGroups,
 	) {
 	}
 
@@ -108,6 +110,9 @@ class ResetService {
 			// Auswertungsgruppen mit dem Kontenplan.
 			$this->lineAllocations->deleteAll();
 			$this->bookingCostCenters->deleteAllForUser($userId);
+			// Beitragsgruppen bleiben stehen; ihre Vorgabe-Kostenstelle (Issue #333)
+			// zeigte sonst auf eine gelöschte – oder später auf eine fremde, neue.
+			$this->contributionGroups->clearBookingCostCenters();
 			$this->lineMapper->deleteAllForUser($userId);
 			$this->journalMapper->deleteAllForUser($userId);
 			$this->txMapper->deleteAllForUser($userId);

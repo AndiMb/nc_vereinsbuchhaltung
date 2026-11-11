@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Service;
 
+use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\AssignmentMapper;
 use OCA\Vereinsbuchhaltung\Db\ContributionGroup;
 use OCA\Vereinsbuchhaltung\Db\ContributionGroupMapper;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
+use OCA\Vereinsbuchhaltung\Service\CostCenter\CostCenterDefaults;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\IL10N;
@@ -33,6 +35,8 @@ class ContributionGroupService {
 		private ITimeFactory $time,
 		private IL10N $l10n,
 		?ClubClock $clock = null,
+		// Vorgabe-Kostenstelle der Gruppe (Issue #333).
+		private ?CostCenterDefaults $costCenterDefaults = null,
 	) {
 		$this->clock = $clock ?? new ClubClock($this->time);
 	}
@@ -50,9 +54,10 @@ class ContributionGroupService {
 	 * @param int[] $allowedIntervals
 	 * @throws \InvalidArgumentException bei ungültigen Werten
 	 */
-	public function create(string $name, int $minMonthlyAmountCents, int $defaultMonthlyAmountCents, array $allowedIntervals, int $defaultInterval, bool $isActive): ContributionGroup {
+	public function create(string $name, int $minMonthlyAmountCents, int $defaultMonthlyAmountCents, array $allowedIntervals, int $defaultInterval, bool $isActive, int|false|null $bookingCostCenterId = false): ContributionGroup {
 		$group = new ContributionGroup();
 		$this->applyFields($group, $name, $minMonthlyAmountCents, $defaultMonthlyAmountCents, $allowedIntervals, $defaultInterval, $isActive);
+		$this->applyCostCenter($group, $bookingCostCenterId);
 		$group->setCreatedAt($this->now());
 		return $this->mapper->insert($group);
 	}
@@ -67,12 +72,13 @@ class ContributionGroupService {
 	 *                                   versuchten Erhöhung der Untergrenze
 	 * @throws DoesNotExistException wenn es die Gruppe nicht gibt
 	 */
-	public function update(int $id, string $name, int $minMonthlyAmountCents, int $defaultMonthlyAmountCents, array $allowedIntervals, int $defaultInterval, bool $isActive): ContributionGroup {
+	public function update(int $id, string $name, int $minMonthlyAmountCents, int $defaultMonthlyAmountCents, array $allowedIntervals, int $defaultInterval, bool $isActive, int|false|null $bookingCostCenterId = false): ContributionGroup {
 		$group = $this->mapper->find($id);
 		if ($minMonthlyAmountCents > $group->getMinMonthlyAmountCents()) {
 			throw new \InvalidArgumentException($this->l10n->t('Eine Erhöhung der Untergrenze läuft über die eigene Vorschau-Funktion, nicht über das normale Speichern.'));
 		}
 		$this->applyFields($group, $name, $minMonthlyAmountCents, $defaultMonthlyAmountCents, $allowedIntervals, $defaultInterval, $isActive);
+		$this->applyCostCenter($group, $bookingCostCenterId);
 		return $this->mapper->update($group);
 	}
 
@@ -207,6 +213,36 @@ class ContributionGroupService {
 		$group->setAllowedIntervalsArray($intervals);
 		$group->setDefaultInterval($defaultInterval);
 		$group->setIsActive($isActive);
+	}
+
+	/**
+	 * Vorgabe-Kostenstelle setzen (Issue #333). `false` heißt „nichts gesagt“
+	 * (alter Client, Formular bei ausgeschaltetem Modul): der gespeicherte Wert
+	 * bleibt. `null` oder 0 entfernt sie. Ein Wert wird nur bei eingeschaltetem
+	 * Modul angenommen und muss eine vorhandene Kostenstelle sein; eine
+	 * unveränderte Vorgabe bleibt auch dann stehen, wenn das Modul aus ist.
+	 *
+	 * @throws \InvalidArgumentException
+	 */
+	private function applyCostCenter(ContributionGroup $group, int|false|null $costCenterId): void {
+		if ($costCenterId === false) {
+			return;
+		}
+		if ($costCenterId === null || $costCenterId <= 0) {
+			$group->setBookingCcId(null);
+			return;
+		}
+		if ($costCenterId === $group->getBookingCostCenterId()) {
+			return;
+		}
+		$error = $this->costCenterDefaults === null ? 'disabled' : $this->costCenterDefaults->assignableError(Application::BOOK, $costCenterId);
+		if ($error === 'disabled') {
+			throw new \InvalidArgumentException($this->l10n->t('Kostenstellen sind in den Einstellungen ausgeschaltet.'));
+		}
+		if ($error !== null) {
+			throw new \InvalidArgumentException($this->l10n->t('Kostenstelle nicht gefunden'));
+		}
+		$group->setBookingCcId($costCenterId);
 	}
 
 	private function now(): string {
