@@ -116,6 +116,26 @@
 					</div>
 				</div>
 
+				<section class="vbh-visual-card vbh-visual-trendsection">
+					<h5 class="vbh-visual-trendsection__title">
+						{{ t('Verlauf') }}
+					</h5>
+					<BudgetTrendChart
+						v-if="hasTrend"
+						:series="data.series"
+						:planIncome="data.kpis.income.plan"
+						:planExpense="data.kpis.expense.plan"
+						:total="data.asOf.total"
+						:monthsOfPeriod="monthsOfPeriod"
+						:forecastIncome="data.kpis.income.forecast"
+						:forecastExpense="data.kpis.expense.forecast"
+						:isMobile="isMobile"
+						:isActive="isActive" />
+					<p v-else class="vbh-hint vbh-visual-trendsection__hint">
+						{{ t('Die Periode hat noch nicht begonnen – der Verlauf erscheint ab ihrem ersten Monat.') }}
+					</p>
+				</section>
+
 				<section class="vbh-visual-breakdown">
 					<h5 class="vbh-visual-breakdown__title">
 						{{ t('Aufriss nach Vorlage') }}
@@ -214,9 +234,10 @@ import BudgetDeviationList from './BudgetDeviationList.vue'
 import BudgetKpiTile from './BudgetKpiTile.vue'
 import BudgetStatusDistribution from './BudgetStatusDistribution.vue'
 import BudgetStatusPill from './BudgetStatusPill.vue'
+import BudgetTrendChart from './BudgetTrendChart.vue'
 import api from '../api.js'
 import { useAuth } from '../composables/useAuth.js'
-import { hasChildren, monthLabel, statusMeta, visibleRows } from '../lib/budgetVisual.js'
+import { hasChildren, monthLabel, periodMonths, statusMeta, visibleRows } from '../lib/budgetVisual.js'
 import { errMsg, formatDate, formatMoney } from '../lib/format.js'
 
 const BASIS_KEY = 'vbh.structuredReport.basis'
@@ -232,19 +253,22 @@ function storedBasis() {
 
 /**
  * Visuelle Plan-Ist-Ansicht des Gliederungsberichts: Stand und
- * Vergleichsbasis, Kennzahlen, Ampelverteilung, größte Abweichungen und der
- * Aufriss nach der Vorlage. Gerechnet wird ausschließlich auf dem Server; der
+ * Vergleichsbasis, Kennzahlen, Ampelverteilung, größte Abweichungen, Verlauf
+ * und der Aufriss nach der Vorlage. Gerechnet wird ausschließlich auf dem Server; der
  * Wechsel der Vergleichsbasis lädt nicht nach, weil der Server den Status für
  * beide Basen liefert.
  */
 export default {
 	name: 'StructuredReportVisual',
-	components: { BudgetBullet, BudgetDeviationList, BudgetKpiTile, BudgetStatusDistribution, BudgetStatusPill, NcButton, NcIconSvgWrapper, NcLoadingIcon, NcNoteCard, NcSelect },
+	components: { BudgetBullet, BudgetDeviationList, BudgetKpiTile, BudgetStatusDistribution, BudgetStatusPill, BudgetTrendChart, NcButton, NcIconSvgWrapper, NcLoadingIcon, NcNoteCard, NcSelect },
 	props: {
 		templateId: { type: String, required: true },
 		periodId: { type: Number, default: null },
 		refreshKey: { type: Number, default: 0 },
 		isMobile: { type: Boolean, required: true },
+		// Berichte-Tab sichtbar? Er wird per v-show ausgeblendet, der Verlauf
+		// (Chart.js) braucht beim Zeichnen ein sichtbares Canvas.
+		isActive: { type: Boolean, required: true },
 	},
 
 	emits: ['loaded', 'open-spheres'],
@@ -313,6 +337,14 @@ export default {
 		isEmpty() {
 			const { income, expense } = this.data.kpis
 			return this.hasNoPlan && income.actual === 0 && expense.actual === 0
+		},
+
+		hasTrend() {
+			return this.data.asOf.elapsed > 0 && (this.data.series?.months || []).length > 0
+		},
+
+		monthsOfPeriod() {
+			return periodMonths(this.data.period.startDate, this.data.asOf.total)
 		},
 
 		hasValueRows() {
@@ -480,7 +512,10 @@ export default {
    richtet sich nach seiner eigenen Breite (isMobile bleibt der einzige). */
 .vbh-visual-breakdown { min-width: 0; container-type: inline-size; }
 
-.vbh-visual-breakdown__title { margin: 0 0 8px; font-weight: 600; }
+.vbh-visual-breakdown__title,
+.vbh-visual-trendsection__title { margin: 0 0 8px; font-weight: 600; }
+
+.vbh-visual-trendsection__hint { margin: 0; }
 
 .vbh-visual-filter { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin-bottom: 8px; font-weight: 600; }
 

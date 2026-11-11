@@ -4442,5 +4442,11 @@ OC.L10N.register("vereinsbuchhaltung", {
 	"Zeitanteil: {elapsed} von {total} Monaten": "Time share: {elapsed} of {total} months",
 	"Alle Buchungen der Periode": "All entries of the period",
 	"Ist bis {datum}": "Actual up to {datum}",
-	"Für diese Periode ist noch kein Plan erfasst; alle Konten mit Buchungen gelten als ungeplant. Die Planwerte tragen Sie im Finanzplan ein.": "No plan has been entered for this period yet; all accounts with entries count as unplanned. Enter the plan values in the budget."
+	"Für diese Periode ist noch kein Plan erfasst; alle Konten mit Buchungen gelten als ungeplant. Die Planwerte tragen Sie im Finanzplan ein.": "No plan has been entered for this period yet; all accounts with entries count as unplanned. Enter the plan values in the budget.",
+	"Verlauf: kumuliertes Ist je Monat mit Plan-Linie und Hochrechnung.": "Trend: cumulative actual per month with plan line and forecast.",
+	"{art}: Ist {betrag} zum Stand": "{art}: actual {betrag} as of the snapshot",
+	"{art}: Ist {betrag} zum Stand, Hochrechnung {hochrechnung} zum Periodenende": "{art}: actual {betrag} as of the snapshot, forecast {hochrechnung} for the end of the period",
+	"{art} (Hochrechnung)": "{art} (forecast)",
+	"{art} (Plan)": "{art} (plan)",
+	"Die Periode hat noch nicht begonnen – der Verlauf erscheint ab ihrem ersten Monat.": "The period has not started yet – the trend appears from its first month."
 }, "nplurals=2; plural=(n != 1);");

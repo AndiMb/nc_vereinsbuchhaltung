@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { bulletGeometry, hasChildren, monthLabel, statusMeta, visibleRows } from './budgetVisual.js'
+import { bulletGeometry, hasChildren, monthLabel, periodMonths, statusMeta, trendDatasets, visibleRows } from './budgetVisual.js'
 
 describe('bulletGeometry', () => {
 	it('füllt anteilig und setzt die Zeitmarke', () => {
@@ -161,5 +161,94 @@ describe('monthLabel', () => {
 
 	it('benennt den Monat englisch', () => {
 		expect(monthLabel('2026-10', 'en')).toBe('October 2026')
+	})
+})
+
+describe('periodMonths', () => {
+	it('zählt die Monate ab einem Beginn mitten im Jahr über den Jahreswechsel', () => {
+		const months = periodMonths('2026-07-01', 12)
+		expect(months).toHaveLength(12)
+		expect(months.slice(0, 2)).toEqual(['2026-07', '2026-08'])
+		expect(months.slice(5, 7)).toEqual(['2026-12', '2027-01'])
+		expect(months[11]).toBe('2027-06')
+	})
+
+	it('liefert für ein Rumpfjahr nur dessen Monate, auch bei Beginn mitten im Monat', () => {
+		expect(periodMonths('2026-10-15', 3)).toEqual(['2026-10', '2026-11', '2026-12'])
+	})
+
+	it('ohne Monate eine leere Liste', () => {
+		expect(periodMonths('2026-01-01', 0)).toEqual([])
+	})
+})
+
+describe('trendDatasets', () => {
+	const series = { months: ['2026-01', '2026-02', '2026-03'], income: [100, 200, 300], expense: [50, 150, 150] }
+
+	it('Ist bis zum letzten Monat der Reihe, Hochrechnung ab dort, Plan linear', () => {
+		const d = trendDatasets(series, 1200, 600, 12, 1200, 600)
+		expect(d.labels).toHaveLength(12)
+		expect(d.labels[0]).toBe('2026-01')
+		expect(d.labels[11]).toBe('2026-12')
+		expect(d.income.slice(0, 3)).toEqual([100, 200, 300])
+		expect(d.income[3]).toBeNull()
+		expect(d.income).toHaveLength(12)
+		expect(d.incomeForecast.slice(0, 2)).toEqual([null, null])
+		expect(d.incomeForecast[2]).toBe(300)
+		expect(d.incomeForecast[3]).toBe(400)
+		expect(d.incomeForecast[11]).toBe(1200)
+		expect(d.incomePlan[0]).toBe(100)
+		expect(d.incomePlan[11]).toBe(1200)
+		expect(d.expense.slice(0, 3)).toEqual([50, 150, 150])
+		expect(d.expenseForecast[2]).toBe(150)
+		expect(d.expenseForecast[11]).toBe(600)
+		expect(d.expensePlan[5]).toBe(300)
+		expect(d.expensePlan[11]).toBe(600)
+	})
+
+	it('rundet auf ganze Cent', () => {
+		const d = trendDatasets({ months: ['2026-01'], income: [100], expense: [0] }, 1000, 0, 4, 400, 1)
+		expect(d.incomePlan).toEqual([250, 500, 750, 1000])
+		expect(d.expensePlan).toEqual([0, 0, 0, 0])
+		expect(d.incomeForecast).toEqual([100, 200, 300, 400])
+		expect(d.expenseForecast).toEqual([0, 0, 1, 1])
+	})
+
+	it('ohne Ist-Monate nur Plan-Linien', () => {
+		const d = trendDatasets({ months: [], income: [], expense: [] }, 1200, 600, 12, null, null)
+		expect(d.labels).toHaveLength(12)
+		for (const key of ['income', 'expense', 'incomeForecast', 'expenseForecast']) {
+			expect(d[key]).toHaveLength(12)
+			expect(d[key].every((v) => v === null)).toBe(true)
+		}
+		expect(d.incomePlan[11]).toBe(1200)
+	})
+
+	it('übernimmt den Endwert der Hochrechnung, statt ihn aus der Reihe zu rechnen', () => {
+		const d = trendDatasets(series, 1200, 600, 12, 1290, 600)
+		expect(d.incomeForecast[2]).toBe(300)
+		expect(d.incomeForecast[3]).toBe(410)
+		expect(d.incomeForecast[11]).toBe(1290)
+	})
+
+	it('ohne Hochrechnung (null) bleibt deren Reihe leer, das Ist nicht', () => {
+		const d = trendDatasets(series, 1200, 600, 12, null, 600)
+		expect(d.incomeForecast.every((v) => v === null)).toBe(true)
+		expect(d.income.slice(0, 3)).toEqual([100, 200, 300])
+		expect(d.expenseForecast[11]).toBe(600)
+	})
+
+	it('Reihe deckt die ganze Periode: keine Hochrechnung', () => {
+		const d = trendDatasets({ months: ['2026-01', '2026-02'], income: [100, 300], expense: [10, 20] }, 0, 0, 2, 300, 20)
+		expect(d.income).toEqual([100, 300])
+		expect(d.incomeForecast).toEqual([null, null])
+		expect(d.expenseForecast).toEqual([null, null])
+	})
+
+	it('Reihe über den Stand hinaus (vordatierte Buchungen): Ist wird nicht verworfen', () => {
+		const long = { months: ['2026-01', '2026-02', '2026-03', '2026-04'], income: [100, 200, 300, 500], expense: [0, 0, 0, 0] }
+		const d = trendDatasets(long, 1200, 0, 6, 900, 0)
+		expect(d.income).toEqual([100, 200, 300, 500, null, null])
+		expect(d.incomeForecast).toEqual([null, null, null, 500, 700, 900])
 	})
 })

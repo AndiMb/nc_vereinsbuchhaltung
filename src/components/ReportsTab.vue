@@ -871,6 +871,7 @@
 				v-if="reportView === 'structure'"
 				:refreshKey="structuredRefreshKey"
 				:isMobile="isMobile"
+				:isActive="isActive"
 				:view="structuredView"
 				@update:view="$emit('update:structured-view', $event)"
 				@openSpheres="spherePanelOpen = true" />

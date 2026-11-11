@@ -113,6 +113,7 @@
 			:periodId="selectedPeriodId"
 			:refreshKey="visualRefreshKey"
 			:isMobile="isMobile"
+			:isActive="isActive"
 			@loaded="visualPeriod = $event"
 			@openSpheres="$emit('open-spheres')" />
 		<template v-else-if="view === 'table'">
@@ -216,6 +217,9 @@ export default {
 	props: {
 		refreshKey: { type: Number, default: 0 },
 		isMobile: { type: Boolean, required: true },
+		// Berichte-Tab sichtbar (App.vue blendet ihn per v-show aus); für den
+		// Verlauf in der visuellen Ansicht
+		isActive: { type: Boolean, required: true },
 		// 'table' oder 'visual'; App.vue hält die Wahl (URL, localStorage)
 		view: { type: String, required: true, validator: (v) => ['table', 'visual'].includes(v) },
 	},

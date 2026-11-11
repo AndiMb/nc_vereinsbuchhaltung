@@ -4442,5 +4442,11 @@ OC.L10N.register("vereinsbuchhaltung", {
 	"Zeitanteil: {elapsed} von {total} Monaten": "Tijdsaandeel: {elapsed} van {total} maanden",
 	"Alle Buchungen der Periode": "Alle boekingen van de periode",
 	"Ist bis {datum}": "Werkelijk tot en met {datum}",
-	"Für diese Periode ist noch kein Plan erfasst; alle Konten mit Buchungen gelten als ungeplant. Die Planwerte tragen Sie im Finanzplan ein.": "Voor deze periode is nog geen begroting ingevoerd; alle rekeningen met boekingen gelden als niet gepland. De begrote bedragen legt u vast in de begroting."
+	"Für diese Periode ist noch kein Plan erfasst; alle Konten mit Buchungen gelten als ungeplant. Die Planwerte tragen Sie im Finanzplan ein.": "Voor deze periode is nog geen begroting ingevoerd; alle rekeningen met boekingen gelden als niet gepland. De begrote bedragen legt u vast in de begroting.",
+	"Verlauf: kumuliertes Ist je Monat mit Plan-Linie und Hochrechnung.": "Verloop: cumulatief werkelijk per maand met begrotingslijn en prognose.",
+	"{art}: Ist {betrag} zum Stand": "{art}: werkelijk {betrag} op het peilmoment",
+	"{art}: Ist {betrag} zum Stand, Hochrechnung {hochrechnung} zum Periodenende": "{art}: werkelijk {betrag} op het peilmoment, prognose {hochrechnung} voor het einde van de periode",
+	"{art} (Hochrechnung)": "{art} (prognose)",
+	"{art} (Plan)": "{art} (begroting)",
+	"Die Periode hat noch nicht begonnen – der Verlauf erscheint ab ihrem ersten Monat.": "De periode is nog niet begonnen – het verloop verschijnt vanaf de eerste maand."
 }, "nplurals=2; plural=(n != 1);");

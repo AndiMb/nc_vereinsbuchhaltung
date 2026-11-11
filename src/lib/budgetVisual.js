@@ -172,3 +172,85 @@ export function monthLabel(ym, locale) {
 	return new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric', timeZone: 'UTC' })
 		.format(new Date(Date.UTC(year, month - 1, 1)))
 }
+
+/**
+ * Monate einer Periode als `YYYY-MM`, ab dem Monat des Beginns.
+ *
+ * @param {string} startDate Periodenbeginn `YYYY-MM-DD`
+ * @param {number} total Anzahl Monate der Periode
+ * @return {string[]} Monate
+ */
+export function periodMonths(startDate, total) {
+	const [year, month] = startDate.split('-').map(Number)
+	const out = []
+	for (let i = 0; i < total; i++) {
+		const m = month - 1 + i
+		out.push(`${year + Math.floor(m / 12)}-${String((m % 12) + 1).padStart(2, '0')}`)
+	}
+	return out
+}
+
+/**
+ * Ist-Reihe auf `total` Monate gebracht (danach null) und die Hochrechnung:
+ * vom letzten Ist-Punkt (gleicher Wert) linear zum vorgegebenen Endwert im
+ * letzten Monat der Periode, davor null. Ohne Ist-Monate, ohne Endwert oder
+ * wenn das Ist schon alle Monate deckt, ist die Hochrechnung nur null.
+ *
+ * @param {number[]} values kumuliertes Ist in Cent
+ * @param {number} total Monate der Periode
+ * @param {number|null} end Hochrechnung zum Periodenende in Cent oder null
+ * @return {{actual: Array<number|null>, forecast: Array<number|null>}} Reihen
+ */
+function actualAndForecast(values, total, end) {
+	const n = Math.min(values.length, total)
+	const actual = Array.from({ length: total }, (_, i) => (i < n ? values[i] : null))
+	if (n === 0 || n >= total || end === null || end === undefined) {
+		return { actual, forecast: Array.from({ length: total }, () => null) }
+	}
+	const last = values[n - 1]
+	const step = (end - last) / (total - n)
+	const forecast = Array.from({ length: total }, (_, i) => (i < n - 1 ? null : Math.round(last + step * (i - n + 1))))
+	return { actual, forecast }
+}
+
+/**
+ * Daten des Verlaufs: kumuliertes Ist je Monat für Einnahmen und Ausgaben,
+ * die Hochrechnung bis zum Periodenende und die Plan-Linie (linear von
+ * `plan / total` im ersten Monat auf `plan` im letzten). Alle Werte in Cent,
+ * ganzzahlig gerundet.
+ *
+ * Die Endwerte der Hochrechnung kommen vom Server (`kpis.*.forecast`) und
+ * werden nicht aus der Reihe nachgerechnet – sonst wiche die Linie von der
+ * Zahl in den Kacheln ab. Die Reihe kann länger sein als der Zeitanteil
+ * (Stand „Aktuell“ mit vordatierten Buchungen); sie wird nur auf `total`
+ * Monate begrenzt.
+ *
+ * `labels` setzt die Monate der Reihe bis zum Periodenende fort; ohne
+ * Ist-Monate fehlt der Anfang, dann stehen dort Leertexte.
+ *
+ * @param {{months: string[], income: number[], expense: number[]}} series Monatsreihe des Servers
+ * @param {number} planIncome Jahresplan Einnahmen in Cent
+ * @param {number} planExpense Jahresplan Ausgaben in Cent
+ * @param {number} total Monate der Periode
+ * @param {number|null} forecastIncome Hochrechnung Einnahmen zum Periodenende in Cent oder null
+ * @param {number|null} forecastExpense Hochrechnung Ausgaben zum Periodenende in Cent oder null
+ * @return {{labels: string[], income: Array<number|null>, expense: Array<number|null>, incomeForecast: Array<number|null>, expenseForecast: Array<number|null>, incomePlan: number[], expensePlan: number[]}} Reihen
+ */
+export function trendDatasets(series, planIncome, planExpense, total, forecastIncome, forecastExpense) {
+	const months = series?.months || []
+	const labels = months.length
+		? periodMonths(months[0] + '-01', total)
+		: Array.from({ length: total }, () => '')
+	const plan = (value) => Array.from({ length: total }, (_, i) => Math.round((value || 0) * (i + 1) / total))
+	const income = actualAndForecast(months.length ? series.income : [], total, forecastIncome)
+	const expense = actualAndForecast(months.length ? series.expense : [], total, forecastExpense)
+	return {
+		labels,
+		income: income.actual,
+		expense: expense.actual,
+		incomeForecast: income.forecast,
+		expenseForecast: expense.forecast,
+		incomePlan: plan(planIncome),
+		expensePlan: plan(planExpense),
+	}
+}
