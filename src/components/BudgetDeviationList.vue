@@ -9,13 +9,13 @@
 		<ul v-else class="vbh-visual-dev__list">
 			<li v-for="item in items" :key="item.accountId" class="vbh-visual-dev__item">
 				<component
-					:is="linkable ? 'button' : 'span'"
-					:type="linkable ? 'button' : null"
+					:is="isLink(item) ? 'button' : 'span'"
+					:type="isLink(item) ? 'button' : null"
 					class="vbh-visual-dev__entry"
-					:class="{ 'vbh-visual-dev__entry--link': linkable }"
-					:aria-label="linkable ? t('Buchungen von {konto} zeigen', { konto: item.number + ' ' + item.label }) : null"
-					:aria-describedby="linkable ? detailId(item, 'level') + ' ' + detailId(item, 'amount') : null"
-					@click="linkable && $emit('open-account', item.accountId)">
+					:class="{ 'vbh-visual-dev__entry--link': isLink(item) }"
+					:aria-label="isLink(item) ? t('Buchungen von {konto} zeigen', { konto: item.number + ' ' + item.label }) : null"
+					:aria-describedby="isLink(item) ? detailId(item, 'level') + ' ' + detailId(item, 'amount') : null"
+					@click="isLink(item) && $emit('open-account', item.accountId)">
 					<!-- Als Knopf trägt der Eintrag den Namen „Buchungen von … zeigen“;
 					     Stufe und Betrag bleiben als Beschreibung hörbar. -->
 					<BudgetStatusPill
@@ -38,6 +38,8 @@ import { formatMoney, formatSigned } from '../lib/format.js'
 /**
  * Liste der größten Abweichungen. Nur mit `linkable` sind die Einträge
  * Schaltflächen, die `open-account` auslösen; sonst bleiben sie reiner Text.
+ * Oberkonten (`parent`) bleiben immer Text: ihr Betrag schließt die
+ * Unterkonten ein, die Buchungsliste filtert aber genau ein Konto.
  * Beträge (Abweichung) in Cent.
  */
 export default {
@@ -54,6 +56,10 @@ export default {
 	emits: ['open-account'],
 
 	methods: {
+		isLink(item) {
+			return this.linkable && !item.parent
+		},
+
 		// Eindeutig je Liste: ein Konto steht nur in der Liste seiner Art.
 		detailId(item, part) {
 			return `vbh-visual-dev-${this.nature}-${item.accountId}-${part}`

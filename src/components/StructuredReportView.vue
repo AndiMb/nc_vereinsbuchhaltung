@@ -116,7 +116,7 @@
 			:isActive="isActive"
 			@loaded="visualPeriod = $event"
 			@state="visualState = $event"
-			@openAccount="$emit('open-account', $event)"
+			@openAccount="$emit('open-account', { accountId: $event, periodId: visualPeriod ? visualPeriod.id : null })"
 			@openSpheres="$emit('open-spheres')" />
 		<template v-else-if="view === 'table'">
 			<NcNoteCard v-if="report && selected && !report.hasSpheres" type="info">

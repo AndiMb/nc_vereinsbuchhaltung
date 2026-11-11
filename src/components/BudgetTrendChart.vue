@@ -3,6 +3,26 @@
 		<div class="vbh-visual-trend__wrap">
 			<canvas ref="canvas" role="img" :aria-label="ariaLabel" />
 		</div>
+		<!-- Eigene Legende statt der von Chart.js: sie zeigt die Linienarten
+		     zuverlässig und nimmt der Zeichenfläche keine Höhe. Das Diagramm
+		     beschreibt aria-label, die Legende ist nur fürs Auge. -->
+		<ul class="vbh-visual-trend__legend" aria-hidden="true">
+			<li>
+				<span class="vbh-visual-trend__swatch vbh-visual-trend__swatch--income" />{{ t('Einnahmen') }}
+			</li>
+			<li>
+				<span class="vbh-visual-trend__swatch vbh-visual-trend__swatch--expense" />{{ t('Ausgaben') }}
+			</li>
+			<li class="vbh-visual-trend__legend-gap">
+				<span class="vbh-visual-trend__line" />{{ t('Ist') }}
+			</li>
+			<li>
+				<span class="vbh-visual-trend__line vbh-visual-trend__line--forecast" />{{ t('Hochrechnung') }}
+			</li>
+			<li>
+				<span class="vbh-visual-trend__line vbh-visual-trend__line--plan" />{{ t('Plan') }}
+			</li>
+		</ul>
 		<ul class="vbh-visual-trend__summary">
 			<li v-for="line in summaryLines" :key="line">
 				{{ line }}
@@ -15,16 +35,18 @@
 import { getLanguage } from '@nextcloud/l10n'
 import { trendDatasets } from '../lib/budgetVisual.js'
 import { loadChart } from '../lib/chartLoader.js'
-import { chartTheme, onThemeChange, withAlpha } from '../lib/chartTheme.js'
+import { chartTheme, onThemeChange } from '../lib/chartTheme.js'
 import { formatCurrency, formatCurrencyWhole, formatMoney } from '../lib/format.js'
 
 /**
  * Verlauf der visuellen Plan-Ist-Ansicht: kumuliertes Ist je Monat für
  * Einnahmen und Ausgaben (durchgezogen), die Hochrechnung bis zum
- * Periodenende (Endwert aus den Kennzahlen) und die Plan-Linie (beide
- * gestrichelt). Rot und Grün sind in dieser Ansicht der Ampel vorbehalten;
- * die Reihen nutzen deshalb die Akzentfarbe und die Textfarbe. Die Zahlen
- * stehen zusätzlich als Text unter dem Diagramm.
+ * Periodenende (Endwert aus den Kennzahlen; gestrichelt) und die Plan-Linie
+ * (gepunktet) – dieselben Linienarten wie auf der Druckseite
+ * (lib/Service/Export/TrendSvg.php). Rot und Grün sind in dieser Ansicht der
+ * Ampel vorbehalten; die Reihen nutzen deshalb die Akzentfarbe (Einnahmen)
+ * und die Textfarbe (Ausgaben). Die Zahlen stehen zusätzlich als Text unter
+ * dem Diagramm.
  */
 export default {
 	name: 'BudgetTrendChart',
@@ -147,7 +169,9 @@ export default {
 			})
 			const solid = { pointRadius: 2 }
 			const forecast = { borderDash: [6, 4] }
-			const plan = (color) => ({ borderColor: withAlpha(color, 0.5), backgroundColor: withAlpha(color, 0.5), borderDash: [2, 3] })
+			// Volle Farbe, dünner und gepunktet: blass war die Linie im hellen
+			// Design kaum zu sehen.
+			const plan = { borderWidth: 1.5, borderDash: [2, 3] }
 			const income = theme.accent
 			const expense = theme.text
 			const labels = this.monthLabels
@@ -158,10 +182,10 @@ export default {
 					datasets: [
 						line(this.t('Einnahmen'), d.income, income, solid),
 						line(this.t('{art} (Hochrechnung)', { art: this.t('Einnahmen') }), d.incomeForecast, income, forecast),
-						line(this.t('{art} (Plan)', { art: this.t('Einnahmen') }), d.incomePlan, income, plan(income)),
+						line(this.t('{art} (Plan)', { art: this.t('Einnahmen') }), d.incomePlan, income, plan),
 						line(this.t('Ausgaben'), d.expense, expense, solid),
 						line(this.t('{art} (Hochrechnung)', { art: this.t('Ausgaben') }), d.expenseForecast, expense, forecast),
-						line(this.t('{art} (Plan)', { art: this.t('Ausgaben') }), d.expensePlan, expense, plan(expense)),
+						line(this.t('{art} (Plan)', { art: this.t('Ausgaben') }), d.expensePlan, expense, plan),
 					],
 				},
 
@@ -171,9 +195,8 @@ export default {
 					animation: false,
 					interaction: { mode: 'index', intersect: false },
 					plugins: {
-						// Linienmuster statt Farbkästchen: die Legende zeigt so auch,
-						// welche Reihe durchgezogen und welche gestrichelt ist.
-						legend: { labels: { color: theme.text, font: { size: 12 }, usePointStyle: true, pointStyle: 'line', pointStyleWidth: 32 } },
+						// Die Legende steht als HTML unter der Zeichenfläche (siehe Template).
+						legend: { display: false },
 						tooltip: {
 							filter: (item) => item.raw !== null,
 							callbacks: { label: (ctx) => ` ${ctx.dataset.label}: ${formatCurrency(ctx.raw)}` },
@@ -231,4 +254,24 @@ export default {
 .vbh-visual-trend__wrap canvas { display: block; }
 
 .vbh-visual-trend__summary { margin: 0; padding: 0; list-style: none; font-variant-numeric: tabular-nums; }
+
+.vbh-visual-trend__legend { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 0; padding: 0; list-style: none; font-size: 0.9em; }
+
+.vbh-visual-trend__legend li { display: inline-flex; align-items: center; gap: 6px; }
+
+/* Zwischen den Farben der Arten und den Linienarten der Reihen etwas mehr Luft. */
+.vbh-visual-trend__legend-gap { margin-inline-start: 8px; }
+
+.vbh-visual-trend__swatch { display: inline-block; width: 14px; height: 14px; border-radius: 3px; }
+
+.vbh-visual-trend__swatch--income { background-color: var(--color-primary-element); }
+
+.vbh-visual-trend__swatch--expense { background-color: var(--color-main-text); }
+
+/* Linienmuster wie im Diagramm: Ist durchgezogen, Hochrechnung gestrichelt, Plan gepunktet. */
+.vbh-visual-trend__line { display: inline-block; width: 28px; border-top: 2px solid currentColor; }
+
+.vbh-visual-trend__line--forecast { border-top-style: dashed; }
+
+.vbh-visual-trend__line--plan { border-top-style: dotted; }
 </style>

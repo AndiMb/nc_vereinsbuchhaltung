@@ -187,9 +187,11 @@
 											@click="toggle(entry.index)">
 											<NcIconSvgWrapper :path="collapsed.has(entry.index) ? mdiChevronRight : mdiChevronDown" :size="18" inline />
 										</button>
-										<!-- Die Kontobezeichnung führt in die Buchungsliste mit diesem Kontofilter. -->
+										<!-- Die Kontobezeichnung führt in die Buchungsliste mit diesem Kontofilter –
+										     nicht bei Oberkonten: ihre Zahlen schließen die Unterkonten ein,
+										     die Buchungsliste filtert aber genau ein Konto. -->
 										<button
-											v-if="entry.row.kind === 'account' && entry.row.accountId"
+											v-if="entry.row.kind === 'account' && entry.row.accountId && !hasFlag(entry.row, 'parent')"
 											type="button"
 											class="vbh-visual-row__link"
 											:class="{ 'vbh-visual-row__link--indent': !hasToggle(entry) }"
@@ -200,7 +202,7 @@
 										<span
 											v-else
 											class="vbh-visual-row__text"
-											:class="{ 'vbh-visual-row__text--account': entry.row.kind === 'account' }">{{ rowLabel(entry.row) }}</span>
+											:class="{ 'vbh-visual-row__text--account': entry.row.kind === 'account' && !hasToggle(entry) }">{{ rowLabel(entry.row) }}</span>
 										<span v-if="hasFlag(entry.row, 'inactive')" class="vbh-pill">{{ t('nicht mehr aktiv') }}</span>
 										<span v-if="hasFlag(entry.row, 'duplicate')" class="vbh-pill vbh-pill--warning">{{ t('doppelt gezählt') }}</span>
 									</span>
@@ -512,7 +514,8 @@ export default {
 
 .vbh-visual-controls { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px 24px; }
 
-.vbh-visual-asof { display: flex; flex-direction: column; gap: 2px; min-width: min(280px, 100%); }
+/* Abstand, damit der Fokusrahmen der Auswahl den Hinweis darunter nicht verdeckt. */
+.vbh-visual-asof { display: flex; flex-direction: column; gap: 8px; min-width: min(280px, 100%); }
 
 .vbh-visual-asof__meaning { margin: 0; }
 

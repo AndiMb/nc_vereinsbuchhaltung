@@ -1622,13 +1622,15 @@ export default {
 
 		/**
 		 * Sprung aus dem Gliederungsbericht (visuelle Ansicht): Buchungsliste der
-		 * gewählten Periode, auf das Konto gefiltert. push statt replace - Zurück
+		 * Periode, die der Bericht zeigt, auf das Konto gefiltert. Bei „alle
+		 * Perioden“ rechnet der Bericht mit der laufenden Periode – die Liste
+		 * nimmt dann dieselbe statt aller Jahre. push statt replace - Zurück
 		 * führt in den Bericht.
 		 *
-		 * @param {number} accountId Konto der angeklickten Zeile
+		 * @param {{ accountId: number, periodId: number|null }} target Konto der angeklickten Zeile, Periode des Berichts
 		 */
-		openAccountBookings(accountId) {
-			const period = this.selectedPeriodId === null ? 'all' : this.selectedPeriodId
+		openAccountBookings({ accountId, periodId }) {
+			const period = periodId ?? this.selectedPeriodId ?? 'all'
 			this.$router.push({ name: 'bookings', query: { period, account: accountId } })
 		},
 

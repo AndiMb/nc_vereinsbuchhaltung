@@ -6,12 +6,12 @@
 		<div class="vbh-budget-status__fields">
 			<div v-for="field in fields" :key="field.key" class="vbh-budget-status__field">
 				<label class="vbh-budget-status__label">
-					<span>{{ field.before }}</span>
+					<span class="vbh-budget-status__before">{{ field.before }}</span>
 					<span class="vbh-budget-status__input">
 						<input
 							v-model.number="draft[field.key]"
 							type="number"
-							class="vbh-short"
+							class="vbh-budget-status__number"
 							:min="min"
 							:max="max"
 							step="1"
@@ -134,10 +134,20 @@ export default {
 	gap: 6px;
 }
 
+/* Feste Breite für den Text davor: die fünf Eingabefelder stehen untereinander. */
+.vbh-budget-status__before {
+	flex: 0 1 17em;
+}
+
 .vbh-budget-status__input {
 	display: inline-flex;
 	align-items: center;
 	gap: 6px;
+}
+
+/* Drei Ziffern brauchen keine 130px (.vbh-short). */
+.vbh-budget-status__number {
+	width: 6em;
 }
 
 .vbh-budget-status__field .vbh-hint {
