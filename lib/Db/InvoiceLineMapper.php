@@ -34,6 +34,18 @@ class InvoiceLineMapper extends QBMapper {
 	}
 
 	/** Löscht alle Zeilen. Gedacht für den Reset des Buchungsbestands. */
+	/** Rechnungszeilen, die diese Kostenstelle tragen (Issue #332) – solange es welche gibt, bleibt sie. */
+	public function countByBookingCostCenter(int $costCenterId): int {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select($qb->func()->count('*', 'cnt'))
+			->from($this->getTableName())
+			->where($qb->expr()->eq('booking_cc_id', $qb->createNamedParameter($costCenterId, IQueryBuilder::PARAM_INT)));
+		$result = $qb->executeQuery();
+		$count = (int)$result->fetchOne();
+		$result->closeCursor();
+		return $count;
+	}
+
 	public function deleteAll(): void {
 		$qb = $this->db->getQueryBuilder();
 		$qb->delete($this->getTableName());

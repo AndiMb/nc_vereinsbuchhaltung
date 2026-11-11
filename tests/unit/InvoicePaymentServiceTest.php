@@ -120,6 +120,44 @@ class InvoicePaymentServiceTest extends TestCase {
 		$this->assertSame('Rechnung RE-2026-0001 – Max Zahler', $this->journal->getDescription());
 	}
 
+	/** Issue #332: die Anteile der Kostenstellen reisen je Erlöskonto mit – das Umsatzsteuerkonto bleibt ohne. */
+	public function testBankzahlungReichtAnteileDerKostenstellenJeTeilDurch(): void {
+		$s = $this->service();
+		$tx = $this->tx(10000);
+		$shares = [10 => [['costCenterId' => 3, 'amountCents' => 5000], ['costCenterId' => 5, 'amountCents' => 3403]]];
+		$this->ledger->method('allocate')->willReturn([10 => 8403, 90 => 1597]);
+		$this->ledger->method('costCenterShares')->with($this->invoice, [10 => 8403, 90 => 1597])->willReturn($shares);
+		$this->booking->expects($this->once())->method('assignParts')
+			->with($tx, [
+				['accountId' => 10, 'amountCents' => 8403, 'allocations' => $shares[10]],
+				['accountId' => 90, 'amountCents' => 1597],
+			])
+			->willReturnCallback(function (BankTransaction $t): BankTransaction {
+				$t->setJournalId(55);
+				return $t;
+			});
+		// Das Zahlungsbuch hält weiter nur die Aufteilung auf die Konten fest.
+		$this->ledger->expects($this->once())->method('record')
+			->with($this->invoice, $this->item, 10000, 7, 55, [10 => 8403, 90 => 1597], $this->anything());
+
+		$s->payFromBankTransaction($tx, 1);
+	}
+
+	public function testBarzahlungReichtAnteileDerKostenstellenJeZeileDurch(): void {
+		$s = $this->service();
+		$shares = [10 => [['costCenterId' => 3, 'amountCents' => 10000]]];
+		$this->ledger->method('allocate')->willReturn([10 => 10000]);
+		$this->ledger->method('costCenterShares')->willReturn($shares);
+		$this->journals->expects($this->once())->method('createBookingLines')
+			->with($this->anything(), '2026-05-02', $this->anything(), 'RE-2026-0001', [
+				['accountId' => 20, 'debitCents' => 10000, 'creditCents' => 0],
+				['accountId' => 10, 'debitCents' => 0, 'creditCents' => 10000, 'allocations' => $shares[10]],
+			])
+			->willReturn($this->journal);
+
+		$s->payManually(1, '2026-05-02', 20);
+	}
+
 	public function testTeilzahlungIstErlaubt(): void {
 		$s = $this->service();
 		$this->ledger->method('allocate')->willReturn([10 => 2500]);

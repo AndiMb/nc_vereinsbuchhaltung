@@ -6,6 +6,7 @@ namespace OCA\Vereinsbuchhaltung\Service\CostCenter;
 
 use OCA\Vereinsbuchhaltung\Db\AccountMapper;
 use OCA\Vereinsbuchhaltung\Db\BookingCostCenterMapper;
+use OCA\Vereinsbuchhaltung\Db\InvoiceLineMapper;
 use OCA\Vereinsbuchhaltung\Db\RuleMapper;
 use OCA\Vereinsbuchhaltung\Service\CostCenterSettings;
 
@@ -33,6 +34,7 @@ class CostCenterDefaults {
 		private BookingCostCenterMapper $costCenters,
 		private AccountMapper $accounts,
 		private RuleMapper $rules,
+		private ?InvoiceLineMapper $invoiceLines = null,
 	) {
 	}
 
@@ -82,6 +84,38 @@ class CostCenterDefaults {
 	}
 
 	/**
+	 * Alle vorhandenen Kostenstellen, auch inaktive – für Stammdaten, an denen
+	 * eine einmal gewählte Kostenstelle stehen bleiben darf.
+	 *
+	 * @return list<int>
+	 */
+	public function knownIds(string $userId): array {
+		return array_map(static fn ($costCenter): int => $costCenter->getId(), $this->costCenters->findAll($userId));
+	}
+
+	/**
+	 * Nachschlagetabelle für Importe: Kürzel oder Name (klein) => ID, nur
+	 * nutzbare Kostenstellen. Das Kürzel geht dem Namen vor. null bei
+	 * ausgeschaltetem Modul – der Aufrufer verhält sich dann wie zuvor.
+	 *
+	 * @return array<string, int>|null
+	 */
+	public function lookup(string $userId): ?array {
+		if (!$this->settings->isEnabled()) {
+			return null;
+		}
+		$active = array_filter($this->costCenters->findAll($userId), static fn ($costCenter): bool => $costCenter->isActive());
+		$map = [];
+		foreach ($active as $costCenter) {
+			$map[mb_strtolower(trim((string)$costCenter->getName()))] = $costCenter->getId();
+		}
+		foreach ($active as $costCenter) {
+			$map[mb_strtolower(trim((string)$costCenter->getCode()))] = $costCenter->getId();
+		}
+		return $map;
+	}
+
+	/**
 	 * Wo die Kostenstelle als Vorgabe eingetragen ist.
 	 *
 	 * @return array<string, int> Art => Anzahl
@@ -89,6 +123,7 @@ class CostCenterDefaults {
 	public function usage(int $costCenterId): array {
 		return [
 			'rules' => $this->rules->countByCostCenter($costCenterId),
+			'invoiceLines' => $this->invoiceLines?->countByBookingCostCenter($costCenterId) ?? 0,
 		];
 	}
 }

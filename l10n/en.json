@@ -4552,7 +4552,9 @@
         "Kostenstelle verpflichtend": "Cost centre required",
         "Beim Buchen auf dieses Konto erinnert die App an die Kostenstelle; der Bericht „Kostenstellen“ listet nicht zugeordnete Beträge. Speichern bleibt immer möglich.": "When posting to this account the app reminds you of the cost centre; the “Cost centres” report lists unallocated amounts. Saving always remains possible.",
         "Für dieses Konto ist eine Kostenstelle vorgesehen; {amount} sind noch nicht zugeordnet.": "A cost centre is expected for this account; {amount} is not allocated yet.",
-        "Für diese Konten ist eine Kostenstelle vorgesehen. Die Beträge sind noch keiner Kostenstelle zugeordnet – ein Klick auf das Konto führt zu den Buchungen.": "A cost centre is expected for these accounts. The amounts are not allocated to a cost centre yet – click the account to see its entries."
+        "Für diese Konten ist eine Kostenstelle vorgesehen. Die Beträge sind noch keiner Kostenstelle zugeordnet – ein Klick auf das Konto führt zu den Buchungen.": "A cost centre is expected for these accounts. The amounts are not allocated to a cost centre yet – click the account to see its entries.",
+        "Rechnungspositionen": "Invoice items",
+        "Position %d: Die Kostenstelle gibt es nicht.": "Item %d: the cost centre does not exist."
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

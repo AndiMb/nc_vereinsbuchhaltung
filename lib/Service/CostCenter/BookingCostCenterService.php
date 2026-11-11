@@ -121,6 +121,7 @@ class BookingCostCenterService {
 	private function usageText(int $costCenterId): string {
 		$labels = [
 			'rules' => $this->l10n->t('Importregeln'),
+			'invoiceLines' => $this->l10n->t('Rechnungspositionen'),
 		];
 		$parts = [];
 		foreach ($this->defaults?->usage($costCenterId) ?? [] as $kind => $count) {

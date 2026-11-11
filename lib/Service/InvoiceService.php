@@ -19,6 +19,8 @@ use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
 use OCA\Vereinsbuchhaltung\Exception\ConflictException;
 use OCA\Vereinsbuchhaltung\Exception\InvoiceNotIssuableException;
+use OCA\Vereinsbuchhaltung\Service\CostCenter\CostCenterDefaults;
+use OCA\Vereinsbuchhaltung\Service\Invoice\LineCostCenterRule;
 use OCA\Vereinsbuchhaltung\Service\Text\Utf8;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\IL10N;
@@ -60,6 +62,8 @@ class InvoiceService {
 		private ClubClock $clock,
 		private ClubCurrency $currency,
 		private ?IL10N $l10n = null,
+		// Kostenstellen an den Positionen (Issue #332).
+		private ?CostCenterDefaults $costCenterDefaults = null,
 	) {
 	}
 
@@ -315,6 +319,7 @@ class InvoiceService {
 					'taxExemptionText' => $line->getTaxExemptionText(),
 					'accountId' => $line->getAccountId(),
 					'costCenterId' => $line->getCostCenterId(),
+					LineCostCenterRule::KEY => $line->getBookingCostCenterId(),
 				];
 			}
 			$draft = $this->createDraft([
@@ -491,6 +496,7 @@ class InvoiceService {
 				$copy->setLineNetCents(-$line->getLineNetCents());
 				$copy->setAccountId($line->getAccountId());
 				$copy->setCostCenterId($line->getCostCenterId());
+				$copy->setBookingCcId($line->getBookingCostCenterId());
 				$copy->setDeliveryDate($line->getDeliveryDate());
 				$this->lines->insert($copy);
 				$reversed[] = $copy;
@@ -685,7 +691,14 @@ class InvoiceService {
 	 * @param array<int|string, mixed> $rows
 	 */
 	private function saveLines(Invoice $invoice, array $rows): void {
-		$entities = $this->buildLines($invoice, $rows);
+		// Die Kostenstellen der bisherigen Zeilen festhalten, bevor sie gelöscht
+		// werden: schickt der Editor das Feld nicht mit (ausgeschaltetes Modul),
+		// bleibt der Wert der Zeile an derselben Position stehen.
+		$stored = [];
+		foreach ($this->lines->findByInvoice((int)$invoice->getId()) as $old) {
+			$stored[(int)$old->getPosition()] = $old->getBookingCostCenterId();
+		}
+		$entities = $this->buildLines($invoice, $rows, $stored);
 		$this->lines->deleteByInvoice((int)$invoice->getId());
 		foreach ($entities as $line) {
 			$this->lines->insert($line);
@@ -713,9 +726,11 @@ class InvoiceService {
 
 	/**
 	 * @param array<int|string, mixed> $rows
+	 * @param array<int, int|null> $storedCostCenters Position => Kostenstelle der bisherigen Zeile
 	 * @return list<InvoiceLine>
 	 */
-	private function buildLines(Invoice $invoice, array $rows): array {
+	private function buildLines(Invoice $invoice, array $rows, array $storedCostCenters = []): array {
+		$knownCostCenters = $this->costCenterDefaults?->knownIds(Application::BOOK) ?? [];
 		$lines = [];
 		$position = 0;
 		foreach ($rows as $row) {
@@ -769,6 +784,11 @@ class InvoiceService {
 			}
 			$line->setAccountId($accountId);
 			$line->setCostCenterId(isset($row['costCenterId']) && $row['costCenterId'] !== '' ? (int)$row['costCenterId'] : null);
+			[$bookingCostCenterId, $costCenterError] = LineCostCenterRule::resolve($row, $storedCostCenters[$position] ?? null, $knownCostCenters);
+			if ($costCenterError !== null) {
+				throw new \InvalidArgumentException($this->msg('Position %d: Die Kostenstelle gibt es nicht.', [$position]));
+			}
+			$line->setBookingCcId($bookingCostCenterId);
 			$line->setDeliveryDate($this->normalizeDate($row['deliveryDate'] ?? null));
 			$line->setLineNetCents(InvoiceCalculator::lineNet($quantityE4, $priceCents, $discountBp));
 			$lines[] = $line;
