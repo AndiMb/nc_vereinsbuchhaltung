@@ -40,6 +40,11 @@ verwenden, z. B. `**Neu:**`.
   ihr Vorschlag übernommen, gehört der ganze Betrag dieser Kostenstelle.
   Ist die Vorgabe nicht anwendbar (Kostenstelle inaktiv, Gegenkonto trägt
   keine), wird der Umsatz wie bisher ohne Kostenstelle zugeordnet.
+- **Kostenstelle verpflichtend** (#334): neuer Schalter am Einnahmen- oder
+  Ausgabenkonto. Buchungs- und Aufteilen-Dialog erinnern dann mit dem noch
+  nicht zugeordneten Betrag an die Kostenstelle – speichern bleibt möglich –,
+  und der Bericht *Kostenstellen* listet „Pflichtkonten mit offenem Betrag“,
+  auch auf der Druckseite und im CSV.
 - Für bestehende Installationen ändert sich ohne Einschalten nichts: keine
   neue Spalte im Journal-Export, kein neues Feld, kein neuer Bericht. Wird
   die Funktion wieder ausgeschaltet, bleiben die Zuordnungen gespeichert.

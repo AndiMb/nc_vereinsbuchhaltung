@@ -1084,6 +1084,17 @@ centre that a rule still points to cannot be deleted.
 Entries from invoices, expense claims and SEPA collection are created
 without a cost centre. You can add one on the entry afterwards.
 
+**Cost centre required:** if every amount on an account should ideally get a
+cost centre, switch on **Cost centre required** in the account dialog
+(Accounts tab → edit account). It is offered for income and expense
+accounts only. The flag is a reminder, not a lock: the entry dialog and the
+split dialog show the amount not yet allocated on the line, and you can
+still save. At the top, the report lists **Mandatory accounts with an open
+amount** – this also includes amounts from automatically created entries,
+where nobody was reminded in a dialog. A click on the account leads to its
+entries. If such an account later becomes a balance-sheet or money account,
+the flag is dropped.
+
 **Evaluating:** the **Reports → Cost centres** tab shows, per cost centre,
 income and expenses by account and the result, followed by the **Without cost
 centre** block with everything that is not allocated. The grand total at the

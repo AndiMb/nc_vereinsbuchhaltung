@@ -38,6 +38,11 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   the default cannot be applied (cost centre inactive, contra account
   carries none), the transaction is assigned without a cost centre as
   before.
+- **Cost centre required** (#334): new switch on an income or expense
+  account. The entry dialog and the split dialog then remind you of the cost
+  centre with the amount not yet allocated – saving stays possible – and the
+  *Cost centres* report lists "Mandatory accounts with an open amount", also
+  on the print page and in the CSV.
 - For existing installations nothing changes unless you switch it on: no new
   column in the journal export, no new field, no new report. If the feature
   is switched off again, the allocations stay saved.
