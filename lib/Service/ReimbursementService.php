@@ -515,10 +515,12 @@ class ReimbursementService {
 	 * Ohne diesen Weg stünde dieselbe Zahlung zweimal in den Büchern - einmal
 	 * als Auszahlung der Auslage, einmal als Umsatz unter „Zuzuordnen“.
 	 *
-	 * @throws \InvalidArgumentException wenn Antrag oder Umsatz nicht zusammenpassen
+	 * @param list<array{costCenterId:int, amountCents:int}>|null $allocations Verteilung des
+	 *                                                                         Aufwands auf Kostenstellen (Issue #333); null = nichts gesagt
+	 * @throws \InvalidArgumentException wenn Antrag oder Umsatz nicht zusammenpassen oder die Verteilung ungültig ist
 	 */
-	public function payFromBankTransaction(int $id, BankTransaction $tx, int $contraAccountId, string $actorUid): Reimbursement {
-		return $this->atomically(function () use ($id, $tx, $contraAccountId, $actorUid): Reimbursement {
+	public function payFromBankTransaction(int $id, BankTransaction $tx, int $contraAccountId, string $actorUid, ?array $allocations = null): Reimbursement {
+		return $this->atomically(function () use ($id, $tx, $contraAccountId, $actorUid, $allocations): Reimbursement {
 			$reimbursement = $this->mapper->find($id);
 			if ($reimbursement->getStatus() !== Reimbursement::STATUS_APPROVED) {
 				throw new \InvalidArgumentException($this->l10n->t('Nur ein freigegebener Antrag lässt sich auszahlen.'));
@@ -533,7 +535,7 @@ class ReimbursementService {
 				throw new \InvalidArgumentException($this->l10n->t('Der Betrag des Umsatzes passt nicht zur Auslage.'));
 			}
 
-			$tx = $this->booking->assign($tx, $contraAccountId);
+			$tx = $this->booking->assign($tx, $contraAccountId, $allocations);
 			$journalId = (int)$tx->getJournalId();
 			$journal = $this->journalMapper->find($journalId, Application::BOOK);
 			$journal->setDescription($this->bookingText($reimbursement));

@@ -471,7 +471,8 @@ export default {
 	markReimbursementTransferred: (id) => axios.post(url(`/reimbursements/${id}/transferred`)),
 	unmarkReimbursementTransferred: (id) => axios.delete(url(`/reimbursements/${id}/transferred`)),
 	revertReimbursementPayment: (id) => axios.post(url(`/reimbursements/${id}/revert-payment`)),
-	assignReimbursementTransaction: (id, bankTxId, contraAccountId) => axios.post(url(`/reimbursements/${id}/assign`), { bankTxId, contraAccountId }),
+	// allocations (Verteilung auf Kostenstellen, Issue #333) geht nur mit, wenn angegeben.
+	assignReimbursementTransaction: (id, bankTxId, contraAccountId, allocations) => axios.post(url(`/reimbursements/${id}/assign`), { bankTxId, contraAccountId, ...(allocations !== undefined ? { allocations } : {}) }),
 	payReimbursement: (id, journalId, paidDate) => axios.post(url(`/reimbursements/${id}/pay`), { journalId, paidDate }),
 	reimbursementReceiptUrl: (id, fileId) => generateUrl(`${base}/reimbursements/${id}/receipts/${fileId}/view`),
 
