@@ -190,6 +190,13 @@ class JournalLineMapper extends QBMapper {
 	}
 
 	public function deleteByJournal(int $journalId): void {
+		// Die Verteilung auf Kostenstellen (Issue #7) hängt an den Zeilen und
+		// geht mit ihnen – hier, damit kein Aufrufer sie vergessen kann.
+		// Mehrere Dienste löschen Zeilen direkt (Eröffnungsbuchung, xbuc-Import);
+		// ein zurückgebliebener Eintrag hinge an keiner Buchung mehr und
+		// verhinderte das Löschen seiner Kostenstelle für immer.
+		(new LineAllocationMapper($this->db))->deleteByJournal($journalId);
+
 		$qb = $this->db->getQueryBuilder();
 		$qb->delete($this->getTableName())
 			->where($qb->expr()->eq('journal_id', $qb->createNamedParameter($journalId, IQueryBuilder::PARAM_INT)));
