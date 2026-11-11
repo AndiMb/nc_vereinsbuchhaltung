@@ -81,6 +81,10 @@
 		<p v-if="!multi && error" class="vbh-hint vbh-hint--error" role="alert">
 			{{ statusText }}
 		</p>
+		<!-- Pflichtkonto (Issue #334): Erinnerung, Speichern bleibt möglich. -->
+		<p v-if="openRequired > 0" class="vbh-hint vbh-hint--warning vbh-alloc-required" role="status">
+			{{ t('Für dieses Konto ist eine Kostenstelle vorgesehen; {amount} sind noch nicht zugeordnet.', { amount: formatMoney(openRequired) }) }}
+		</p>
 	</div>
 </template>
 
@@ -90,7 +94,7 @@ import NcButton from '@nextcloud/vue/components/NcButton'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import AmountInput from './AmountInput.vue'
 import { useBookingCostCenters } from '../composables/useBookingCostCenters.js'
-import { allocationError, isSingleFull, remainderEuro } from '../lib/allocation.js'
+import { allocationError, isSingleFull, remainderEuro, requiredRemainder } from '../lib/allocation.js'
 import { formatMoney } from '../lib/format.js'
 
 /**
@@ -117,6 +121,9 @@ export default {
 		disabled: { type: Boolean, default: false },
 		// Beschriftung für Screenreader (das sichtbare Label setzt der Aufrufer).
 		label: { type: String, default: '' },
+		// Konto der Zeile trägt „Kostenstelle verpflichtend“ (Issue #334): dann
+		// erinnert der Editor an den noch nicht zugeordneten Betrag.
+		required: { type: Boolean, default: false },
 	},
 
 	emits: ['update:modelValue'],
@@ -157,6 +164,10 @@ export default {
 
 		error() { return allocationError(this.lineAmount, this.rows) },
 
+		openRequired() {
+			return this.error ? 0 : requiredRemainder(this.lineAmount, this.rows, { costCenterRequired: this.required })
+		},
+
 		statusText() {
 			switch (this.error) {
 				case 'missing': return this.t('Einem Betrag fehlt die Kostenstelle.')
@@ -179,6 +190,8 @@ export default {
 	},
 
 	methods: {
+		formatMoney,
+
 		/**
 		 * Lässt sich der Wert nicht als "eine Kostenstelle über alles" zeigen?
 		 *

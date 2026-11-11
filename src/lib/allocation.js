@@ -229,6 +229,23 @@ export function withAllocations(payloadLines, allocations, carryingIds) {
 }
 
 /**
+ * Was auf einem Pflichtkonto (Kennzeichen "Kostenstelle verpflichtend",
+ * Issue #334) noch keiner Kostenstelle zugeordnet ist. Grundlage eines
+ * Hinweises, nie einer Sperre. 0 ohne Kennzeichen, bei voller Zuordnung und
+ * bei Ueberverteilung (die meldet allocationError()).
+ *
+ * @param {number} lineAmountEuro Betrag der Buchungszeile
+ * @param {Array} allocations Verteilung
+ * @param {object|undefined} account Konto der Zeile
+ * @return {number} offener Betrag in Euro
+ */
+export function requiredRemainder(lineAmountEuro, allocations, account) {
+	if (!account?.costCenterRequired) { return 0 }
+	const rest = cents(lineAmountEuro) - allocatedCents((allocations || []).filter((a) => a.costCenterId))
+	return rest > 0 ? rest / 100 : 0
+}
+
+/**
  * Die Vorgabe-Kostenstelle (z. B. einer Importregel) als Verteilung ueber
  * den ganzen Betrag - oder undefined, wenn sie nicht anwendbar ist: keine
  * Vorgabe, Kostenstelle unbekannt oder inaktiv, Konto traegt keine. Mit

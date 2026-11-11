@@ -3115,6 +3115,7 @@ export default {
 				isBank: !!acc.isBank,
 				// Altbestand ohne gesetztes Feld zaehlt mit (Spaltenvorgabe).
 				countInTotal: acc.countInTotal !== false,
+				costCenterRequired: !!acc.costCenterRequired,
 				parentId: acc.parentId || null,
 				sphere: acc.sphere || '',
 				reserveKind: acc.reserveKind || '',
@@ -3145,6 +3146,9 @@ export default {
 						category: f.category || '',
 						isBank: f.isBank,
 						countInTotal: !!f.countInTotal,
+						// Nur bei eingeschaltetem Modul mitschicken: der Dialog zeigt den
+						// Schalter sonst nicht, und null hiesse fuer den Server "unveraendert".
+						...(this.costCentersEnabled ? { costCenterRequired: !!f.costCenterRequired } : {}),
 						parentId: f.parentId || 0,
 						sphere: f.sphere || '',
 						reserveKind: f.reserveKind || '',

@@ -11,6 +11,33 @@
 		</p>
 
 		<template v-else-if="report">
+			<!-- Pflichtkonten mit offenem Betrag (Issue #334): die Vollständigkeitsprüfung -->
+			<section v-if="requiredOpen.length" class="vbh-tablecard vbh-ccreport-block vbh-ccreport-required">
+				<h3 class="vbh-ccreport-title">
+					{{ t('Pflichtkonten mit offenem Betrag') }}
+				</h3>
+				<p class="vbh-hint">
+					{{ t('Für diese Konten ist eine Kostenstelle vorgesehen. Die Beträge sind noch keiner Kostenstelle zugeordnet – ein Klick auf das Konto führt zu den Buchungen.') }}
+				</p>
+				<table class="vbh-table">
+					<tbody>
+						<tr v-for="row in requiredOpen" :key="'req' + row.accountId">
+							<td class="nowrap">
+								{{ row.number }}
+							</td>
+							<td>
+								<button type="button" class="vbh-linkcell" @click="$emit('open-account', { accountId: row.accountId, periodId })">
+									{{ row.name }}
+								</button>
+							</td>
+							<td class="num strong">
+								{{ formatMoney(row.amountCents / 100) }}
+							</td>
+						</tr>
+					</tbody>
+				</table>
+			</section>
+
 			<p v-if="!report.centers.length" class="vbh-empty">
 				{{ t('Noch keine Beträge einer Kostenstelle zugeordnet.') }}
 			</p>
@@ -156,6 +183,8 @@ export default {
 	},
 
 	computed: {
+		requiredOpen() { return this.report?.requiredOpen || [] },
+
 		filterOptions() {
 			return (this.report?.centers || []).map((c) => ({ id: c.id, label: this.centerTitle(c) }))
 		},
@@ -235,6 +264,8 @@ export default {
 .vbh-ccreport-filter { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 
 .vbh-ccreport-block { padding: 8px 12px; }
+
+.vbh-ccreport-required { border-inline-start: 4px solid var(--color-warning); }
 
 .vbh-ccreport-title { margin: 4px 0 8px; font-size: 1.05em; font-weight: 600; }
 

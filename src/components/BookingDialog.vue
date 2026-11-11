@@ -366,6 +366,7 @@
 								:lineAmount="line.amount"
 								:disabled="bookingLocked"
 								:label="allocationLabel(line)"
+								:required="!!accountsById[line.accountId]?.costCenterRequired"
 								@update:modelValue="setAllocations(line.accountId, $event)" />
 						</div>
 					</div>
