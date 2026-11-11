@@ -37,14 +37,15 @@ verwenden, z. B. `**Neu:**`.
   die größten Überschreitungen und Lücken, einen **Verlauf** (kumuliertes Ist
   je Monat mit Plan-Linie) und den „Aufriss nach Vorlage“. „Stand“ (ein Monat
   oder alle Buchungen) und „Vergleich gegen“ (Jahresplan oder zeitanteilig)
-  sind wählbar; die Wahl bleibt im Browser erhalten und steckt im Link
-  (`view=visual`). Die Ampel-Schwellen stellen Verwalter unter
+  sind wählbar. Die Wahl zwischen Tabelle und Visuell bleibt im Browser
+  erhalten und steckt im Link (`view=visual`); die Vergleichsbasis merkt sich
+  der Browser. Die Ampel-Schwellen stellen Verwalter unter
   *Einstellungen → Ampel im Gliederungsbericht* vereinsweit ein.
   „Drucken / PDF“ öffnet in der visuellen Ansicht eine druckfertige Seite,
-  auch in Schwarzweiß lesbar. Ein Klick auf ein Konto im Aufriss springt in die
-  Buchungsliste, gefiltert auf dieses Konto; der Kontofilter der Liste steht
-  jetzt im Link (`account=`). Tabelle, Druck und CSV der Tabelle bleiben
-  unverändert.
+  auch in Schwarzweiß lesbar. Ein Klick auf ein Konto ohne Unterkonten im
+  Aufriss oder in den Abweichungslisten springt in die Buchungsliste,
+  gefiltert auf dieses Konto; der Kontofilter der Liste steht jetzt im Link
+  (`account=`). Tabelle, Druck und CSV der Tabelle bleiben unverändert.
 
 ## [0.52.0] – 2026-11-09
 

@@ -1230,7 +1230,7 @@ instance before a board meeting. The table, its print and its CSV stay
 unchanged. The browser remembers the choice and it is part of the link
 (`view=visual`); anyone opening a shared link sees the same view.
 
-The view speaks of **budget** and **actual**.
+The view speaks of **plan** and **actual**.
 
 **As of and comparison.** Two selection fields control all figures:
 
@@ -1238,15 +1238,15 @@ The view speaks of **budget** and **actual**.
   "Current (all entries)". With a month, only entries up to the end of that
   month count.
 - **Compare against:** "Full plan" or "Time-proportional". Time-proportional
-  is the budget times elapsed months divided by the months of the period;
+  is the plan times elapsed months divided by the months of the period;
   this also works for short and non-calendar fiscal years. It assumes that
-  the budget is spread evenly over the months.
+  the plan is spread evenly over the months.
 
 **Layout from top to bottom:**
 
-- **Key figures** for income, expenses and result: actual, budget,
+- **Key figures** for income, expenses and result: actual, plan,
   utilisation (for the result, the difference), traffic light,
-  time-proportional budget and a **forecast** to the end of the period. The
+  time-proportional plan and a **forecast** to the end of the period. The
   forecast is linear; seasonal items such as annual membership fees distort
   it.
 - **Status of expense accounts** and **Status of income accounts:** how many
@@ -1254,41 +1254,46 @@ The view speaks of **budget** and **actual**.
   below. The numbers refer to the accounts at the planning level, regardless
   of the template, and can therefore differ from the rows of a template.
 - **Largest overruns** (expenses) and **largest shortfalls** (income): up to
-  seven accounts per list.
+  seven accounts per list. A click on an entry opens the account's entries,
+  as in the breakdown.
 - **Trend:** chart with the cumulative actual per month for income and
-  expenses, the budget line and the dashed forecast.
+  expenses, the plan line and the dashed forecast.
 - **Breakdown by template:** every row of the template with traffic light
   and bar; account branches can be collapsed and expanded. A click on an
-  account opens the bookings list of the period filtered to that account. The
-  bookings list has no date filter: with a month as the snapshot it therefore
-  also shows later entries of that account.
+  account without sub-accounts opens the bookings list of the period filtered
+  to that account. Accounts with sub-accounts are not links – in the
+  deviation lists neither – because their figures include the sub-accounts.
+  The bookings list has no date filter: with a month as the snapshot it
+  therefore also shows later entries of that account.
 
-Entries posted directly on a parent account that has sub-accounts are
-included in the key figures and the breakdown, but not in the status counts
-and the deviation lists.
+If the sub-accounts of a parent account carry their own plan values, the
+status counts and deviation lists count the sub-accounts; entries posted
+directly on the parent then only appear in the key figures and the
+breakdown. If the plan is entered on the parent or nowhere, the parent
+together with its sub-accounts counts as one item.
 
 **The traffic light.** Every status appears with a symbol and text, never by
 colour alone. With the default thresholds, relative to the reference value
-(budget):
+(plan):
 
 | Type | Green | Orange | Red |
 |---|---|---|---|
 | Expenses | below 80 % – "within budget" | 80–120 % – "watch" | above 120 % – "exceeded" |
 | Income | from 100 % – "on plan" | 80–100 % – "watch" | below 80 % – "below plan" |
-| Result | at least the budget – "on plan" | up to 20 % below – "slightly below plan" | more – "well below plan" |
+| Result | at least the plan – "on plan" | up to 20 % below – "slightly below plan" | more – "well below plan" |
 
-"Unplanned" means actual without a budget; the row is hatched or dashed, and
-for income it counts as good. A sub-account whose budget is entered on its
+"Unplanned" means actual without a plan; the row is hatched or dashed, and
+for income it counts as good. A sub-account whose plan is entered on its
 parent account is marked "planned on parent account" instead.
 
-**No budget.** If no budget is entered for the period, a notice points to the
-financial plan, where the budget values are entered.
+**No plan.** If no plan is entered for the period, a notice points to the
+budget, where the plan values are entered.
 
 **Adjusting the thresholds.** Gear icon → Settings, section **Status in the
 structured report** (administrator role only): five thresholds, the same for
-everyone in the club. Whole numbers from 0 to 999 are allowed; for orange the
-value must lie before the red value. **Default values** restores the
-defaults.
+everyone in the club. Whole numbers from 0 to 999 are allowed. For expenses
+"orange from" must be below "red above", for income "red below" must be
+below "green from". **Default values** restores the defaults.
 
 **Print / PDF** opens a print-ready page of the visual view for the chosen
 snapshot and comparison: key figures, status counts, deviations, trend and

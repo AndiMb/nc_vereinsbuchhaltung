@@ -35,14 +35,15 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   accounts, the largest overruns and shortfalls, a **trend** chart
   (cumulative actual per month with a budget line) and the "Breakdown by
   template". "As of" (a month or all entries) and "Compare against" (full plan
-  or time-proportional) are selectable; the choice is remembered in the
-  browser and is part of the link (`view=visual`). Administrators set the
+  or time-proportional) are selectable. The choice between Table and Visual
+  is remembered in the browser and is part of the link (`view=visual`); the
+  browser also remembers the comparison basis. Administrators set the
   status thresholds club-wide under *Settings → Status in the structured
   report*. In the visual view "Print / PDF" opens a print-ready page that is
-  also readable in black and white. Clicking an account in the breakdown jumps
-  to the bookings list filtered to that account; the list's account filter is
-  now part of the link (`account=`). The table, its print and its CSV stay
-  unchanged.
+  also readable in black and white. Clicking an account without sub-accounts
+  in the breakdown or in the deviation lists jumps to the bookings list
+  filtered to that account; the list's account filter is now part of the
+  link (`account=`). The table, its print and its CSV stay unchanged.
 
 ## [0.52.0] – 2026-11-09
 

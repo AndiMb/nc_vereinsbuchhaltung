@@ -293,6 +293,8 @@ test.describe('Gliederungsbericht visuell', () => {
 // zeigt alle Kontoebenen. Das Unterkonto ist dann nicht „ungeplant“.
 test.describe('Gliederungsbericht visuell: Unterkonto unter geplantem Oberkonto', () => {
 	const CHILD_LABEL = `${EXPENSE_ACCOUNT} 99 Nebenkosten (E2E)`
+	const PARENT_LABEL = `${EXPENSE_ACCOUNT} Raum- / Mietkosten`
+	let parent
 	let child
 	let template
 
@@ -300,6 +302,7 @@ test.describe('Gliederungsbericht visuell: Unterkonto unter geplantem Oberkonto'
 		await api.resetBook(request)
 		await api.seedDefaultAccounts(request)
 		const [bank, expense] = await api.accountsByNumber(request, BANK_ACCOUNT, EXPENSE_ACCOUNT)
+		parent = expense
 		child = await api.createAccount(request, { number: `${EXPENSE_ACCOUNT} 99`, name: 'Nebenkosten (E2E)', type: 'expense', parentId: expense.id })
 		const { id: period, firstDay } = await currentPeriod(request)
 		await api.raw(request, 'POST', '/budget', { data: { accountId: expense.id, period, amount: 1000 } })
@@ -357,6 +360,36 @@ test.describe('Gliederungsbericht visuell: Unterkonto unter geplantem Oberkonto'
 		await expect(breakdown.locator('.vbh-visual-filter')).toContainText('Ausgaben – ungeplant')
 		await expect(breakdown).toContainText('Kein Konto der Gliederung hat diese Ampelstufe.')
 		await expect(breakdown).not.toContainText(CHILD_LABEL)
+	})
+
+	test('Oberkonto mit Unterkonto führt nicht in die Buchungen, das Unterkonto schon', async ({ page, request }) => {
+		const data = await api.getJson(request, `${VISUAL_ROUTE}?template=${template.id}&asOf=current`)
+		const parentRow = data.rows.find((r) => r.kind === 'account' && r.accountId === parent.id)
+		expect(parentRow.flags).toContain('parent')
+		expect(data.rows.find((r) => r.kind === 'account' && r.accountId === child.id).flags).not.toContain('parent')
+
+		await openApp(page, USERS.verwalter)
+		await page.evaluate((id) => {
+			localStorage.setItem('vbh.structuredReport.template', id)
+			localStorage.setItem('vbh.structuredReport.view', 'visual')
+		}, String(template.id))
+		await page.goto(`${BASE_URL}/index.php/apps/vereinsbuchhaltung/reports/structure?view=visual`)
+		await waitForAppLoaded(page)
+		const breakdown = visibleSection(page).locator('.vbh-visual-breakdown')
+		await expect(breakdown).toBeVisible()
+
+		const childLink = breakdown.getByRole('button', { name: `Buchungen von ${CHILD_LABEL} zeigen` })
+		await expect(childLink).toBeVisible()
+		// Die Summe des Oberkontos schließt das Unterkonto ein: kein Link,
+		// aber weiter der Umschalter für seine Unterkonten.
+		await expect(breakdown.getByRole('button', { name: `Buchungen von ${PARENT_LABEL} zeigen` })).toHaveCount(0)
+		const parentRowEl = breakdown.locator('.vbh-visual-row', { hasText: PARENT_LABEL })
+		await expect(parentRowEl.locator('.vbh-visual-row__text')).toHaveText(PARENT_LABEL)
+		await expect(parentRowEl.getByRole('button', { name: `Unterkonten von ${PARENT_LABEL}` })).toBeVisible()
+
+		await childLink.click()
+		await expect(page).toHaveURL(new RegExp(`/bookings\\?.*account=${child.id}(&|$)`))
+		await expect(visibleSection(page).getByText('Nebenkosten auf dem Unterkonto').first()).toBeVisible()
 	})
 })
 
@@ -586,6 +619,13 @@ test.describe('Gliederungsbericht visuell: Verlauf, Schwellen und Druck', () => 
 		await expect(lines.nth(0)).toHaveText(/^Einnahmen: Ist .+ zum Stand, Hochrechnung .+ zum Periodenende$/)
 		await expect(lines.nth(1)).toHaveText(/^Ausgaben: Ist .+ zum Stand, Hochrechnung .+ zum Periodenende$/)
 		await expect(canvas).toHaveAttribute('aria-label', /Verlauf: kumuliertes Ist je Monat/)
+
+		// Eigene Legende unter der Zeichenfläche: zwei Farben, drei Linienarten.
+		await expect(trend.locator('.vbh-visual-trend__legend li')).toHaveText(['Einnahmen', 'Ausgaben', 'Ist', 'Hochrechnung', 'Plan'])
+		const dashOf = (cls) => trend.locator(`.vbh-visual-trend__line${cls}`).evaluate((el) => getComputedStyle(el).borderTopStyle)
+		expect(await dashOf(':not([class*="--"])')).toBe('solid')
+		expect(await dashOf('.vbh-visual-trend__line--forecast')).toBe('dashed')
+		expect(await dashOf('.vbh-visual-trend__line--plan')).toBe('dotted')
 	})
 
 	test('Drucklink der visuellen Ansicht trägt Stand und Basis; kein CSV-Link', async ({ page, request }) => {

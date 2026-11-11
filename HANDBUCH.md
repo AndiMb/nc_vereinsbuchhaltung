@@ -1280,18 +1280,23 @@ Die Ansicht spricht von **Plan** und **Ist**.
   Planungsebene, unabhängig von der Vorlage, und können daher von den Zeilen
   einer Vorlage abweichen.
 - **Größte Überschreitungen** (Ausgaben) und **größte Lücken** (Einnahmen):
-  bis zu sieben Konten je Liste.
+  bis zu sieben Konten je Liste. Ein Klick auf einen Eintrag öffnet wie im
+  Aufriss die Buchungen des Kontos.
 - **Verlauf:** Diagramm mit dem kumulierten Ist je Monat für Einnahmen und
   Ausgaben, der Plan-Linie und der gestrichelten Hochrechnung.
 - **Aufriss nach Vorlage:** jede Zeile der Vorlage mit Ampel und Balken;
-  Kontoäste lassen sich ein- und ausklappen. Ein Klick auf ein Konto öffnet
-  die Buchungsliste der Periode, gefiltert auf dieses Konto. Die Buchungsliste
-  hat keinen Datumsfilter: Mit einem Monat als Stand zeigt sie daher auch
-  spätere Buchungen des Kontos.
+  Kontoäste lassen sich ein- und ausklappen. Ein Klick auf ein Konto ohne
+  Unterkonten öffnet die Buchungsliste der Periode, gefiltert auf dieses
+  Konto. Konten mit Unterkonten sind keine Links – auch nicht in den
+  Abweichungslisten –, weil ihre Zahlen die Unterkonten einschließen. Die
+  Buchungsliste hat keinen Datumsfilter: Mit einem Monat als Stand zeigt sie
+  daher auch spätere Buchungen des Kontos.
 
-Buchungen, die direkt auf einem Oberkonto mit Unterkonten stehen, gehen in
-die Kennzahlen und den Aufriss ein, nicht aber in die Ampelzahlen und die
-Abweichungslisten.
+Tragen die Unterkonten eines Oberkontos eigene Planwerte, zählen in den
+Ampelzahlen und Abweichungslisten die Unterkonten; Buchungen direkt auf dem
+Oberkonto gehen dann nur in die Kennzahlen und den Aufriss ein. Steht der
+Plan auf dem Oberkonto oder nirgends, zählt das Oberkonto samt seinen
+Unterkonten als ein Posten.
 
 **Die Ampel.** Jeder Status erscheint mit Symbol und Text, nie nur als Farbe.
 Mit den Standardschwellen gilt, bezogen auf den Vergleichswert (Plan):
@@ -1311,9 +1316,9 @@ den Finanzplan hin, in dem die Planwerte stehen.
 
 **Schwellen anpassen.** Zahnrad → Einstellungen, Abschnitt **Ampel im
 Gliederungsbericht** (nur Rolle Verwalter): fünf Schwellen, vereinsweit
-dieselben für alle. Zulässig sind ganze Zahlen von 0 bis 999; bei Orange muss
-der Wert vor dem Rot-Wert liegen. **Standardwerte** stellt die Vorgaben wieder
-her.
+dieselben für alle. Zulässig sind ganze Zahlen von 0 bis 999. Bei den Ausgaben
+muss „orange ab“ unter „rot über“ liegen, bei den Einnahmen „rot unter“ unter
+„grün ab“. **Standardwerte** stellt die Vorgaben wieder her.
 
 **Drucken / PDF** öffnet in der visuellen Ansicht eine druckfertige Seite für
 den gewählten Stand und Vergleich: Kennzahlen, Ampelzahlen, Abweichungen,
