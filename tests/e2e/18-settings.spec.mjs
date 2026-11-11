@@ -106,6 +106,73 @@ test.describe('Einstellungsseite: Darstellung', () => {
 	})
 })
 
+// Ampel-Schwellen der visuellen Gliederungsansicht: eigener Abschnitt mit
+// eigenem Speichern (die Wirkung auf die Ampel prüft 70-gliederungsbericht-visuell).
+test.describe('Einstellungsseite: Ampel im Gliederungsbericht', () => {
+	const DEFAULTS = { expWarn: 80, expCrit: 120, incGood: 100, incWarn: 80, resTol: 20 }
+	const FIELDS = [
+		['expWarn', 'Ausgaben: orange ab'],
+		['expCrit', 'Ausgaben: rot über'],
+		['incGood', 'Einnahmen: grün ab'],
+		['incWarn', 'Einnahmen: rot unter'],
+		['resTol', 'Ergebnis: rot, wenn mehr als'],
+	]
+
+	test.beforeAll(async ({ request }) => {
+		await api.updateSettings(request, { budget_status_thresholds: DEFAULTS })
+	})
+
+	test.afterAll(async ({ request }) => {
+		await api.updateSettings(request, { budget_status_thresholds: DEFAULTS })
+	})
+
+	function field(section, label) {
+		return section.getByRole('spinbutton', { name: label })
+	}
+
+	test('Abschnitt nach der Darstellung; Speichern bleibt nach dem Neuladen; ungültige Kombination wird nicht gespeichert; Standardwerte', async ({ page, request }) => {
+		await openSettingsPage(page, USERS.admin)
+		const section = page.locator('#settings-section_ampel')
+		await expect(section.getByRole('heading', { name: 'Ampel im Gliederungsbericht' })).toBeVisible()
+		const afterDisplay = await page.evaluate(() => {
+			const display = document.querySelector('#settings-section_darstellung')
+			const ampel = document.querySelector('#settings-section_ampel')
+			return display.nextElementSibling === ampel
+		})
+		expect(afterDisplay, 'Ampel-Abschnitt folgt direkt auf „Darstellung“').toBe(true)
+		for (const [key, label] of FIELDS) {
+			await expect(field(section, label)).toHaveValue(String(DEFAULTS[key]))
+		}
+
+		await field(section, 'Ausgaben: orange ab').fill('90')
+		await section.getByRole('button', { name: 'Speichern' }).click()
+		await expect(page.getByRole('status').filter({ hasText: 'Einstellungen gespeichert.' }).first()).toBeVisible()
+		expect((await api.getSettings(request)).budget_status_thresholds).toEqual({ ...DEFAULTS, expWarn: 90 })
+
+		await openSettingsPage(page, USERS.admin)
+		await expect(field(section, 'Ausgaben: orange ab')).toHaveValue('90')
+
+		// Orange ab 130 liegt über Rot ab 120: Meldung in der Karte, nichts gespeichert.
+		let posts = 0
+		page.on('request', (r) => {
+			if (r.method() === 'POST' && r.url().endsWith('/api/settings')) { posts++ }
+		})
+		await field(section, 'Ausgaben: orange ab').fill('130')
+		await section.getByRole('button', { name: 'Speichern' }).click()
+		await expect(section.getByRole('alert')).toHaveText('Bei den Ausgaben muss die Schwelle für Orange unter der für Rot liegen.')
+		expect(posts).toBe(0)
+		expect((await api.getSettings(request)).budget_status_thresholds).toEqual({ ...DEFAULTS, expWarn: 90 })
+
+		await section.getByRole('button', { name: 'Standardwerte' }).click()
+		for (const [key, label] of FIELDS) {
+			await expect(field(section, label)).toHaveValue(String(DEFAULTS[key]))
+		}
+		await expect(section.getByRole('alert')).toHaveCount(0)
+		await section.getByRole('button', { name: 'Speichern' }).click()
+		await expect.poll(async () => (await api.getSettings(request)).budget_status_thresholds).toEqual(DEFAULTS)
+	})
+})
+
 // Das einziehende Konto zeigt als einzige Einstellung auf einen Datensatz der
 // App. Verwaist sie, darf das nicht die ganze Seite unspeicherbar machen –
 // die sendet immer den vollständigen Feldsatz.

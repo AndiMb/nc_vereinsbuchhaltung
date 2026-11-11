@@ -360,6 +360,280 @@ test.describe('Gliederungsbericht visuell: Unterkonto unter geplantem Oberkonto'
 	})
 })
 
+/** `YYYY-MM` um n Monate verschoben. */
+function addMonths(ym, n) {
+	const [year, month] = ym.split('-').map(Number)
+	const index = year * 12 + month - 1 + n
+	return `${Math.floor(index / 12)}-${String((index % 12) + 1).padStart(2, '0')}`
+}
+
+/** Monate von a bis b (beide `YYYY-MM`), b − a. */
+function monthDiff(a, b) {
+	const [ya, ma] = a.split('-').map(Number)
+	const [yb, mb] = b.split('-').map(Number)
+	return (yb * 12 + mb) - (ya * 12 + ma)
+}
+
+const EXPORT_ROUTE = '/export/gliederungsbericht-visuell'
+const DEFAULT_THRESHOLDS = { expWarn: 80, expCrit: 120, incGood: 100, incWarn: 80, resTol: 20 }
+
+// Verlauf (Monatsreihe gegen die echte Datenbank), Ampel-Schwellen, Druckseite
+// und Drucklink. Eigene Vorlage mit allen Einnahmen- und Ausgabenkonten.
+//
+// Bestand (Monat 0 = erster Monat der laufenden Periode):
+//   5000: Plan 2.000 €; 400 € in Monat 0, 500 € in Monat 1, 100 € im Monat
+//         nach dem heutigen (nur wenn die Periode dann noch läuft)
+//   5100: Plan 1.000 €; 900 € in Monat 0 (90 % – mit Vorgaben „beobachten“)
+//   4000: Plan 3.000 €; 900 € in Monat 1
+// Stand der Reihe: Monat 2 (bzw. der heutige, falls früher).
+test.describe('Gliederungsbericht visuell: Verlauf, Schwellen und Druck', () => {
+	const TEMPLATE_NAME = 'Verlauf und Druck (E2E)'
+	let template
+	let period
+	let rent
+	let office
+	let fees
+	let startYm
+	let todayIndex
+	let asOfIndex
+	let laterIndex = null
+
+	test.beforeAll(async ({ request }) => {
+		await api.resetBook(request)
+		await api.seedDefaultAccounts(request)
+		const [bank, inc, exp, exp2] = await api.accountsByNumber(request, BANK_ACCOUNT, INCOME_ACCOUNT, EXPENSE_ACCOUNT, '5100')
+		rent = exp
+		office = exp2
+		fees = inc
+		const today = new Date().toISOString().slice(0, 10)
+		const id = await api.periodIdForDate(request, today)
+		period = (await api.listPeriods(request)).find((p) => p.id === id)
+		startYm = period.startDate.slice(0, 7)
+		todayIndex = monthDiff(startYm, today.slice(0, 7))
+		const total = monthDiff(startYm, period.endDate.slice(0, 7)) + 1
+		asOfIndex = Math.min(todayIndex, 2)
+		// Buchungen in zwei Monaten gehen erst ab dem zweiten Monat der Periode.
+		if (todayIndex < 1) { return }
+
+		for (const [account, amount] of [[rent, 2000], [office, 1000], [fees, 3000]]) {
+			await api.raw(request, 'POST', '/budget', { data: { accountId: account.id, period: period.id, amount } })
+		}
+		const book = (ym, day, description, debit, credit, amount) => api.createBooking(request, {
+			date: `${ym}-${day}`,
+			description,
+			debitAccountId: debit.id,
+			creditAccountId: credit.id,
+			amount,
+		})
+		await book(startYm, '01', 'Miete Monat 0', rent, bank, 400)
+		await book(startYm, '02', 'Bürobedarf Monat 0', office, bank, 900)
+		await book(addMonths(startYm, 1), '15', 'Miete Monat 1', rent, bank, 500)
+		await book(addMonths(startYm, 1), '15', 'Beiträge Monat 1', bank, fees, 900)
+		if (todayIndex + 1 < total) {
+			laterIndex = todayIndex + 1
+			await book(addMonths(startYm, laterIndex), '10', 'Miete im Folgemonat', rent, bank, 100)
+		}
+
+		const created = await api.raw(request, 'POST', '/report-templates', {
+			data: {
+				name: TEMPLATE_NAME,
+				definition: {
+					columns: [{ source: 'plan', periodOffset: 0 }, { source: 'actual', periodOffset: 0 }],
+					sections: [
+						{ title: 'Einnahmen', filter: { types: ['income'] }, levels: [{ by: 'account', depth: 'all' }] },
+						{ title: 'Ausgaben', filter: { types: ['expense'] }, levels: [{ by: 'account', depth: 'all' }] },
+					],
+				},
+			},
+		})
+		expect(created.status()).toBe(201)
+		template = await created.json()
+	})
+
+	test.beforeEach(() => {
+		test.skip(todayIndex < 1, 'Die laufende Periode steht im ersten Monat – Buchungen in zwei vergangenen Monaten gibt es noch nicht.')
+	})
+
+	test.afterAll(async ({ request }) => {
+		// Auch nach einem Fehlschlag: die Vorgaben für die folgenden Specs.
+		await api.updateSettings(request, { budget_status_thresholds: DEFAULT_THRESHOLDS })
+	})
+
+	test('Monatsreihe kumuliert je Monat bis zum Stand, letzter Wert = Kennzahl (API)', async ({ request }) => {
+		const asOf = addMonths(startYm, asOfIndex)
+		const data = await api.getJson(request, `${VISUAL_ROUTE}?template=${template.id}&asOf=${asOf}`)
+
+		const months = Array.from({ length: asOfIndex + 1 }, (_, i) => addMonths(startYm, i))
+		expect(data.series.months).toEqual(months)
+		// Monat 0: 400 + 900 Ausgaben; Monat 1: + 500 Ausgaben, 900 Einnahmen; danach unverändert.
+		const expense = [130000, 180000, 180000].slice(0, months.length)
+		const income = [0, 90000, 90000].slice(0, months.length)
+		expect(data.series.expense).toEqual(expense)
+		expect(data.series.income).toEqual(income)
+		expect(data.series.expense.at(-1)).toBe(data.kpis.expense.actual)
+		expect(data.series.income.at(-1)).toBe(data.kpis.income.actual)
+	})
+
+	test('Stand „Aktuell“ mit Buchung nach dem heutigen Monat: Reihe reicht bis dorthin (API)', async ({ request }) => {
+		test.skip(laterIndex === null, 'Die laufende Periode endet in diesem Monat – es gibt keinen späteren Monat für eine Buchung.')
+		const data = await api.getJson(request, `${VISUAL_ROUTE}?template=${template.id}&asOf=current`)
+
+		expect(data.series.months).toEqual(Array.from({ length: laterIndex + 1 }, (_, i) => addMonths(startYm, i)))
+		expect(data.series.expense.at(-1)).toBe(190000)
+		expect(data.series.expense.at(-1)).toBe(data.kpis.expense.actual)
+		expect(data.series.income.at(-1)).toBe(data.kpis.income.actual)
+		// Der Monat davor trägt die Folgebuchung noch nicht.
+		expect(data.series.expense.at(-2)).toBe(180000)
+	})
+
+	test('Schwellen: expWarn 95 macht 90 % grün; ungültige Werte 400 ohne Speichern; nur Verwalter (API)', async ({ request }) => {
+		const officeLevel = async () => {
+			const data = await api.getJson(request, `${VISUAL_ROUTE}?template=${template.id}&asOf=current`)
+			const row = data.rows.find((r) => r.kind === 'account' && r.accountId === office.id)
+			return row.status.year.level
+		}
+		expect(await officeLevel()).toBe('warn')
+
+		const custom = { ...DEFAULT_THRESHOLDS, expWarn: 95 }
+		const saved = await api.updateSettings(request, { budget_status_thresholds: custom })
+		expect((await saved.json()).budget_status_thresholds).toEqual(custom)
+		expect(await officeLevel()).toBe('good')
+
+		const { resTol, ...missing } = custom
+		expect(resTol).toBe(20)
+		const invalid = [
+			{ ...custom, expWarn: 120, expCrit: 120 },
+			{ ...custom, incWarn: 100 },
+			missing,
+			{ ...custom, expWarn: 'abc' },
+			'abc',
+		]
+		for (const value of invalid) {
+			const resp = await api.updateSettings(request, { budget_status_thresholds: value }, { expectOk: false })
+			expect(resp.status(), JSON.stringify(value)).toBe(400)
+			expect((await resp.json()).message, JSON.stringify(value)).toBeTruthy()
+			expect((await api.getSettings(request)).budget_status_thresholds).toEqual(custom)
+		}
+
+		for (const user of [USERS.revisor, USERS.buchhalter]) {
+			const resp = await api.updateSettings(request, { budget_status_thresholds: DEFAULT_THRESHOLDS }, { user, expectOk: false })
+			expect(resp.status(), user).toBe(403)
+		}
+		expect((await api.getSettings(request)).budget_status_thresholds).toEqual(custom)
+
+		await api.updateSettings(request, { budget_status_thresholds: DEFAULT_THRESHOLDS })
+		expect(await officeLevel()).toBe('warn')
+	})
+
+	test('Druckseite: Vorlagenname, SVG, kein Skript; Basis und Stand; Fehlerfälle (API)', async ({ request }) => {
+		const page = await api.raw(request, 'GET', `${EXPORT_ROUTE}?template=${template.id}`)
+		expect(page.status()).toBe(200)
+		expect(page.headers()['content-type']).toMatch(/text\/html/)
+		const html = await page.text()
+		expect(html).toContain(TEMPLATE_NAME)
+		expect(html).toContain('<svg')
+		expect(html).not.toMatch(/<script/i)
+		expect(html).toContain('Vergleich gegen: Jahresplan')
+
+		const time = await api.raw(request, 'GET', `${EXPORT_ROUTE}?template=${template.id}&basis=time`)
+		expect(time.status()).toBe(200)
+		expect(await time.text()).toContain('Vergleich gegen: zeitanteiligen Plan')
+
+		const current = await api.raw(request, 'GET', `${EXPORT_ROUTE}?template=${template.id}&asOf=current`)
+		expect(current.status()).toBe(200)
+		expect(await current.text()).toContain('Stand: Aktuell (alle Buchungen)')
+
+		expect((await api.raw(request, 'GET', `${EXPORT_ROUTE}?template=${template.id}&asOf=2026-13`)).status()).toBe(422)
+		expect((await api.raw(request, 'GET', `${EXPORT_ROUTE}?template=999999`)).status()).toBe(404)
+		expect((await api.raw(request, 'GET', `${EXPORT_ROUTE}?template=${template.id}`, { user: USERS.ohneRolle })).status()).toBe(403)
+		expect((await api.raw(request, 'GET', `${EXPORT_ROUTE}?template=${template.id}`, { user: USERS.revisor })).status()).toBe(200)
+	})
+
+	/** Visuelle Ansicht mit der eigenen Vorlage, Basis Jahresplan. */
+	async function openOwnVisual(page) {
+		await openApp(page, USERS.verwalter)
+		await page.evaluate((id) => {
+			localStorage.setItem('vbh.structuredReport.template', id)
+			localStorage.setItem('vbh.structuredReport.view', 'visual')
+			localStorage.setItem('vbh.structuredReport.basis', 'year')
+		}, String(template.id))
+		await page.goto(`${BASE_URL}/index.php/apps/vereinsbuchhaltung/reports/structure?view=visual`)
+		await waitForAppLoaded(page)
+		const intro = page.getByRole('button', { name: 'Verstanden' })
+		if (await intro.isVisible().catch(() => false)) { await intro.click() }
+		await expect(visibleSection(page).locator('.vbh-visual-tiles')).toBeVisible()
+	}
+
+	test('Verlauf sichtbar: Zeichenfläche und Textzeilen mit Ist und Hochrechnung', async ({ page }) => {
+		await openOwnVisual(page)
+		const trend = visibleSection(page).locator('.vbh-visual-trendsection')
+		await expect(trend.getByRole('heading', { name: 'Verlauf', exact: true })).toBeVisible()
+		const canvas = trend.locator('canvas')
+		await expect(canvas).toBeVisible()
+		await expect.poll(async () => {
+			const box = await canvas.boundingBox()
+			return box ? Math.min(box.width, box.height) : 0
+		}).toBeGreaterThan(50)
+		// Chart.js hat tatsächlich gezeichnet (nicht nur ein leeres Canvas).
+		await expect.poll(() => canvas.evaluate((el) => {
+			const { data } = el.getContext('2d').getImageData(0, 0, el.width, el.height)
+			for (let i = 3; i < data.length; i += 4) { if (data[i] !== 0) { return true } }
+			return false
+		})).toBe(true)
+
+		const lines = trend.locator('.vbh-visual-trend__summary li')
+		await expect(lines).toHaveCount(2)
+		await expect(lines.nth(0)).toHaveText(/^Einnahmen: Ist .+ zum Stand, Hochrechnung .+ zum Periodenende$/)
+		await expect(lines.nth(1)).toHaveText(/^Ausgaben: Ist .+ zum Stand, Hochrechnung .+ zum Periodenende$/)
+		await expect(canvas).toHaveAttribute('aria-label', /Verlauf: kumuliertes Ist je Monat/)
+	})
+
+	test('Drucklink der visuellen Ansicht trägt Stand und Basis; kein CSV-Link', async ({ page, request }) => {
+		const { asOf } = await api.getJson(request, `${VISUAL_ROUTE}?template=${template.id}`)
+		await openOwnVisual(page)
+		const head = visibleSection(page).locator('.vbh-structured-actions')
+		const print = head.getByRole('link', { name: 'Drucken / PDF' })
+		await expect(head.getByRole('link', { name: 'CSV' })).toHaveCount(0)
+
+		const query = async () => {
+			const href = await print.getAttribute('href')
+			expect(href).toContain(`/apps/vereinsbuchhaltung/api${EXPORT_ROUTE}?`)
+			return new URL(href, BASE_URL).searchParams
+		}
+		await expect.poll(async () => (await query()).get('asOf')).toBe(asOf.default)
+		let params = await query()
+		expect(params.get('template')).toBe(String(template.id))
+		expect(params.get('basis')).toBe('year')
+
+		// Anderen Stand wählen (Monat 0) und auf „Zeitanteilig“ schalten.
+		const target = startYm
+		const label = new Intl.DateTimeFormat('de-DE', { month: 'long', year: 'numeric', timeZone: 'UTC' })
+			.format(new Date(`${target}-01T00:00:00Z`))
+		const asOfSelect = visibleSection(page).locator('.vbh-visual-asof')
+		await asOfSelect.locator('.vs__dropdown-toggle').click()
+		await page.locator('li.vs__dropdown-option', { hasText: label }).first().click()
+		await expect(asOfSelect.locator('.vs__selected')).toHaveText(label)
+		await visibleSection(page).getByRole('button', { name: 'Zeitanteilig', exact: true }).click()
+
+		await expect.poll(async () => (await query()).get('asOf')).toBe(target)
+		params = await query()
+		expect(params.get('basis')).toBe('time')
+		expect(params.get('template')).toBe(String(template.id))
+
+		// Der Link liefert die Seite für genau diese Wahl.
+		const resp = await page.request.get(new URL(await print.getAttribute('href'), BASE_URL).href)
+		expect(resp.status()).toBe(200)
+		expect(await resp.text()).toContain('Vergleich gegen: zeitanteiligen Plan (1 von')
+
+		// In der Tabelle gibt es den CSV-Link wieder, der Druck zeigt auf die Tabellenroute.
+		await visibleSection(page).getByRole('button', { name: 'Tabelle', exact: true }).click()
+		await expect(head.getByRole('link', { name: 'CSV' })).toBeVisible()
+		expect(await print.getAttribute('href')).toContain('/export/gliederungsbericht?')
+		await visibleSection(page).getByRole('button', { name: 'Visuell', exact: true }).click()
+		await visibleSection(page).getByRole('button', { name: 'Jahresplan', exact: true }).click()
+	})
+})
+
 test.describe('Gliederungsbericht visuell ohne Plan', () => {
 	test.beforeAll(async ({ request }) => {
 		await api.resetBook(request)
