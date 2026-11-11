@@ -8,6 +8,10 @@
 				<button :class="{ active: reportView === 'costcenters' }" @click="$emit('update:report-view', 'costcenters')">
 					{{ t('Auswertungsgruppen') }}
 				</button>
+				<!-- Kostenstellen an der Buchungszeile (Issue #7): nur bei eingeschaltetem Modul -->
+				<button v-if="costCentersEnabled" :class="{ active: reportView === 'allocations' }" @click="$emit('update:report-view', 'allocations')">
+					{{ t('Kostenstellen') }}
+				</button>
 				<button :class="{ active: reportView === 'spheres' }" @click="$emit('update:report-view', 'spheres')">
 					{{ t('Sphären') }}
 				</button>
@@ -183,6 +187,13 @@
 					size="small"
 					@click="ccPanelOpen = true">
 					{{ t('Auswertungsgruppen verwalten') }}
+				</NcButton>
+				<NcButton
+					v-if="canWrite && reportView === 'allocations'"
+					variant="secondary"
+					size="small"
+					@click="bookingCcPanelOpen = true">
+					{{ t('Kostenstellen verwalten') }}
 				</NcButton>
 				<NcButton
 					v-if="canWrite && reportView === 'spheres'"
@@ -877,6 +888,13 @@
 				@openAccount="$emit('open-account', $event)"
 				@openSpheres="spherePanelOpen = true" />
 
+			<!-- KOSTENSTELLEN an der Buchungszeile (Issue #7) -->
+			<div v-if="costCentersEnabled && reportView === 'allocations'">
+				<p class="vbh-empty">
+					{{ t('Noch keine Beträge einer Kostenstelle zugeordnet.') }}
+				</p>
+			</div>
+
 			<!-- ÄNDERUNGSPROTOKOLL -->
 			<div v-show="reportView === 'audit'">
 				<p class="vbh-hint">
@@ -946,6 +964,19 @@
 		</NcModal>
 
 		<NcModal
+			v-if="canWrite && bookingCcPanelOpen"
+			labelId="vbh-modal-title-booking-costcenters"
+			size="large"
+			@close="bookingCcPanelOpen = false">
+			<div class="vbh-modal-inner">
+				<h2 id="vbh-modal-title-booking-costcenters" class="vbh-modal-title">
+					{{ t('Kostenstellen verwalten') }}
+				</h2>
+				<BookingCostCenterPanel @changed="allocationRefreshKey++" />
+			</div>
+		</NcModal>
+
+		<NcModal
 			v-if="canWrite && spherePanelOpen"
 			labelId="vbh-modal-title-spheres"
 			size="large"
@@ -963,7 +994,7 @@
 <script>
 import { mdiCalendarRange, mdiDelete, mdiDownload, mdiPaperclip, mdiPrinter } from '@mdi/js'
 import { showError, showSuccess } from '@nextcloud/dialogs'
-import { toRefs } from 'vue'
+import { toRef, toRefs } from 'vue'
 import NcActionInput from '@nextcloud/vue/components/NcActionInput'
 import NcActionLink from '@nextcloud/vue/components/NcActionLink'
 import NcActions from '@nextcloud/vue/components/NcActions'
@@ -973,6 +1004,7 @@ import NcEmptyContent from '@nextcloud/vue/components/NcEmptyContent'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import NcModal from '@nextcloud/vue/components/NcModal'
 import NcSelect from '@nextcloud/vue/components/NcSelect'
+import BookingCostCenterPanel from './BookingCostCenterPanel.vue'
 import BudgetTreeTable from './BudgetTreeTable.vue'
 import CostCenterPanel from './CostCenterPanel.vue'
 import SphereAssignPanel from './SphereAssignPanel.vue'
@@ -981,6 +1013,7 @@ import api from '../api.js'
 import { useAccounts } from '../composables/useAccounts.js'
 import { useAuth } from '../composables/useAuth.js'
 import { useBalances } from '../composables/useBalances.js'
+import { useBookingCostCenters } from '../composables/useBookingCostCenters.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { usePeriods } from '../composables/usePeriods.js'
 import { useSort } from '../composables/useSort.js'
@@ -993,7 +1026,7 @@ import { statementRowKeys } from '../lib/rowKeys.js'
 
 export default {
 	name: 'ReportsTab',
-	components: { NcButton, NcActions, NcActionInput, NcActionLink, NcCheckboxRadioSwitch, NcEmptyContent, NcIconSvgWrapper, NcModal, NcSelect, BudgetTreeTable, CostCenterPanel, SphereAssignPanel, StructuredReportView },
+	components: { NcButton, NcActions, NcActionInput, NcActionLink, NcCheckboxRadioSwitch, NcEmptyContent, NcIconSvgWrapper, NcModal, NcSelect, BookingCostCenterPanel, BudgetTreeTable, CostCenterPanel, SphereAssignPanel, StructuredReportView },
 	props: {
 		// Kostenstellen-Modus (group|account|manual), gesteuert ueber den
 		// Gruppierungs-Waehler in der Kopfzeile (nur reportView==='costcenters').
@@ -1055,6 +1088,8 @@ export default {
 		return {
 			canWrite: auth.canWrite,
 			isAdmin: auth.isAdmin,
+			// Schalter der Kostenstellen an der Buchungszeile (Issue #7)
+			costCentersEnabled: toRef(useBookingCostCenters().state, 'enabled'),
 			// periods/selectedPeriodId aus dem usePeriods-Singleton (derselbe
 			// geteilte Zustand wie in App.vue) - loadPeriods braucht der Knopf
 			// „Nächsten Zeitraum anlegen" unten.
@@ -1098,6 +1133,10 @@ export default {
 			// kontextnahes Modal statt als Block unter der Split-Ansicht.
 			ccPanelOpen: false,
 			spherePanelOpen: false,
+			// Kostenstellen an der Buchungszeile: Pflege-Modal, und ein Zaehler, der
+			// den Bericht nach einer Aenderung der Stammdaten neu laden laesst.
+			bookingCcPanelOpen: false,
+			allocationRefreshKey: 0,
 		}
 	},
 

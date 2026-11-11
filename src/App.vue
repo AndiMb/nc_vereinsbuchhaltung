@@ -489,6 +489,7 @@ import { buildAccountOptions, useAccounts } from './composables/useAccounts.js'
 import { useAttachmentInbox } from './composables/useAttachmentInbox.js'
 import { useAuth } from './composables/useAuth.js'
 import { useBalances } from './composables/useBalances.js'
+import { useBookingCostCenters } from './composables/useBookingCostCenters.js'
 import { useConfirm } from './composables/useConfirm.js'
 import { useCostCenters } from './composables/useCostCenters.js'
 import { useEinzugRequest } from './composables/useEinzugRequest.js'
@@ -563,6 +564,7 @@ const ROUTE_META = {
 	'accounts-edit': { tab: 'accounts', hasAccountId: true, accountEdit: true },
 	reports: { tab: 'reports', reportView: 'summary' },
 	'reports-costcenters': { tab: 'reports', reportView: 'costcenters' },
+	'reports-allocations': { tab: 'reports', reportView: 'allocations' },
 	'reports-spheres': { tab: 'reports', reportView: 'spheres' },
 	'reports-reserves': { tab: 'reports', reportView: 'reserves' },
 	'reports-budget': { tab: 'reports', reportView: 'budget' },
@@ -625,6 +627,7 @@ export default {
 		const openItems = useOpenItems()
 		const attachmentInbox = useAttachmentInbox()
 		const costCenters = useCostCenters()
+		const bookingCostCenters = useBookingCostCenters()
 		const rulesC = useRules()
 		const memberAkteRequest = useMemberAkteRequest()
 		const einzugRequest = useEinzugRequest()
@@ -632,6 +635,7 @@ export default {
 		return {
 			loadOpenItems: openItems.loadOpenItems,
 			loadCostCenters: costCenters.loadCostCenters,
+			setBookingCostCentersEnabled: bookingCostCenters.setBookingCostCentersEnabled,
 			// Regeln: geteilter Zustand (useRules.js), seit dem Umzug der Pflege
 			// nach RulesPanel.vue (Unterreiter „Regeln" von BookingsTab.vue) hier
 			// nur noch fuer computeSuggestion()/createRuleFromTx() gebraucht.
@@ -1198,7 +1202,7 @@ export default {
 					: { name: 'accounts', query }
 			}
 			if (this.activeTab === 'reports') {
-				const names = { costcenters: 'reports-costcenters', spheres: 'reports-spheres', reserves: 'reports-reserves', budget: 'reports-budget', structure: 'reports-structure', audit: 'reports-audit' }
+				const names = { costcenters: 'reports-costcenters', allocations: 'reports-allocations', spheres: 'reports-spheres', reserves: 'reports-reserves', budget: 'reports-budget', structure: 'reports-structure', audit: 'reports-audit' }
 				if (this.reportView === 'costcenters' && this.selectedCCCode !== false) { query.cc = this.selectedCCCode }
 				if (this.reportView === 'spheres' && this.selectedSphereCode !== false) { query.sphere = this.selectedSphereCode }
 				if (this.reportView === 'budget' && this.snapshotView.open && this.snapshotView.data) { query.snapshot = this.snapshotView.data.id }
@@ -1765,6 +1769,11 @@ export default {
 				this.demoActive = !!data.demo_active
 				this.membershipActive = !!data.membership_active
 				this.invoicesActive = !!data.invoice_module_active
+				// Kostenstellen an der Buchungszeile (Issue #7): standardmaessig aus;
+				// ausgeschaltet gibt es den Bericht nicht, ein Deep-Link dorthin
+				// faellt auf die Auswertung zurueck.
+				this.setBookingCostCentersEnabled(!!data.cost_centers_enabled)
+				if (!data.cost_centers_enabled && this.reportView === 'allocations') { this.reportView = 'summary' }
 			} catch { /* ignorieren */ }
 		},
 
