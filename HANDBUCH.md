@@ -1247,6 +1247,82 @@ immer alle Einnahmen und Ausgaben und stimmt mit dem Finanzplan überein.
 im Querformat), **CSV** liefert dieselben Zeilen mit einer Spalte „Ebene" zum
 Gliedern in der Tabellenkalkulation.
 
+### 7.5 Gliederungsbericht visuell: Plan gegen Ist
+
+Tab **Berichte → Gliederung**, Schalter **Tabelle | Visuell** neben der
+Vorlagenauswahl. Die visuelle Ansicht zeigt dieselbe Vorlage als Kennzahlen,
+Ampeln und Balken – gedacht für die Frage „Liegen wir im Plan?“, etwa vor
+einer Vorstandssitzung. Die Tabelle, ihr Druck und ihr CSV bleiben
+unverändert. Die Wahl merkt sich der Browser, und sie steckt im Link
+(`view=visual`); wer den Link weitergibt, öffnet dieselbe Ansicht.
+
+Die Ansicht spricht von **Plan** und **Ist**.
+
+**Stand und Vergleich.** Zwei Auswahlfelder steuern alle Zahlen:
+
+- **Stand:** ein Monat der Periode (voreingestellt der zuletzt abgeschlossene)
+  oder „Aktuell (alle Buchungen)“. Bei einem Monat zählen nur Buchungen bis
+  zum Ende dieses Monats.
+- **Vergleich gegen:** „Jahresplan“ oder „Zeitanteilig“. Zeitanteilig ist der
+  Plan mal vergangene Monate geteilt durch die Monate der Periode; das
+  funktioniert auch für kurze und nicht kalendergleiche Geschäftsjahre. Es
+  unterstellt, dass sich der Plan gleichmäßig auf die Monate verteilt.
+
+**Aufbau von oben nach unten:**
+
+- **Kennzahlen** für Einnahmen, Ausgaben und Ergebnis: Ist, Plan,
+  Ausschöpfung (beim Ergebnis die Differenz), Ampel, zeitanteiliger Plan und
+  eine **Hochrechnung** bis zum Periodenende. Die Hochrechnung ist linear;
+  saisonale Posten wie Jahresbeiträge verzerren sie.
+- **Ampel der Ausgabenkonten** und **Ampel der Einnahmenkonten:** wie viele
+  Konten in welchem Status stehen. Ein Klick auf eine Stufe filtert den
+  Aufriss darunter. Die Zahlen beziehen sich auf die Konten der
+  Planungsebene, unabhängig von der Vorlage, und können daher von den Zeilen
+  einer Vorlage abweichen.
+- **Größte Überschreitungen** (Ausgaben) und **größte Lücken** (Einnahmen):
+  bis zu sieben Konten je Liste.
+- **Verlauf:** Diagramm mit dem kumulierten Ist je Monat für Einnahmen und
+  Ausgaben, der Plan-Linie und der gestrichelten Hochrechnung.
+- **Aufriss nach Vorlage:** jede Zeile der Vorlage mit Ampel und Balken;
+  Kontoäste lassen sich ein- und ausklappen. Ein Klick auf ein Konto öffnet
+  die Buchungsliste der Periode, gefiltert auf dieses Konto. Die Buchungsliste
+  hat keinen Datumsfilter: Mit einem Monat als Stand zeigt sie daher auch
+  spätere Buchungen des Kontos.
+
+Buchungen, die direkt auf einem Oberkonto mit Unterkonten stehen, gehen in
+die Kennzahlen und den Aufriss ein, nicht aber in die Ampelzahlen und die
+Abweichungslisten.
+
+**Die Ampel.** Jeder Status erscheint mit Symbol und Text, nie nur als Farbe.
+Mit den Standardschwellen gilt, bezogen auf den Vergleichswert (Plan):
+
+| Art | Grün | Orange | Rot |
+|---|---|---|---|
+| Ausgaben | unter 80 % – „im Rahmen“ | 80–120 % – „beobachten“ | über 120 % – „überschritten“ |
+| Einnahmen | ab 100 % – „im Plan“ | 80–100 % – „beobachten“ | unter 80 % – „unter Plan“ |
+| Ergebnis | mindestens Plan – „im Plan“ | bis 20 % darunter – „leicht unter Plan“ | mehr – „deutlich unter Plan“ |
+
+„Ungeplant“ heißt: Ist ohne Plan; die Zeile ist schraffiert bzw. gestrichelt,
+bei Einnahmen zählt sie als gut. Ein Unterkonto, dessen Plan auf dem Oberkonto
+steht, trägt statt dessen „im Oberkonto geplant“.
+
+**Kein Plan.** Ist für die Periode kein Plan erfasst, weist ein Hinweis auf
+den Finanzplan hin, in dem die Planwerte stehen.
+
+**Schwellen anpassen.** Zahnrad → Einstellungen, Abschnitt **Ampel im
+Gliederungsbericht** (nur Rolle Verwalter): fünf Schwellen, vereinsweit
+dieselben für alle. Zulässig sind ganze Zahlen von 0 bis 999; bei Orange muss
+der Wert vor dem Rot-Wert liegen. **Standardwerte** stellt die Vorgaben wieder
+her.
+
+**Drucken / PDF** öffnet in der visuellen Ansicht eine druckfertige Seite für
+den gewählten Stand und Vergleich: Kennzahlen, Ampelzahlen, Abweichungen,
+Verlauf und Aufriss mit Balken. Sie ist auch in Schwarzweiß lesbar. Ein CSV
+der visuellen Ansicht gibt es nicht; das CSV der Tabelle bleibt.
+
+Am Handy stapeln sich die Kacheln, und die Zeilen des Aufrisses brechen auf
+zwei Zeilen um.
+
 ---
 
 ## 8. Geschäftsjahr und Festschreibung

@@ -30,6 +30,21 @@ verwenden, z. B. `**Neu:**`.
   gesperrt. Die Umstellung weg vom Euro ist gesperrt, solange Mandate gelten,
   ein freigegebener Sammeleinzug auf die Einreichung wartet oder Zuweisungen
   per Lastschrift laufen.
+- **Gliederungsbericht visuell:** Neben der Vorlage steht der Schalter
+  „Tabelle | Visuell“. Die Ansicht zeigt dieselbe Vorlage als Kennzahlen,
+  Ampeln und Balken: Plan und Ist für Einnahmen, Ausgaben und Ergebnis mit
+  zeitanteiligem Plan und linearer Hochrechnung, die Ampel der Konten,
+  die größten Überschreitungen und Lücken, einen **Verlauf** (kumuliertes Ist
+  je Monat mit Plan-Linie) und den „Aufriss nach Vorlage“. „Stand“ (ein Monat
+  oder alle Buchungen) und „Vergleich gegen“ (Jahresplan oder zeitanteilig)
+  sind wählbar; die Wahl bleibt im Browser erhalten und steckt im Link
+  (`view=visual`). Die Ampel-Schwellen stellen Verwalter unter
+  *Einstellungen → Ampel im Gliederungsbericht* vereinsweit ein.
+  „Drucken / PDF“ öffnet in der visuellen Ansicht eine druckfertige Seite,
+  auch in Schwarzweiß lesbar. Ein Klick auf ein Konto im Aufriss springt in die
+  Buchungsliste, gefiltert auf dieses Konto; der Kontofilter der Liste steht
+  jetzt im Link (`account=`). Tabelle, Druck und CSV der Tabelle bleiben
+  unverändert.
 
 ## [0.52.0] – 2026-11-09
 

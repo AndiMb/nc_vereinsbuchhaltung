@@ -28,6 +28,21 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   blocked. Switching away from the euro is blocked while mandates are in
   force, a released collection is waiting to be submitted or assignments are
   still paid by direct debit.
+- **Structured report, visual view:** next to the template there is a
+  "Table | Visual" switch. The view shows the same template as key figures,
+  traffic lights and bars: budget and actual for income, expenses and result
+  with time-proportional budget and linear forecast, the status of the
+  accounts, the largest overruns and shortfalls, a **trend** chart
+  (cumulative actual per month with a budget line) and the "Breakdown by
+  template". "As of" (a month or all entries) and "Compare against" (full plan
+  or time-proportional) are selectable; the choice is remembered in the
+  browser and is part of the link (`view=visual`). Administrators set the
+  status thresholds club-wide under *Settings → Status in the structured
+  report*. In the visual view "Print / PDF" opens a print-ready page that is
+  also readable in black and white. Clicking an account in the breakdown jumps
+  to the bookings list filtered to that account; the list's account filter is
+  now part of the link (`account=`). The table, its print and its CSV stay
+  unchanged.
 
 ## [0.52.0] – 2026-11-09
 
