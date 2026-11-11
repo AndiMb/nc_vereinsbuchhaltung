@@ -278,13 +278,12 @@ export function isEmptyLine(line) {
 
 /**
  * Positionen für den Server; leere Zeilen entfallen. Die Steuer geht nur bei
- * Regelbesteuerung mit, die Kostenstelle (Issue #332) nur bei eingeschaltetem
- * Kostenstellen-Modul: fehlt der Schlüssel, lässt der Server die gespeicherte
- * Kostenstelle der Zeile stehen – ein mitgeschicktes null würde sie löschen.
+ * Regelbesteuerung mit, die Kostenstelle (Issue #332) nur, wenn
+ * {@link sendsCostCenters} es sagt.
  *
  * @param {Array} lines Editor-Zeilen
  * @param {boolean} regular Regelbesteuerung
- * @param {boolean} costCenters Kostenstellen-Modul eingeschaltet
+ * @param {boolean} costCenters Kostenstellen mitschicken, siehe sendsCostCenters()
  * @return {Array}
  */
 export function linesToPayload(lines, regular = false, costCenters = false) {
@@ -299,6 +298,24 @@ export function linesToPayload(lines, regular = false, costCenters = false) {
 		...(regular ? { taxCategory: TAX_KEYS[l.taxKey || 'S1900'].category, taxRateBp: TAX_KEYS[l.taxKey || 'S1900'].rateBp } : {}),
 		...(costCenters ? { bookingCostCenterId: l.bookingCostCenterId ?? null } : {}),
 	}))
+}
+
+/**
+ * Ob der Editor die Kostenstellen der Positionen mitschickt (Issue #332).
+ *
+ * Bei eingeschaltetem Modul immer. Bei ausgeschaltetem nur, wenn eine Zeile
+ * eine trägt: der Server ersetzt beim Speichern alle Positionen, und ohne
+ * die Angabe könnte er die gespeicherten Kostenstellen nur nach der Position
+ * zuordnen – nach dem Löschen oder Umsortieren einer Zeile also der
+ * falschen. Für Vereine, die die Funktion nie benutzt haben, bleibt der
+ * Request damit, wie er war.
+ *
+ * @param {Array} lines Editor-Zeilen
+ * @param {boolean} enabled Kostenstellen-Modul eingeschaltet
+ * @return {boolean}
+ */
+export function sendsCostCenters(lines, enabled) {
+	return !!enabled || (lines || []).some((l) => !!l.bookingCostCenterId)
 }
 
 /** Summen der Editor-Zeilen; unlesbare Zeilen zählen mit 0 und melden `invalid`. */

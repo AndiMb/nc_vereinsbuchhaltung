@@ -1115,7 +1115,9 @@ für sich anteilig verteilt; über mehrere Teilzahlungen kann die Summe je
 Kostenstelle deshalb um einen Cent je Zahlung vom Betrag der Position
 abweichen. Kopie, Storno und wiederkehrende Rechnungen übernehmen die
 Kostenstellen. Im Sammelimport meint die Spalte *Kostenstelle* bei
-eingeschalteter Funktion diese Kostenstelle (Kürzel oder Name).
+eingeschalteter Funktion diese Kostenstelle (Kürzel oder Name); eine Tabelle,
+die dort noch Auswertungsgruppen nennt, meldet die Zeile dann als Fehler.
+Eine Rabattposition mindert den Anteil ihrer Kostenstelle.
 
 Buchungen aus Auslagen und dem SEPA-Einzug entstehen ohne Kostenstelle.
 Sie lässt sich an der Buchung nachtragen.

@@ -137,6 +137,14 @@ class InvoicePlanServiceTest extends TestCase {
 		$this->assertSame(1, $plan->getRunCount());
 	}
 
+	/** Issue #332: eine im Plan gespeicherte, inzwischen gelöschte Kostenstelle lässt den Lauf nicht scheitern. */
+	public function testLaufLegtDenEntwurfNachsichtigGegenueberKostenstellenAn(): void {
+		$s = $this->service();
+		$this->invoices->expects($this->once())->method('createDraft')->with($this->anything(), true)->willReturn($this->draft());
+
+		$s->runPlan($this->plan(['start' => '2026-06-01', 'next' => '2026-06-01']), '2026-06-01');
+	}
+
 	public function testLeistungsdatumGleichRechnungsdatumWennSoGewaehlt(): void {
 		$s = $this->service();
 		$captured = null;

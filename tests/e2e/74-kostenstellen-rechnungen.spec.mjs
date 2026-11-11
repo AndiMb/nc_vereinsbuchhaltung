@@ -137,9 +137,10 @@ test.describe('Kostenstellen an Rechnungen', () => {
 		expect(byCostCenter).toEqual({ [ctx.sen.id]: 60000 })
 	})
 
-	test('Editor: Feld je Position; ausgeschaltet schickt er es nicht und die Kostenstelle bleibt', async ({ page, request }) => {
+	test('Editor: Feld je Position; ausgeschaltet bleibt jede Kostenstelle an ihrer Position', async ({ page, request }) => {
 		const ctx = await setup(request)
 		const draft = await draftWithTwoCostCenters(request, ctx)
+		const stored = async () => (await api.getJson(request, `/invoices/${draft.id}`)).lines.map((l) => l.bookingCostCenterId)
 
 		await openApp(page, USERS.verwalter)
 		await page.goto(`${BASE_URL}/apps/vereinsbuchhaltung/invoices/${draft.id}`)
@@ -148,28 +149,48 @@ test.describe('Kostenstellen an Rechnungen', () => {
 		await expect(selects).toHaveCount(2)
 		await expect(selects.first()).toHaveValue(String(ctx.sen.id))
 
-		// Erste Position auf AJU umstellen und speichern.
+		// Beide Positionen tauschen ihre Kostenstelle; speichern.
 		const savedOn = page.waitForRequest((r) => r.method() === 'PUT' && r.url().includes(`/api/invoices/${draft.id}`))
 		await selects.first().selectOption(String(ctx.aju.id))
+		await selects.nth(1).selectOption(String(ctx.sen.id))
 		await page.getByRole('button', { name: 'Entwurf speichern', exact: true }).click()
-		expect((await savedOn).postDataJSON().lines.map((l) => l.bookingCostCenterId)).toEqual([ctx.aju.id, ctx.aju.id])
-		await expect.poll(async () => (await api.getJson(request, `/invoices/${draft.id}`)).lines.map((l) => l.bookingCostCenterId)).toEqual([ctx.aju.id, ctx.aju.id])
+		expect((await savedOn).postDataJSON().lines.map((l) => l.bookingCostCenterId)).toEqual([ctx.aju.id, ctx.sen.id])
+		await expect.poll(stored).toEqual([ctx.aju.id, ctx.sen.id])
 
-		// Ausgeschaltet: kein Feld, und das Speichern einer Änderung lässt die Kostenstellen stehen.
+		// Ausgeschaltet: kein Feld. Wird die erste Position gelöscht, behält die
+		// zweite ihre eigene Kostenstelle - der Editor schickt die geladenen Werte
+		// mit, statt den Server nach der Position raten zu lassen.
 		await setModule(request, false)
 		await page.goto(`${BASE_URL}/apps/vereinsbuchhaltung/invoices/${draft.id}`)
 		await page.getByRole('button', { name: 'Entwurf bearbeiten', exact: true }).click()
-		const name = page.getByLabel('Bezeichnung', { exact: true }).first()
-		await expect(name).toHaveValue('Startgeld Senioren')
+		await expect(page.getByLabel('Bezeichnung', { exact: true }).first()).toHaveValue('Startgeld Senioren')
 		await expect(page.locator('.vbh-inv-l2 label', { hasText: 'Kostenstelle' })).toHaveCount(0)
 		const savedOff = page.waitForRequest((r) => r.method() === 'PUT' && r.url().includes(`/api/invoices/${draft.id}`))
-		await name.fill('Startgeld Senioren 2031')
+		await page.getByRole('button', { name: 'Position entfernen' }).first().click()
 		await page.getByRole('button', { name: 'Entwurf speichern', exact: true }).click()
-		for (const line of (await savedOff).postDataJSON().lines) {
+		expect((await savedOff).postDataJSON().lines.map((l) => l.bookingCostCenterId)).toEqual([ctx.sen.id])
+		await expect.poll(stored).toEqual([ctx.sen.id])
+	})
+
+	test('ausgeschaltet und nie benutzt: der Editor schickt das Feld nicht', async ({ page, request }) => {
+		const ctx = await setup(request)
+		const draft = await (await api.raw(request, 'POST', '/invoices', {
+			expectOk: true,
+			data: { debtorId: ctx.debtor.id, issueDate: TODAY, deliveryDate: TODAY, lines: [{ name: 'Hallenmiete', quantity: 1, unitCode: 'LS', unitPriceCents: 5000, accountId: ctx.income.id }] },
+		})).json()
+		await setModule(request, false)
+
+		await openApp(page, USERS.verwalter)
+		await page.goto(`${BASE_URL}/apps/vereinsbuchhaltung/invoices/${draft.id}`)
+		await page.getByRole('button', { name: 'Entwurf bearbeiten', exact: true }).click()
+		const name = page.getByLabel('Bezeichnung', { exact: true }).first()
+		await expect(name).toHaveValue('Hallenmiete')
+		const saved = page.waitForRequest((r) => r.method() === 'PUT' && r.url().includes(`/api/invoices/${draft.id}`))
+		await name.fill('Hallenmiete 2031')
+		await page.getByRole('button', { name: 'Entwurf speichern', exact: true }).click()
+		for (const line of (await saved).postDataJSON().lines) {
 			expect(line).not.toHaveProperty('bookingCostCenterId')
 		}
-		await expect.poll(async () => (await api.getJson(request, `/invoices/${draft.id}`)).lines[0].name).toBe('Startgeld Senioren 2031')
-		expect((await api.getJson(request, `/invoices/${draft.id}`)).lines.map((l) => l.bookingCostCenterId)).toEqual([ctx.aju.id, ctx.aju.id])
 	})
 
 	test('ausgeschaltet: die Zahlung wird ohne Kostenstelle gebucht; Kopie übernimmt die Kostenstellen', async ({ request }) => {

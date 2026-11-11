@@ -4,8 +4,16 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Tests\Unit;
 
+use OCA\Vereinsbuchhaltung\Db\Invoice;
+use OCA\Vereinsbuchhaltung\Db\InvoiceLine;
+use OCA\Vereinsbuchhaltung\Db\InvoiceLineMapper;
+use OCA\Vereinsbuchhaltung\Db\InvoiceMapper;
+use OCA\Vereinsbuchhaltung\Db\InvoicePaymentMapper;
+use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
+use OCA\Vereinsbuchhaltung\Service\CostCenter\CostCenterDefaults;
 use OCA\Vereinsbuchhaltung\Service\Invoice\LineCostCenterRule;
 use OCA\Vereinsbuchhaltung\Service\InvoicePaymentLedger;
+use OCA\Vereinsbuchhaltung\Service\InvoiceSettings;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -132,7 +140,75 @@ class InvoiceCostCenterSharesTest extends TestCase {
 		$this->assertSame([self::ERLOES => [['costCenterId' => self::SEN, 'amountCents' => 10000]]], $shares);
 	}
 
+	/** Eine Rabattzeile mindert den Anteil ihrer Kostenstelle – sonst bekäme sie Erlös, den es nicht gibt. */
+	public function testNegativeZeileMindertDenAnteilIhrerKostenstelle(): void {
+		$shares = InvoicePaymentLedger::sharesByCostCenter(
+			[$this->line(self::ERLOES, 10000, null), $this->line(self::ERLOES, 5000, self::SEN), $this->line(self::ERLOES, -3000, self::SEN)],
+			[self::ERLOES => 12000],
+			self::USABLE,
+		);
+		$this->assertSame([self::ERLOES => [['costCenterId' => self::SEN, 'amountCents' => 2000]]], $shares);
+	}
+
+	/** Hebt der Rabatt die Kostenstelle ganz auf, bekommt sie nichts – und nichts wird negativ. */
+	public function testKostenstelleMitNegativemSaldoBekommtNichts(): void {
+		$shares = InvoicePaymentLedger::sharesByCostCenter(
+			[$this->line(self::ERLOES, 10000, self::AJU), $this->line(self::ERLOES, 2000, self::SEN), $this->line(self::ERLOES, -3000, self::SEN)],
+			[self::ERLOES => 9000],
+			self::USABLE,
+		);
+		$this->assertSame([self::ERLOES => [['costCenterId' => self::AJU, 'amountCents' => 9000]]], $shares);
+	}
+
+	// ---- Ledger: nur Konten, die eine Kostenstelle tragen ----
+
+	/**
+	 * Wurde das Erlöskonto nach dem Schreiben der Rechnung zu einem Konto, das
+	 * keine Kostenstelle trägt, lehnte der Schreiber die Verteilung ab – die
+	 * Zahlung scheiterte. Solche Konten bleiben deshalb ohne.
+	 */
+	public function testKontoDasKeineKostenstelleTraegtBleibtOhne(): void {
+		$lines = $this->createMock(InvoiceLineMapper::class);
+		$lines->method('findByInvoice')->willReturn([$this->entity(self::ERLOES, 6000, self::SEN), $this->entity(self::ERLOES2, 4000, self::AJU)]);
+		$defaults = $this->createMock(CostCenterDefaults::class);
+		$defaults->method('usableIds')->willReturn(self::USABLE);
+		$defaults->method('carries')->willReturnCallback(static fn (string $userId, int $accountId): bool => $accountId === self::ERLOES);
+		$ledger = new InvoicePaymentLedger(
+			$this->createMock(InvoicePaymentMapper::class),
+			$this->createMock(InvoiceMapper::class),
+			$this->createMock(OpenItemMapper::class),
+			$lines,
+			$this->createMock(InvoiceSettings::class),
+			null,
+			$defaults,
+		);
+		$invoice = new Invoice();
+		$invoice->setId(1);
+
+		$shares = $ledger->costCenterShares($invoice, [self::ERLOES => 6000, self::ERLOES2 => 4000]);
+
+		$this->assertSame([self::ERLOES => [['costCenterId' => self::SEN, 'amountCents' => 6000]]], $shares);
+	}
+
+	private function entity(int $accountId, int $net, ?int $costCenterId): InvoiceLine {
+		$line = new InvoiceLine();
+		$line->setAccountId($accountId);
+		$line->setLineNetCents($net);
+		$line->setBookingCcId($costCenterId);
+		return $line;
+	}
+
 	// ---- Rechnungszeile: welche Kostenstelle wird gespeichert? ----
+
+	/**
+	 * Wiederkehrende Rechnungen tragen ihre Positionen als Kopie im Plan. Ist
+	 * die Kostenstelle inzwischen gelöscht, darf der Lauf daran nicht
+	 * scheitern: die Position entsteht ohne Kostenstelle.
+	 */
+	public function testNachsichtigWirdEineUnbekannteKostenstelleZuKeiner(): void {
+		$this->assertSame([null, null], LineCostCenterRule::resolve(['bookingCostCenterId' => 77], null, self::KNOWN, true));
+		$this->assertSame([self::SEN, null], LineCostCenterRule::resolve(['bookingCostCenterId' => self::SEN], null, self::KNOWN, true));
+	}
 
 	private const KNOWN = [self::SEN, self::AJU, self::ALT];
 

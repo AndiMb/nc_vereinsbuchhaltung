@@ -26,6 +26,7 @@ import {
 	planLinesFromInvoice,
 	quantityToE4,
 	roundDiv,
+	sendsCostCenters,
 	suggestTaxKey,
 	taxKeyOf,
 	totals,
@@ -345,6 +346,22 @@ describe('Kostenstelle der Position (Issue #332)', () => {
 	it('linesToPayload schickt null fuer "keine" bei eingeschaltetem Modul', () => {
 		const [row] = linesToPayload([{ ...lineFromServer(stored), bookingCostCenterId: null }], false, true)
 		expect(row).toHaveProperty('bookingCostCenterId', null)
+	})
+
+	it('sendsCostCenters: eingeschaltet immer, ausgeschaltet nur wenn eine Zeile eine traegt', () => {
+		// Ausgeschaltet und nie benutzt: der Request bleibt, wie er vor der Funktion war.
+		expect(sendsCostCenters([emptyLine()], false)).toBe(false)
+		expect(sendsCostCenters([emptyLine()], true)).toBe(true)
+		// Ausgeschaltet, aber die Rechnung traegt Kostenstellen: mitschicken, sonst
+		// ordnete der Server sie nach dem Loeschen einer Zeile der falschen Position zu.
+		expect(sendsCostCenters([emptyLine(), lineFromServer(stored)], false)).toBe(true)
+	})
+
+	it('nach dem Loeschen einer Zeile behaelt jede uebrige ihre eigene Kostenstelle', () => {
+		const lines = [lineFromServer(stored), lineFromServer({ ...stored, name: 'Anreise', bookingCostCenterId: 5 }), lineFromServer({ ...stored, name: 'Sonstiges', bookingCostCenterId: null })]
+		lines.shift()
+		const payload = linesToPayload(lines, false, sendsCostCenters(lines, false))
+		expect(payload.map((l) => l.bookingCostCenterId)).toEqual([5, null])
 	})
 
 	it('lineFromPlan uebernimmt die Kostenstelle', () => {

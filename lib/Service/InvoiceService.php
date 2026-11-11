@@ -228,10 +228,11 @@ class InvoiceService {
 
 	/**
 	 * @param array<string, mixed> $data Kopffelder und `lines`
+	 * @param bool $lenientCostCenters unbekannte Kostenstelle wird zu „keine“ statt zum Fehler (Plan-Lauf, Issue #332)
 	 * @throws \InvalidArgumentException bei ungültigen Angaben
 	 */
-	public function createDraft(array $data): Invoice {
-		return $this->transaction->run(function () use ($data): Invoice {
+	public function createDraft(array $data, bool $lenientCostCenters = false): Invoice {
+		return $this->transaction->run(function () use ($data, $lenientCostCenters): Invoice {
 			$now = $this->now();
 			$invoice = new Invoice();
 			$invoice->setKind(Invoice::KIND_INVOICE);
@@ -255,7 +256,7 @@ class InvoiceService {
 			$invoice->setTaxCents(0);
 			$invoice->setGrossCents(0);
 			$invoice = $this->invoices->insert($invoice);
-			$this->saveLines($invoice, (array)($data['lines'] ?? []));
+			$this->saveLines($invoice, (array)($data['lines'] ?? []), $lenientCostCenters);
 			$this->audit->log('Rechnungsentwurf angelegt', 'invoice', $invoice->getId());
 			return $invoice;
 		});
@@ -690,7 +691,7 @@ class InvoiceService {
 	 *
 	 * @param array<int|string, mixed> $rows
 	 */
-	private function saveLines(Invoice $invoice, array $rows): void {
+	private function saveLines(Invoice $invoice, array $rows, bool $lenientCostCenters = false): void {
 		// Die Kostenstellen der bisherigen Zeilen festhalten, bevor sie gelöscht
 		// werden: schickt der Editor das Feld nicht mit (ausgeschaltetes Modul),
 		// bleibt der Wert der Zeile an derselben Position stehen.
@@ -698,7 +699,7 @@ class InvoiceService {
 		foreach ($this->lines->findByInvoice((int)$invoice->getId()) as $old) {
 			$stored[(int)$old->getPosition()] = $old->getBookingCostCenterId();
 		}
-		$entities = $this->buildLines($invoice, $rows, $stored);
+		$entities = $this->buildLines($invoice, $rows, $stored, $lenientCostCenters);
 		$this->lines->deleteByInvoice((int)$invoice->getId());
 		foreach ($entities as $line) {
 			$this->lines->insert($line);
@@ -729,7 +730,7 @@ class InvoiceService {
 	 * @param array<int, int|null> $storedCostCenters Position => Kostenstelle der bisherigen Zeile
 	 * @return list<InvoiceLine>
 	 */
-	private function buildLines(Invoice $invoice, array $rows, array $storedCostCenters = []): array {
+	private function buildLines(Invoice $invoice, array $rows, array $storedCostCenters = [], bool $lenientCostCenters = false): array {
 		$knownCostCenters = $this->costCenterDefaults?->knownIds(Application::BOOK) ?? [];
 		$lines = [];
 		$position = 0;
@@ -784,7 +785,7 @@ class InvoiceService {
 			}
 			$line->setAccountId($accountId);
 			$line->setCostCenterId(isset($row['costCenterId']) && $row['costCenterId'] !== '' ? (int)$row['costCenterId'] : null);
-			[$bookingCostCenterId, $costCenterError] = LineCostCenterRule::resolve($row, $storedCostCenters[$position] ?? null, $knownCostCenters);
+			[$bookingCostCenterId, $costCenterError] = LineCostCenterRule::resolve($row, $storedCostCenters[$position] ?? null, $knownCostCenters, $lenientCostCenters);
 			if ($costCenterError !== null) {
 				throw new \InvalidArgumentException($this->msg('Position %d: Die Kostenstelle gibt es nicht.', [$position]));
 			}
