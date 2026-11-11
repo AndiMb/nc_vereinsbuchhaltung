@@ -45,6 +45,29 @@ final class VisualReportBuilder {
 	}
 
 	/**
+	 * Verlauf des kumulierten Ist über die Monate: Monate ohne Buchung
+	 * übernehmen den Wert des Vormonats.
+	 *
+	 * @param list<string> $months `YYYY-MM`, aufsteigend
+	 * @param array<string, int> $incomeByMonth Einnahmen je Monat (nicht kumuliert)
+	 * @param array<string, int> $expenseByMonth Ausgaben je Monat (nicht kumuliert)
+	 * @return array{months: list<string>, income: list<int>, expense: list<int>}
+	 */
+	public static function series(array $months, array $incomeByMonth, array $expenseByMonth): array {
+		$income = [];
+		$expense = [];
+		$incomeSum = 0;
+		$expenseSum = 0;
+		foreach ($months as $month) {
+			$incomeSum += $incomeByMonth[$month] ?? 0;
+			$expenseSum += $expenseByMonth[$month] ?? 0;
+			$income[] = $incomeSum;
+			$expense[] = $expenseSum;
+		}
+		return ['months' => array_values($months), 'income' => $income, 'expense' => $expense];
+	}
+
+	/**
 	 * @param list<array<string, mixed>> $rows
 	 * @param array<string, array{int, int}> $factors
 	 * @param array<string, int> $thresholds
@@ -183,6 +206,10 @@ final class VisualReportBuilder {
 			foreach ($accounts as $account) {
 				$nature = $account['type'];
 				if ($nature !== 'income' && $nature !== 'expense') {
+					continue;
+				}
+				// Ein negativer Plan hat keinen Status (none): keine Abweichung.
+				if ($account['plan'] < 0) {
 					continue;
 				}
 				$reference = $account['plan'] * $e / $t;

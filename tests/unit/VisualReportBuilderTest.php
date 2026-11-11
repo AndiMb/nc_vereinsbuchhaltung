@@ -113,6 +113,33 @@ class VisualReportBuilderTest extends TestCase {
 		$this->assertSame('unplanned', $unplanned[0]['level']);
 	}
 
+	public function testNegativePlanIsNotListedAsDeviation(): void {
+		$dev = self::build([
+			self::account(1, 'expense', -5000, 20000),
+			self::account(2, 'income', -5000, 0),
+			self::account(3, 'expense', 10000, 20000),
+		])['deviations'];
+
+		$this->assertSame([3], array_column($dev['year']['expense'], 'accountId'));
+		$this->assertSame([], $dev['year']['income']);
+	}
+
+	public function testSeriesIsCumulativeAndCarriesEmptyMonths(): void {
+		$series = VisualReportBuilder::series(
+			['2026-01', '2026-02', '2026-03'],
+			['2026-01' => 100, '2026-03' => 50],
+			['2026-02' => 30],
+		);
+
+		$this->assertSame(['2026-01', '2026-02', '2026-03'], $series['months']);
+		$this->assertSame([100, 100, 150], $series['income']);
+		$this->assertSame([0, 30, 30], $series['expense']);
+	}
+
+	public function testSeriesWithoutMonthsIsEmpty(): void {
+		$this->assertSame(['months' => [], 'income' => [], 'expense' => []], VisualReportBuilder::series([], ['2026-01' => 5], []));
+	}
+
 	public function testIncomeShortfall(): void {
 		$dev = self::build([self::account(1, 'income', 100000, 40000)])['deviations'];
 

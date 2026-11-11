@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Service\Report;
 
 use OCA\Vereinsbuchhaltung\Db\Account;
+use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
 use OCA\Vereinsbuchhaltung\Service\BudgetOverviewService;
 use OCA\Vereinsbuchhaltung\Service\BudgetTree;
 use OCA\Vereinsbuchhaltung\Service\ClubClock;
+use OCA\Vereinsbuchhaltung\Service\LedgerAggregator;
 use OCA\Vereinsbuchhaltung\Service\PeriodService;
 
 /**
@@ -26,6 +28,7 @@ class VisualReportService {
 	public function __construct(
 		private StructuredReportService $structured,
 		private PeriodService $periods,
+		private JournalLineMapper $lines,
 		private ClubClock $clock,
 	) {
 	}
@@ -55,9 +58,47 @@ class VisualReportService {
 			'distribution' => $visual['distribution'],
 			'deviations' => $visual['deviations'],
 			'rows' => $visual['rows'],
+			'series' => $this->series($userId, $period->getStartDate(), $resolved, $data['accounts']),
 			'warnings' => $report['warnings'],
 			'hasSpheres' => $report['hasSpheres'],
 		];
+	}
+
+	/**
+	 * Monatsreihe des kumulierten Ist: vom ersten Monat der Periode bis zum
+	 * Stand. Gerechnet bis zum selben Enddatum wie das Ist der Kennzahlen,
+	 * sodass der letzte Wert mit `kpis.*.actual` übereinstimmt.
+	 *
+	 * @param array{until:string, elapsed:int} $resolved
+	 * @param Account[] $accounts
+	 * @return array{months: list<string>, income: list<int>, expense: list<int>}
+	 */
+	private function series(string $userId, string $periodStart, array $resolved, array $accounts): array {
+		$first = new \DateTimeImmutable(substr($periodStart, 0, 7) . '-01');
+		$months = [];
+		for ($i = 0; $i < $resolved['elapsed']; $i++) {
+			$months[] = $first->modify('+' . $i . ' months')->format('Y-m');
+		}
+		if ($months === []) {
+			return VisualReportBuilder::series([], [], []);
+		}
+
+		$income = [];
+		$expense = [];
+		foreach ($this->lines->sumByAccountAndMonth($userId, $periodStart, $resolved['until']) as $month => $sums) {
+			foreach ($accounts as $account) {
+				if (!$account->isBudgetable()) {
+					continue;
+				}
+				$net = LedgerAggregator::net($account, $sums);
+				if ($account->getType() === 'income') {
+					$income[$month] = ($income[$month] ?? 0) + $net;
+				} else {
+					$expense[$month] = ($expense[$month] ?? 0) + $net;
+				}
+			}
+		}
+		return VisualReportBuilder::series($months, $income, $expense);
 	}
 
 	/**

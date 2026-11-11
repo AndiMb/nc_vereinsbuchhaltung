@@ -233,4 +233,40 @@ class JournalLineMapper extends QBMapper {
 		$result->closeCursor();
 		return $out;
 	}
+
+	/**
+	 * Wie {@see sumByAccount()}, aber zusätzlich nach Monat getrennt. Der Monat
+	 * (`YYYY-MM`) ist der Anfang des ISO-Datums; er wird mit der
+	 * Teilstring-Funktion des Query-Builders gebildet und ist so auf SQLite,
+	 * MySQL und PostgreSQL gleich.
+	 *
+	 * @param string $from inklusive untere Datumsgrenze
+	 * @param string $to inklusive obere Datumsgrenze
+	 * @return array<string, array<int, array{debit:int, credit:int}>> Monat => Konto-ID => Summen
+	 */
+	public function sumByAccountAndMonth(string $userId, string $from, string $to): array {
+		$qb = $this->db->getQueryBuilder();
+		$month = $qb->func()->substring('j.date', $qb->createNamedParameter(1, IQueryBuilder::PARAM_INT), $qb->createNamedParameter(7, IQueryBuilder::PARAM_INT));
+		$qb->selectAlias($month, 'month')
+			->addSelect('l.account_id')
+			->selectAlias($qb->func()->sum('l.debit_cents'), 'debit')
+			->selectAlias($qb->func()->sum('l.credit_cents'), 'credit')
+			->from($this->getTableName(), 'l')
+			->innerJoin('l', 'vbh_journal', 'j', $qb->expr()->eq('l.journal_id', 'j.id'))
+			->where($qb->expr()->eq('j.user_id', $qb->createNamedParameter($userId)))
+			->andWhere($qb->expr()->gte('j.date', $qb->createNamedParameter($from)))
+			->andWhere($qb->expr()->lte('j.date', $qb->createNamedParameter($to)))
+			->groupBy('l.account_id')
+			->addGroupBy($month);
+		$result = $qb->executeQuery();
+		$out = [];
+		while (($row = $result->fetch()) !== false) {
+			$out[(string)$row['month']][(int)$row['account_id']] = [
+				'debit' => (int)$row['debit'],
+				'credit' => (int)$row['credit'],
+			];
+		}
+		$result->closeCursor();
+		return $out;
+	}
 }

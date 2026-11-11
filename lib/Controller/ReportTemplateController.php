@@ -144,6 +144,7 @@ class ReportTemplateController extends Controller {
 			'distribution' => $report['distribution'],
 			'deviations' => $report['deviations'],
 			'rows' => $report['rows'],
+			'series' => $report['series'],
 			'warnings' => array_map(fn (array $w): array => $w + ['message' => $this->renderer->warning($w)], $report['warnings']),
 			'hasSpheres' => $report['hasSpheres'],
 		]);
