@@ -1155,6 +1155,20 @@ eigens aus („entspricht dem Ergebnis laut Kontensalden"). Ein Klick auf ein
 Konto führt zu seinen Buchungen. Über **Drucken** und **CSV** gibt es den
 Bericht druckfertig bzw. als Tabelle.
 
+**Budget je Kostenstelle:** Ist im Kopfbereich ein Geschäftsjahr gewählt,
+steht im Bericht der Knopf **Budget planen** (ab Rolle Buchhalter). Der
+Dialog nimmt je Kostenstelle einen Planwert für die Einnahmen und einen für
+die Ausgaben auf; gespeichert wird beim Verlassen des Feldes, ein leeres
+Feld heißt „kein Plan“. Der Bericht stellt dann je Kostenstelle **Plan**,
+**Ist** und **Abweichung** (Ist minus Plan) für Einnahmen, Ausgaben und
+Ergebnis nebeneinander – auch für Kostenstellen, auf die noch nichts
+gebucht wurde – und ebenso auf der Druckseite und in der CSV-Datei. Bei
+„Alle Zeiträume“ gibt es keinen Plan. Ein Plan ist keine Buchung: er lässt
+sich auch für ein abgeschlossenes Geschäftsjahr ändern und ändert keine
+Summe. Das Budget je Kostenstelle ist unabhängig vom Finanzplan je Konto
+(Kapitel 6). Werden die Geschäftsjahre später umgestellt, wandern diese
+Planwerte nicht mit und sind neu einzugeben.
+
 Der Journal-Export (CSV) bekommt bei eingeschalteter Funktion eine
 zusätzliche letzte Spalte **Kostenstellen**, z. B. `SEN 600,00 | AJU 400,00`.
 Die bisherigen Spalten bleiben an ihrer Stelle.

@@ -52,6 +52,10 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   dialog "Umsatz einer Auslage zuordnen" asks for the cost centre. Every
   contribution group can carry a default cost centre; bulk credits,
   returned debits and single incoming payments are booked with it.
+- **Budget per cost centre** (#335): planned values for income and
+  expenses can be stored per cost centre and financial year (button
+  "Budget planen" in the cost-centre report). Report, print page and CSV
+  show plan, actual and variance.
 - For existing installations nothing changes unless you switch it on: no new
   column in the journal export, no new field, no new report. If the feature
   is switched off again, the allocations stay saved.

@@ -223,6 +223,7 @@ vereinsbuchhaltung/
 | `vbh_journal_line` | debit/credit lines per posting (amount in cents) |
 | `vbh_booking_cc` | cost centres on the entry line (code, name, active) – not to be confused with `vbh_costcenters` |
 | `vbh_line_alloc` | allocation of an entry line to cost centres (line, cost centre, amount); without rows the app behaves as it does without the feature |
+| `vbh_cc_budgets` | budget per cost centre and financial year (planned income, planned expenses) – independent of the financial plan per account in `vbh_budgets` |
 | `vbh_costcenters` | reporting groups (code, name); accounts reference them via `vbh_accounts.cost_center_id`. Table and column names date from when a reporting group was called a "cost center" – they stay so existing installations keep working without a migration |
 | `vbh_budgets` | financial plan (account × year × amount in cents + note) |
 | `vbh_budget_snapshots` | frozen plan snapshots (year, label, timestamp) |

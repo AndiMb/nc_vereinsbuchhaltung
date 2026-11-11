@@ -1129,6 +1129,20 @@ end is the same as in the other reports; the report states this explicitly
 account leads to its entries. **Print** and **CSV** provide the report ready
 to print or as a table.
 
+**Budget per cost centre:** when a financial year is selected in the
+header, the report offers the **Budget planen** button (from the
+bookkeeper role). The dialog takes one planned value for income and one
+for expenses per cost centre; values are saved when you leave the field,
+and an empty field means "no plan". The report then shows **Plan**,
+**Ist** (actual) and **Abweichung** (variance, actual minus plan) for
+income, expenses and result per cost centre – also for cost centres with
+no entries yet – and likewise on the print page and in the CSV file. With
+"All periods" there is no plan. A plan is not an entry: it can be changed
+for a closed financial year too and changes no total. The budget per cost
+centre is independent of the financial plan per account (chapter 6). If
+the financial years are restructured later, these planned values do not
+move along and have to be entered again.
+
 With the feature switched on, the journal export (CSV) gets an additional
 last column **Kostenstellen**, e.g. `SEN 600,00 | AJU 400,00`. The existing
 columns keep their position.
