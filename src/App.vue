@@ -3115,6 +3115,7 @@ export default {
 				isBank: !!acc.isBank,
 				// Altbestand ohne gesetztes Feld zaehlt mit (Spaltenvorgabe).
 				countInTotal: acc.countInTotal !== false,
+				costCenterRequired: !!acc.costCenterRequired,
 				parentId: acc.parentId || null,
 				sphere: acc.sphere || '',
 				reserveKind: acc.reserveKind || '',
@@ -3145,6 +3146,9 @@ export default {
 						category: f.category || '',
 						isBank: f.isBank,
 						countInTotal: !!f.countInTotal,
+						// Nur bei eingeschaltetem Modul mitschicken: der Dialog zeigt den
+						// Schalter sonst nicht, und null hiesse fuer den Server "unveraendert".
+						...(this.costCentersEnabled ? { costCenterRequired: !!f.costCenterRequired } : {}),
 						parentId: f.parentId || 0,
 						sphere: f.sphere || '',
 						reserveKind: f.reserveKind || '',
@@ -3159,9 +3163,11 @@ export default {
 				} else {
 					// active bleibt hier aussen vor: ein neu angelegtes Konto ist
 					// immer aktiv, der Schalter erscheint erst beim Bearbeiten.
-					// eslint-disable-next-line no-unused-vars -- active wird bewusst nur herausdestrukturiert, um es aus rest auszuschliessen
-					const { active, ...rest } = f
-					await api.createAccount({ ...rest, parentId: f.parentId || null, sphere: f.sphere || null, reserveKind: f.reserveKind || null, iban: f.iban || null, costCenterId: f.costCenterId || null })
+					// costCenterRequired geht nur bei eingeschaltetem Kostenstellen-Modul
+					// mit (unten), sonst bleibt der Request wie vor der Funktion.
+					// eslint-disable-next-line no-unused-vars -- active und costCenterRequired werden bewusst nur herausdestrukturiert, um sie aus rest auszuschliessen
+					const { active, costCenterRequired, ...rest } = f
+					await api.createAccount({ ...rest, parentId: f.parentId || null, sphere: f.sphere || null, reserveKind: f.reserveKind || null, iban: f.iban || null, costCenterId: f.costCenterId || null, ...(this.costCentersEnabled ? { costCenterRequired: !!costCenterRequired } : {}) })
 				}
 				this.showAccount = false
 				this.accountEditId = null

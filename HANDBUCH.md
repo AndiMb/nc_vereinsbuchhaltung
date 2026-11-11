@@ -1109,6 +1109,17 @@ Eine Kostenstelle, auf die noch eine Regel zeigt, lässt sich nicht löschen.
 Buchungen aus Rechnungen, Auslagen und dem SEPA-Einzug entstehen ohne
 Kostenstelle. Sie lässt sich an der Buchung nachtragen.
 
+**Kostenstelle verpflichtend:** Soll auf einem Konto möglichst jeder Betrag
+eine Kostenstelle bekommen, setzen Sie im Kontodialog (Tab Konten → Konto
+bearbeiten) den Schalter **Kostenstelle verpflichtend**. Er steht nur bei
+Einnahmen- und Ausgabenkonten. Das Kennzeichen ist eine Erinnerung, keine
+Sperre: Buchungs- und Aufteilen-Dialog zeigen an der Zeile den noch nicht
+zugeordneten Betrag, speichern lässt sich trotzdem. Der Bericht führt oben
+den Block **Pflichtkonten mit offenem Betrag** – dort stehen auch Beträge
+aus automatisch erzeugten Buchungen, an die im Dialog niemand erinnert
+wurde. Ein Klick auf das Konto führt zu den Buchungen. Wird ein solches
+Konto später zum Bestands- oder Geldkonto, fällt das Kennzeichen weg.
+
 **Auswerten:** Tab **Berichte → Kostenstellen** zeigt je Kostenstelle die
 Einnahmen und Ausgaben nach Konten und das Ergebnis, darunter den Block
 **Ohne Kostenstelle** mit allem, was nicht zugeordnet ist. Die Gesamtsumme

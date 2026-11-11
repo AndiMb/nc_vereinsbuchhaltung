@@ -10,6 +10,7 @@ import {
 	followAmount,
 	isSingleFull,
 	remainderEuro,
+	requiredRemainder,
 	syncAllocations,
 	toPayload,
 	withAllocations,
@@ -317,5 +318,41 @@ describe('defaultAllocation', () => {
 
 	it('liefert undefined ohne Betrag', () => {
 		expect(defaultAllocation(SEN, 0, { type: 'income' }, byId)).toBeUndefined()
+	})
+})
+
+describe('requiredRemainder', () => {
+	// Kennzeichen "Kostenstelle verpflichtend" am Konto (Issue #334): eine
+	// Erinnerung mit dem noch offenen Betrag, keine Sperre.
+	const required = { type: 'expense', costCenterRequired: true }
+
+	it('nennt den ganzen Betrag bei Pflichtkonto ohne Zuordnung', () => {
+		expect(requiredRemainder(1000, [], required)).toBe(1000)
+		expect(requiredRemainder(1000, undefined, required)).toBe(1000)
+	})
+
+	it('nennt den Rest bei Teilzuordnung', () => {
+		expect(requiredRemainder(1000, [{ costCenterId: SEN, amount: 600 }], required)).toBe(400)
+	})
+
+	it('ist 0 bei voller Zuordnung', () => {
+		expect(requiredRemainder(100, [{ costCenterId: 1, amount: 33.33 }, { costCenterId: 2, amount: 33.33 }, { costCenterId: 3, amount: 33.34 }], required)).toBe(0)
+	})
+
+	it('ist 0 ohne Kennzeichen', () => {
+		expect(requiredRemainder(1000, [], { type: 'expense', costCenterRequired: false })).toBe(0)
+	})
+
+	it('ist 0 bei unbekanntem Konto', () => {
+		expect(requiredRemainder(1000, [], undefined)).toBe(0)
+	})
+
+	it('ist 0 ohne Betrag', () => {
+		expect(requiredRemainder(0, [], required)).toBe(0)
+	})
+
+	it('ist 0 bei Ueberverteilung', () => {
+		// Das meldet allocationError; eine zweite, widerspruechliche Meldung waere nur Laerm.
+		expect(requiredRemainder(1000, [{ costCenterId: SEN, amount: 1200 }], required)).toBe(0)
 	})
 })

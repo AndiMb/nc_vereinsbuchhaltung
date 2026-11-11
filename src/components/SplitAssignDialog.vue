@@ -84,6 +84,7 @@
 								:modelValue="part.allocations || []"
 								:lineAmount="Number(part.amount || 0)"
 								:label="t('Kostenstelle Zeile {n}', { n: i + 1 })"
+								:required="!!accountsById[part.accountId]?.costCenterRequired"
 								@update:modelValue="patch(i, { allocations: $event })" />
 						</div>
 					</li>

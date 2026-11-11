@@ -4546,7 +4546,13 @@
         "Das Ergebnis entspricht dem Ergebnis laut Kontensalden.": "The result matches the result according to the account balances.",
         "Das Ergebnis weicht vom Ergebnis laut Kontensalden (%s) ab.": "The result differs from the result according to the account balances (%s).",
         "Die Kostenstelle „%1$s\" ist noch als Vorgabe eingetragen (%2$s). Sie lässt sich deaktivieren, aber nicht löschen.": "Cost centre “%1$s” is still set as a default (%2$s). It can be deactivated, but not deleted.",
-        "Importregeln": "Import rules"
+        "Importregeln": "Import rules",
+        "Pflichtkonten mit offenem Betrag": "Mandatory accounts with an open amount",
+        "Für diese Konten ist eine Kostenstelle vorgesehen. Die genannten Beträge sind noch keiner Kostenstelle zugeordnet.": "A cost centre is expected for these accounts. The amounts listed are not allocated to a cost centre yet.",
+        "Kostenstelle verpflichtend": "Cost centre required",
+        "Beim Buchen auf dieses Konto erinnert die App an die Kostenstelle; der Bericht „Kostenstellen“ listet nicht zugeordnete Beträge. Speichern bleibt immer möglich.": "When posting to this account the app reminds you of the cost centre; the “Cost centres” report lists unallocated amounts. Saving always remains possible.",
+        "Für dieses Konto ist eine Kostenstelle vorgesehen; {amount} sind noch nicht zugeordnet.": "A cost centre is expected for this account; {amount} is not allocated yet.",
+        "Für diese Konten ist eine Kostenstelle vorgesehen. Die Beträge sind noch keiner Kostenstelle zugeordnet – ein Klick auf das Konto führt zu den Buchungen.": "A cost centre is expected for these accounts. The amounts are not allocated to a cost centre yet – click the account to see its entries."
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

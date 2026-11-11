@@ -64,7 +64,8 @@ class CostCenterAllocationReportService {
 	 *     unassigned: array<string, mixed>,
 	 *     total: array{incomeCents:int, expenseCents:int, resultCents:int},
 	 *     ledgerResultCents:int,
-	 *     reconciled:bool
+	 *     reconciled:bool,
+	 *     requiredOpen: list<array{accountId:int, number:string, name:string, amountCents:int, kind:string}>
 	 * }
 	 */
 	public static function compute(iterable $accounts, array $ledgerSums, array $allocSums, iterable $costCenters): array {
@@ -136,7 +137,41 @@ class CostCenterAllocationReportService {
 			'total' => $total,
 			'ledgerResultCents' => $ledger['resultCents'],
 			'reconciled' => $total['resultCents'] === $ledger['resultCents'],
+			'requiredOpen' => self::requiredOpen($relevant, $rest),
 		];
+	}
+
+	/**
+	 * Vollständigkeitsprüfung zum Kennzeichen „Kostenstelle verpflichtend“
+	 * (Issue #334): je Pflichtkonto der Betrag, der keiner Kostenstelle
+	 * zugeordnet ist. Genau die Zeilen aus „Ohne Kostenstelle“, die auf einem
+	 * solchen Konto liegen – also auch Beträge aus automatisch erzeugten
+	 * Buchungen, an die im Dialog niemand erinnert wurde.
+	 *
+	 * @param list<Account> $accounts
+	 * @param array<string, mixed> $rest der Block „Ohne Kostenstelle“
+	 * @return list<array{accountId:int, number:string, name:string, amountCents:int, kind:string}>
+	 */
+	private static function requiredOpen(array $accounts, array $rest): array {
+		$required = [];
+		foreach ($accounts as $account) {
+			if ($account->isCostCenterRequired()) {
+				$required[$account->getId()] = true;
+			}
+		}
+		if ($required === []) {
+			return [];
+		}
+		$open = [];
+		foreach (['income', 'expense'] as $kind) {
+			foreach ($rest[$kind] as $row) {
+				if (isset($required[$row['accountId']])) {
+					$open[] = $row + ['kind' => $kind];
+				}
+			}
+		}
+		usort($open, static fn (array $a, array $b): int => strnatcmp($a['number'], $b['number']));
+		return $open;
 	}
 
 	/**
