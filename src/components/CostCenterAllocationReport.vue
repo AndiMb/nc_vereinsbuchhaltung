@@ -59,7 +59,40 @@
 						{{ block.title }}
 						<span v-if="block.inactive" class="vbh-ccreport-inactive">{{ t('inaktiv') }}</span>
 					</h3>
-					<table class="vbh-table">
+					<!-- Budget der Kostenstelle (Issue #335): Plan, Ist und Abweichung -->
+					<table v-if="block.plan.length" class="vbh-table vbh-ccreport-plan">
+						<thead>
+							<tr>
+								<th />
+								<th class="num" scope="col">
+									{{ t('Plan') }}
+								</th>
+								<th class="num" scope="col">
+									{{ t('Ist') }}
+								</th>
+								<th class="num" scope="col">
+									{{ t('Abweichung') }}
+								</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr v-for="row in block.plan" :key="block.key + row.key" :class="{ 'vbh-ccreport-result': row.key === 'result' }">
+								<th scope="row">
+									{{ planLabel(row.key) }}
+								</th>
+								<td class="num">
+									{{ formatMoney(row.planCents / 100) }}
+								</td>
+								<td class="num">
+									{{ formatMoney(row.actualCents / 100) }}
+								</td>
+								<td class="num" :class="amountClass((row.key === 'expense' ? -row.diffCents : row.diffCents) / 100)">
+									{{ formatMoney(row.diffCents / 100) }}
+								</td>
+							</tr>
+						</tbody>
+					</table>
+					<table v-if="block.groups.length" class="vbh-table">
 						<tbody>
 							<template v-for="group in block.groups" :key="group.key">
 								<tr class="vbh-ccreport-grouphead">
@@ -143,6 +176,7 @@
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import NcSelect from '@nextcloud/vue/components/NcSelect'
 import api from '../api.js'
+import { planRows } from '../lib/costCenterBudget.js'
 import { amountClass, errMsg, formatMoney } from '../lib/format.js'
 import { createLatestRequest } from '../lib/latestRequest.js'
 
@@ -221,6 +255,10 @@ export default {
 		formatMoney,
 		amountClass,
 
+		planLabel(key) {
+			return { income: this.t('Einnahmen'), expense: this.t('Ausgaben'), result: this.t('Ergebnis') }[key]
+		},
+
 		centerTitle(center) {
 			return center.name ? `${center.code} – ${center.name}` : center.code
 		},
@@ -233,7 +271,7 @@ export default {
 			if (data.expense.length) {
 				groups.push({ key: key + 'e', label: this.t('Ausgaben'), rows: data.expense, sumLabel: this.t('Summe Ausgaben'), sumCents: data.expenseCents })
 			}
-			return { key, title, inactive, costCenterId, groups, resultCents: data.resultCents }
+			return { key, title, inactive, costCenterId, groups, resultCents: data.resultCents, plan: planRows(data) }
 		},
 
 		async load() {
@@ -280,6 +318,12 @@ export default {
 .vbh-ccreport-result td { border-top: 2px solid var(--color-border-dark); font-weight: 600; }
 
 .vbh-ccreport-check { margin: 8px 0 4px; }
+
+.vbh-ccreport-plan { margin-bottom: 12px; }
+
+.vbh-ccreport-plan th { text-align: start; font-weight: 600; }
+
+.vbh-ccreport-plan th.num { text-align: end; color: var(--color-text-maxcontrast); }
 
 .vbh-linkcell { padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: start; cursor: pointer; text-decoration: underline; text-decoration-color: var(--color-border-dark); }
 

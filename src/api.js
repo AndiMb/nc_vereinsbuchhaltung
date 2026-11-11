@@ -112,6 +112,9 @@ export default {
 	updateBookingCostCenter: (id, data) => axios.put(url(`/booking-cost-centers/${id}`), data),
 	deleteBookingCostCenter: (id) => axios.delete(url(`/booking-cost-centers/${id}`)),
 	costCenterAllocationReport: (period) => axios.get(url('/report/cost-center-allocations'), { params: { period: period || undefined } }),
+	// Budget je Kostenstelle (Issue #335): Planwerte eines Geschäftsjahres, Beträge beim Setzen in Euro.
+	costCenterBudgets: (period) => axios.get(url('/cost-center-budgets'), { params: { period } }),
+	setCostCenterBudget: ({ period, costCenterId, income, expense }) => axios.put(url('/cost-center-budgets'), { period, costCenterId, income, expense }),
 	sphereReport: (period) => axios.get(url('/report/spheres'), { params: { period: period || undefined } }),
 	bulkSphere: (accountIds, sphere) => axios.post(url('/accounts/sphere-bulk'), { accountIds, sphere }),
 	multiyearTrend: () => axios.get(url('/report/multiyear-trend')),
