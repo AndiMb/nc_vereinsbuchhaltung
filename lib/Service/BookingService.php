@@ -74,8 +74,7 @@ class BookingService {
 	 * Geldkontoseite bleibt dabei eine Zeile über den vollen Betrag – nur die
 	 * Gegenseite wird aufgeteilt.
 	 *
-	 * @param array<int, array{accountId:int, amountCents:int, allocations?: list<array{costCenterId:int, amountCents:int}>}> $parts
-	 *                                                                                                                         `allocations` verteilt den Teil auf Kostenstellen (Issue #7)
+	 * @param array<int, array{accountId:int, amountCents:int, allocations?: list<array{costCenterId:int, amountCents:int}>}> $parts `allocations` verteilt den Teil auf Kostenstellen (Issue #7)
 	 * @throws \InvalidArgumentException wenn die Teile nicht den Umsatz ergeben
 	 */
 	public function assignParts(BankTransaction $tx, array $parts): BankTransaction {
