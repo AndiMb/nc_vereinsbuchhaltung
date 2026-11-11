@@ -4470,5 +4470,8 @@ OC.L10N.register("vereinsbuchhaltung", {
 	"Vergleich gegen: Jahresplan": "Vergeleken met: volledige begroting",
 	"Vergleich gegen: zeitanteiligen Plan (%1$s von %2$s Monaten)": "Vergeleken met: tijdsevenredige begroting (%1$s van %2$s maanden)",
 	"Ausgabenkonten": "Uitgavenrekeningen",
-	"Einnahmenkonten": "Inkomstenrekeningen"
+	"Einnahmenkonten": "Inkomstenrekeningen",
+	"Buchungen von {konto} zeigen": "Boekingen van {konto} tonen",
+	"Unterkonten von {konto}": "Subrekeningen van {konto}",
+	"Auswertung\u0004Verlauf": "Verloop"
 }, "nplurals=2; plural=(n != 1);");

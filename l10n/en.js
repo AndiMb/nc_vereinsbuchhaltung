@@ -4470,5 +4470,8 @@ OC.L10N.register("vereinsbuchhaltung", {
 	"Vergleich gegen: Jahresplan": "Compared against: full plan",
 	"Vergleich gegen: zeitanteiligen Plan (%1$s von %2$s Monaten)": "Compared against: time-proportional plan (%1$s of %2$s months)",
 	"Ausgabenkonten": "Expense accounts",
-	"Einnahmenkonten": "Income accounts"
+	"Einnahmenkonten": "Income accounts",
+	"Buchungen von {konto} zeigen": "Show entries of {konto}",
+	"Unterkonten von {konto}": "Sub-accounts of {konto}",
+	"Auswertung\u0004Verlauf": "Trend"
 }, "nplurals=2; plural=(n != 1);");

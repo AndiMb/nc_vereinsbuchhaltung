@@ -874,6 +874,7 @@
 				:isActive="isActive"
 				:view="structuredView"
 				@update:view="$emit('update:structured-view', $event)"
+				@openAccount="$emit('open-account', $event)"
 				@openSpheres="spherePanelOpen = true" />
 
 			<!-- ÄNDERUNGSPROTOKOLL -->
@@ -1043,7 +1044,7 @@ export default {
 		structuredView: { type: String, default: 'table' },
 	},
 
-	emits: ['budget-changed', 'budget-compare-changed', 'cost-centers-changed', 'help', 'snapshots-changed', 'spheres-changed', 'update:cost-center-mode', 'update:rename-name', 'update:report-view', 'update:selected-c-c-code', 'update:selected-sphere-code', 'update:structured-view'],
+	emits: ['budget-changed', 'budget-compare-changed', 'cost-centers-changed', 'help', 'open-account', 'snapshots-changed', 'spheres-changed', 'update:cost-center-mode', 'update:rename-name', 'update:report-view', 'update:selected-c-c-code', 'update:selected-sphere-code', 'update:structured-view'],
 
 	setup() {
 		const auth = useAuth()

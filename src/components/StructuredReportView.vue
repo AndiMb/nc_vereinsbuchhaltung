@@ -116,6 +116,7 @@
 			:isActive="isActive"
 			@loaded="visualPeriod = $event"
 			@state="visualState = $event"
+			@openAccount="$emit('open-account', $event)"
 			@openSpheres="$emit('open-spheres')" />
 		<template v-else-if="view === 'table'">
 			<NcNoteCard v-if="report && selected && !report.hasSpheres" type="info">
@@ -225,7 +226,7 @@ export default {
 		view: { type: String, required: true, validator: (v) => ['table', 'visual'].includes(v) },
 	},
 
-	emits: ['open-spheres', 'update:view'],
+	emits: ['open-account', 'open-spheres', 'update:view'],
 
 	setup() {
 		const auth = useAuth()

@@ -10,18 +10,27 @@ import { api, BANK_ACCOUNT, BASE_URL, INCOME_ACCOUNT, neuAnlegen, openAccountTre
 
 const JAHR = 2032
 const APP_URL = `${BASE_URL}/index.php/apps/vereinsbuchhaltung`
+const EXPENSE_ACCOUNT = '5000'
 
 test.describe('Deep-Linking', () => {
 	test.beforeAll(async ({ request }) => {
 		await api.resetBook(request)
 		await api.seedDefaultAccounts(request)
-		const [bank, income] = await api.accountsByNumber(request, BANK_ACCOUNT, INCOME_ACCOUNT)
+		const [bank, income, expense] = await api.accountsByNumber(request, BANK_ACCOUNT, INCOME_ACCOUNT, EXPENSE_ACCOUNT)
 		await api.createBooking(request, {
 			date: `${JAHR}-06-01`,
 			description: 'Spende Deep-Link-Test',
 			debitAccountId: bank.id,
 			creditAccountId: income.id,
 			amount: 42,
+		})
+		// Gegenprobe für den Kontofilter per Link: eine Buchung ohne das Einnahmenkonto.
+		await api.createBooking(request, {
+			date: `${JAHR}-06-02`,
+			description: 'Miete Deep-Link-Test',
+			debitAccountId: expense.id,
+			creditAccountId: bank.id,
+			amount: 17,
 		})
 	})
 
@@ -141,5 +150,43 @@ test.describe('Deep-Linking', () => {
 		await page.goBack()
 		await expect(page.getByRole('dialog')).toBeHidden()
 		await expect(page).toHaveURL(/\/bookings(\?|$)/)
+	})
+	test('Link mit Konto setzt den Kontofilter, Leeren nimmt account aus der URL', async ({ page, request }) => {
+		const periodId = await api.periodIdForDate(request, `${JAHR}-06-01`)
+		const income = await api.accountByNumber(request, INCOME_ACCOUNT)
+
+		await openApp(page, USERS.verwalter)
+		await page.goto(`${APP_URL}/bookings?period=${periodId}&account=${income.id}`)
+		await waitForAppLoaded(page)
+
+		const section = visibleSection(page)
+		await expect(section.locator('.vbh-filter-select .vs__selected')).toContainText(INCOME_ACCOUNT, { timeout: 15000 })
+		await expect(section.getByText('Spende Deep-Link-Test').first()).toBeVisible()
+		// Ausgefilterte Zeilen bleiben im DOM (nur hidden) – gezählt werden sichtbare.
+		await expect(section.getByText('Miete Deep-Link-Test').filter({ visible: true })).toHaveCount(0)
+		await expect(page).toHaveURL(new RegExp(`[?&]account=${income.id}(&|$)`))
+
+		await section.locator('.vbh-filter-select .vs__clear').click()
+		await expect(section.getByText('Miete Deep-Link-Test').first()).toBeVisible()
+		await expect(page).not.toHaveURL(/[?&]account=/)
+		await expect(page).toHaveURL(new RegExp(`[?&]period=${periodId}(&|$)`))
+	})
+
+	test('Unbekanntes oder nicht numerisches Konto im Link wird ignoriert und entfernt', async ({ page, request }) => {
+		const periodId = await api.periodIdForDate(request, `${JAHR}-06-01`)
+
+		await openApp(page, USERS.verwalter)
+		for (const value of ['999999', 'abc']) {
+			await page.goto(`${APP_URL}/bookings?period=${periodId}&account=${value}`)
+			await waitForAppLoaded(page)
+
+			await expect(page).not.toHaveURL(/[?&]account=/, { timeout: 15000 })
+			await expect(page).toHaveURL(/\/bookings\?/)
+			await expect(page).toHaveURL(new RegExp(`[?&]period=${periodId}(&|$)`))
+			const section = visibleSection(page)
+			await expect(section.getByText('Spende Deep-Link-Test').first()).toBeVisible()
+			await expect(section.getByText('Miete Deep-Link-Test').first()).toBeVisible()
+			await expect(section.locator('.vbh-filter-select .vs__selected')).toHaveCount(0)
+		}
 	})
 })

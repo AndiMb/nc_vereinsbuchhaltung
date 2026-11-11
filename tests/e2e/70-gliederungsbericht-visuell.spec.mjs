@@ -157,7 +157,7 @@ test.describe('Gliederungsbericht visuell', () => {
 		await expect(breakdown.locator('.vbh-visual-filter')).toContainText('Ausgaben – überschritten')
 		// Die Vorlage führt das Konto zweimal (Abschnitt und Zusammenfassung);
 		// der Filter zeigt es nur einmal.
-		const accounts = breakdown.locator('.vbh-visual-row__text--account, .vbh-visual-row__toggle')
+		const accounts = breakdown.locator('.vbh-visual-row__link, .vbh-visual-row__text--account')
 		await expect(accounts.first()).toBeVisible()
 		const shown = await accounts.allInnerTexts()
 		expect(shown.length, shown.join(' | ')).toBe(1)
@@ -205,6 +205,43 @@ test.describe('Gliederungsbericht visuell', () => {
 		// Zurück auf den Jahresplan, damit die gemerkte Wahl keine Folgetests färbt.
 		await yearButton.click()
 		await expect(incomePill).toHaveText(/beobachten/)
+	})
+
+	test('Klick auf ein Konto im Aufriss öffnet die gefilterte Buchungsliste; Zurück führt in die visuelle Ansicht', async ({ page, request }) => {
+		const { id: period } = await currentPeriod(request)
+		await openStructure(page, USERS.verwalter)
+		await showVisual(page)
+
+		// Die Vorlage führt das Konto zweimal (Abschnitt und Zusammenfassung).
+		const breakdown = visibleSection(page).locator('.vbh-visual-breakdown')
+		await breakdown.getByRole('button', { name: `Buchungen von ${EXPENSE_ACCOUNT} Raum- / Mietkosten zeigen` }).first().click()
+
+		await expect(page).toHaveURL(new RegExp(`/bookings\\?.*account=${expense.id}(&|$)`))
+		await expect(page).toHaveURL(new RegExp(`[?&]period=${period}(&|$)`))
+		const section = visibleSection(page)
+		await expect(section.locator('.vbh-filter-select .vs__selected')).toContainText(EXPENSE_ACCOUNT)
+		await expect(section.getByText('Miete über Plan').first()).toBeVisible()
+		// Ausgefilterte Zeilen bleiben im DOM (nur hidden) – gezählt werden sichtbare.
+		await expect(section.getByText('Beiträge knapp unter Plan').filter({ visible: true })).toHaveCount(0)
+
+		await page.goBack()
+		await expect(page).toHaveURL(/\/reports\/structure\?.*view=visual/)
+		await expect(visibleSection(page).locator('.vbh-visual-tiles')).toBeVisible()
+	})
+
+	test('Klick in der Liste der größten Lücken öffnet die Buchungen des Einnahmenkontos', async ({ page }) => {
+		await openStructure(page, USERS.verwalter)
+		await showVisual(page)
+
+		const gaps = visibleSection(page).locator('.vbh-visual-dev')
+			.filter({ has: page.getByRole('heading', { name: 'Größte Lücken (Einnahmen)' }) })
+		await gaps.getByRole('button', { name: `Buchungen von ${INCOME_ACCOUNT} Mitgliedsbeiträge zeigen` }).click()
+
+		await expect(page).toHaveURL(new RegExp(`/bookings\\?.*account=${income.id}(&|$)`))
+		const section = visibleSection(page)
+		await expect(section.locator('.vbh-filter-select .vs__selected')).toContainText(INCOME_ACCOUNT)
+		await expect(section.getByText('Beiträge knapp unter Plan').first()).toBeVisible()
+		await expect(section.getByText('Miete über Plan').filter({ visible: true })).toHaveCount(0)
 	})
 
 	test('Start-URL mit view=visual öffnet die visuelle Ansicht', async ({ page }) => {
@@ -310,6 +347,9 @@ test.describe('Gliederungsbericht visuell: Unterkonto unter geplantem Oberkonto'
 		const childRow = breakdown.locator('.vbh-visual-row', { hasText: CHILD_LABEL })
 		await expect(childRow.locator('.vbh-pill')).toHaveText('im Oberkonto geplant')
 		await expect(childRow.locator('.vbh-visual-pill')).toHaveCount(0)
+		// Ohne eigenen Plan kein Balken; die Zeile führt trotzdem zu den Buchungen.
+		await expect(childRow.locator('.vbh-visual-bullet')).toHaveCount(0)
+		await expect(childRow.getByRole('button', { name: `Buchungen von ${CHILD_LABEL} zeigen` })).toBeVisible()
 
 		const expenseDist = visibleSection(page).locator('.vbh-visual-dist')
 			.filter({ has: page.getByRole('heading', { name: 'Ampel der Ausgabenkonten' }) })

@@ -105,20 +105,24 @@
 							:title="t('Größte Überschreitungen (Ausgaben)')"
 							nature="expense"
 							:items="data.deviations[effectiveBasis].expense"
-							:emptyText="t('Kein Ausgabenkonto liegt über dem Plan.')" />
+							:emptyText="t('Kein Ausgabenkonto liegt über dem Plan.')"
+							linkable
+							@openAccount="$emit('open-account', $event)" />
 					</div>
 					<div class="vbh-visual-card">
 						<BudgetDeviationList
 							:title="t('Größte Lücken (Einnahmen)')"
 							nature="income"
 							:items="data.deviations[effectiveBasis].income"
-							:emptyText="t('Kein Einnahmenkonto liegt unter dem Plan.')" />
+							:emptyText="t('Kein Einnahmenkonto liegt unter dem Plan.')"
+							linkable
+							@openAccount="$emit('open-account', $event)" />
 					</div>
 				</div>
 
 				<section class="vbh-visual-card vbh-visual-trendsection">
 					<h5 class="vbh-visual-trendsection__title">
-						{{ t('Verlauf') }}
+						{{ tc('Auswertung', 'Verlauf') }}
 					</h5>
 					<BudgetTrendChart
 						v-if="hasTrend"
@@ -175,13 +179,23 @@
 								<div v-else class="vbh-visual-row">
 									<span class="vbh-visual-row__label" :style="indent(entry.row)">
 										<button
-											v-if="!filter && entry.row.kind === 'account' && hasChildren(data.rows, entry.index)"
+											v-if="hasToggle(entry)"
 											type="button"
 											class="vbh-visual-row__toggle"
+											:aria-label="t('Unterkonten von {konto}', { konto: rowLabel(entry.row) })"
 											:aria-expanded="collapsed.has(entry.index) ? 'false' : 'true'"
 											@click="toggle(entry.index)">
-											<NcIconSvgWrapper :path="collapsed.has(entry.index) ? mdiChevronRight : mdiChevronDown" :size="18" />
-											<span>{{ rowLabel(entry.row) }}</span>
+											<NcIconSvgWrapper :path="collapsed.has(entry.index) ? mdiChevronRight : mdiChevronDown" :size="18" inline />
+										</button>
+										<!-- Die Kontobezeichnung führt in die Buchungsliste mit diesem Kontofilter. -->
+										<button
+											v-if="entry.row.kind === 'account' && entry.row.accountId"
+											type="button"
+											class="vbh-visual-row__link"
+											:class="{ 'vbh-visual-row__link--indent': !hasToggle(entry) }"
+											:aria-label="t('Buchungen von {konto} zeigen', { konto: rowLabel(entry.row) })"
+											@click="$emit('open-account', entry.row.accountId)">
+											{{ rowLabel(entry.row) }}
 										</button>
 										<span
 											v-else
@@ -194,9 +208,11 @@
 										<span v-if="hasFlag(entry.row, 'covered')" class="vbh-pill">{{ t('im Oberkonto geplant') }}</span>
 										<BudgetStatusPill v-else :level="rowLevel(entry.row)" :nature="entry.row.nature" />
 									</span>
+									<!-- Gedeckte Unterkonten haben keinen eigenen Plan und deshalb
+									     keinen Balken; das sagt die Pille „im Oberkonto geplant“. -->
 									<span class="vbh-visual-row__bar">
 										<BudgetBullet
-											v-if="entry.row.nature !== 'result'"
+											v-if="entry.row.nature !== 'result' && !hasFlag(entry.row, 'covered')"
 											:plan="entry.row.plan"
 											:actual="entry.row.actual"
 											:timeFactor="timeFactor"
@@ -272,7 +288,8 @@ export default {
 	},
 
 	// state: { asOf, basis } für den Drucklink der Elternansicht
-	emits: ['loaded', 'open-spheres', 'state'],
+	// open-account: accountId einer Kontozeile oder Abweichung (Sprung zu den Buchungen)
+	emits: ['loaded', 'open-account', 'open-spheres', 'state'],
 
 	setup() {
 		return { canWrite: useAuth().canWrite }
@@ -443,6 +460,11 @@ export default {
 			this.filter = level ? { nature, level } : null
 		},
 
+		// Auf- und Zuklappen nur ohne Ampelfilter und nur bei Kontozeilen mit Unterkonten.
+		hasToggle(entry) {
+			return !this.filter && entry.row.kind === 'account' && hasChildren(this.data.rows, entry.index)
+		},
+
 		toggle(index) {
 			const next = new Set(this.collapsed)
 			if (next.has(index)) { next.delete(index) } else { next.add(index) }
@@ -458,8 +480,6 @@ export default {
 		},
 
 		rowTone(row) {
-			// Gedeckte Unterkonten haben keinen eigenen Plan – neutraler Balken.
-			if (this.hasFlag(row, 'covered')) { return 'none' }
 			return statusMeta(this.rowLevel(row), row.nature).tone
 		},
 
@@ -552,13 +572,18 @@ export default {
 	padding: 6px 0;
 }
 
-.vbh-visual-row--head { padding: 4px 0; color: var(--color-text-maxcontrast); font-size: 0.9em; border-bottom: 1px solid var(--color-border-dark); }
+/* Die kleinere Schrift nur an den Zellen: am Raster selbst schrumpften die
+   em-Spaltenbreiten mit, und die Köpfe stünden neben ihren Spalten. */
+.vbh-visual-row--head { padding: 4px 0; color: var(--color-text-maxcontrast); border-bottom: 1px solid var(--color-border-dark); }
+
+.vbh-visual-row--head > span { font-size: 0.9em; }
 
 /* Zu schmal für fünf Spalten: der Balken weicht in eine eigene Zeile aus,
-   die Bezeichnung behält ihren Platz. */
+   die Bezeichnung behält ihren Platz. Feste Ampelspalte statt auto, damit
+   Kopf und Zeilen dieselbe Breite haben. */
 @container (max-width: 760px) {
 	.vbh-visual-row {
-		grid-template-columns: minmax(0, 1fr) auto 7em 7em;
+		grid-template-columns: minmax(0, 1fr) 10.5em 7em 7em;
 		grid-template-areas:
 			"label status actual plan"
 			"bar bar bar bar";
@@ -599,21 +624,60 @@ export default {
 .vbh-visual-row__toggle.vbh-visual-row__toggle:focus,
 .vbh-visual-row__toggle.vbh-visual-row__toggle:active {
 	display: inline-flex;
+	flex: 0 0 auto;
 	align-items: center;
-	gap: 4px;
+	justify-content: center;
+	width: 24px;
+	min-width: 0;
+	height: 24px;
+	min-height: 0;
+	margin: 0 -2px 0 -4px;
+	padding: 0;
+	border: 0;
+	border-radius: var(--border-radius);
+	background: none;
+	/* Kräftig statt blass: das Symbol ist das einzige Zeichen des Umschalters. */
+	color: var(--color-main-text);
+	opacity: 1;
+	cursor: pointer;
+}
+
+.vbh-visual-row__toggle.vbh-visual-row__toggle:hover { background-color: var(--color-background-hover); }
+
+/* Kontobezeichnung als Textlink in die Buchungsliste. */
+.vbh-visual-row__link.vbh-visual-row__link,
+.vbh-visual-row__link.vbh-visual-row__link:hover,
+.vbh-visual-row__link.vbh-visual-row__link:focus,
+.vbh-visual-row__link.vbh-visual-row__link:active {
+	display: inline;
+	min-width: 0;
 	min-height: 0;
 	margin: 0;
 	padding: 0;
 	border: 0;
+	border-radius: var(--border-radius);
 	background: none;
 	color: inherit;
 	font: inherit;
 	text-align: start;
+	text-decoration: underline;
+	text-decoration-color: var(--color-text-maxcontrast);
+	text-underline-offset: 3px;
+	white-space: normal;
 	cursor: pointer;
 }
 
-.vbh-visual-row__toggle.vbh-visual-row__toggle:focus-visible {
-	border-radius: var(--border-radius);
+.vbh-visual-row__link.vbh-visual-row__link:hover { color: var(--color-primary-element); text-decoration-color: currentColor; }
+
+/* Ohne Umschalter um dessen Breite samt Abstand eingerückt (18px + 4px gap),
+   in allen Zuständen – die Grundregel oben setzt margin auch bei :hover. */
+.vbh-visual-row__link.vbh-visual-row__link--indent,
+.vbh-visual-row__link.vbh-visual-row__link--indent:hover,
+.vbh-visual-row__link.vbh-visual-row__link--indent:focus,
+.vbh-visual-row__link.vbh-visual-row__link--indent:active { margin-inline-start: 22px; }
+
+.vbh-visual-row__toggle.vbh-visual-row__toggle:focus-visible,
+.vbh-visual-row__link.vbh-visual-row__link:focus-visible {
 	outline: 2px solid var(--color-primary-element);
 	outline-offset: 2px;
 }

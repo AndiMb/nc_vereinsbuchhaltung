@@ -121,9 +121,11 @@ export default {
 	background-image: repeating-linear-gradient(45deg, var(--color-main-background) 0 2px, transparent 2px 5px);
 }
 
-/* Gewählt: Innenrahmen in Schriftfarbe mit Abstandsring, auf jedem Ton sichtbar. */
+/* Gewählt: kräftige Leiste in Schriftfarbe am unteren Rand, darüber ein
+   Abstandsstreifen – auf jedem Ton sichtbar und vom Fokusring (Rahmen rundum
+   in der Primärfarbe) zu unterscheiden. */
 .vbh-visual-dist__segment.vbh-visual-dist__segment.is-active {
-	box-shadow: inset 0 0 0 2px var(--color-main-text), inset 0 0 0 4px var(--color-main-background);
+	box-shadow: inset 0 -5px 0 0 var(--color-main-text), inset 0 -7px 0 0 var(--color-main-background);
 }
 
 .vbh-visual-dist__segment.vbh-visual-dist__segment:focus-visible {
