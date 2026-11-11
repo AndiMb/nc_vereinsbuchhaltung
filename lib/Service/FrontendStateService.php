@@ -188,6 +188,8 @@ class FrontendStateService {
 			// und die Zahl der Verwalter, die zur Wahl von N passen muss (N+1).
 			'reimbursement_enabled' => $this->reimbursementSettings->isEnabled(),
 			'reimbursement_required_approvals' => $this->reimbursementSettings->requiredApprovals(),
+			// Kostenstellen an der Buchungszeile (Issue #7), standardmäßig aus.
+			'cost_centers_enabled' => $this->config->getValueString(Application::APP_ID, CostCenterSettings::SETTING_ENABLED, '0') === '1',
 			// Ampel-Schwellen der visuellen Gliederungsansicht, vereinsweit.
 			BudgetStatusSettings::KEY => $this->budgetStatusSettings->thresholds(),
 		] + $this->invoiceSettings->all();

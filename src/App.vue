@@ -467,7 +467,7 @@
 import { mdiAccountCashOutline, mdiAccountPlusOutline, mdiCardAccountDetailsOutline, mdiChartBar, mdiFileDocumentOutline, mdiFileTreeOutline, mdiHelpCircleOutline, mdiPlus, mdiPrinter, mdiSwapHorizontal, mdiViewDashboardOutline } from '@mdi/js'
 import { showError, showInfo, showSuccess, showUndo } from '@nextcloud/dialogs'
 import { generateUrl } from '@nextcloud/router'
-import { defineAsyncComponent, toRefs } from 'vue'
+import { defineAsyncComponent, toRef, toRefs } from 'vue'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcDialog from '@nextcloud/vue/components/NcDialog'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
@@ -489,6 +489,7 @@ import { buildAccountOptions, useAccounts } from './composables/useAccounts.js'
 import { useAttachmentInbox } from './composables/useAttachmentInbox.js'
 import { useAuth } from './composables/useAuth.js'
 import { useBalances } from './composables/useBalances.js'
+import { useBookingCostCenters } from './composables/useBookingCostCenters.js'
 import { useConfirm } from './composables/useConfirm.js'
 import { useCostCenters } from './composables/useCostCenters.js'
 import { useEinzugRequest } from './composables/useEinzugRequest.js'
@@ -503,6 +504,7 @@ import { useSync } from './composables/useSync.js'
 import { useTasks } from './composables/useTasks.js'
 import { buildWhatsNewEntries, filterWhatsNewEntries } from './data/whatsNew.js'
 import { accountLabel, accountOption } from './lib/accountLabel.js'
+import { allocationError, bookingLines, carryingLines, firstAllocationError, toPayload, withAllocations } from './lib/allocation.js'
 import { takeBootState } from './lib/bootState.js'
 import { setClubCurrency } from './lib/clubCurrency.js'
 import { clubToday, setClubTimeZone } from './lib/clubTime.js'
@@ -563,6 +565,7 @@ const ROUTE_META = {
 	'accounts-edit': { tab: 'accounts', hasAccountId: true, accountEdit: true },
 	reports: { tab: 'reports', reportView: 'summary' },
 	'reports-costcenters': { tab: 'reports', reportView: 'costcenters' },
+	'reports-allocations': { tab: 'reports', reportView: 'allocations' },
 	'reports-spheres': { tab: 'reports', reportView: 'spheres' },
 	'reports-reserves': { tab: 'reports', reportView: 'reserves' },
 	'reports-budget': { tab: 'reports', reportView: 'budget' },
@@ -625,6 +628,7 @@ export default {
 		const openItems = useOpenItems()
 		const attachmentInbox = useAttachmentInbox()
 		const costCenters = useCostCenters()
+		const bookingCostCenters = useBookingCostCenters()
 		const rulesC = useRules()
 		const memberAkteRequest = useMemberAkteRequest()
 		const einzugRequest = useEinzugRequest()
@@ -632,6 +636,9 @@ export default {
 		return {
 			loadOpenItems: openItems.loadOpenItems,
 			loadCostCenters: costCenters.loadCostCenters,
+			setBookingCostCentersEnabled: bookingCostCenters.setBookingCostCentersEnabled,
+			costCentersEnabled: toRef(bookingCostCenters.state, 'enabled'),
+			costCentersKnown: toRef(bookingCostCenters.state, 'known'),
 			// Regeln: geteilter Zustand (useRules.js), seit dem Umzug der Pflege
 			// nach RulesPanel.vue (Unterreiter „Regeln" von BookingsTab.vue) hier
 			// nur noch fuer computeSuggestion()/createRuleFromTx() gebraucht.
@@ -1198,7 +1205,7 @@ export default {
 					: { name: 'accounts', query }
 			}
 			if (this.activeTab === 'reports') {
-				const names = { costcenters: 'reports-costcenters', spheres: 'reports-spheres', reserves: 'reports-reserves', budget: 'reports-budget', structure: 'reports-structure', audit: 'reports-audit' }
+				const names = { costcenters: 'reports-costcenters', allocations: 'reports-allocations', spheres: 'reports-spheres', reserves: 'reports-reserves', budget: 'reports-budget', structure: 'reports-structure', audit: 'reports-audit' }
 				if (this.reportView === 'costcenters' && this.selectedCCCode !== false) { query.cc = this.selectedCCCode }
 				if (this.reportView === 'spheres' && this.selectedSphereCode !== false) { query.sphere = this.selectedSphereCode }
 				if (this.reportView === 'budget' && this.snapshotView.open && this.snapshotView.data) { query.snapshot = this.snapshotView.data.id }
@@ -1257,6 +1264,7 @@ export default {
 		},
 
 		reportView(v) {
+			if (v === 'allocations' && this.leaveDisabledAllocationView()) { return }
 			if (v === 'summary') { this.loadBalances() } else if (v === 'costcenters') { this.loadReport() } else if (v === 'spheres') { this.loadSphereReport() } else if (v === 'budget') { this.loadBudget() } else if (v === 'audit') { this.loadAudit() }
 		},
 
@@ -1765,6 +1773,11 @@ export default {
 				this.demoActive = !!data.demo_active
 				this.membershipActive = !!data.membership_active
 				this.invoicesActive = !!data.invoice_module_active
+				// Kostenstellen an der Buchungszeile (Issue #7): standardmaessig aus;
+				// ausgeschaltet gibt es den Bericht nicht, ein Deep-Link dorthin
+				// faellt auf die Auswertung zurueck.
+				this.setBookingCostCentersEnabled(!!data.cost_centers_enabled)
+				this.leaveDisabledAllocationView()
 			} catch { /* ignorieren */ }
 		},
 
@@ -1825,6 +1838,9 @@ export default {
 				splitMode: false,
 				splitSide: 'credit',
 				splitLines: [],
+				// Kostenstellen (Issue #7): Verteilung je Konto der Buchung,
+				// { [accountId]: [{ costCenterId, amount }] }; leer = keine.
+				allocations: {},
 				// Gespeicherte Belege, die im Dialog zum Lösen bzw. Löschen
 				// markiert sind - ausgeführt erst beim Speichern
 				// (removeMarkedAttachments), bis dahin gilt der Dialog als geändert.
@@ -2209,6 +2225,10 @@ export default {
 			if (rows.length < 2) { showError(this.t('Eine Aufteilung braucht mindestens zwei Zeilen.')); return }
 			if (rows.some((p) => !p.accountId)) { showError(this.t('Jeder Zeile der Aufteilung fehlt noch ein Konto.')); return }
 			if (rows.some((p) => !(Number(p.amount) > 0))) { showError(this.t('Jede Zeile der Aufteilung braucht einen Betrag größer als 0.')); return }
+			if (this.costCentersEnabled && rows.some((p) => allocationError(Number(p.amount), p.allocations))) {
+				showError(this.t('Die Verteilung auf Kostenstellen passt noch nicht – bitte in der betroffenen Zeile korrigieren.'))
+				return
+			}
 			const total = Math.abs(tx.amountCents || 0) / 100
 			if (!splitBalanced(total, rows)) {
 				const rest = splitRemainder(total, rows)
@@ -2219,7 +2239,12 @@ export default {
 			}
 			try {
 				const revision = this.attachmentsRevision
-				const { data } = await api.assignTransactionParts(tx.id, rows.map((p) => ({ accountId: p.accountId, amount: Number(p.amount) })))
+				const { data } = await api.assignTransactionParts(tx.id, rows.map((p) => ({
+					accountId: p.accountId,
+					amount: Number(p.amount),
+					// Kostenstellen (Issue #7) nur bei eingeschaltetem Modul mitschicken.
+					...(this.costCentersEnabled ? { allocations: toPayload(p.allocations) } : {}),
+				})))
 				showSuccess(this.t('Umsatz aufgeteilt zugeordnet.'))
 				this.closeSplitAssign()
 				await this.linkTxPendingFiles(tx.id, data && data.journalId)
@@ -2772,6 +2797,11 @@ export default {
 					this.bookingMode = 'expert'
 				}
 			}
+			// Kostenstellen der Zeilen ins Formular (nur bei eingeschaltetem Modul
+			// liefert das Journal sie mit).
+			for (const l of r.lines || []) {
+				if (l.allocations && l.allocations.length) { this.bookingForm.allocations[l.accountId] = l.allocations.map((a) => ({ ...a })) }
+			}
 			this.loadAttachments(r.id)
 			this.bookingForceFolderPanel = folderPanel
 			this.showBooking = true
@@ -2861,12 +2891,57 @@ export default {
 			}
 		},
 
+		/**
+		 * Der Bericht "Kostenstellen" existiert nur bei eingeschaltetem Modul.
+		 * Wer per Direktlink dort landet, kommt zur Auswertung - aber erst, wenn
+		 * die Einstellungen gelesen sind (vorher ist "aus" nur die Vorgabe).
+		 *
+		 * @return {boolean} ob die Ansicht verlassen wurde
+		 */
+		leaveDisabledAllocationView() {
+			if (this.reportView !== 'allocations' || !this.costCentersKnown || this.costCentersEnabled) { return false }
+			this.reportView = 'summary'
+			return true
+		},
+
+		/**
+		 * Ergaenzt die Nutzlast um die Kostenstellen (Issue #7). Bei
+		 * ausgeschaltetem Modul bleibt sie exakt wie bisher - das Backend laesst
+		 * eine vorhandene Verteilung dann stehen. Eingeschaltet geht immer die
+		 * Zeilenform hinaus, jede Zeile mit `allocations` (auch leer = keine).
+		 *
+		 * @param {object} payload aus buildSimplePayload()/buildSplitPayload()
+		 * @return {object|null} null, wenn eine Meldung gezeigt wurde
+		 */
+		withCostCenters(payload) {
+			if (!this.costCentersEnabled) { return payload }
+			const f = this.bookingForm
+			const carrying = carryingLines(bookingLines(f, this.bookingMode), this.accountsById)
+			const problem = firstAllocationError(carrying, f.allocations)
+			if (problem) {
+				showError(this.t('Die Verteilung auf Kostenstellen passt noch nicht – bitte im Abschnitt „Kostenstelle“ korrigieren.'))
+				return null
+			}
+			const lines = payload.lines ?? [
+				{ accountId: payload.debitAccountId, debit: payload.amount, credit: 0 },
+				{ accountId: payload.creditAccountId, debit: 0, credit: payload.amount },
+			]
+			return {
+				date: payload.date,
+				description: payload.description,
+				documentRef: payload.documentRef,
+				lines: withAllocations(lines, f.allocations, carrying.map((l) => l.accountId)),
+			}
+		},
+
 		async saveBooking() {
 			if (this.bookingSaving) { return }
 			const f = this.bookingForm
 			// Abgeschlossener Zeitraum: nur der Kommentar ist noch aenderbar.
 			const commentOnly = this.bookingLocked
-			const payload = commentOnly ? null : (f.splitMode ? this.buildSplitPayload() : this.buildSimplePayload())
+			const basePayload = commentOnly ? null : (f.splitMode ? this.buildSplitPayload() : this.buildSimplePayload())
+			if (!commentOnly && !basePayload) { return }
+			const payload = basePayload ? this.withCostCenters(basePayload) : null
 			if (!commentOnly && !payload) { return }
 			this.bookingSaving = true
 			const revision = this.attachmentsRevision

@@ -8,6 +8,7 @@ use OCA\Vereinsbuchhaltung\Db\AccountMapper;
 use OCA\Vereinsbuchhaltung\Db\AttachmentMapper;
 use OCA\Vereinsbuchhaltung\Db\BankTransactionMapper;
 use OCA\Vereinsbuchhaltung\Db\BankTxSepaDetailMapper;
+use OCA\Vereinsbuchhaltung\Db\BookingCostCenterMapper;
 use OCA\Vereinsbuchhaltung\Db\BudgetMapper;
 use OCA\Vereinsbuchhaltung\Db\CostCenterMapper;
 use OCA\Vereinsbuchhaltung\Db\DebitBatchMapper;
@@ -24,6 +25,7 @@ use OCA\Vereinsbuchhaltung\Db\InvoicePaymentMapper;
 use OCA\Vereinsbuchhaltung\Db\InvoicePlanMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalMapper;
+use OCA\Vereinsbuchhaltung\Db\LineAllocationMapper;
 use OCA\Vereinsbuchhaltung\Db\MandateAmendmentMapper;
 use OCA\Vereinsbuchhaltung\Db\MandateMapper;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
@@ -75,6 +77,7 @@ class ResetServiceTest extends TestCase {
 	/** Alles, was der Reset aus der Datenbank löscht – je Tabelle genau einmal. */
 	private const WIPED_TABLES = [
 		'vbh_attachments',
+		'vbh_line_alloc',
 		'vbh_journal_line',
 		'vbh_journal',
 		'vbh_bank_tx',
@@ -83,6 +86,7 @@ class ResetServiceTest extends TestCase {
 		'vbh_rules',
 		'vbh_accounts',
 		'vbh_costcenters',
+		'vbh_booking_cc',
 		'vbh_budgets',
 		'vbh_budget_snapshots',
 		'vbh_budget_snap_items',
@@ -325,6 +329,8 @@ class ResetServiceTest extends TestCase {
 			new ReimbursementEventMapper($this->db),
 			$reimbursementFiles,
 			new InvoiceBatchMapper($this->db),
+			new LineAllocationMapper($this->db),
+			new BookingCostCenterMapper($this->db),
 		);
 	}
 

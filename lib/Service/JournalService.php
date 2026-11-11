@@ -12,6 +12,7 @@ use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
 use OCA\Vereinsbuchhaltung\Exception\ConflictException;
+use OCA\Vereinsbuchhaltung\Service\CostCenter\LineAllocationWriter;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\IL10N;
 
@@ -53,6 +54,9 @@ class JournalService {
 		private ClubCurrency $currency,
 		private ?InvoicePaymentLedger $invoicePayments = null,
 		private ?ReimbursementPaymentReverter $reimbursementPayments = null,
+		// Kostenstellen an der Buchungszeile (Issue #7); ohne den Schreiber
+		// verhält sich der Dienst wie vor der Funktion.
+		private ?LineAllocationWriter $allocations = null,
 	) {
 	}
 
@@ -148,6 +152,7 @@ class JournalService {
 		$journal = $this->journalMapper->insert($journal);
 
 		$this->writeLines($journal->getId(), $lines);
+		$costCenters = $this->allocations?->apply($journal->getId(), $userId, $lines) ?? '';
 
 		if ($audit) {
 			$this->audit->log('Buchung angelegt', 'journal', $journal->getId(), [
@@ -158,6 +163,7 @@ class JournalService {
 				// Nur bei einer Splittbuchung erwähnen – sonst stünde in jedem
 				// Protokolleintrag ein "Zeilen: 2", das nichts sagt.
 				...(count($lines) > 2 ? ['zeilen' => count($lines)] : []),
+				...($costCenters !== '' ? ['kostenstellen' => $costCenters] : []),
 			]);
 		}
 		return $journal;
@@ -258,8 +264,14 @@ class JournalService {
 		$journal->setUpdatedAt(self::now());
 		$journal = $this->journalMapper->update($journal);
 
+		// Die Verteilung auf Kostenstellen hängt an den Zeilen, die gleich
+		// gelöscht und neu geschrieben werden: vorher festhalten, damit sie
+		// eine Bearbeitung ohne Angabe dazu überlebt (Issue #7).
+		$snapshot = $this->allocations?->snapshot($journal->getId()) ?? [];
+		$this->allocations?->deleteByJournal($journal->getId());
 		$this->lineMapper->deleteByJournal($journal->getId());
 		$this->writeLines($journal->getId(), $lines);
+		$costCenters = $this->allocations?->apply($journal->getId(), $userId, $lines, $snapshot) ?? '';
 
 		if ($newPeriodId !== $oldPeriodId) {
 			// Das bisherige Geschäftsjahr hat jetzt eine Lücke – schließen.
@@ -272,6 +284,7 @@ class JournalService {
 			'description' => $journal->getDescription(),
 			'amount' => self::totalCents($lines) / 100,
 			...(count($lines) > 2 ? ['zeilen' => count($lines)] : []),
+			...($costCenters !== '' ? ['kostenstellen' => $costCenters] : []),
 		]);
 		return $journal;
 	}
@@ -326,6 +339,7 @@ class JournalService {
 				if (in_array($line->getId(), $moveIds, true)) {
 					$line->setAccountId($target->getId());
 					$this->lineMapper->update($line);
+					$this->allocations?->afterReassign((int)$line->getId(), $target);
 				}
 			}
 
@@ -461,6 +475,7 @@ class JournalService {
 			$this->invoicePayments?->revertForJournal($journal->getId());
 			$this->reimbursementPayments?->revertForJournal($journal->getId());
 			$this->attachmentStorage->deleteForJournal($journal->getId());
+			$this->allocations?->deleteByJournal($journal->getId());
 			$this->lineMapper->deleteByJournal($journal->getId());
 			$this->journalMapper->delete($journal);
 

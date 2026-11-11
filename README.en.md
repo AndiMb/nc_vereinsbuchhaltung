@@ -72,6 +72,7 @@ A lightweight accounting app for nonprofit clubs, integrated directly into Nextc
 - **Treasurer's report (print-ready)**: a standalone print page for the general assembly – club name, cash-account overview (balance on 01/01 and 12/31), income/expense statement, plan/actual comparison, tax-sphere overview with an exemption-threshold notice, completeness note, closing note and signature lines; print or save as PDF via the browser
 - **Short report for board meetings (print-ready)**: a compact print page with a selectable reference date – account balances since then, movements, short financial-plan summary; optionally in your corporate design (club logo + accent color, configurable under gear icon → Club)
 - **CSV exports** (for the audit / Excel): journal, trial balance, income/expense overview, plan/actual comparison (including notes)
+- **Cost centres** (optional, off by default): an amount on an income/expense account can be allocated to one or more cost centres (€1,000 equipment, of which €600 seniors and €400 under-19s – one entry, one account); separate report per cost centre with reconciliation against the account balances, print page and CSV
 - **Multi-year overview** (CSV matrix, columns = years): income statement by account (income/expenses/result) + assets at year-end, plus result per reporting group/project and by tax sphere across all years; also as a line chart (Reports → Evaluation) for meeting presentations
 - **Cash-account reconciliation**: account balance (journal) vs. open (unassigned) bank transactions, with a total across all cash accounts
 - **Funds in the header**: the balances of all cash accounts as a single figure; individual accounts (a fixed-term deposit, say) can be left out of it without disappearing from the cash report, the assets overview or the trial balance
@@ -220,6 +221,8 @@ vereinsbuchhaltung/
 | `vbh_bank_tx` | imported bank transactions incl. dedup hash and assignment status |
 | `vbh_journal` | postings (date, description, receipt no., posting no.) |
 | `vbh_journal_line` | debit/credit lines per posting (amount in cents) |
+| `vbh_booking_cc` | cost centres on the entry line (code, name, active) – not to be confused with `vbh_costcenters` |
+| `vbh_line_alloc` | allocation of an entry line to cost centres (line, cost centre, amount); without rows the app behaves as it does without the feature |
 | `vbh_costcenters` | reporting groups (code, name); accounts reference them via `vbh_accounts.cost_center_id`. Table and column names date from when a reporting group was called a "cost center" – they stay so existing installations keep working without a migration |
 | `vbh_budgets` | financial plan (account × year × amount in cents + note) |
 | `vbh_budget_snapshots` | frozen plan snapshots (year, label, timestamp) |

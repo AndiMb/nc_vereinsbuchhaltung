@@ -37,7 +37,11 @@
 					</span>
 				</div>
 				<ul class="vbh-split-list">
-					<li v-for="(part, i) in parts" :key="part.uid ?? i" class="vbh-split-row">
+					<li
+						v-for="(part, i) in parts"
+						:key="part.uid ?? i"
+						class="vbh-split-row"
+						:class="{ 'vbh-split-row--alloc': carries(part) }">
 						<button
 							v-if="isMobile"
 							type="button"
@@ -72,6 +76,16 @@
 								<NcIconSvgWrapper :path="mdiDelete" :size="14" />
 							</template>
 						</NcButton>
+						<!-- Kostenstelle des Teils (Issue #7): nur bei eingeschaltetem Modul
+						     und fuer Ertrags-/Aufwandskonten, freiwillig. -->
+						<div v-if="carries(part)" class="vbh-split-alloc">
+							<span class="vbh-allocline-label">{{ t('Kostenstelle') }}</span>
+							<AllocationEditor
+								:modelValue="part.allocations || []"
+								:lineAmount="Number(part.amount || 0)"
+								:label="t('Kostenstelle Zeile {n}', { n: i + 1 })"
+								@update:modelValue="patch(i, { allocations: $event })" />
+						</div>
 					</li>
 				</ul>
 				<div class="vbh-split-actions">
@@ -102,13 +116,17 @@
 
 <script>
 import { mdiDelete } from '@mdi/js'
+import { toRef } from 'vue'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import NcModal from '@nextcloud/vue/components/NcModal'
 import NcSelect from '@nextcloud/vue/components/NcSelect'
+import AllocationEditor from './AllocationEditor.vue'
 import AmountInput from './AmountInput.vue'
 import { useAccounts } from '../composables/useAccounts.js'
+import { useBookingCostCenters } from '../composables/useBookingCostCenters.js'
 import { accountFilterBy, accountLabel, accountOption } from '../lib/accountLabel.js'
+import { carryingLines, followAmount } from '../lib/allocation.js'
 import { formatDate, formatMoney } from '../lib/format.js'
 import { newUid } from '../lib/rowKeys.js'
 import { isSelectableOption } from '../lib/selectOptions.js'
@@ -129,7 +147,7 @@ import { splitBalanced, splitRemainder } from '../lib/split.js'
  */
 export default {
 	name: 'SplitAssignDialog',
-	components: { NcModal, NcButton, NcSelect, NcIconSvgWrapper, AmountInput },
+	components: { NcModal, NcButton, NcSelect, NcIconSvgWrapper, AllocationEditor, AmountInput },
 	props: {
 		show: { type: Boolean, default: false },
 		tx: { type: Object, default: null },
@@ -142,7 +160,11 @@ export default {
 
 	setup() {
 		const accounts = useAccounts()
-		return { accountsSorted: accounts.accountsSorted, accountsById: accounts.accountsById }
+		return {
+			accountsSorted: accounts.accountsSorted,
+			accountsById: accounts.accountsById,
+			costCentersEnabled: toRef(useBookingCostCenters().state, 'enabled'),
+		}
 	},
 
 	data() {
@@ -208,8 +230,24 @@ export default {
 			this.patch(index, { amount: (value === '' || value === null) ? null : Number(value) })
 		},
 
+		/** Traegt dieser Teil eine Kostenstelle? Nur Ertrags-/Aufwandskonten, nur bei eingeschaltetem Modul. */
+		carries(part) {
+			return this.costCentersEnabled && carryingLines([{ accountId: part.accountId }], this.accountsById).length > 0
+		},
+
+		/**
+		 * Aendert einen Teil. Die Kostenstelle folgt dabei ihrem Teil: bei
+		 * geaendertem Betrag zieht die eine Kostenstelle ueber den ganzen Betrag
+		 * mit, und ein Konto, das keine Kostenstelle traegt, verliert sie.
+		 */
 		patch(index, values) {
-			this.$emit('update:parts', this.parts.map((p, i) => (i === index ? { ...p, ...values } : p)))
+			this.$emit('update:parts', this.parts.map((p, i) => {
+				if (i !== index) { return p }
+				const next = { ...p, ...values }
+				if ('amount' in values && p.allocations?.length) { next.allocations = followAmount(Number(p.amount || 0), Number(next.amount || 0), p.allocations) }
+				if ('accountId' in values && next.allocations?.length && !this.carries(next)) { next.allocations = [] }
+				return next
+			}))
 		},
 
 		addPart() {

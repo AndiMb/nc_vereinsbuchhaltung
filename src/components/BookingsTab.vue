@@ -243,6 +243,7 @@
 								</td>
 								<td class="vbh-purpose" :title="r.description">
 									<span class="vbh-clamp">{{ r.description }}</span>
+									<AllocationBadge :allocations="r.allocations" />
 								</td>
 								<td class="vbh-col-hide-sm">
 									{{ r.soll }}
@@ -812,6 +813,7 @@ import NcEllipsisedOption from '@nextcloud/vue/components/NcEllipsisedOption'
 import NcEmptyContent from '@nextcloud/vue/components/NcEmptyContent'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import NcSelect from '@nextcloud/vue/components/NcSelect'
+import AllocationBadge from './AllocationBadge.vue'
 import AmountInput from './AmountInput.vue'
 import BookingCard from './BookingCard.vue'
 import CommentMark from './CommentMark.vue'
@@ -844,7 +846,7 @@ const JOURNAL_PAGE = 200
 
 export default {
 	name: 'BookingsTab',
-	components: { NcButton, NcActions, NcActionButton, NcActionLink, NcSelect, NcEllipsisedOption, NcEmptyContent, NcIconSvgWrapper, AmountInput, BookingCard, CommentMark, ReceiptSuggestionConfirmDialog, ReimbursementAssignDialog, ReimbursementsPanel, RulesPanel },
+	components: { NcButton, NcActions, NcActionButton, NcActionLink, NcSelect, NcEllipsisedOption, NcEmptyContent, NcIconSvgWrapper, AllocationBadge, AmountInput, BookingCard, CommentMark, ReceiptSuggestionConfirmDialog, ReimbursementAssignDialog, ReimbursementsPanel, RulesPanel },
 	props: {
 		isMobile: { type: Boolean, required: true },
 		// 'plain' | 'signed': Vorzeichen und Farbe am Betrag, siehe lib/flow.js

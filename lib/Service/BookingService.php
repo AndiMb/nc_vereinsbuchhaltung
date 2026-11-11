@@ -11,6 +11,7 @@ use OCA\Vereinsbuchhaltung\Db\JournalLine;
 use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
+use OCA\Vereinsbuchhaltung\Service\CostCenter\LineAllocationWriter;
 use OCP\IL10N;
 
 /**
@@ -43,14 +44,25 @@ class BookingService {
 		private ClubCurrency $currency,
 		private ?InvoicePaymentLedger $invoicePayments = null,
 		private ?ReimbursementPaymentReverter $reimbursementPayments = null,
+		// Kostenstellen an der Buchungszeile (Issue #7); ohne den Schreiber
+		// verhält sich der Dienst wie vor der Funktion.
+		private ?LineAllocationWriter $allocations = null,
 	) {
 	}
 
 	/**
 	 * Ordnet eine Bankbuchung einem Gegenkonto zu und erzeugt den Buchungssatz.
+	 *
+	 * @param list<array{costCenterId:int, amountCents:int}>|null $allocations Verteilung des
+	 *                                                                         Betrags auf Kostenstellen (Issue #7); null = nichts gesagt, eine bei erneuter
+	 *                                                                         Zuordnung vorhandene Verteilung bleibt dann bei gleichem Konto erhalten
 	 */
-	public function assign(BankTransaction $tx, int $contraAccountId): BankTransaction {
-		return $this->assignParts($tx, [['accountId' => $contraAccountId, 'amountCents' => abs($tx->getAmountCents())]]);
+	public function assign(BankTransaction $tx, int $contraAccountId, ?array $allocations = null): BankTransaction {
+		$part = ['accountId' => $contraAccountId, 'amountCents' => abs($tx->getAmountCents())];
+		if ($allocations !== null) {
+			$part['allocations'] = $allocations;
+		}
+		return $this->assignParts($tx, [$part]);
 	}
 
 	/**
@@ -62,7 +74,7 @@ class BookingService {
 	 * Geldkontoseite bleibt dabei eine Zeile über den vollen Betrag – nur die
 	 * Gegenseite wird aufgeteilt.
 	 *
-	 * @param array<int, array{accountId:int, amountCents:int}> $parts
+	 * @param array<int, array{accountId:int, amountCents:int, allocations?: list<array{costCenterId:int, amountCents:int}>}> $parts `allocations` verteilt den Teil auf Kostenstellen (Issue #7)
 	 * @throws \InvalidArgumentException wenn die Teile nicht den Umsatz ergeben
 	 */
 	public function assignParts(BankTransaction $tx, array $parts): BankTransaction {
@@ -177,6 +189,8 @@ class BookingService {
 			$contras[] = [
 				'account' => $this->accountService->find($part['accountId'], $userId),
 				'amountCents' => $part['amountCents'],
+				// null = der Aufrufer hat zu den Kostenstellen nichts gesagt.
+				'allocations' => $part['allocations'] ?? null,
 			];
 		}
 		// Das Geldkonto folgt der IBAN aus dem Auszug, damit bei mehreren
@@ -184,8 +198,12 @@ class BookingService {
 		// beim ersten Bankkonto – siehe AccountService::resolveBankAccount().
 		$bank = $this->accountService->resolveBankAccount($userId, $tx->getOwnAccount());
 
-		// Bereits gebuchte Zuordnung zuerst zurücknehmen (Re-Assign)
+		// Bereits gebuchte Zuordnung zuerst zurücknehmen (Re-Assign). Die
+		// Verteilung auf Kostenstellen des alten Buchungssatzes vorher
+		// festhalten: bleibt das Gegenkonto, bleibt sie auch (Issue #7).
+		$snapshot = [];
 		if ($tx->getJournalId() !== null) {
+			$snapshot = $this->allocations?->snapshot($tx->getJournalId()) ?? [];
 			$this->removeJournal($tx->getJournalId(), $userId);
 		}
 
@@ -207,17 +225,22 @@ class BookingService {
 
 		// Geldeingang: Bank im Soll, die Gegenkonten im Haben – bei Ausgang
 		// umgekehrt. Das Geldkonto bleibt eine Zeile über den vollen Betrag.
+		$lines = [];
 		if ($amount >= 0) {
-			$this->addLine($journal->getId(), $bank->getId(), $abs, 0);
+			$lines[] = ['accountId' => $bank->getId(), 'debitCents' => $abs, 'creditCents' => 0];
 			foreach ($contras as $contra) {
-				$this->addLine($journal->getId(), $contra['account']->getId(), 0, $contra['amountCents']);
+				$lines[] = self::contraLine($contra, 0, $contra['amountCents']);
 			}
 		} else {
 			foreach ($contras as $contra) {
-				$this->addLine($journal->getId(), $contra['account']->getId(), $contra['amountCents'], 0);
+				$lines[] = self::contraLine($contra, $contra['amountCents'], 0);
 			}
-			$this->addLine($journal->getId(), $bank->getId(), 0, $abs);
+			$lines[] = ['accountId' => $bank->getId(), 'debitCents' => 0, 'creditCents' => $abs];
 		}
+		foreach ($lines as $line) {
+			$this->addLine($journal->getId(), $line['accountId'], $line['debitCents'], $line['creditCents']);
+		}
+		$this->allocations?->apply($journal->getId(), $userId, $lines, $snapshot);
 
 		// Bei einer Aufteilung bleibt contra_account_id leer: die Spalte fasst
 		// nur ein Konto, und ein herausgegriffenes wäre irreführend. Maßgeblich
@@ -308,9 +331,26 @@ class BookingService {
 		// Ebenso die Auszahlung einer Auslage; sie holt die Belege zurück, bevor sie mit der Buchung gehen.
 		$this->reimbursementPayments?->revertForJournal($journal->getId());
 		$this->attachmentStorage->deleteForJournal($journal->getId());
+		$this->allocations?->deleteByJournal($journal->getId());
 		$this->lineMapper->deleteByJournal($journal->getId());
 		$this->journalMapper->delete($journal);
 		$this->entryNumbers->renumberPeriod($userId, $periodId);
+	}
+
+	/**
+	 * Gegenkontozeile in der Form, die {@see LineAllocationWriter::apply()}
+	 * erwartet. Der Schlüssel `allocations` steht nur, wenn der Aufrufer eine
+	 * Verteilung genannt hat – sein Fehlen heißt "nichts gesagt".
+	 *
+	 * @param array{account: \OCA\Vereinsbuchhaltung\Db\Account, amountCents:int, allocations: ?array} $contra
+	 * @return array{accountId:int, debitCents:int, creditCents:int, allocations?: array}
+	 */
+	private static function contraLine(array $contra, int $debit, int $credit): array {
+		$line = ['accountId' => $contra['account']->getId(), 'debitCents' => $debit, 'creditCents' => $credit];
+		if ($contra['allocations'] !== null) {
+			$line['allocations'] = $contra['allocations'];
+		}
+		return $line;
 	}
 
 	private function addLine(int $journalId, int $accountId, int $debit, int $credit): void {

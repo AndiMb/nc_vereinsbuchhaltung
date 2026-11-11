@@ -86,6 +86,9 @@ function buildJournalRow(item) {
 		amount: lines.reduce((s, l) => s + (l.debitCents || 0), 0) / 100,
 		updatedAt: j.updatedAt || null,
 		comment: j.comment || '',
+		// Kostenstellen aller Zeilen (Issue #7) fuer das Etikett in der Liste;
+		// das Journal liefert sie nur bei eingeschaltetem Modul mit.
+		allocations: lines.flatMap((l) => l.allocations || []),
 	}
 }
 

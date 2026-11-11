@@ -8,6 +8,7 @@ use OCA\Vereinsbuchhaltung\Db\AccountMapper;
 use OCA\Vereinsbuchhaltung\Db\AttachmentMapper;
 use OCA\Vereinsbuchhaltung\Db\BankTransactionMapper;
 use OCA\Vereinsbuchhaltung\Db\BankTxSepaDetailMapper;
+use OCA\Vereinsbuchhaltung\Db\BookingCostCenterMapper;
 use OCA\Vereinsbuchhaltung\Db\BudgetMapper;
 use OCA\Vereinsbuchhaltung\Db\CostCenterMapper;
 use OCA\Vereinsbuchhaltung\Db\IncomingPaymentRejectionMapper;
@@ -21,6 +22,7 @@ use OCA\Vereinsbuchhaltung\Db\InvoicePaymentMapper;
 use OCA\Vereinsbuchhaltung\Db\InvoicePlanMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalMapper;
+use OCA\Vereinsbuchhaltung\Db\LineAllocationMapper;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
 use OCA\Vereinsbuchhaltung\Db\ReimbursementEventMapper;
 use OCA\Vereinsbuchhaltung\Db\ReimbursementFileMapper;
@@ -66,6 +68,8 @@ class ResetService {
 		private ReimbursementEventMapper $reimbursementEventMapper,
 		private ReimbursementFileMapper $reimbursementFileMapper,
 		private InvoiceBatchMapper $invoiceBatchMapper,
+		private LineAllocationMapper $lineAllocations,
+		private BookingCostCenterMapper $bookingCostCenters,
 	) {
 	}
 
@@ -99,6 +103,11 @@ class ResetService {
 		$this->transaction->run(function () use ($userId): void {
 			$this->attachmentMapper->deleteAllForUser($userId);
 
+			// Kostenstellen an der Buchungszeile (Issue #7): die Verteilung hängt an
+			// den Zeilen und geht mit ihnen, die Stammdaten gehen wie die
+			// Auswertungsgruppen mit dem Kontenplan.
+			$this->lineAllocations->deleteAll();
+			$this->bookingCostCenters->deleteAllForUser($userId);
 			$this->lineMapper->deleteAllForUser($userId);
 			$this->journalMapper->deleteAllForUser($userId);
 			$this->txMapper->deleteAllForUser($userId);

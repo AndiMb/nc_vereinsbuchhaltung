@@ -14,6 +14,8 @@ use OCA\Vereinsbuchhaltung\Service\BudgetComparison;
 use OCA\Vereinsbuchhaltung\Service\BudgetOverviewService;
 use OCA\Vereinsbuchhaltung\Service\BudgetTree;
 use OCA\Vereinsbuchhaltung\Service\ClubCurrency;
+use OCA\Vereinsbuchhaltung\Service\CostCenter\LineAllocationWriter;
+use OCA\Vereinsbuchhaltung\Service\CostCenterSettings;
 use OCA\Vereinsbuchhaltung\Service\CsvFormatter;
 use OCA\Vereinsbuchhaltung\Service\JournalService;
 use OCA\Vereinsbuchhaltung\Service\LedgerAggregator;
@@ -47,6 +49,10 @@ class CsvExportService {
 		private AccountStatementService $statements,
 		private BudgetOverviewService $budgetOverview,
 		private ClubCurrency $currency,
+		// Kostenstellen an der Buchungszeile (Issue #7); ohne beide Dienste oder
+		// bei ausgeschaltetem Modul bleibt das Journal zeichengleich wie zuvor.
+		private ?CostCenterSettings $costCenterSettings = null,
+		private ?LineAllocationWriter $allocations = null,
 	) {
 	}
 
@@ -93,8 +99,32 @@ class CsvExportService {
 			$journals,
 		));
 
+		// Kostenstellen (Issue #7): nur bei eingeschaltetem Modul eine zusätzliche
+		// letzte Spalte. Jede Verteilung steht genau einmal – in der ersten
+		// Ausgabezeile, in der das Konto ihrer Buchungszeile vorkommt.
+		$withCostCenters = $this->allocations !== null && $this->costCenterSettings?->isEnabled() === true;
+		$allocationsByLine = [];
+		$codes = [];
+		if ($withCostCenters) {
+			$allocationsByLine = $this->allocations->forJournals(array_keys($linesByJournal));
+			foreach ($this->allocations->costCentersById($userId) as $id => $costCenter) {
+				$codes[$id] = (string)$costCenter->getCode();
+			}
+		}
+
 		$rows = [];
 		foreach ($journals as $journal) {
+			$costCenterText = [];
+			foreach ($linesByJournal[$journal->getId()] ?? [] as $line) {
+				$parts = [];
+				foreach ($allocationsByLine[$line->getId()] ?? [] as $allocation) {
+					$parts[] = ($codes[$allocation['costCenterId']] ?? '#' . $allocation['costCenterId'])
+						. ' ' . ReportFormat::money((float)$allocation['amount']);
+				}
+				if ($parts !== []) {
+					$costCenterText[$line->getAccountId()] = implode(' | ', $parts);
+				}
+			}
 			$lines = array_map(
 				static fn ($line): array => [
 					'accountId' => $line->getAccountId(),
@@ -106,6 +136,13 @@ class CsvExportService {
 			foreach (JournalService::pairLines($lines) as $pair) {
 				$debitAcc = $accountMap[$pair['debitAccountId']] ?? null;
 				$creditAcc = $accountMap[$pair['creditAccountId']] ?? null;
+				$costCenterCell = [];
+				foreach ([$pair['debitAccountId'], $pair['creditAccountId']] as $accountId) {
+					if (isset($costCenterText[$accountId])) {
+						$costCenterCell[] = $costCenterText[$accountId];
+						unset($costCenterText[$accountId]);
+					}
+				}
 				$rows[] = [
 					'sortDate' => (string)$journal->getDate(),
 					'sortEntry' => (int)($journal->getEntryNo() ?? 0),
@@ -119,6 +156,7 @@ class CsvExportService {
 						$creditAcc['number'] ?? '',
 						$creditAcc['name'] ?? '',
 						ReportFormat::money($pair['amountCents'] / 100),
+						...($withCostCenters ? [implode(' | ', $costCenterCell)] : []),
 					],
 				];
 			}
@@ -130,7 +168,10 @@ class CsvExportService {
 		usort($rows, static fn ($a, $b) => [$a['sortDate'], $a['sortEntry']] <=> [$b['sortDate'], $b['sortEntry']]);
 
 		$csv = self::BOM;
-		$csv .= self::line(['Nr.', 'Datum', 'Beschreibung', 'Belegnr.', 'Soll-Nr.', 'Soll-Konto', 'Haben-Nr.', 'Haben-Konto', 'Betrag (' . $this->currency->code() . ')']);
+		$csv .= self::line([
+			'Nr.', 'Datum', 'Beschreibung', 'Belegnr.', 'Soll-Nr.', 'Soll-Konto', 'Haben-Nr.', 'Haben-Konto', 'Betrag (' . $this->currency->code() . ')',
+			...($withCostCenters ? ['Kostenstellen'] : []),
+		]);
 		foreach ($rows as $r) {
 			$csv .= self::line($r['cells']);
 		}

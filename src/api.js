@@ -102,6 +102,14 @@ export default {
 	updateCostCenter: (id, code, name) => axios.put(url(`/costcenters/${id}`), { code, name }),
 	deleteCostCenter: (id) => axios.delete(url(`/costcenters/${id}`)),
 	assignCostCenter: (accountIds, costCenterId) => axios.post(url('/costcenters/assign'), { accountIds, costCenterId: costCenterId || 0 }),
+
+	// Kostenstellen an der Buchungszeile (Issue #7) - die Routen darueber heissen
+	// historisch 'costcenters', meinen aber die Auswertungsgruppen.
+	bookingCostCenters: () => axios.get(url('/booking-cost-centers')),
+	createBookingCostCenter: (data) => axios.post(url('/booking-cost-centers'), data),
+	updateBookingCostCenter: (id, data) => axios.put(url(`/booking-cost-centers/${id}`), data),
+	deleteBookingCostCenter: (id) => axios.delete(url(`/booking-cost-centers/${id}`)),
+	costCenterAllocationReport: (period) => axios.get(url('/report/cost-center-allocations'), { params: { period: period || undefined } }),
 	sphereReport: (period) => axios.get(url('/report/spheres'), { params: { period: period || undefined } }),
 	bulkSphere: (accountIds, sphere) => axios.post(url('/accounts/sphere-bulk'), { accountIds, sphere }),
 	multiyearTrend: () => axios.get(url('/report/multiyear-trend')),
@@ -372,6 +380,8 @@ export default {
 
 	// Export (CSV-Download – Browser-Navigation, kein Axios)
 	exportJournalUrl: (period) => generateUrl(base + '/export/journal') + (period ? `?period=${period}` : ''),
+	exportCostCenterAllocationsUrl: (period) => generateUrl(base + '/export/cost-center-allocations') + (period ? `?period=${period}` : ''),
+	exportCostCenterAllocationsCsvUrl: (period) => generateUrl(base + '/export/cost-center-allocations-csv') + (period ? `?period=${period}` : ''),
 	// Kontenblatt: Zeitraum und "inkl. Unterkonten" wie im Kontoauszug.
 	accountStatementCsvUrl: (id, period, includeChildren) => generateUrl(base + `/export/account/${id}`) + `?includeChildren=${includeChildren ? 1 : 0}` + (period ? `&period=${period}` : ''),
 	accountStatementPrintUrl: (id, period, includeChildren) => generateUrl(base + `/export/account/${id}/print`) + `?includeChildren=${includeChildren ? 1 : 0}` + (period ? `&period=${period}` : ''),

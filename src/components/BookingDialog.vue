@@ -356,6 +356,20 @@
 						</div>
 					</div>
 
+					<!-- Kostenstellen (Issue #7): nur bei eingeschaltetem Modul und nur
+					     fuer Zeilen auf Ertrags-/Aufwandskonten. Die Angabe ist freiwillig. -->
+					<div v-if="costCentersEnabled && allocationLines.length" class="vbh-allocblock">
+						<div v-for="line in allocationLines" :key="line.accountId" class="vbh-allocline">
+							<span class="vbh-allocline-label">{{ allocationLabel(line) }}</span>
+							<AllocationEditor
+								:modelValue="allocationsOf(line.accountId)"
+								:lineAmount="line.amount"
+								:disabled="bookingLocked"
+								:label="allocationLabel(line)"
+								@update:modelValue="setAllocations(line.accountId, $event)" />
+						</div>
+					</div>
+
 					<div class="vbh-expertrow">
 						<NcCheckboxRadioSwitch v-model="formSplitMode" :disabled="bookingLocked" type="switch">
 							{{ t('Betrag aufteilen (mehrere Gegenkonten)') }}
@@ -623,22 +637,25 @@
 
 <script>
 import { mdiAlertCircleOutline, mdiCamera, mdiDelete, mdiFolderOutline, mdiFolderSearchOutline, mdiLinkVariantOff, mdiPaperclip, mdiPlus, mdiUndo } from '@mdi/js'
-import { ref, toRefs } from 'vue'
+import { ref, toRef, toRefs } from 'vue'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcCheckboxRadioSwitch from '@nextcloud/vue/components/NcCheckboxRadioSwitch'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import NcModal from '@nextcloud/vue/components/NcModal'
 import NcSelect from '@nextcloud/vue/components/NcSelect'
+import AllocationEditor from './AllocationEditor.vue'
 import AmountInput from './AmountInput.vue'
 import AttachmentFolderPanel from './AttachmentFolderPanel.vue'
 import ReceiptPreview from './ReceiptPreview.vue'
 import { buildAccountOptions, useAccounts } from '../composables/useAccounts.js'
+import { useBookingCostCenters } from '../composables/useBookingCostCenters.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { useJournal } from '../composables/useJournal.js'
 import { usePeriods } from '../composables/usePeriods.js'
 import { useReceiptSuggestions } from '../composables/useReceiptSuggestions.js'
 import { accountFilterBy, accountLabel, accountOption } from '../lib/accountLabel.js'
+import { bookingLines, carryingLines, syncAllocations } from '../lib/allocation.js'
 import { autogrow } from '../lib/autogrow.js'
 import { onlyDefaultMoneyAccountAdded } from '../lib/bookingSnapshot.js'
 import { currencySymbol } from '../lib/clubCurrency.js'
@@ -651,7 +668,7 @@ import { stickyShadow } from '../lib/stickyShadow.js'
 
 export default {
 	name: 'BookingDialog',
-	components: { NcModal, NcButton, NcSelect, NcCheckboxRadioSwitch, NcIconSvgWrapper, NcLoadingIcon, AmountInput, AttachmentFolderPanel, ReceiptPreview },
+	components: { NcModal, NcButton, NcSelect, NcCheckboxRadioSwitch, NcIconSvgWrapper, NcLoadingIcon, AllocationEditor, AmountInput, AttachmentFolderPanel, ReceiptPreview },
 	directives: { autogrow, stickyShadow },
 	props: {
 		show: { type: Boolean, default: false },
@@ -720,6 +737,8 @@ export default {
 			receiptSuggestionsPending: suggestions.pending,
 			accountsSorted: accounts.accountsSorted,
 			accountsById: accounts.accountsById,
+			// Schalter der Kostenstellen an der Buchungszeile (Issue #7)
+			costCentersEnabled: toRef(useBookingCostCenters().state, 'enabled'),
 			...toRefs(journal.state),
 			periodForDate: periods.periodForDate,
 			askConfirm: useConfirm().askConfirm,
@@ -747,6 +766,9 @@ export default {
 			previewOverList: false,
 			// Formularstand beim Oeffnen, Vergleichsbasis fuer isDirty.
 			snapshot: null,
+			// Zu welchem Formular der letzte Stand der Kostenstellen-Zeilen gehoert
+			// (siehe Watcher allocationLines).
+			allocationFormKey: '',
 			// Laeuft gerade die Rueckfrage "Verwerfen?" - NcModal meldet das
 			// Schliessen doppelt (close und update:show).
 			confirmingClose: false,
@@ -786,6 +808,15 @@ export default {
 		/** Schmales Fenster: Vorschau anstelle der Liste. */
 		previewInFolderColumn() {
 			return this.folderPanelOpen && !this.isMobile && !this.isWide && this.previewFile !== null && this.previewOverList
+		},
+
+		/**
+		 * Die Buchungszeilen, die eine Kostenstelle tragen duerfen - abgeleitet
+		 * wie beim Speichern, siehe lib/allocation.js.
+		 */
+		allocationLines() {
+			if (!this.costCentersEnabled) { return [] }
+			return carryingLines(bookingLines(this.bookingForm, this.bookingMode), this.accountsById)
 		},
 
 		/** Ungespeicherte Aenderungen seit dem Oeffnen? */
@@ -1032,6 +1063,19 @@ export default {
 			})
 		},
 
+		// Kostenstellen folgen ihrer Zeile: wechselt das Konto, zieht die
+		// Verteilung mit; aendert sich der Betrag, wandert die eine Kostenstelle
+		// ueber den ganzen Betrag mit (lib/allocation.js). Nur innerhalb
+		// derselben Buchung - wird das Formular ersetzt, gilt dessen Stand.
+		allocationLines(next, prev) {
+			const formKey = `${this.show ? 1 : 0}|${this.bookingForm.id ?? 'neu'}`
+			const sameForm = formKey === this.allocationFormKey
+			this.allocationFormKey = formKey
+			if (!sameForm || !this.show) { return }
+			const synced = syncAllocations(prev || [], next, this.bookingForm.allocations || {})
+			if (synced !== (this.bookingForm.allocations || {})) { this.updateForm({ allocations: synced }) }
+		},
+
 		'bookingForm.moneyAccountId': function() {
 			// App.vue (Watcher defaultMoneyAccountId) traegt das Standard-Geldkonto
 			// nach, wenn die Konten erst nach dem Oeffnen geladen sind – das ist
@@ -1118,6 +1162,26 @@ export default {
 		 */
 		updateForm(patch) {
 			this.$emit('update:bookingForm', { ...this.bookingForm, ...patch })
+		},
+
+		/** Verteilung einer Zeile auf Kostenstellen (leer = keine). */
+		allocationsOf(accountId) {
+			return (this.bookingForm.allocations || {})[accountId] || []
+		},
+
+		setAllocations(accountId, list) {
+			const allocations = { ...(this.bookingForm.allocations || {}) }
+			// Leer heisst: Schluessel weg - sonst gaelte das Formular schon durch
+			// Auf- und wieder Abwaehlen als geaendert.
+			if (list.length) { allocations[accountId] = list } else { delete allocations[accountId] }
+			this.updateForm({ allocations })
+		},
+
+		/** Bei mehreren Zeilen nennt die Beschriftung das Konto. */
+		allocationLabel(line) {
+			return this.allocationLines.length > 1
+				? this.tRaw('Kostenstelle für {account}', { account: this.accountLabel(line.accountId) })
+				: this.t('Kostenstelle')
 		},
 
 		/**

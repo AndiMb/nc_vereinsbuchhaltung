@@ -14,6 +14,7 @@ use OCA\Vereinsbuchhaltung\Service\BudgetStatusSettings;
 use OCA\Vereinsbuchhaltung\Service\ClubCurrency;
 use OCA\Vereinsbuchhaltung\Service\ClubCurrencySwitchGuard;
 use OCA\Vereinsbuchhaltung\Service\ContributionYearService;
+use OCA\Vereinsbuchhaltung\Service\CostCenterSettings;
 use OCA\Vereinsbuchhaltung\Service\DunningSettings;
 use OCA\Vereinsbuchhaltung\Service\FolderPathValidator;
 use OCA\Vereinsbuchhaltung\Service\ForeignHomeGuard;
@@ -530,6 +531,12 @@ class SettingsController extends Controller {
 			} catch (\InvalidArgumentException $e) {
 				return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
 			}
+		}
+
+		// Kostenstellen an der Buchungszeile (Issue #7). Ausschalten löscht nichts:
+		// die Zuordnungen bleiben gespeichert und werden nur ausgeblendet.
+		if (array_key_exists(CostCenterSettings::SETTING_ENABLED, $params)) {
+			$this->config->setValueString($appId, CostCenterSettings::SETTING_ENABLED, (string)$params[CostCenterSettings::SETTING_ENABLED] === '1' ? '1' : '0');
 		}
 
 		// Rechnungsmodul (Epic #168): Ausstellerangaben und Vorgaben. Das

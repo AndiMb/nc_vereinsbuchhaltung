@@ -915,7 +915,10 @@ to individual postings. Names can be adjusted directly here.
 > trial balance, *including sub-accounts* rolls the children back up into one
 > total. Up to version 0.28.0 a reporting group was called a "cost center";
 > that term was dropped deliberately, because in cost accounting a cost center
-> is precisely the per-line second dimension that this app does not keep.
+> is precisely the per-line second dimension. That second dimension now exists
+> as a separate feature you can switch on: with **cost centres** (chapter 5.8)
+> you split an amount on the same account across several teams without
+> creating sub-accounts.
 
 How the app groups accounts into reporting groups is decided by the
 **reporting-group mode** (the "grouping" selector in the report header,
@@ -1021,6 +1024,79 @@ general equity account).
 **Evaluating:** Reports tab → "Reserves" shows the current balance per type
 as well as the accounts involved – so it's visible at a glance how much has
 already been set aside.
+
+### 5.8 Cost centres (optional)
+
+With **cost centres** you allocate a single amount to a department, a team or
+a project – also in parts. The classic example: €1,000 for jerseys on the
+"Equipment" account, of which €600 is for the seniors and €400 for the
+under-19s. It remains **one** entry on **one** account; you do not need a
+separate account per team.
+
+The feature is **switched off by default**. If you do not need it, you see
+nothing of it.
+
+**Three terms, three questions:**
+
+| Term | Answers | Belongs to |
+|---|---|---|
+| **Sphere** (chapter 5.6) | How is the amount classified for tax purposes? | the account |
+| **Reporting group** (chapter 5.4) | Which accounts belong together in the report? | the account |
+| **Cost centre** | Which department, team or project was the money for? | the individual amount of an entry |
+
+Cost centres have no tax meaning and do not replace the spheres.
+
+**Switching on:** *Settings → Vereinsbuchhaltung → Cost centres → Enable cost
+centres* (administrators only).
+
+**Creating:** **Reports → Cost centres → Manage cost centres** tab. Each cost
+centre has a code (at most eight characters, e.g. `SEN`) and a name. A cost
+centre that already has amounts allocated cannot be deleted, but it can be
+**deactivated**: it is then no longer offered when posting, and its previous
+amounts remain in the report.
+
+**Allocating when posting:** in the entry dialog the **Cost centre** field
+appears below the entry text as soon as an income or expense account is
+selected. Entering one is always optional.
+
+- Select one cost centre – the whole amount of the line is allocated.
+- **Split across several…** – one amount per cost centre. Whatever you do not
+  allocate stays "without cost centre"; that is allowed. You cannot allocate
+  more than the amount of the line.
+- When an amount is split across several contra accounts (*Split amount*),
+  every line has its own field. The same applies to **"Split…"** when
+  assigning a bank transaction (chapter 4.1).
+
+Money, balance-sheet and transit accounts carry no cost centre. Entries with
+a cost centre show a small label with the code in the entry list (with
+several, e.g. "SEN +1"). If you later change the amount of a line, a single
+cost centre follows it; a split across several stays as it is and may need
+adjusting.
+
+Automatically created entries – from rules, invoices, expense claims and
+SEPA collection – are created without a cost centre. You can add one on the
+entry afterwards.
+
+**Evaluating:** the **Reports → Cost centres** tab shows, per cost centre,
+income and expenses by account and the result, followed by the **Without cost
+centre** block with everything that is not allocated. The grand total at the
+end is the same as in the other reports; the report states this explicitly
+("matches the result according to the account balances"). A click on an
+account leads to its entries. **Print** and **CSV** provide the report ready
+to print or as a table.
+
+With the feature switched on, the journal export (CSV) gets an additional
+last column **Kostenstellen**, e.g. `SEN 600,00 | AJU 400,00`. The existing
+columns keep their position.
+
+**Switching off again:** field, label, report and export column disappear.
+The saved allocations are kept – even if you edit entries in the meantime –
+and reappear as soon as you switch the feature on again. Only if you change
+the account or the amount of a line while the feature is off does that line
+lose its allocation.
+
+**Delete all data** (chapter 12.1) also removes the cost centres and their
+allocations.
 
 ---
 
