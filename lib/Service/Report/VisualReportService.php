@@ -7,6 +7,7 @@ namespace OCA\Vereinsbuchhaltung\Service\Report;
 use OCA\Vereinsbuchhaltung\Db\Account;
 use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
 use OCA\Vereinsbuchhaltung\Service\BudgetOverviewService;
+use OCA\Vereinsbuchhaltung\Service\BudgetStatusSettings;
 use OCA\Vereinsbuchhaltung\Service\BudgetTree;
 use OCA\Vereinsbuchhaltung\Service\ClubClock;
 use OCA\Vereinsbuchhaltung\Service\LedgerAggregator;
@@ -30,6 +31,7 @@ class VisualReportService {
 		private PeriodService $periods,
 		private JournalLineMapper $lines,
 		private ClubClock $clock,
+		private BudgetStatusSettings $statusSettings,
 	) {
 	}
 
@@ -46,7 +48,7 @@ class VisualReportService {
 		$data = $this->structured->planActual($userId, $period, $resolved['until']);
 		[$planLevel, $totals, $coveredIds] = $this->planLevel($data['accounts'], $data['plan'], $data['actual']);
 
-		$thresholds = BudgetStatus::DEFAULTS;
+		$thresholds = $this->statusSettings->thresholds();
 		$visual = VisualReportBuilder::build($report['rows'], $planLevel, $totals, $resolved['elapsed'], $resolved['total'], $thresholds, $coveredIds);
 
 		return [

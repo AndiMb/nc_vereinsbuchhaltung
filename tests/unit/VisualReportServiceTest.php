@@ -7,11 +7,13 @@ namespace OCA\Vereinsbuchhaltung\Tests\Unit;
 use OCA\Vereinsbuchhaltung\Db\Account;
 use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
 use OCA\Vereinsbuchhaltung\Db\Period;
+use OCA\Vereinsbuchhaltung\Service\BudgetStatusSettings;
 use OCA\Vereinsbuchhaltung\Service\PeriodService;
 use OCA\Vereinsbuchhaltung\Service\Report\BudgetStatus;
 use OCA\Vereinsbuchhaltung\Service\Report\StructuredReportService;
 use OCA\Vereinsbuchhaltung\Service\Report\VisualReportService;
 use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubClockStub;
+use OCP\IAppConfig;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
@@ -24,6 +26,8 @@ class VisualReportServiceTest extends TestCase {
 	private PeriodService&MockObject $periods;
 	private JournalLineMapper&MockObject $lines;
 	private Period $period;
+	/** @var array<string, string> App-Konfiguration für BudgetStatusSettings */
+	private array $store = [];
 
 	protected function setUp(): void {
 		$this->period = new Period();
@@ -50,7 +54,10 @@ class VisualReportServiceTest extends TestCase {
 	}
 
 	private function service(string $utcNow = '2026-11-10 10:00:00'): VisualReportService {
-		return new VisualReportService($this->structured, $this->periods, $this->lines, ClubClockStub::at($utcNow));
+		// BudgetStatusSettings ist final: echte Instanz über einen In-Memory-Konfigurationsspeicher.
+		$config = $this->createMock(IAppConfig::class);
+		$config->method('getValueString')->willReturnCallback(fn (string $app, string $key, string $default = '') => $this->store[$key] ?? $default);
+		return new VisualReportService($this->structured, $this->periods, $this->lines, ClubClockStub::at($utcNow), new BudgetStatusSettings($config));
 	}
 
 	private function report(): array {
@@ -242,11 +249,35 @@ class VisualReportServiceTest extends TestCase {
 		$this->service()->build('u', self::TEMPLATE, null, '2026-13');
 	}
 
-	public function testThresholdsAreDefaults(): void {
+	public function testThresholdsAreDefaultsWithoutSetting(): void {
 		$this->structured->method('build')->willReturn($this->report());
 
 		$result = $this->service()->build('u', self::TEMPLATE, null, null);
 
 		$this->assertSame(BudgetStatus::DEFAULTS, $result['thresholds']);
+	}
+
+	public function testThresholdsFollowSettings(): void {
+		$configured = ['expWarn' => 95, 'expCrit' => 130, 'incGood' => 90, 'incWarn' => 50, 'resTol' => 5];
+		$this->store[BudgetStatusSettings::KEY] = (string)json_encode($configured);
+		$row = static fn (int $id, string $number, int $plan, int $actual): array => [
+			'kind' => 'account', 'depth' => 0, 'label' => 'Konto ' . $number, 'nature' => 'expense',
+			'accountId' => $id, 'number' => $number, 'flags' => [], 'values' => [$plan, $actual],
+		];
+		$report = $this->report();
+		$report['rows'] = [$row(1, '5000', 100000, 90000)];
+		$this->structured = $this->createMock(StructuredReportService::class);
+		$this->structured->method('build')->willReturn($report);
+		$this->structured->method('planActual')->willReturn([
+			'accounts' => [$this->account(1, null, 'expense', '5000')],
+			'plan' => [1 => 100000],
+			'actual' => [1 => 90000],
+		]);
+
+		$result = $this->service()->build('u', self::TEMPLATE, null, null);
+
+		$this->assertSame($configured, $result['thresholds']);
+		// 90 % ausgeschöpft: mit den Vorgaben (orange ab 80 %) „warn“, hier erst ab 95 %.
+		$this->assertSame('good', $result['rows'][0]['status']['year']['level']);
 	}
 }

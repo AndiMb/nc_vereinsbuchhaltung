@@ -57,6 +57,7 @@ class FrontendStateService {
 		private InvoiceSettings $invoiceSettings,
 		private ReimbursementSettings $reimbursementSettings,
 		private ClubCurrency $currency,
+		private BudgetStatusSettings $budgetStatusSettings,
 	) {
 	}
 
@@ -187,6 +188,8 @@ class FrontendStateService {
 			// und die Zahl der Verwalter, die zur Wahl von N passen muss (N+1).
 			'reimbursement_enabled' => $this->reimbursementSettings->isEnabled(),
 			'reimbursement_required_approvals' => $this->reimbursementSettings->requiredApprovals(),
+			// Ampel-Schwellen der visuellen Gliederungsansicht, vereinsweit.
+			BudgetStatusSettings::KEY => $this->budgetStatusSettings->thresholds(),
 		] + $this->invoiceSettings->all();
 	}
 

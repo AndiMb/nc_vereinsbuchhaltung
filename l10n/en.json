@@ -4449,7 +4449,25 @@
         "{art}: Ist {betrag} zum Stand, Hochrechnung {hochrechnung} zum Periodenende": "{art}: actual {betrag} as of the snapshot, forecast {hochrechnung} for the end of the period",
         "{art} (Hochrechnung)": "{art} (forecast)",
         "{art} (Plan)": "{art} (plan)",
-        "Die Periode hat noch nicht begonnen – der Verlauf erscheint ab ihrem ersten Monat.": "The period has not started yet – the trend appears from its first month."
+        "Die Periode hat noch nicht begonnen – der Verlauf erscheint ab ihrem ersten Monat.": "The period has not started yet – the trend appears from its first month.",
+        "Diese Schwellen gelten vereinsweit für die visuelle Ansicht des Gliederungsberichts.": "These thresholds apply club-wide to the visual view of the structured report.",
+        "Standardwerte": "Default values",
+        "Ausgaben: orange ab": "Expenses: orange from",
+        "darunter grün": "below that green",
+        "Ausgaben: rot über": "Expenses: red above",
+        "zwischen beiden Werten orange": "orange between the two values",
+        "Einnahmen: grün ab": "Income: green from",
+        "Planwert erreicht": "plan value reached",
+        "Einnahmen: rot unter": "Income: red below",
+        "dazwischen orange": "orange in between",
+        "Ergebnis: rot, wenn mehr als": "Result: red if more than",
+        "bis dahin orange; Ergebnis ≥ Plan = grün": "orange up to that point; result ≥ plan = green",
+        "Jede Ampel-Schwelle muss eine ganze Zahl zwischen {min} und {max} sein.": "Each status threshold must be a whole number between {min} and {max}.",
+        "Bei den Ausgaben muss die Schwelle für Orange unter der für Rot liegen.": "For expenses, the orange threshold must be below the red one.",
+        "Bei den Einnahmen muss die Schwelle für Rot unter der für Grün liegen.": "For income, the red threshold must be below the green one.",
+        "Ampel im Gliederungsbericht": "Status in the structured report",
+        "Die Ampel-Schwellen sind unvollständig.": "The status thresholds are incomplete.",
+        "Jede Ampel-Schwelle muss eine ganze Zahl zwischen %1$d und %2$d sein.": "Each status threshold must be a whole number between %1$d and %2$d."
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

@@ -12,6 +12,7 @@ use OCA\Vereinsbuchhaltung\Service\AuditService;
 use OCA\Vereinsbuchhaltung\Service\ClubCurrency;
 use OCA\Vereinsbuchhaltung\Service\ClubCurrencySwitchGuard;
 use OCA\Vereinsbuchhaltung\Service\ContributionYearService;
+use OCA\Vereinsbuchhaltung\Service\BudgetStatusSettings;
 use OCA\Vereinsbuchhaltung\Service\DunningSettings;
 use OCA\Vereinsbuchhaltung\Service\FolderPathValidator;
 use OCA\Vereinsbuchhaltung\Service\ForeignHomeGuard;
@@ -110,6 +111,7 @@ class SettingsControllerForeignHomeTest extends TestCase {
 			new ForeignHomeGuard($permissions, $this->storage, $l10n),
 			$this->createMock(ClubCurrency::class),
 			$this->createMock(ClubCurrencySwitchGuard::class),
+			new BudgetStatusSettings($config),
 		);
 	}
 
