@@ -17,6 +17,8 @@ use OCP\AppFramework\Db\Entity;
  * @method void setContraAccountId(int $contraAccountId)
  * @method int getPriority()
  * @method void setPriority(int $priority)
+ * @method int|null getCostCenterId()
+ * @method void setCostCenterId(?int $costCenterId)
  */
 class Rule extends Entity implements \JsonSerializable {
 	protected $userId;
@@ -24,10 +26,16 @@ class Rule extends Entity implements \JsonSerializable {
 	protected $matchValue;
 	protected $contraAccountId;
 	protected $priority = 0;
+	/**
+	 * Vorgabe-Kostenstelle (vbh_booking_cc.id, Issue #331): greift die Regel
+	 * beim Import, wird der ganze Betrag ihr zugeordnet. null = keine.
+	 */
+	protected $costCenterId;
 
 	public function __construct() {
 		$this->addType('contraAccountId', 'integer');
 		$this->addType('priority', 'integer');
+		$this->addType('costCenterId', 'integer');
 	}
 
 	public function jsonSerialize(): array {
@@ -37,6 +45,7 @@ class Rule extends Entity implements \JsonSerializable {
 			'matchValue' => $this->matchValue,
 			'contraAccountId' => $this->contraAccountId,
 			'priority' => $this->priority,
+			'costCenterId' => $this->costCenterId,
 		];
 	}
 }
