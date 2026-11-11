@@ -4545,5 +4545,11 @@ OC.L10N.register("vereinsbuchhaltung", {
 	"Das Ergebnis entspricht dem Ergebnis laut Kontensalden.": "Het resultaat komt overeen met het resultaat volgens de rekeningsaldi.",
 	"Das Ergebnis weicht vom Ergebnis laut Kontensalden (%s) ab.": "Het resultaat wijkt af van het resultaat volgens de rekeningsaldi (%s).",
 	"Die Kostenstelle „%1$s\" ist noch als Vorgabe eingetragen (%2$s). Sie lässt sich deaktivieren, aber nicht löschen.": "Kostenplaats ‘%1$s’ is nog als standaard ingesteld (%2$s). Deze kan worden gedeactiveerd, maar niet verwijderd.",
-	"Importregeln": "Importregels"
+	"Importregeln": "Importregels",
+	"Pflichtkonten mit offenem Betrag": "Verplichte rekeningen met open bedrag",
+	"Für diese Konten ist eine Kostenstelle vorgesehen. Die genannten Beträge sind noch keiner Kostenstelle zugeordnet.": "Voor deze rekeningen is een kostenplaats voorzien. De genoemde bedragen zijn nog niet aan een kostenplaats toegewezen.",
+	"Kostenstelle verpflichtend": "Kostenplaats verplicht",
+	"Beim Buchen auf dieses Konto erinnert die App an die Kostenstelle; der Bericht „Kostenstellen“ listet nicht zugeordnete Beträge. Speichern bleibt immer möglich.": "Bij het boeken op deze rekening herinnert de app aan de kostenplaats; het rapport ‘Kostenplaatsen’ toont niet-toegewezen bedragen. Opslaan blijft altijd mogelijk.",
+	"Für dieses Konto ist eine Kostenstelle vorgesehen; {amount} sind noch nicht zugeordnet.": "Voor deze rekening is een kostenplaats voorzien; {amount} is nog niet toegewezen.",
+	"Für diese Konten ist eine Kostenstelle vorgesehen. Die Beträge sind noch keiner Kostenstelle zugeordnet – ein Klick auf das Konto führt zu den Buchungen.": "Voor deze rekeningen is een kostenplaats voorzien. De bedragen zijn nog niet aan een kostenplaats toegewezen – klik op de rekening om de boekingen te zien."
 }, "nplurals=2; plural=(n != 1);");

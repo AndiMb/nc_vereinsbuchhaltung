@@ -44,6 +44,7 @@ class CostCenterAllocationExport {
 
 		$h = PrintableReportPage::printHint($this->l10n->t('Zum Drucken oder Als-PDF-Speichern: <strong>Strg+P</strong> (Mac: ⌘P) im Browser.'));
 		$h .= PrintableReportPage::header(null, $clubName, $heading, $meta);
+		$h .= $this->requiredOpenSection($report['requiredOpen'] ?? []);
 
 		foreach ($report['centers'] as $center) {
 			$title = trim($center['code'] . ' – ' . $center['name'], ' –');
@@ -78,6 +79,11 @@ class CostCenterAllocationExport {
 		$report = $this->report->report($userId, $periodId);
 		$csv = self::BOM;
 		$csv .= CsvFormatter::line(['Kostenstelle', 'Art', 'Konto-Nr.', 'Konto', 'Betrag (' . $this->currency->code() . ')']);
+
+		// Pflichtkonten mit offenem Betrag (Issue #334) vorweg.
+		foreach ($report['requiredOpen'] ?? [] as $row) {
+			$csv .= CsvFormatter::line(['Pflichtkonto offen', $row['kind'] === 'income' ? 'Einnahme' : 'Ausgabe', $row['number'], $row['name'], ReportFormat::money($row['amountCents'] / 100)]);
+		}
 
 		$blocks = [];
 		foreach ($report['centers'] as $center) {
@@ -129,6 +135,25 @@ class CostCenterAllocationExport {
 			$h .= $this->sumRow($this->l10n->t('Summe %s', [$label]), $block[$key . 'Cents']);
 		}
 		$h .= $this->sumRow($this->l10n->t('Ergebnis'), $block['resultCents']);
+		return $h . '</table></section>';
+	}
+
+	/**
+	 * Abschnitt „Pflichtkonten mit offenem Betrag“ (Issue #334); leer, wenn es keine gibt.
+	 *
+	 * @param list<array{accountId:int, number:string, name:string, amountCents:int, kind:string}> $rows
+	 */
+	private function requiredOpenSection(array $rows): string {
+		if ($rows === []) {
+			return '';
+		}
+		$h = '<section><h2>' . PrintableReportPage::escape($this->l10n->t('Pflichtkonten mit offenem Betrag')) . '</h2>'
+			. '<p>' . PrintableReportPage::escape($this->l10n->t('Für diese Konten ist eine Kostenstelle vorgesehen. Die genannten Beträge sind noch keiner Kostenstelle zugeordnet.')) . '</p><table>';
+		foreach ($rows as $row) {
+			$h .= '<tr><td class="nr">' . PrintableReportPage::escape($row['number']) . '</td>'
+				. '<td>' . PrintableReportPage::escape($row['name']) . '</td>'
+				. '<td class="num">' . ReportFormat::money($row['amountCents'] / 100) . '</td></tr>';
+		}
 		return $h . '</table></section>';
 	}
 

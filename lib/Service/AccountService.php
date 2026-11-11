@@ -99,7 +99,7 @@ class AccountService {
 	 *                    Standard-Kontenrahmens abschalten – der protokolliert sich als
 	 *                    Ganzes, sonst stünden dort 14 einzelne „Konto angelegt")
 	 */
-	public function create(string $userId, string $number, string $name, string $type, ?string $category, bool $isBank, ?int $parentId = null, ?string $sphere = null, ?string $reserveKind = null, ?string $iban = null, ?int $costCenterId = null, bool $countInTotal = true, bool $audit = true, ?string $shortName = null, ?string $description = null): Account {
+	public function create(string $userId, string $number, string $name, string $type, ?string $category, bool $isBank, ?int $parentId = null, ?string $sphere = null, ?string $reserveKind = null, ?string $iban = null, ?int $costCenterId = null, bool $countInTotal = true, bool $audit = true, ?string $shortName = null, ?string $description = null, bool $costCenterRequired = false): Account {
 		$account = new Account();
 		$account->setUserId($userId);
 		$account->setNumber(trim($number));
@@ -115,6 +115,7 @@ class AccountService {
 		// wirkungslos (Account::countsInCashTotal()), aber ein false dort wäre
 		// ein irreführender Rest, wenn das Konto später Geldkonto wird.
 		$account->setCountInTotal($countInTotal);
+		$account->setCostCenterRequired($costCenterRequired && $account->canCarryCostCenter());
 		$account->setActive(true);
 		$account->setSphere($this->validateSphere($sphere));
 		$account->setReserveKind($this->validateReserveKind($reserveKind));
@@ -173,6 +174,9 @@ class AccountService {
 		if (isset($data['active'])) {
 			$account->setActive((bool)$data['active']);
 		}
+		if (isset($data['costCenterRequired'])) {
+			$account->setCostCenterRequired((bool)$data['costCenterRequired']);
+		}
 		if (array_key_exists('sphere', $data)) {
 			$account->setSphere($this->validateSphere((string)$data['sphere']));
 		}
@@ -193,6 +197,13 @@ class AccountService {
 			// Vorgabe (an), damit ein später wieder gesetztes Geldkonto-
 			// Kennzeichen nicht stillschweigend aus der Kopfzeile fällt.
 			$account->setCountInTotal(true);
+		}
+		// „Kostenstelle verpflichtend“ (Issue #334) ergibt nur an einem Konto
+		// Sinn, das eine Kostenstelle tragen darf – nach einem Typwechsel bliebe
+		// es sonst als stiller Rest stehen. Hinter der Typ-Auswertung, damit der
+		// eben gesetzte Typ gilt.
+		if (!$account->canCarryCostCenter()) {
+			$account->setCostCenterRequired(false);
 		}
 		if (array_key_exists('costCenterId', $data)) {
 			// 0/null = keine Kostenstelle; das Konto-Formular sendet das Feld
