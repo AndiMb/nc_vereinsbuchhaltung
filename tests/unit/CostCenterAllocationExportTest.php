@@ -23,7 +23,7 @@ use PHPUnit\Framework\TestCase;
 class CostCenterAllocationExportTest extends TestCase {
 
 	/** @return array<string, mixed> */
-	private function report(bool $reconciled = true): array {
+	private function report(bool $reconciled = true, bool $planned = false): array {
 		$row = static fn (int $id, string $name, int $cents): array => ['accountId' => $id, 'number' => (string)$id, 'name' => $name, 'amountCents' => $cents];
 		return [
 			'centers' => [
@@ -31,7 +31,7 @@ class CostCenterAllocationExportTest extends TestCase {
 					'id' => 5, 'code' => 'AJU', 'name' => 'A-Junioren', 'active' => true,
 					'income' => [], 'expense' => [$row(5300, 'Ausrüstung', 40000)],
 					'incomeCents' => 0, 'expenseCents' => 40000, 'resultCents' => -40000,
-				],
+				] + ($planned ? ['plan' => ['incomeCents' => 10000, 'expenseCents' => 55000, 'resultCents' => -45000]] : []),
 				[
 					'id' => 3, 'code' => 'SEN', 'name' => 'Senioren <1.>', 'active' => false,
 					'income' => [$row(4000, 'Beiträge', 30000)], 'expense' => [$row(5300, 'Ausrüstung', 60000)],
@@ -45,12 +45,12 @@ class CostCenterAllocationExportTest extends TestCase {
 			'total' => ['incomeCents' => 30000, 'expenseCents' => 223456, 'resultCents' => -193456],
 			'ledgerResultCents' => $reconciled ? -193456 : -200000,
 			'reconciled' => $reconciled,
-		];
+		] + ($planned ? ['planned' => true] : []);
 	}
 
-	private function export(bool $reconciled = true): CostCenterAllocationExport {
+	private function export(bool $reconciled = true, bool $planned = false): CostCenterAllocationExport {
 		$service = $this->createMock(CostCenterAllocationReportService::class);
-		$service->method('report')->willReturn($this->report($reconciled));
+		$service->method('report')->willReturn($this->report($reconciled, $planned));
 		$config = $this->createMock(IAppConfig::class);
 		$config->method('getValueString')->willReturnCallback(static fn (string $app, string $key, string $default = ''): string => $key === 'club_name' ? 'TSV Beispiel' : $default);
 		$l10n = $this->createMock(IL10N::class);
@@ -107,5 +107,38 @@ class CostCenterAllocationExportTest extends TestCase {
 		$this->assertSame(['Ohne Kostenstelle', 'Ausgabe', '5400', 'Miete', '1.234,56'], $rows[4]);
 		$this->assertSame(['Gesamt', 'Ergebnis', '', '', '-1.934,56'], $rows[5]);
 		$this->assertCount(6, $rows);
+	}
+
+	// ---- Budget je Kostenstelle (Issue #335) ----
+
+	/** @return list<list<string|null>> */
+	private function csvRows(CostCenterAllocationExport $export): array {
+		return array_map(
+			static fn (string $line): array => str_getcsv($line, ';'),
+			array_values(array_filter(preg_split('/\r?\n/', substr($export->csv('u', null)->content, 3)) ?: [], static fn (string $l): bool => $l !== '')),
+		);
+	}
+
+	public function testDruckseiteZeigtPlanIstAbweichung(): void {
+		$html = $this->export(true, true)->html('u', null);
+		// AJU: Plan Ausgaben 550,00, Ist 400,00, Abweichung -150,00; Plan-Ergebnis -450,00, Ist -400,00, Abweichung 50,00.
+		foreach (['Plan', 'Abweichung', '550,00', '-150,00', '-450,00', '50,00', '100,00'] as $needle) {
+			$this->assertStringContainsString($needle, $html);
+		}
+	}
+
+	public function testOhnePlanBleibenDruckseiteUndCsvWieBisher(): void {
+		$html = $this->export()->html('u', null);
+		$this->assertStringNotContainsString('Abweichung', $html);
+		$this->assertStringNotContainsString('Plan', $html);
+		$this->assertCount(6, $this->csvRows($this->export()));
+	}
+
+	public function testCsvNenntPlanwerte(): void {
+		$rows = $this->csvRows($this->export(true, true));
+		$this->assertContains(['AJU A-Junioren', 'Plan Einnahmen', '', '', '100,00'], $rows);
+		$this->assertContains(['AJU A-Junioren', 'Plan Ausgaben', '', '', '550,00'], $rows);
+		// Die Kostenstelle ohne Plan bekommt keine Planzeilen.
+		$this->assertCount(8, $rows);
 	}
 }

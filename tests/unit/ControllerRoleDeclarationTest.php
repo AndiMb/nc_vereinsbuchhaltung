@@ -124,6 +124,7 @@ class ControllerRoleDeclarationTest extends TestCase {
 		'BookingCostCenterController',
 		'BrandingController',
 		'BudgetController',
+		'CostCenterBudgetController',
 		'CostCenterController',
 		'CostCenterReportController',
 		'DemoController',

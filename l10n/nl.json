@@ -4555,7 +4555,9 @@
         "Für diese Konten ist eine Kostenstelle vorgesehen. Die Beträge sind noch keiner Kostenstelle zugeordnet – ein Klick auf das Konto führt zu den Buchungen.": "Voor deze rekeningen is een kostenplaats voorzien. De bedragen zijn nog niet aan een kostenplaats toegewezen – klik op de rekening om de boekingen te zien.",
         "Rechnungspositionen": "Factuurregels",
         "Position %d: Die Kostenstelle gibt es nicht.": "Regel %d: de kostenplaats bestaat niet.",
-        "Beiträge dieser Gruppe werden beim Verbuchen des Einzugs dieser Kostenstelle zugeordnet.": "Bijdragen van deze groep worden bij het boeken van de incasso aan deze kostenplaats toegewezen."
+        "Beiträge dieser Gruppe werden beim Verbuchen des Einzugs dieser Kostenstelle zugeordnet.": "Bijdragen van deze groep worden bij het boeken van de incasso aan deze kostenplaats toegewezen.",
+        "Planwerte dürfen nicht negativ sein.": "Geplande waarden mogen niet negatief zijn.",
+        "Abweichung": "Afwijking"
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

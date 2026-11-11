@@ -11,6 +11,7 @@ use OCA\Vereinsbuchhaltung\Db\BankTxSepaDetailMapper;
 use OCA\Vereinsbuchhaltung\Db\BookingCostCenterMapper;
 use OCA\Vereinsbuchhaltung\Db\BudgetMapper;
 use OCA\Vereinsbuchhaltung\Db\ContributionGroupMapper;
+use OCA\Vereinsbuchhaltung\Db\CostCenterBudgetMapper;
 use OCA\Vereinsbuchhaltung\Db\CostCenterMapper;
 use OCA\Vereinsbuchhaltung\Db\IncomingPaymentRejectionMapper;
 use OCA\Vereinsbuchhaltung\Db\InvoiceBatchMapper;
@@ -72,6 +73,7 @@ class ResetService {
 		private LineAllocationMapper $lineAllocations,
 		private BookingCostCenterMapper $bookingCostCenters,
 		private ContributionGroupMapper $contributionGroups,
+		private CostCenterBudgetMapper $costCenterBudgets,
 	) {
 	}
 
@@ -109,6 +111,8 @@ class ResetService {
 			// den Zeilen und geht mit ihnen, die Stammdaten gehen wie die
 			// Auswertungsgruppen mit dem Kontenplan.
 			$this->lineAllocations->deleteAll();
+			// Budget je Kostenstelle (Issue #335): Kostenstellen und Geschäftsjahre gehen beide.
+			$this->costCenterBudgets->deleteAll();
 			$this->bookingCostCenters->deleteAllForUser($userId);
 			// Beitragsgruppen bleiben stehen; ihre Vorgabe-Kostenstelle (Issue #333)
 			// zeigte sonst auf eine gelöschte – oder später auf eine fremde, neue.

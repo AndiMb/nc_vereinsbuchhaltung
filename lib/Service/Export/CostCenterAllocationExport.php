@@ -51,7 +51,7 @@ class CostCenterAllocationExport {
 			if (!$center['active']) {
 				$title .= ' (' . $this->l10n->t('inaktiv') . ')';
 			}
-			$h .= $this->block($title, $center);
+			$h .= $this->block($title, $center, $center['plan'] ?? null);
 		}
 		$h .= $this->block($this->l10n->t('Ohne Kostenstelle'), $report['unassigned']);
 
@@ -91,6 +91,11 @@ class CostCenterAllocationExport {
 		}
 		$blocks[] = ['Ohne Kostenstelle', $report['unassigned']];
 		foreach ($blocks as [$label, $block]) {
+			// Budget der Kostenstelle (Issue #335): zwei Zeilen ohne Konto, vor ihren Ist-Zeilen.
+			if (($block['plan'] ?? null) !== null) {
+				$csv .= CsvFormatter::line([$label, 'Plan Einnahmen', '', '', ReportFormat::money($block['plan']['incomeCents'] / 100)]);
+				$csv .= CsvFormatter::line([$label, 'Plan Ausgaben', '', '', ReportFormat::money($block['plan']['expenseCents'] / 100)]);
+			}
 			foreach (['Einnahme' => $block['income'], 'Ausgabe' => $block['expense']] as $kind => $rows) {
 				foreach ($rows as $row) {
 					$csv .= CsvFormatter::line([$label, $kind, $row['number'], $row['name'], ReportFormat::money($row['amountCents'] / 100)]);
@@ -115,12 +120,13 @@ class CostCenterAllocationExport {
 	 * Ein Block des Berichts: Einnahmen und Ausgaben nach Konten, darunter das Ergebnis.
 	 *
 	 * @param array<string, mixed> $block
+	 * @param array{incomeCents:int, expenseCents:int, resultCents:int}|null $plan Budget der Kostenstelle (Issue #335)
 	 */
-	private function block(string $title, array $block): string {
-		if ($block['income'] === [] && $block['expense'] === []) {
+	private function block(string $title, array $block, ?array $plan = null): string {
+		if ($block['income'] === [] && $block['expense'] === [] && $plan === null) {
 			return '';
 		}
-		$h = '<section><h2>' . PrintableReportPage::escape($title) . '</h2><table>';
+		$h = '<section><h2>' . PrintableReportPage::escape($title) . '</h2>' . $this->planTable($block, $plan) . '<table>';
 		foreach ([$this->l10n->t('Einnahmen') => 'income', $this->l10n->t('Ausgaben') => 'expense'] as $label => $key) {
 			if ($block[$key] === []) {
 				continue;
@@ -155,6 +161,31 @@ class CostCenterAllocationExport {
 				. '<td class="num">' . ReportFormat::money($row['amountCents'] / 100) . '</td></tr>';
 		}
 		return $h . '</table></section>';
+	}
+
+	/**
+	 * Plan, Ist und Abweichung (Ist − Plan) für Einnahmen, Ausgaben und Ergebnis; leer ohne Plan.
+	 *
+	 * @param array<string, mixed> $block
+	 * @param array{incomeCents:int, expenseCents:int, resultCents:int}|null $plan
+	 */
+	private function planTable(array $block, ?array $plan): string {
+		if ($plan === null) {
+			return '';
+		}
+		$h = '<table><tr><th></th>';
+		foreach ([$this->l10n->t('Plan'), $this->l10n->t('Ist'), $this->l10n->t('Abweichung')] as $head) {
+			$h .= '<th class="num">' . PrintableReportPage::escape($head) . '</th>';
+		}
+		$h .= '</tr>';
+		foreach ([$this->l10n->t('Einnahmen') => 'incomeCents', $this->l10n->t('Ausgaben') => 'expenseCents', $this->l10n->t('Ergebnis') => 'resultCents'] as $label => $key) {
+			$actual = (int)$block[$key];
+			$h .= '<tr><td>' . PrintableReportPage::escape($label) . '</td>'
+				. '<td class="num">' . ReportFormat::money($plan[$key] / 100) . '</td>'
+				. '<td class="num">' . ReportFormat::money($actual / 100) . '</td>'
+				. '<td class="num">' . ReportFormat::money(($actual - $plan[$key]) / 100) . '</td></tr>';
+		}
+		return $h . '</table>';
 	}
 
 	private function sumRow(string $label, int $cents): string {

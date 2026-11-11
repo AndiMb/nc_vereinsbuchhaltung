@@ -79,6 +79,8 @@ return [
 		['name' => 'bookingCostCenter#create', 'url' => '/api/booking-cost-centers', 'verb' => 'POST'],
 		['name' => 'bookingCostCenter#update', 'url' => '/api/booking-cost-centers/{id}', 'verb' => 'PUT'],
 		['name' => 'bookingCostCenter#destroy', 'url' => '/api/booking-cost-centers/{id}', 'verb' => 'DELETE'],
+		['name' => 'costCenterBudget#index', 'url' => '/api/cost-center-budgets', 'verb' => 'GET'],
+		['name' => 'costCenterBudget#set', 'url' => '/api/cost-center-budgets', 'verb' => 'PUT'],
 		['name' => 'costCenterReport#index', 'url' => '/api/report/cost-center-allocations', 'verb' => 'GET'],
 		['name' => 'costCenterReport#print', 'url' => '/api/export/cost-center-allocations', 'verb' => 'GET'],
 		['name' => 'costCenterReport#csv', 'url' => '/api/export/cost-center-allocations-csv', 'verb' => 'GET'],

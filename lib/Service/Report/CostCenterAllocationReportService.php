@@ -8,6 +8,7 @@ use OCA\Vereinsbuchhaltung\Db\Account;
 use OCA\Vereinsbuchhaltung\Db\AccountMapper;
 use OCA\Vereinsbuchhaltung\Db\BookingCostCenter;
 use OCA\Vereinsbuchhaltung\Db\BookingCostCenterMapper;
+use OCA\Vereinsbuchhaltung\Db\CostCenterBudgetMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
 use OCA\Vereinsbuchhaltung\Db\LineAllocationMapper;
 use OCA\Vereinsbuchhaltung\Service\LedgerAggregator;
@@ -35,6 +36,8 @@ class CostCenterAllocationReportService {
 		private LineAllocationMapper $allocations,
 		private BookingCostCenterMapper $costCenters,
 		private PeriodService $periods,
+		// Budget je Kostenstelle (Issue #335); ohne den Mapper gibt es keinen Plan.
+		private ?CostCenterBudgetMapper $budgets = null,
 	) {
 	}
 
@@ -48,6 +51,8 @@ class CostCenterAllocationReportService {
 			$this->lines->sumByAccount($userId, $from, $to),
 			$this->allocations->sumByCostCenterAndAccount($userId, $from, $to),
 			$this->costCenters->findAll($userId),
+			// Einen Plan gibt es je Geschäftsjahr – bei „alle Zeiträume“ keinen.
+			PeriodService::isSelected($periodId) ? ($this->budgets?->findByPeriod((int)$periodId) ?? []) : [],
 		);
 	}
 
@@ -59,16 +64,18 @@ class CostCenterAllocationReportService {
 	 * @param list<array{costCenterId:int, accountId:int, debit:int, credit:int}> $allocSums
 	 *                                                                                       verteilte Beträge je Kostenstelle und Konto, nach Seite der Zeile
 	 * @param iterable<BookingCostCenter> $costCenters
+	 * @param array<int, array{incomeCents:int, expenseCents:int}> $plans Kostenstelle => Planwerte des Zeitraums (Issue #335)
 	 * @return array{
 	 *     centers: list<array<string, mixed>>,
 	 *     unassigned: array<string, mixed>,
 	 *     total: array{incomeCents:int, expenseCents:int, resultCents:int},
 	 *     ledgerResultCents:int,
 	 *     reconciled:bool,
+	 *     planned:bool,
 	 *     requiredOpen: list<array{accountId:int, number:string, name:string, amountCents:int, kind:string}>
 	 * }
 	 */
-	public static function compute(iterable $accounts, array $ledgerSums, array $allocSums, iterable $costCenters): array {
+	public static function compute(iterable $accounts, array $ledgerSums, array $allocSums, iterable $costCenters, array $plans = []): array {
 		// Alles, was ins Ergebnis eingeht – auch Konten, die keine Kostenstelle
 		// tragen dürfen (Durchlaufkonten): sie stehen ganz im Rest, sonst
 		// stimmte die Schlusssumme nicht mit den Kontensalden überein.
@@ -106,10 +113,21 @@ class CostCenterAllocationReportService {
 		foreach ($costCenters as $costCenter) {
 			$known[$costCenter->getId()] = $costCenter;
 		}
+		// Planwerte nur für Kostenstellen, die es gibt; beide 0 ist kein Plan.
+		$planOf = [];
+		foreach ($plans as $centerId => $plan) {
+			$income = (int)$plan['incomeCents'];
+			$expense = (int)$plan['expenseCents'];
+			if (isset($known[$centerId]) && ($income !== 0 || $expense !== 0)) {
+				$planOf[$centerId] = ['incomeCents' => $income, 'expenseCents' => $expense, 'resultCents' => $income - $expense];
+				// Geplant, aber noch nichts gebucht: die Kostenstelle erscheint trotzdem.
+				$byCenter[$centerId] ??= [];
+			}
+		}
 		$centers = [];
 		foreach ($byCenter as $centerId => $sums) {
 			$block = self::block($relevant, $sums);
-			if ($block['income'] === [] && $block['expense'] === []) {
+			if ($block['income'] === [] && $block['expense'] === [] && !isset($planOf[$centerId])) {
 				continue;
 			}
 			$costCenter = $known[$centerId] ?? null;
@@ -118,7 +136,7 @@ class CostCenterAllocationReportService {
 				'code' => $costCenter !== null ? (string)$costCenter->getCode() : '#' . $centerId,
 				'name' => $costCenter !== null ? (string)$costCenter->getName() : '',
 				'active' => $costCenter !== null && $costCenter->isActive(),
-			] + $block;
+			] + $block + ['plan' => $planOf[$centerId] ?? null];
 		}
 		usort($centers, static fn (array $a, array $b): int => strnatcasecmp($a['code'], $b['code']));
 
@@ -138,6 +156,7 @@ class CostCenterAllocationReportService {
 			'ledgerResultCents' => $ledger['resultCents'],
 			'reconciled' => $total['resultCents'] === $ledger['resultCents'],
 			'requiredOpen' => self::requiredOpen($relevant, $rest),
+			'planned' => $planOf !== [],
 		];
 	}
 
