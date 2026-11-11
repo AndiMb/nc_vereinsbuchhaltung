@@ -12,6 +12,9 @@ use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Exception\ConflictException;
 use OCA\Vereinsbuchhaltung\Service\AccountStatementService;
 use OCA\Vereinsbuchhaltung\Service\ClubCurrency;
+use OCA\Vereinsbuchhaltung\Service\CostCenter\AllocationRules;
+use OCA\Vereinsbuchhaltung\Service\CostCenter\LineAllocationWriter;
+use OCA\Vereinsbuchhaltung\Service\CostCenterSettings;
 use OCA\Vereinsbuchhaltung\Service\JournalService;
 use OCA\Vereinsbuchhaltung\Service\LedgerAggregator;
 use OCA\Vereinsbuchhaltung\Service\PeriodService;
@@ -38,6 +41,8 @@ class JournalController extends Controller {
 		private AccountStatementService $statements,
 		private IL10N $l10n,
 		private ClubCurrency $currency,
+		private CostCenterSettings $costCenterSettings,
+		private LineAllocationWriter $allocations,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -54,11 +59,24 @@ class JournalController extends Controller {
 			static fn ($journal): int => $journal->getId(),
 			$journals,
 		));
+		// Kostenstellen an der Buchungszeile (Issue #7): nur bei eingeschaltetem
+		// Modul trägt jede Zeile `allocations`. Ausgeschaltet bleibt die Antwort
+		// zeichengleich zum Stand davor, ohne zusätzliche Abfrage.
+		$allocations = $this->costCenterSettings->isEnabled()
+			? $this->allocations->forJournals(array_keys($linesByJournal))
+			: null;
 		$out = [];
 		foreach ($journals as $journal) {
+			$lines = $linesByJournal[$journal->getId()] ?? [];
+			if ($allocations !== null) {
+				$lines = array_map(
+					static fn ($line): array => $line->jsonSerialize() + ['allocations' => $allocations[$line->getId()] ?? []],
+					$lines,
+				);
+			}
 			$out[] = [
 				'journal' => $journal,
-				'lines' => $linesByJournal[$journal->getId()] ?? [],
+				'lines' => $lines,
 			];
 		}
 		return new DataResponse($out);
@@ -227,7 +245,7 @@ class JournalController extends Controller {
 	 *                                                                                 dahin umgewandelten – der Aufrufer wertet sie dann nicht aus)
 	 * @return string|null Fehlermeldung oder null, wenn alles in Ordnung ist
 	 */
-	private function parseLines(array $raw, array &$lines): ?string {
+	private function parseLines(array $raw, array &$lines, ?int $journalId = null): ?string {
 		$lines = [];
 		foreach ($raw as $entry) {
 			if (!is_array($entry)) {
@@ -236,11 +254,18 @@ class JournalController extends Controller {
 			// Erst je Zeile auf Cent runden, dann summieren lassen: prüfte man
 			// die Summen in Euro, gingen sie bei krummen Beträgen (z.B. 33,33 +
 			// 33,33 + 33,34) um einen Cent auseinander.
-			$lines[] = [
+			$line = [
 				'accountId' => (int)($entry['accountId'] ?? 0),
 				'debitCents' => (int)round(((float)($entry['debit'] ?? 0)) * 100),
 				'creditCents' => (int)round(((float)($entry['credit'] ?? 0)) * 100),
 			];
+			// Verteilung auf Kostenstellen (Issue #7). Fehlt der Schlüssel, bleibt
+			// er auch hier weg: das heißt "nichts gesagt", nicht "keine".
+			$allocations = AllocationRules::parseEuro($entry);
+			if ($allocations !== null) {
+				$line['allocations'] = $allocations;
+			}
+			$lines[] = $line;
 		}
 		$error = JournalService::validateLines($lines);
 		if ($error !== null) {
@@ -254,7 +279,10 @@ class JournalController extends Controller {
 				return $this->l10n->t('Ein Konto der Buchung wurde nicht gefunden.');
 			}
 		}
-		return null;
+		// Beim Ändern zählt der bisherige Stand mit: eine inzwischen deaktivierte
+		// Kostenstelle bleibt an ihrer Zeile gültig.
+		$snapshot = $journalId !== null ? $this->allocations->snapshot($journalId) : [];
+		return $this->allocations->check($userId, $lines, $snapshot);
 	}
 
 	/**
@@ -312,7 +340,7 @@ class JournalController extends Controller {
 	 */
 	#[NoAdminRequired]
 	public function update(int $id, string $date, string $description, int $debitAccountId = 0, int $creditAccountId = 0, float $amount = 0, ?string $documentRef = null, ?string $updatedAt = null, array $lines = []): DataResponse {
-		[$error, $bookingLines] = $this->prepareLines($date, $debitAccountId, $creditAccountId, $amount, $lines);
+		[$error, $bookingLines] = $this->prepareLines($date, $debitAccountId, $creditAccountId, $amount, $lines, $id);
 		if ($error !== null) {
 			return new DataResponse(['message' => $error], Http::STATUS_BAD_REQUEST);
 		}
@@ -334,12 +362,12 @@ class JournalController extends Controller {
 	 * @return array{0: ?string, 1: array<int, array{accountId:int, debitCents:int, creditCents:int}>}
 	 *                                                                                                 Fehlermeldung (oder null) und die Zeilen
 	 */
-	private function prepareLines(string $date, int $debitAccountId, int $creditAccountId, float $amount, array $rawLines): array {
+	private function prepareLines(string $date, int $debitAccountId, int $creditAccountId, float $amount, array $rawLines, ?int $journalId = null): array {
 		if ($rawLines !== []) {
 			// Vorbelegt, weil parseLines() bei einem Datumsfehler gar nicht
 			// erst aufgerufen wird (?? kürzt ab) und $lines dann ungesetzt bliebe.
 			$lines = [];
-			$error = $this->validateDate($date) ?? $this->parseLines($rawLines, $lines);
+			$error = $this->validateDate($date) ?? $this->parseLines($rawLines, $lines, $journalId);
 			return [$error, $lines];
 		}
 		$cents = (int)round($amount * 100);

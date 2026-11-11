@@ -29,6 +29,36 @@ final class AllocationRules {
 	private const CARRYING_TYPES = ['income', 'expense'];
 
 	/**
+	 * Liest die Verteilung einer Zeile aus einem Request (Beträge in Euro).
+	 *
+	 * Je Eintrag wird einzeln auf Cent gerundet; summierte man in Euro,
+	 * gingen krumme Beträge (33,33 + 33,33 + 33,34) um einen Cent daneben.
+	 *
+	 * @param array<string, mixed> $entry Zeile oder Teil mit optionalem `allocations`
+	 * @return list<array{costCenterId:int, amountCents:int}>|null null, wenn der
+	 *                                                             Schlüssel fehlt – der Aufrufer hat dann nichts gesagt
+	 */
+	public static function parseEuro(array $entry): ?array {
+		if (!isset($entry['allocations'])) {
+			return null;
+		}
+		if (!is_array($entry['allocations'])) {
+			return [];
+		}
+		$out = [];
+		foreach ($entry['allocations'] as $allocation) {
+			if (!is_array($allocation)) {
+				continue;
+			}
+			$out[] = [
+				'costCenterId' => (int)($allocation['costCenterId'] ?? 0),
+				'amountCents' => (int)round(((float)($allocation['amount'] ?? 0)) * 100),
+			];
+		}
+		return $out;
+	}
+
+	/**
 	 * Prüft die Verteilungen aller Zeilen, die eine angeben.
 	 *
 	 * @param list<array<string, mixed>> $lines
