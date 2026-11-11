@@ -32,6 +32,7 @@ class ImportServiceCostCenterRuleTest extends TestCase {
 
 	/** @var list<array{0:int, 1:mixed}> jeder assign()-Aufruf: [Gegenkonto, Verteilung] */
 	private array $assigned = [];
+	private bool $defaultsThrow = false;
 
 	private function rule(?int $costCenterId): Rule {
 		$rule = new Rule();
@@ -66,7 +67,12 @@ class ImportServiceCostCenterRuleTest extends TestCase {
 
 		$defaults = $this->createMock(CostCenterDefaults::class);
 		$defaults->method('fullAllocation')->willReturnCallback(
-			static fn (string $userId, ?int $costCenterId, int $accountId, int $amountCents): ?array => $allocation,
+			function (string $userId, ?int $costCenterId, int $accountId, int $amountCents) use ($allocation): ?array {
+				if ($this->defaultsThrow) {
+					throw new \RuntimeException('Datenbank nicht erreichbar');
+				}
+				return $allocation;
+			},
 		);
 		$defaults->expects($withDefaults ? $this->atLeastOnce() : $this->never())->method('fullAllocation')
 			->with('book', $rule->getCostCenterId(), self::KONTO, 6000);
@@ -121,6 +127,17 @@ class ImportServiceCostCenterRuleTest extends TestCase {
 		$this->assertSame([[self::KONTO, null]], $this->assigned);
 		$this->assertSame(1, $result['autoAssigned']);
 		$this->assertSame(0, $result['ruleFailed']);
+	}
+
+	/** Scheitert schon die Ermittlung der Vorgabe, kostet das diese eine Zuordnung – nicht den Import. */
+	public function testFehlerBeimErmittelnDerVorgabeBrichtDenImportNichtAb(): void {
+		$this->defaultsThrow = true;
+		$result = $this->service($this->rule(self::SEN), null)->commitRows('book', [$this->row()], 'camt053');
+
+		$this->assertSame([], $this->assigned);
+		$this->assertSame(0, $result['autoAssigned']);
+		$this->assertSame(1, $result['ruleFailed']);
+		$this->assertSame(1, $result['new']);
 	}
 
 	public function testOhneHelferBleibtDerImportWieBisher(): void {

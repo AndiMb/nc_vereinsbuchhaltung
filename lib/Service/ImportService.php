@@ -173,13 +173,15 @@ class ImportService {
 					// Betrag. Ist die Vorgabe nicht anwendbar (Modul aus,
 					// Kostenstelle inaktiv, Konto trägt keine), kommt null zurück
 					// und der Umsatz wird wie bisher ohne Kostenstelle zugeordnet.
-					$allocations = $this->costCenterDefaults?->fullAllocation(
-						$userId,
-						$rule->getCostCenterId(),
-						$accountId,
-						abs((int)$tx->getAmountCents()),
-					);
+					// Die Ermittlung steht im try: auch ein Fehler dabei darf nur
+					// diese eine Zuordnung kosten, nicht den ganzen Import.
 					try {
+						$allocations = $this->costCenterDefaults?->fullAllocation(
+							$userId,
+							$rule->getCostCenterId(),
+							$accountId,
+							abs((int)$tx->getAmountCents()),
+						);
 						$this->bookingService->assign($tx, $accountId, $allocations);
 						$autoAssigned++;
 					} catch (\Throwable) {
