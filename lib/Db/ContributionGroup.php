@@ -58,6 +58,8 @@ class ContributionGroup extends Entity implements \JsonSerializable {
 	protected $defaultInterval;
 	protected $isActive;
 	protected $createdAt;
+	// bookingCcId setzt applyFields() nicht: die Spalte ist nullable, ein nicht
+	// gesetzter Wert fehlt im INSERT und bleibt NULL.
 	protected $bookingCcId;
 
 	/** Erlaubte Turnuswerte – Teiler von 12 (siehe PeriodRule::LENGTHS). */

@@ -259,6 +259,32 @@ test.describe('Kostenstellen: Vorgabe je Beitragsgruppe im SEPA-Einzug', () => {
 		expect((await incomeByCode(request)).SEN ?? 0).toBe(0)
 	})
 
+	/** Importiert die Rückgabe eines Postens, bestätigt und verbucht sie. Liefert die Buchungs-ID. */
+	async function settleReturn(request, item) {
+		await api.importCamtStatement(request, [returnEntry({ bookingDate: TODAY, item, reasonCode: 'AC04', chargesCents: 300 })])
+		const back = (await api.bankReconciliation(request)).items.find((entry) => entry.details.some((d) => d.isReturn))
+		for (const detail of back.details) {
+			await api.decideSepaDetail(request, detail.id, 'assign', { debitItemId: detail.candidates[0].debitItemId ?? detail.candidates[0].id })
+		}
+		await api.settleSepaImport(request, back.bankTx.id)
+		return (await api.listTransactions(request, {})).find((t) => t.id === back.bankTx.id).journalId
+	}
+
+	test('Einzug ohne Kostenstelle verbucht: die spätere Rückgabe bucht die Kostenstelle nicht ins Minus', async ({ request }) => {
+		test.setTimeout(120000)
+		const tag = await setUp(request)
+		const { batch, withCc } = await submittedBatch(request, tag)
+		// Der Einzug wird verbucht, während die Funktion ausgeschaltet ist …
+		await setModule(request, false)
+		await settleCollection(request, batch)
+		// … die Rückgabe kommt, nachdem sie eingeschaltet wurde.
+		await setModule(request, true)
+		const journalId = await settleReturn(request, withCc)
+
+		expect(await allocationsOf(request, journalId, income.id)).toEqual({})
+		expect(await incomeByCode(request)).toEqual({})
+	})
+
 	test('ausgeschaltet: der Gruppendialog hat kein Feld, die Vorgabe bleibt, verbucht wird ohne Kostenstelle', async ({ page, request }) => {
 		test.setTimeout(120000)
 		const tag = await setUp(request)

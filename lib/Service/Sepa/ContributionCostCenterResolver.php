@@ -7,6 +7,7 @@ namespace OCA\Vereinsbuchhaltung\Service\Sepa;
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\AssignmentMapper;
 use OCA\Vereinsbuchhaltung\Db\ContributionGroupMapper;
+use OCA\Vereinsbuchhaltung\Db\LineAllocationMapper;
 use OCA\Vereinsbuchhaltung\Db\OpenItem;
 use OCA\Vereinsbuchhaltung\Service\CostCenter\CostCenterDefaults;
 
@@ -24,10 +25,14 @@ class ContributionCostCenterResolver {
 	/** @var array<int, int|null> Zuweisung => Kostenstelle ihrer Gruppe, für die Dauer des Requests */
 	private array $byAssignment = [];
 
+	/** @var array<int, list<int>> Buchung => Kostenstellen, die sie trägt */
+	private array $byJournal = [];
+
 	public function __construct(
 		private AssignmentMapper $assignments,
 		private ContributionGroupMapper $groups,
 		private CostCenterDefaults $defaults,
+		private ?LineAllocationMapper $allocations = null,
 	) {
 	}
 
@@ -40,6 +45,31 @@ class ContributionCostCenterResolver {
 			$this->byAssignment[$assignmentId] = $this->lookup($assignmentId);
 		}
 		return $this->byAssignment[$assignmentId];
+	}
+
+	/**
+	 * Kostenstelle für die Rückgabe eines Einzugs: die Vorgabe der Gruppe –
+	 * aber nur, wenn die Buchung des Einzugs sie auch trug. Wurde der Einzug
+	 * ohne Kostenstelle verbucht (Modul damals aus, Gruppe noch ohne Vorgabe)
+	 * oder ist die Vorgabe inzwischen eine andere, bliebe sonst ein Minus auf
+	 * einer Kostenstelle stehen, die den Erlös nie bekommen hat.
+	 */
+	public function forReturn(OpenItem $item): ?int {
+		$costCenterId = $this->forOpenItem($item);
+		$journalId = $item->getPaidJournalId();
+		if ($costCenterId === null || $journalId === null || $this->allocations === null) {
+			return null;
+		}
+		if (!isset($this->byJournal[$journalId])) {
+			$ids = [];
+			foreach ($this->allocations->findByJournal($journalId) as $lineAllocations) {
+				foreach ($lineAllocations as $allocation) {
+					$ids[] = $allocation['costCenterId'];
+				}
+			}
+			$this->byJournal[$journalId] = array_values(array_unique($ids));
+		}
+		return in_array($costCenterId, $this->byJournal[$journalId], true) ? $costCenterId : null;
 	}
 
 	private function lookup(int $assignmentId): ?int {

@@ -8,6 +8,7 @@ use OCA\Vereinsbuchhaltung\Db\Assignment;
 use OCA\Vereinsbuchhaltung\Db\AssignmentMapper;
 use OCA\Vereinsbuchhaltung\Db\ContributionGroup;
 use OCA\Vereinsbuchhaltung\Db\ContributionGroupMapper;
+use OCA\Vereinsbuchhaltung\Db\LineAllocationMapper;
 use OCA\Vereinsbuchhaltung\Db\OpenItem;
 use OCA\Vereinsbuchhaltung\Service\CostCenter\CostCenterDefaults;
 use OCA\Vereinsbuchhaltung\Service\Sepa\ContributionCostCenterResolver;
@@ -25,16 +26,18 @@ class ContributionCostCenterResolverTest extends TestCase {
 	private AssignmentMapper&MockObject $assignments;
 	private ContributionGroupMapper&MockObject $groups;
 	private CostCenterDefaults&MockObject $defaults;
+	private LineAllocationMapper&MockObject $allocations;
 
 	protected function setUp(): void {
 		$this->assignments = $this->createMock(AssignmentMapper::class);
 		$this->groups = $this->createMock(ContributionGroupMapper::class);
 		$this->defaults = $this->createMock(CostCenterDefaults::class);
 		$this->defaults->method('usableIds')->willReturn([3, 5]);
+		$this->allocations = $this->createMock(LineAllocationMapper::class);
 	}
 
 	private function resolver(): ContributionCostCenterResolver {
-		return new ContributionCostCenterResolver($this->assignments, $this->groups, $this->defaults);
+		return new ContributionCostCenterResolver($this->assignments, $this->groups, $this->defaults, $this->allocations);
 	}
 
 	private function item(?int $assignmentId): OpenItem {
@@ -104,5 +107,50 @@ class ContributionCostCenterResolverTest extends TestCase {
 		$resolver = $this->resolver();
 
 		$this->assertSame([5, 5], [$resolver->forOpenItem($this->item(7)), $resolver->forOpenItem($this->item(7))]);
+	}
+
+	// ---- Rücklastschrift: nur zurücknehmen, was der Einzug der Kostenstelle gab ----
+
+	private function paidItem(?int $journalId): OpenItem {
+		$item = $this->item(7);
+		$item->setPaidJournalId($journalId);
+		return $item;
+	}
+
+	private function groupDefault(int $costCenterId): void {
+		$this->assignments->method('find')->willReturn($this->assignment(2));
+		$this->groups->method('find')->willReturn($this->group($costCenterId));
+	}
+
+	public function testRueckgabeTraegtDieKostenstelleWennDerEinzugSieTrug(): void {
+		$this->groupDefault(3);
+		$this->allocations->method('findByJournal')->with(900)->willReturn([11 => [['costCenterId' => 3, 'amountCents' => 4500]]]);
+
+		$this->assertSame(3, $this->resolver()->forReturn($this->paidItem(900)));
+	}
+
+	/**
+	 * Der Einzug wurde verbucht, bevor die Gruppe eine Vorgabe hatte (oder das
+	 * Modul lief): die Rückgabe darf die Kostenstelle nicht ins Minus buchen.
+	 */
+	public function testRueckgabeBleibtOhneWennDerEinzugKeineKostenstelleTrug(): void {
+		$this->groupDefault(3);
+		$this->allocations->method('findByJournal')->with(900)->willReturn([]);
+
+		$this->assertNull($this->resolver()->forReturn($this->paidItem(900)));
+	}
+
+	public function testRueckgabeBleibtOhneWennDieVorgabeInzwischenEineAndereIst(): void {
+		$this->groupDefault(5);
+		$this->allocations->method('findByJournal')->willReturn([11 => [['costCenterId' => 3, 'amountCents' => 4500]]]);
+
+		$this->assertNull($this->resolver()->forReturn($this->paidItem(900)));
+	}
+
+	public function testRueckgabeOhneEinzugsbuchungBleibtOhne(): void {
+		$this->groupDefault(3);
+		$this->allocations->expects($this->never())->method('findByJournal');
+
+		$this->assertNull($this->resolver()->forReturn($this->paidItem(null)));
 	}
 }

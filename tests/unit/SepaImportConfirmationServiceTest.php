@@ -129,11 +129,14 @@ class SepaImportConfirmationServiceTest extends TestCase {
 	 *
 	 * @param array<int, int|null> $byOpenItem Forderung => Kostenstelle ihrer Beitragsgruppe
 	 * @param list<int> $carryingAccounts Konten, die eine Kostenstelle tragen
+	 * @param array<int, int|null> $byReturn Forderung => Kostenstelle, die ihr Einzug trug
 	 */
-	private function withCostCenters(array $byOpenItem, array $carryingAccounts = [42]): void {
+	private function withCostCenters(array $byOpenItem, array $carryingAccounts = [42], array $byReturn = []): void {
 		$this->resolver = $this->createMock(ContributionCostCenterResolver::class);
+		$this->resolver->method('forReturn')->willReturnCallback(static fn (OpenItem $item): ?int => $byReturn[(int)$item->getId()] ?? null);
 		$this->resolver->method('forOpenItem')->willReturnCallback(static fn (OpenItem $item): ?int => $byOpenItem[(int)$item->getId()] ?? null);
 		$this->costCenterDefaults = $this->createMock(CostCenterDefaults::class);
+		$this->costCenterDefaults->method('usableIds')->willReturn([3, 5]);
 		$this->costCenterDefaults->method('fullAllocation')->willReturnCallback(
 			static fn (string $userId, ?int $costCenterId, int $accountId, int $amountCents): ?array => $costCenterId !== null && $amountCents > 0 && in_array($accountId, $carryingAccounts, true)
 				? [['costCenterId' => $costCenterId, 'amountCents' => $amountCents]]
@@ -612,7 +615,8 @@ class SepaImportConfirmationServiceTest extends TestCase {
 
 	/** Die Rückgabe nimmt den Erlös der Kostenstelle wieder heraus; die Bankgebühr gehört keiner Kostenstelle. */
 	public function testRuecklastschriftTraegtDieZuordnungUndDieGebuehrKeine(): void {
-		$this->withCostCenters([100 => 3]);
+		// Die heutige Vorgabe (5) zählt nicht – maßgeblich ist, was der Einzug trug (3).
+		$this->withCostCenters([100 => 5], byReturn: [100 => 3]);
 		$tx = $this->tx(1, -5000);
 		$this->txMapper->method('find')->willReturn($tx);
 		$this->details->method('findByBankTx')->with(1)->willReturn([
