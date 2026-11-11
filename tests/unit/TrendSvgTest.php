@@ -52,6 +52,30 @@ class TrendSvgTest extends TestCase {
 		$this->assertStringContainsString('stroke-dasharray', $svg);
 	}
 
+	public function testLinienartenUndFarbenWieAmBildschirm(): void {
+		$svg = $this->svg(
+			['months' => ['2026-01', '2026-02'], 'income' => [100, 300], 'expense' => [50, 200]],
+			1000, 800, 600, 400, ['Jan', 'Feb', 'Mär', 'Apr'],
+		);
+		$attrs = [];
+		preg_match_all('/<polyline class="([^"]+)"([^>]*)\/>/', $svg, $m, PREG_SET_ORDER);
+		foreach ($m as $match) {
+			preg_match('/ stroke="([^"]+)"/', $match[2], $stroke);
+			preg_match('/ stroke-dasharray="([^"]+)"/', $match[2], $dash);
+			$attrs[$match[1]] = [$stroke[1] ?? '', $dash[1] ?? ''];
+		}
+
+		// Ist durchgezogen, Hochrechnung gestrichelt, Plan gepunktet
+		$this->assertSame('', $attrs['income actual'][1]);
+		$this->assertSame('6 4', $attrs['income forecast'][1]);
+		$this->assertSame('1.5 3', $attrs['income plan'][1]);
+		// Einnahmen in der Akzent-, Ausgaben in der Textfarbe
+		$this->assertSame(TrendSvg::INCOME_COLOR, $attrs['income actual'][0]);
+		$this->assertSame(TrendSvg::EXPENSE_COLOR, $attrs['expense plan'][0]);
+		$this->assertSame('#5b7a99', TrendSvg::INCOME_COLOR);
+		$this->assertSame('#222222', TrendSvg::EXPENSE_COLOR);
+	}
+
 	public function testKoordinatenErsterUndLetzterPunkt(): void {
 		// Zwei Monate, Plan 1000: Planlinie 500 → 1000; Skala 0 … 1000 in Schritten von 500.
 		$svg = $this->svg(

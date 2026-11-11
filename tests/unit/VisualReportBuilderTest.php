@@ -29,8 +29,8 @@ class VisualReportBuilderTest extends TestCase {
 	 * @param list<array<string, mixed>> $planLevel
 	 * @return array<string, mixed>
 	 */
-	private static function build(array $planLevel, int $elapsed = 6, array $rows = [], array $coveredIds = []): array {
-		return VisualReportBuilder::build($rows, $planLevel, self::TOTALS, $elapsed, 12, BudgetStatus::DEFAULTS, $coveredIds);
+	private static function build(array $planLevel, int $elapsed = 6, array $rows = [], array $coveredIds = [], array $parentIds = []): array {
+		return VisualReportBuilder::build($rows, $planLevel, self::TOTALS, $elapsed, 12, BudgetStatus::DEFAULTS, $coveredIds, $parentIds);
 	}
 
 	public function testRowsDropNotesAndReplaceValues(): void {
@@ -162,6 +162,7 @@ class VisualReportBuilderTest extends TestCase {
 			'label' => 'Konto 2',
 			'amount' => 417,
 			'level' => 'crit',
+			'parent' => false,
 		]], $dev['time']['expense']);
 		$this->assertSame([], $dev['year']['expense']);
 	}
@@ -193,6 +194,29 @@ class VisualReportBuilderTest extends TestCase {
 		// eigener Plan: zählt nicht als gedeckt
 		$this->assertSame('good', $out[2]['status']['year']['level']);
 		$this->assertSame([], $out[2]['flags']);
+	}
+
+	public function testAccountsWithSubAccountsAreMarkedAsParent(): void {
+		// 5 ist Oberkonto (auch wenn die Vorlage seine Unterkonten nicht zeigt),
+		// 6 ein Konto ohne Unterkonten, 7 ein gedecktes Unterkonto mit eigenen Unterkonten.
+		$rows = [
+			['kind' => 'account', 'depth' => 1, 'label' => 'Raum', 'nature' => 'expense', 'accountId' => 5, 'flags' => [], 'values' => [100000, 60000]],
+			['kind' => 'account', 'depth' => 1, 'label' => 'Strom', 'nature' => 'expense', 'accountId' => 6, 'flags' => ['inactive'], 'values' => [1000, 500]],
+			['kind' => 'account', 'depth' => 2, 'label' => 'Neben', 'nature' => 'expense', 'accountId' => 7, 'flags' => [], 'values' => [0, 2000]],
+			['kind' => 'footer', 'depth' => 0, 'label' => 'Summe', 'nature' => 'expense', 'accountId' => 5, 'values' => [101000, 62500]],
+		];
+		$out = self::build([
+			self::account(5, 'expense', 100000, 160000),
+			self::account(6, 'expense', 1000, 5000),
+		], 6, $rows, [7], [5, 7]);
+
+		$this->assertSame(['parent'], $out['rows'][0]['flags']);
+		$this->assertSame(['inactive'], $out['rows'][1]['flags']);
+		$this->assertSame(['covered', 'parent'], $out['rows'][2]['flags']);
+		$this->assertArrayNotHasKey('flags', $out['rows'][3], 'nur Kontozeilen');
+
+		$byId = array_column($out['deviations']['year']['expense'], 'parent', 'accountId');
+		$this->assertSame([5 => true, 6 => false], $byId);
 	}
 
 	public function testNoElapsedMonths(): void {

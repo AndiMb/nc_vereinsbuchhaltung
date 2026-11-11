@@ -4473,5 +4473,6 @@ OC.L10N.register("vereinsbuchhaltung", {
 	"Einnahmenkonten": "Income accounts",
 	"Buchungen von {konto} zeigen": "Show entries of {konto}",
 	"Unterkonten von {konto}": "Sub-accounts of {konto}",
-	"Auswertung\u0004Verlauf": "Trend"
+	"Auswertung\u0004Verlauf": "Trend",
+	"Verlauf (kumuliert)": "Trend (cumulative)"
 }, "nplurals=2; plural=(n != 1);");

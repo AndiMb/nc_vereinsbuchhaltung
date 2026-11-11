@@ -16,6 +16,7 @@ use OCA\Vereinsbuchhaltung\Service\Export\GliederungsberichtRenderer;
 use OCA\Vereinsbuchhaltung\Service\Export\GliederungsberichtVisuellRenderer;
 use OCA\Vereinsbuchhaltung\Service\Export\KassenberichtRenderer;
 use OCA\Vereinsbuchhaltung\Service\Export\KurzberichtRenderer;
+use OCA\Vereinsbuchhaltung\Service\Export\PrintableReportPage;
 use OCA\Vereinsbuchhaltung\Service\PeriodService;
 use OCA\Vereinsbuchhaltung\Service\Report\ReportTemplateService;
 use OCA\Vereinsbuchhaltung\Service\Report\StructuredReportService;
@@ -177,7 +178,10 @@ class GliederungsberichtVisuellExportTest extends TestCase {
 		$this->assertStringContainsString('unter Plan', $income);
 		$this->assertStringContainsString('75 %', $income);
 
-		$this->assertStringContainsString('im Oberkonto geplant', self::tableRow($html, 'Nebenkosten'));
+		// Gedecktes Unterkonto: Plan 0, Ist > 0 – kein Balken, der „weit über Plan“ läse.
+		$nebenkosten = self::tableRow($html, 'Nebenkosten');
+		$this->assertStringContainsString('im Oberkonto geplant', $nebenkosten);
+		$this->assertStringNotContainsString('<span class="bar', $nebenkosten);
 		$sonstiges = self::tableRow($html, 'Sonstiges');
 		$this->assertStringContainsString('ungeplant', $sonstiges);
 		$this->assertStringContainsString('Sonstiges †', $sonstiges);
@@ -189,6 +193,11 @@ class GliederungsberichtVisuellExportTest extends TestCase {
 		$this->assertStringNotContainsString('%', $saldo);
 		$this->assertStringContainsString('class="sum"', self::tableRow($html, 'Ergebnis ideeller Bereich'));
 		$this->assertStringContainsString('colspan="6"', self::tableRow($html, 'Ideeller Bereich</td>'));
+
+		// Der Aufriss darf über Seiten laufen; der Kopf wiederholt sich.
+		$this->assertStringContainsString('<section class="breakdown">', $html);
+		$this->assertStringContainsString('<table><thead><tr><th>Bezeichnung</th>', $html);
+		$this->assertStringContainsString('</tr></thead><tbody>', $html);
 	}
 
 	public function testBasisZeitanteiligZeigtDenZeitanteilStatus(): void {
@@ -247,10 +256,24 @@ class GliederungsberichtVisuellExportTest extends TestCase {
 		$html = $this->renderer()->render(self::visual(), 'year');
 
 		$this->assertStringContainsString('<svg', $html);
-		$this->assertStringContainsString('<title>Verlauf</title>', $html);
+		// Eigener, eindeutiger Text: das schlichte „Verlauf“ ist im Katalog „History“.
+		$this->assertStringContainsString('<h2>Verlauf (kumuliert)</h2>', $html);
+		$this->assertStringContainsString('<title>Verlauf (kumuliert)</title>', $html);
 		$this->assertStringContainsString('>Okt</text>', $html);
 		$this->assertStringNotContainsString('<script', $html);
 		$this->assertStringContainsString('print-color-adjust: exact', $html);
+	}
+
+	public function testDruckseiteBleibtAmDunklenBildschirmHell(): void {
+		// Feste Druckfarben und das SVG vertragen keinen dunklen Grund.
+		$this->assertStringNotContainsString('prefers-color-scheme', $this->renderer()->render(self::visual(), 'year'));
+		$visual = self::visual();
+		$visual['kpis']['income'] = ['plan' => 0, 'actual' => 0, 'forecast' => null, 'status' => $visual['kpis']['income']['status']];
+		$visual['kpis']['expense'] = ['plan' => 0, 'actual' => 0, 'forecast' => null, 'status' => $visual['kpis']['expense']['status']];
+		$this->assertStringNotContainsString('prefers-color-scheme', $this->renderer()->render($visual, 'year'), 'auch die Seite ohne Plan und Buchungen');
+
+		// Die anderen Berichte behalten die dunkle Darstellung.
+		$this->assertStringContainsString('prefers-color-scheme: dark', PrintableReportPage::document('T', '<p>x</p>'));
 	}
 
 	public function testBezeichnungenWerdenMaskiert(): void {

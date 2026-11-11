@@ -4473,5 +4473,6 @@ OC.L10N.register("vereinsbuchhaltung", {
 	"Einnahmenkonten": "Inkomstenrekeningen",
 	"Buchungen von {konto} zeigen": "Boekingen van {konto} tonen",
 	"Unterkonten von {konto}": "Subrekeningen van {konto}",
-	"Auswertung\u0004Verlauf": "Verloop"
+	"Auswertung\u0004Verlauf": "Verloop",
+	"Verlauf (kumuliert)": "Verloop (cumulatief)"
 }, "nplurals=2; plural=(n != 1);");

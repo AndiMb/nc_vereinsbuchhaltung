@@ -7,12 +7,14 @@ namespace OCA\Vereinsbuchhaltung\Service\Export;
 /**
  * Der Verlauf der visuellen Gliederungsansicht als Inline-SVG für die
  * Druckseite: kumuliertes Ist je Monat (durchgezogen), Plan-Linie
- * (gestrichelt, linear von plan/N im ersten auf plan im letzten Monat) und
- * Hochrechnung (gepunktet, vom letzten Ist-Punkt zum Wert am Periodenende).
- * Dieselben Regeln wie `trendDatasets()` in `src/lib/budgetVisual.js`.
+ * (gepunktet, linear von plan/N im ersten auf plan im letzten Monat) und
+ * Hochrechnung (gestrichelt, vom letzten Ist-Punkt zum Wert am Periodenende).
+ * Dieselben Regeln und Linienarten wie `trendDatasets()` in
+ * `src/lib/budgetVisual.js` und das Diagramm am Bildschirm.
  *
- * Einnahmen schwarz, Ausgaben graublau – auch schwarzweiß gedruckt
- * unterscheidbar; die Linienart trägt Ist/Plan/Hochrechnung. Kein Skript.
+ * Einnahmen graublau (am Bildschirm die Akzentfarbe), Ausgaben schwarz (dort
+ * die Textfarbe) – auch schwarzweiß gedruckt unterscheidbar; die Linienart
+ * trägt Ist/Plan/Hochrechnung. Kein Skript.
  */
 final class TrendSvg {
 
@@ -24,10 +26,10 @@ final class TrendSvg {
 	public const TOP = 12;
 	public const BOTTOM = 204;
 
-	public const INCOME_COLOR = '#222222';
-	public const EXPENSE_COLOR = '#5b7a99';
-	public const DASH_PLAN = '6 4';
-	public const DASH_FORECAST = '1.5 3';
+	public const INCOME_COLOR = '#5b7a99';
+	public const EXPENSE_COLOR = '#222222';
+	public const DASH_PLAN = '1.5 3';
+	public const DASH_FORECAST = '6 4';
 
 	/**
 	 * @param array{months: list<string>, income: list<int>, expense: list<int>} $series kumuliertes Ist in Cent

@@ -126,7 +126,8 @@ class VisualReportServiceTest extends TestCase {
 
 		$rows = $this->service()->build('u', self::TEMPLATE, null, null)['rows'];
 
-		$this->assertSame([], $rows[0]['flags']);
+		// 5000 hat Unterkonten: seine Zahlen schließen sie ein, kein Sprung in die Buchungen.
+		$this->assertSame(['parent'], $rows[0]['flags']);
 		$this->assertSame('good', $rows[0]['status']['year']['level']);
 		$this->assertSame(['covered'], $rows[1]['flags']);
 		$this->assertSame('none', $rows[1]['status']['year']['level']);

@@ -55,10 +55,16 @@ class GliederungsberichtVisuellRenderer {
 		ul.dev .amount { white-space: nowrap; }
 		svg.trend { width: 100%; height: auto; display: block; }
 		.legend { font-size: 9pt; color: #555; margin: 4px 0 0; }
+		.legend .group + .group { margin-left: 24px; }
 		.legend .sample { display: inline-block; width: 22px; vertical-align: middle; margin: 0 4px 0 10px; border-top: 2px solid #222; }
-		.legend .sample.expense { border-top-color: #5b7a99; }
-		.legend .sample.plan { border-top-style: dashed; }
-		.legend .sample.forecast { border-top-style: dotted; }
+		.legend .group .sample:first-child { margin-left: 0; }
+		.legend .sample.income { border-top-color: #5b7a99; }
+		.legend .sample.plan { border-top-style: dotted; }
+		.legend .sample.forecast { border-top-style: dashed; }
+		section.breakdown { page-break-inside: auto; }
+		section.breakdown tr { page-break-inside: avoid; }
+		thead { display: table-header-group; }
+		h2 { page-break-after: avoid; }
 		tr.heading td { font-weight: 600; border-bottom: none; padding-top: 10px; }
 		tr.heading.top td { font-size: 12pt; border-bottom: 1px solid #999; }
 		tr.structural td { color: #555; }
@@ -130,7 +136,7 @@ class GliederungsberichtVisuellRenderer {
 		$noPlan = (int)$kpis['income']['plan'] === 0 && (int)$kpis['expense']['plan'] === 0;
 		if ($noPlan && (int)$kpis['income']['actual'] === 0 && (int)$kpis['expense']['actual'] === 0) {
 			$h .= '<p class="note">' . PrintableReportPage::escape($this->l10n->t('Für diese Periode gibt es weder Planwerte noch Buchungen. Die Planwerte tragen Sie im Finanzplan ein.')) . '</p>';
-			return PrintableReportPage::document(($clubName !== '' ? $clubName . ' – ' : '') . $heading, $h);
+			return PrintableReportPage::document(($clubName !== '' ? $clubName . ' – ' : '') . $heading, $h, darkOnScreen: false);
 		}
 		if ($noPlan) {
 			$h .= '<p class="warn">' . PrintableReportPage::escape($this->l10n->t('Für diese Periode ist noch kein Plan erfasst; alle Konten mit Buchungen gelten als ungeplant. Die Planwerte tragen Sie im Finanzplan ein.')) . '</p>';
@@ -158,7 +164,8 @@ class GliederungsberichtVisuellRenderer {
 		$h .= $this->trend($visual, $total);
 		$h .= $this->breakdown($visual['rows'], $basis, $factor);
 
-		return PrintableReportPage::document(($clubName !== '' ? $clubName . ' – ' : '') . $heading, $h);
+		// Feste Druckfarben und das SVG: auch am dunklen Bildschirm heller Grund.
+		return PrintableReportPage::document(($clubName !== '' ? $clubName . ' – ' : '') . $heading, $h, darkOnScreen: false);
 	}
 
 	/** @param array{value:string} $asOf */
@@ -293,7 +300,9 @@ class GliederungsberichtVisuellRenderer {
 
 	/** @param array<string, mixed> $visual */
 	private function trend(array $visual, int $total): string {
-		$h = '<section><h2>' . PrintableReportPage::escape($this->l10n->t('Verlauf')) . '</h2>';
+		// Eigener Text: das schlichte „Verlauf“ ist im Katalog „History“ (Änderungsverlauf).
+		$title = $this->l10n->t('Verlauf (kumuliert)');
+		$h = '<section><h2>' . PrintableReportPage::escape($title) . '</h2>';
 		$series = $visual['series'];
 		if ((int)$visual['asOf']['elapsed'] <= 0 || $series['months'] === [] || $total <= 0) {
 			return $h . '<p class="note">' . PrintableReportPage::escape($this->l10n->t('Die Periode hat noch nicht begonnen – der Verlauf erscheint ab ihrem ersten Monat.')) . '</p></section>';
@@ -314,31 +323,37 @@ class GliederungsberichtVisuellRenderer {
 			$kpis['expense']['forecast'] === null ? null : (int)$kpis['expense']['forecast'],
 			$labels,
 			fn (int $cents): string => $this->currency->format($cents),
-			['title' => $this->l10n->t('Verlauf'), 'desc' => $this->l10n->t('Verlauf: kumuliertes Ist je Monat mit Plan-Linie und Hochrechnung.')],
+			['title' => $title, 'desc' => $this->l10n->t('Verlauf: kumuliertes Ist je Monat mit Plan-Linie und Hochrechnung.')],
 		);
+		// Zwei Gruppen wie am Bildschirm: Farbe je Art, Linienart je Reihe.
 		$h .= '<p class="legend">'
-			. '<span class="sample"></span>' . PrintableReportPage::escape($this->l10n->t('Einnahmen'))
-			. '<span class="sample expense"></span>' . PrintableReportPage::escape($this->l10n->t('Ausgaben'))
-			. ' · <span class="sample"></span>' . PrintableReportPage::escape($this->l10n->t('Ist'))
-			. '<span class="sample plan"></span>' . PrintableReportPage::escape($this->l10n->t('Plan'))
+			. '<span class="group">'
+			. '<span class="sample income"></span>' . PrintableReportPage::escape($this->l10n->t('Einnahmen'))
+			. '<span class="sample"></span>' . PrintableReportPage::escape($this->l10n->t('Ausgaben'))
+			. '</span><span class="group">'
+			. '<span class="sample"></span>' . PrintableReportPage::escape($this->l10n->t('Ist'))
 			. '<span class="sample forecast"></span>' . PrintableReportPage::escape($this->l10n->t('Hochrechnung'))
-			. '</p>';
+			. '<span class="sample plan"></span>' . PrintableReportPage::escape($this->l10n->t('Plan'))
+			. '</span></p>';
 		return $h . '</section>';
 	}
 
 	/** @param list<array<string, mixed>> $rows */
 	private function breakdown(array $rows, string $basis, ?float $factor): string {
-		$h = '<section><h2>' . PrintableReportPage::escape($this->l10n->t('Aufriss nach Vorlage')) . '</h2>'
-			. '<table><tr><th>' . PrintableReportPage::escape($this->l10n->t('Bezeichnung')) . '</th>'
+		// Der Aufriss darf über Seiten laufen (die gemeinsame Regel hält jede
+		// section zusammen und schöbe ihn ganz auf die nächste Seite); der
+		// Tabellenkopf wiederholt sich, Zeilen bleiben ganz.
+		$h = '<section class="breakdown"><h2>' . PrintableReportPage::escape($this->l10n->t('Aufriss nach Vorlage')) . '</h2>'
+			. '<table><thead><tr><th>' . PrintableReportPage::escape($this->l10n->t('Bezeichnung')) . '</th>'
 			. '<th>' . PrintableReportPage::escape($this->l10n->t('Ampel')) . '</th>'
 			. '<th>' . PrintableReportPage::escape($this->l10n->t('Ist zu Plan')) . '</th>'
 			. '<th class="num">' . PrintableReportPage::escape($this->l10n->t('Ist')) . '</th>'
 			. '<th class="num">' . PrintableReportPage::escape($this->l10n->t('Plan')) . '</th>'
-			. '<th class="num">' . PrintableReportPage::escape($this->l10n->t('Ausschöpfung')) . '</th></tr>';
+			. '<th class="num">' . PrintableReportPage::escape($this->l10n->t('Ausschöpfung')) . '</th></tr></thead><tbody>';
 		foreach ($rows as $row) {
 			$h .= $this->row($row, $basis, $factor);
 		}
-		$h .= '</table>';
+		$h .= '</tbody></table>';
 
 		$legend = [];
 		if ($this->hasFlag($rows, StructuredReportBuilder::FLAG_INACTIVE)) {
@@ -385,8 +400,9 @@ class GliederungsberichtVisuellRenderer {
 			? '<span class="status">' . PrintableReportPage::escape($this->l10n->t('im Oberkonto geplant')) . '</span>'
 			: $this->badge($level, $nature);
 		$isResult = $nature === 'result';
-		// Gedeckte Unterkonten haben keinen eigenen Plan – neutraler Balken.
-		$bar = $isResult ? '' : $this->bar((int)$row['plan'], (int)$row['actual'], $factor, $covered ? 'none' : $this->meta($level, $nature)[2]);
+		// Gedeckte Unterkonten haben keinen eigenen Plan und deshalb keinen
+		// Balken (Plan 0 läse sich als „weit über Plan“) – wie am Bildschirm.
+		$bar = $isResult || $covered ? '' : $this->bar((int)$row['plan'], (int)$row['actual'], $factor, $this->meta($level, $nature)[2]);
 		$ratio = $isResult || ($status['ratio'] ?? null) === null ? '' : self::percent((float)$status['ratio']);
 
 		return '<tr' . $class . '><td' . $indent . '>' . $label . '</td>'

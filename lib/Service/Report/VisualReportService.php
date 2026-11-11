@@ -49,7 +49,7 @@ class VisualReportService {
 		[$planLevel, $totals, $coveredIds] = $this->planLevel($data['accounts'], $data['plan'], $data['actual']);
 
 		$thresholds = $this->statusSettings->thresholds();
-		$visual = VisualReportBuilder::build($report['rows'], $planLevel, $totals, $resolved['elapsed'], $resolved['total'], $thresholds, $coveredIds);
+		$visual = VisualReportBuilder::build($report['rows'], $planLevel, $totals, $resolved['elapsed'], $resolved['total'], $thresholds, $coveredIds, self::parentIds($data['accounts']));
 
 		return [
 			'template' => $report['template'],
@@ -64,6 +64,23 @@ class VisualReportService {
 			'warnings' => $report['warnings'],
 			'hasSpheres' => $report['hasSpheres'],
 		];
+	}
+
+	/**
+	 * Konten, die Oberkonto mindestens eines anderen Kontos sind.
+	 *
+	 * @param Account[] $accounts
+	 * @return list<int>
+	 */
+	private static function parentIds(array $accounts): array {
+		$ids = [];
+		foreach ($accounts as $account) {
+			$parent = $account->getParentId();
+			if ($parent !== null && $parent > 0) {
+				$ids[(int)$parent] = true;
+			}
+		}
+		return array_keys($ids);
 	}
 
 	/**
