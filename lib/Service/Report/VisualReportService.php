@@ -69,25 +69,18 @@ class VisualReportService {
 	 * Stand. Gerechnet bis zum selben Enddatum wie das Ist der Kennzahlen,
 	 * sodass der letzte Wert mit `kpis.*.actual` übereinstimmt.
 	 *
-	 * @param array{until:string, elapsed:int} $resolved
+	 * @param array{until:string, elapsed:int, total:int} $resolved
 	 * @param Account[] $accounts
 	 * @return array{months: list<string>, income: list<int>, expense: list<int>}
 	 */
 	private function series(string $userId, string $periodStart, array $resolved, array $accounts): array {
-		$first = new \DateTimeImmutable(substr($periodStart, 0, 7) . '-01');
-		$months = [];
-		for ($i = 0; $i < $resolved['elapsed']; $i++) {
-			$months[] = $first->modify('+' . $i . ' months')->format('Y-m');
-		}
-		if ($months === []) {
-			return VisualReportBuilder::series([], [], []);
-		}
-
+		$budgetable = array_values(array_filter($accounts, static fn (Account $a): bool => $a->isBudgetable()));
 		$income = [];
 		$expense = [];
+		$lastBooked = null;
 		foreach ($this->lines->sumByAccountAndMonth($userId, $periodStart, $resolved['until']) as $month => $sums) {
-			foreach ($accounts as $account) {
-				if (!$account->isBudgetable()) {
+			foreach ($budgetable as $account) {
+				if (!isset($sums[(int)$account->getId()])) {
 					continue;
 				}
 				$net = LedgerAggregator::net($account, $sums);
@@ -96,7 +89,24 @@ class VisualReportService {
 				} else {
 					$expense[$month] = ($expense[$month] ?? 0) + $net;
 				}
+				if ($lastBooked === null || $month > $lastBooked) {
+					$lastBooked = $month;
+				}
 			}
+		}
+
+		// Die Reihe deckt jeden gebuchten Monat ab (bei „Aktuell“ reicht das
+		// Ist bis zum Periodenende), höchstens aber die Periode.
+		$first = new \DateTimeImmutable(substr($periodStart, 0, 7) . '-01');
+		$count = $resolved['elapsed'];
+		if ($lastBooked !== null) {
+			$last = new \DateTimeImmutable($lastBooked . '-01');
+			$count = max($count, ((int)$last->format('Y') - (int)$first->format('Y')) * 12 + (int)$last->format('n') - (int)$first->format('n') + 1);
+		}
+		$count = min($count, $resolved['total']);
+		$months = [];
+		for ($i = 0; $i < $count; $i++) {
+			$months[] = $first->modify('+' . $i . ' months')->format('Y-m');
 		}
 		return VisualReportBuilder::series($months, $income, $expense);
 	}

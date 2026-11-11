@@ -177,11 +177,62 @@ class VisualReportServiceTest extends TestCase {
 
 	public function testSeriesIsEmptyWithoutElapsedMonths(): void {
 		$this->structured->method('build')->willReturn($this->report());
-		$this->lines->expects($this->never())->method('sumByAccountAndMonth');
+		$this->lines->method('sumByAccountAndMonth')->willReturn([]);
 
 		$series = $this->service('2025-11-10 10:00:00')->build('u', self::TEMPLATE, null, 'current')['series'];
 
 		$this->assertSame(['months' => [], 'income' => [], 'expense' => []], $series);
+	}
+
+	private function bookedAccounts(): void {
+		$this->structured = $this->createMock(StructuredReportService::class);
+		$this->structured->method('build')->willReturn($this->report());
+		$this->structured->method('planActual')->willReturn([
+			'accounts' => [$this->account(1, null, 'income', '4000'), $this->account(2, null, 'expense', '5000')],
+			'plan' => [],
+			'actual' => [1 => 9000, 2 => 4000],
+		]);
+	}
+
+	public function testSeriesForCurrentExtendsToLaterBookedMonths(): void {
+		$this->bookedAccounts();
+		$this->lines->method('sumByAccountAndMonth')->willReturn([
+			'2026-01' => [1 => ['debit' => 0, 'credit' => 5000], 2 => ['debit' => 1000, 'credit' => 0]],
+			'2026-05' => [1 => ['debit' => 0, 'credit' => 4000], 2 => ['debit' => 3000, 'credit' => 0]],
+		]);
+
+		$result = $this->service('2026-03-10 10:00:00')->build('u', self::TEMPLATE, null, 'current');
+
+		$this->assertSame(['2026-01', '2026-02', '2026-03', '2026-04', '2026-05'], $result['series']['months']);
+		$this->assertSame([5000, 5000, 5000, 5000, 9000], $result['series']['income']);
+		$this->assertSame($result['kpis']['income']['actual'], end($result['series']['income']));
+		$this->assertSame($result['kpis']['expense']['actual'], end($result['series']['expense']));
+	}
+
+	public function testSeriesForCurrentKeepsTodaysMonthWhenBookingsEndEarlier(): void {
+		$this->bookedAccounts();
+		$this->lines->method('sumByAccountAndMonth')->willReturn([
+			'2026-02' => [1 => ['debit' => 0, 'credit' => 9000], 2 => ['debit' => 4000, 'credit' => 0]],
+		]);
+
+		$series = $this->service('2026-03-10 10:00:00')->build('u', self::TEMPLATE, null, 'current')['series'];
+
+		$this->assertSame(['2026-01', '2026-02', '2026-03'], $series['months']);
+		$this->assertSame([0, 9000, 9000], $series['income']);
+	}
+
+	public function testSeriesForPeriodNotStartingInJanuary(): void {
+		$this->period->setStartDate('2026-07-01');
+		$this->period->setEndDate('2027-06-30');
+		$this->bookedAccounts();
+		$this->lines->expects($this->once())->method('sumByAccountAndMonth')
+			->with('u', '2026-07-01', '2027-01-31')
+			->willReturn(['2026-12' => [1 => ['debit' => 0, 'credit' => 700]]]);
+
+		$series = $this->service('2027-03-10 10:00:00')->build('u', self::TEMPLATE, null, '2027-01')['series'];
+
+		$this->assertSame(['2026-07', '2026-08', '2026-09', '2026-10', '2026-11', '2026-12', '2027-01'], $series['months']);
+		$this->assertSame([0, 0, 0, 0, 0, 700, 700], $series['income']);
 	}
 
 	public function testInvalidAsOfThrows(): void {
