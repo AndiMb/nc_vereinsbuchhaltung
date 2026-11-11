@@ -1106,8 +1106,19 @@ die Kostenstelle inzwischen inaktiv oder trägt das Gegenkonto keine
 Kostenstelle, wird der Umsatz trotzdem zugeordnet, nur ohne Kostenstelle.
 Eine Kostenstelle, auf die noch eine Regel zeigt, lässt sich nicht löschen.
 
-Buchungen aus Rechnungen, Auslagen und dem SEPA-Einzug entstehen ohne
-Kostenstelle. Sie lässt sich an der Buchung nachtragen.
+**Rechnungen:** Im Rechnungseditor (Kapitel 15) hat jede Position neben dem
+Erlöskonto das Feld **Kostenstelle**. Wird die Rechnung bezahlt – per
+Bankumsatz oder bar –, verteilt die App den Erlös je Erlöskonto anteilig auf
+die Kostenstellen der Positionen; Positionen ohne Kostenstelle bleiben
+„ohne“, die Umsatzsteuer trägt keine. Bei Teilzahlungen wird jede Zahlung
+für sich anteilig verteilt; über mehrere Teilzahlungen kann die Summe je
+Kostenstelle deshalb um einen Cent je Zahlung vom Betrag der Position
+abweichen. Kopie, Storno und wiederkehrende Rechnungen übernehmen die
+Kostenstellen. Im Sammelimport meint die Spalte *Kostenstelle* bei
+eingeschalteter Funktion diese Kostenstelle (Kürzel oder Name).
+
+Buchungen aus Auslagen und dem SEPA-Einzug entstehen ohne Kostenstelle.
+Sie lässt sich an der Buchung nachtragen.
 
 **Kostenstelle verpflichtend:** Soll auf einem Konto möglichst jeder Betrag
 eine Kostenstelle bekommen, setzen Sie im Kontodialog (Tab Konten → Konto
