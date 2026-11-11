@@ -74,9 +74,16 @@ class InvoicePaymentService {
 			$this->assertWithinRemaining($item, $amount);
 
 			$parts = $this->ledger->allocate($invoice, $amount);
+			// Kostenstellen der Rechnungszeilen (Issue #332): je Erlöskonto anteilig.
+			// Der Schlüssel steht nur, wo es Anteile gibt – sonst wie zuvor.
+			$shares = $this->ledger->costCenterShares($invoice, $parts);
 			$list = [];
 			foreach ($parts as $accountId => $cents) {
-				$list[] = ['accountId' => $accountId, 'amountCents' => $cents];
+				$part = ['accountId' => $accountId, 'amountCents' => $cents];
+				if (isset($shares[$accountId])) {
+					$part['allocations'] = $shares[$accountId];
+				}
+				$list[] = $part;
 			}
 			$tx = $this->booking->assignParts($tx, $list);
 			$journalId = (int)$tx->getJournalId();
@@ -121,8 +128,13 @@ class InvoicePaymentService {
 
 			$parts = $this->ledger->allocate($invoice, $amount);
 			$lines = [['accountId' => $cashAccountId, 'debitCents' => $amount, 'creditCents' => 0]];
+			$shares = $this->ledger->costCenterShares($invoice, $parts);
 			foreach ($parts as $accountId => $cents) {
-				$lines[] = ['accountId' => $accountId, 'debitCents' => 0, 'creditCents' => $cents];
+				$line = ['accountId' => $accountId, 'debitCents' => 0, 'creditCents' => $cents];
+				if (isset($shares[$accountId])) {
+					$line['allocations'] = $shares[$accountId];
+				}
+				$lines[] = $line;
 			}
 			$journal = $this->journals->createBookingLines(
 				Application::BOOK,

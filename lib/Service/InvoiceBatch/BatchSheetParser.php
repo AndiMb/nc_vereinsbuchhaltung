@@ -88,12 +88,16 @@ class BatchSheetParser {
 	 * @param array<string, array<string, mixed>> $templates Vorlagen, Schlüssel = Name klein
 	 * @param array<int|string, int> $accounts Kontonummer => Konto-ID (PHP macht numerische Nummern zu int-Schlüsseln)
 	 * @param array<string, int> $costCenters Code oder Name klein => Kostenstellen-ID
+	 * @param string $costCenterKey Feld der Position, in das die Spalte „Kostenstelle“
+	 *                              geschrieben wird: `costCenterId` (Auswertungsgruppe, bisher) oder
+	 *                              `bookingCostCenterId` (Kostenstelle an der Buchungszeile, Issue #332)
 	 */
 	public function __construct(
 		private array $templates,
 		private array $accounts,
 		private array $costCenters,
 		private ?IL10N $l10n = null,
+		private string $costCenterKey = 'costCenterId',
 	) {
 	}
 
@@ -379,9 +383,9 @@ class BatchSheetParser {
 			'unitPriceCents' => $priceCents ?? 0,
 			'discountBp' => $discountBp,
 			'accountId' => $accountId,
-			'costCenterId' => $costCenterId,
+			'costCenterId' => $this->costCenterKey === 'costCenterId' ? $costCenterId : null,
 			'deliveryDate' => $deliveryDate,
-		] + $tax;
+		] + ($this->costCenterKey === 'costCenterId' ? [] : [$this->costCenterKey => $costCenterId]) + $tax;
 	}
 
 	/** Summe der Nettobeträge (ohne Steuer) für die Vorschau. @param list<array<string, mixed>> $items */

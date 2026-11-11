@@ -32,8 +32,8 @@ verwenden, z. B. `**Neu:**`.
   Kostenstelle nach Konten, dazu „Ohne Kostenstelle" und die Abstimmung mit
   den Kontensalden, auch als Druckseite und CSV. Der Journal-Export bekommt
   bei eingeschalteter Funktion eine letzte Spalte „Kostenstellen".
-  Buchungen aus Rechnungen, Auslagen und dem SEPA-Einzug entstehen
-  vorerst ohne Kostenstelle. Auswertungsgruppen und Sphären bleiben
+  Buchungen aus Auslagen und dem SEPA-Einzug entstehen vorerst ohne
+  Kostenstelle. Auswertungsgruppen und Sphären bleiben
   unverändert. Handbuch Kapitel 5.8.
 - **Kostenstelle an Importregeln** (#331): Eine Regel kann neben dem
   Gegenkonto eine Kostenstelle vorgeben. Greift sie beim Import oder wird
@@ -45,6 +45,12 @@ verwenden, z. B. `**Neu:**`.
   nicht zugeordneten Betrag an die Kostenstelle – speichern bleibt möglich –,
   und der Bericht *Kostenstellen* listet „Pflichtkonten mit offenem Betrag“,
   auch auf der Druckseite und im CSV.
+- **Kostenstellen an Rechnungen** (#332): Jede Rechnungsposition kann eine
+  Kostenstelle tragen. Beim Buchen einer Zahlung – per Bankumsatz oder bar –
+  wird der Erlös je Erlöskonto anteilig auf die Kostenstellen der
+  Positionen verteilt. Kopie, Storno und wiederkehrende Rechnungen
+  übernehmen sie; im Sammelimport meint die Spalte „Kostenstelle“ bei
+  eingeschalteter Funktion die echte Kostenstelle.
 - Für bestehende Installationen ändert sich ohne Einschalten nichts: keine
   neue Spalte im Journal-Export, kein neues Feld, kein neuer Bericht. Wird
   die Funktion wieder ausgeschaltet, bleiben die Zuordnungen gespeichert.

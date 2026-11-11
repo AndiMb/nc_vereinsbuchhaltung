@@ -1081,8 +1081,21 @@ centre has become inactive, or the contra account carries no cost centre,
 the transaction is still assigned, just without a cost centre. A cost
 centre that a rule still points to cannot be deleted.
 
-Entries from invoices, expense claims and SEPA collection are created
-without a cost centre. You can add one on the entry afterwards.
+**Invoices:** in the invoice editor (chapter 15) every item has a **Cost
+centre** field next to the revenue account. When the invoice is paid – by
+bank transaction or in cash – the app distributes the revenue per revenue
+account proportionally across the cost centres of the items; items without
+a cost centre stay "without", and VAT carries none. With partial payments
+each payment is distributed on its own; across several partial payments the
+total per cost centre can therefore differ from the item amount by one cent
+per payment. Copies, cancellations and recurring invoices take the cost
+centres over. In the batch import the *Kostenstelle* column means this cost
+centre (code or name) when the feature is switched on; a sheet that still
+names evaluation groups there then reports the row as an error. A discount
+item reduces the share of its cost centre.
+
+Entries from expense claims and SEPA collection are created without a cost
+centre. You can add one on the entry afterwards.
 
 **Cost centre required:** if every amount on an account should ideally get a
 cost centre, switch on **Cost centre required** in the account dialog

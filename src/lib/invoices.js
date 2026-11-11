@@ -239,6 +239,8 @@ export function emptyLine(accountId = null, taxKey = 'S1900') {
 		taxKey,
 		// Hat jemand den Satz von Hand gewählt, folgt er dem Konto nicht mehr.
 		taxTouched: false,
+		// Kostenstelle der Position (Issue #332); null = keine.
+		bookingCostCenterId: null,
 	}
 }
 
@@ -256,6 +258,7 @@ export function lineFromServer(line) {
 		accountId: line.accountId,
 		taxKey: taxKeyOf(line.taxCategory, line.taxRateBp),
 		taxTouched: true,
+		bookingCostCenterId: line.bookingCostCenterId ?? null,
 	}
 }
 
@@ -273,8 +276,17 @@ export function isEmptyLine(line) {
 	return String(line.name).trim() === '' && String(line.description).trim() === '' && (line.unitPrice === '' || Number(line.unitPrice) === 0)
 }
 
-/** Positionen für den Server; leere Zeilen entfallen. Die Steuer geht nur bei Regelbesteuerung mit. */
-export function linesToPayload(lines, regular = false) {
+/**
+ * Positionen für den Server; leere Zeilen entfallen. Die Steuer geht nur bei
+ * Regelbesteuerung mit, die Kostenstelle (Issue #332) nur, wenn
+ * {@link sendsCostCenters} es sagt.
+ *
+ * @param {Array} lines Editor-Zeilen
+ * @param {boolean} regular Regelbesteuerung
+ * @param {boolean} costCenters Kostenstellen mitschicken, siehe sendsCostCenters()
+ * @return {Array}
+ */
+export function linesToPayload(lines, regular = false, costCenters = false) {
 	return lines.filter((l) => !isEmptyLine(l)).map((l) => ({
 		name: l.name,
 		description: l.description,
@@ -284,7 +296,26 @@ export function linesToPayload(lines, regular = false) {
 		discountPercent: l.discountPercent === '' ? 0 : l.discountPercent,
 		accountId: l.accountId,
 		...(regular ? { taxCategory: TAX_KEYS[l.taxKey || 'S1900'].category, taxRateBp: TAX_KEYS[l.taxKey || 'S1900'].rateBp } : {}),
+		...(costCenters ? { bookingCostCenterId: l.bookingCostCenterId ?? null } : {}),
 	}))
+}
+
+/**
+ * Ob der Editor die Kostenstellen der Positionen mitschickt (Issue #332).
+ *
+ * Bei eingeschaltetem Modul immer. Bei ausgeschaltetem nur, wenn eine Zeile
+ * eine trägt: der Server ersetzt beim Speichern alle Positionen, und ohne
+ * die Angabe könnte er die gespeicherten Kostenstellen nur nach der Position
+ * zuordnen – nach dem Löschen oder Umsortieren einer Zeile also der
+ * falschen. Für Vereine, die die Funktion nie benutzt haben, bleibt der
+ * Request damit, wie er war.
+ *
+ * @param {Array} lines Editor-Zeilen
+ * @param {boolean} enabled Kostenstellen-Modul eingeschaltet
+ * @return {boolean}
+ */
+export function sendsCostCenters(lines, enabled) {
+	return !!enabled || (lines || []).some((l) => !!l.bookingCostCenterId)
 }
 
 /** Summen der Editor-Zeilen; unlesbare Zeilen zählen mit 0 und melden `invalid`. */
@@ -399,6 +430,8 @@ export function planLinesFromInvoice(invoice) {
 		accountId: l.accountId,
 		taxCategory: l.taxCategory,
 		taxRateBp: l.taxRateBp,
+		// Die Kostenstelle der Position reist in den Plan mit (Issue #332).
+		...(l.bookingCostCenterId ? { bookingCostCenterId: l.bookingCostCenterId } : {}),
 	}))
 }
 
@@ -432,6 +465,7 @@ export function lineFromPlan(line) {
 	row.unitPrice = cents === 0 ? '' : cents / 100
 	row.discountPercent = line.discountPercent ? String(line.discountPercent) : ''
 	row.taxTouched = true
+	row.bookingCostCenterId = line.bookingCostCenterId ?? null
 	return row
 }
 

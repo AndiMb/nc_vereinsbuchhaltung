@@ -6,6 +6,7 @@ namespace OCA\Vereinsbuchhaltung\Service\CostCenter;
 
 use OCA\Vereinsbuchhaltung\Db\AccountMapper;
 use OCA\Vereinsbuchhaltung\Db\BookingCostCenterMapper;
+use OCA\Vereinsbuchhaltung\Db\InvoiceLineMapper;
 use OCA\Vereinsbuchhaltung\Db\RuleMapper;
 use OCA\Vereinsbuchhaltung\Service\CostCenterSettings;
 
@@ -33,6 +34,7 @@ class CostCenterDefaults {
 		private BookingCostCenterMapper $costCenters,
 		private AccountMapper $accounts,
 		private RuleMapper $rules,
+		private ?InvoiceLineMapper $invoiceLines = null,
 	) {
 	}
 
@@ -48,15 +50,22 @@ class CostCenterDefaults {
 		if (!in_array($costCenterId, $this->usableIds($userId), true)) {
 			return null;
 		}
-		try {
-			$account = $this->accounts->find($accountId, $userId);
-		} catch (\Throwable) {
-			return null;
-		}
-		if (!$account->canCarryCostCenter()) {
+		if (!$this->carries($userId, $accountId)) {
 			return null;
 		}
 		return [['costCenterId' => $costCenterId, 'amountCents' => $amountCents]];
+	}
+
+	/**
+	 * Ob Zeilen dieses Kontos eine Kostenstelle tragen dürfen. Ein Konto, das
+	 * es nicht (mehr) gibt, trägt keine – eine Vorgabe scheitert weich.
+	 */
+	public function carries(string $userId, int $accountId): bool {
+		try {
+			return $this->accounts->find($accountId, $userId)->canCarryCostCenter();
+		} catch (\Throwable) {
+			return false;
+		}
 	}
 
 	/**
@@ -82,6 +91,38 @@ class CostCenterDefaults {
 	}
 
 	/**
+	 * Alle vorhandenen Kostenstellen, auch inaktive – für Stammdaten, an denen
+	 * eine einmal gewählte Kostenstelle stehen bleiben darf.
+	 *
+	 * @return list<int>
+	 */
+	public function knownIds(string $userId): array {
+		return array_map(static fn ($costCenter): int => $costCenter->getId(), $this->costCenters->findAll($userId));
+	}
+
+	/**
+	 * Nachschlagetabelle für Importe: Kürzel oder Name (klein) => ID, nur
+	 * nutzbare Kostenstellen. Das Kürzel geht dem Namen vor. null bei
+	 * ausgeschaltetem Modul – der Aufrufer verhält sich dann wie zuvor.
+	 *
+	 * @return array<string, int>|null
+	 */
+	public function lookup(string $userId): ?array {
+		if (!$this->settings->isEnabled()) {
+			return null;
+		}
+		$active = array_filter($this->costCenters->findAll($userId), static fn ($costCenter): bool => $costCenter->isActive());
+		$map = [];
+		foreach ($active as $costCenter) {
+			$map[mb_strtolower(trim((string)$costCenter->getName()))] = $costCenter->getId();
+		}
+		foreach ($active as $costCenter) {
+			$map[mb_strtolower(trim((string)$costCenter->getCode()))] = $costCenter->getId();
+		}
+		return $map;
+	}
+
+	/**
 	 * Wo die Kostenstelle als Vorgabe eingetragen ist.
 	 *
 	 * @return array<string, int> Art => Anzahl
@@ -89,6 +130,7 @@ class CostCenterDefaults {
 	public function usage(int $costCenterId): array {
 		return [
 			'rules' => $this->rules->countByCostCenter($costCenterId),
+			'invoiceLines' => $this->invoiceLines?->countByBookingCostCenter($costCenterId) ?? 0,
 		];
 	}
 }

@@ -4551,5 +4551,7 @@ OC.L10N.register("vereinsbuchhaltung", {
 	"Kostenstelle verpflichtend": "Kostenplaats verplicht",
 	"Beim Buchen auf dieses Konto erinnert die App an die Kostenstelle; der Bericht „Kostenstellen“ listet nicht zugeordnete Beträge. Speichern bleibt immer möglich.": "Bij het boeken op deze rekening herinnert de app aan de kostenplaats; het rapport ‘Kostenplaatsen’ toont niet-toegewezen bedragen. Opslaan blijft altijd mogelijk.",
 	"Für dieses Konto ist eine Kostenstelle vorgesehen; {amount} sind noch nicht zugeordnet.": "Voor deze rekening is een kostenplaats voorzien; {amount} is nog niet toegewezen.",
-	"Für diese Konten ist eine Kostenstelle vorgesehen. Die Beträge sind noch keiner Kostenstelle zugeordnet – ein Klick auf das Konto führt zu den Buchungen.": "Voor deze rekeningen is een kostenplaats voorzien. De bedragen zijn nog niet aan een kostenplaats toegewezen – klik op de rekening om de boekingen te zien."
+	"Für diese Konten ist eine Kostenstelle vorgesehen. Die Beträge sind noch keiner Kostenstelle zugeordnet – ein Klick auf das Konto führt zu den Buchungen.": "Voor deze rekeningen is een kostenplaats voorzien. De bedragen zijn nog niet aan een kostenplaats toegewezen – klik op de rekening om de boekingen te zien.",
+	"Rechnungspositionen": "Factuurregels",
+	"Position %d: Die Kostenstelle gibt es nicht.": "Regel %d: de kostenplaats bestaat niet."
 }, "nplurals=2; plural=(n != 1);");
