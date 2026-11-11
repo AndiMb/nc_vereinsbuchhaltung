@@ -82,6 +82,10 @@ export function isSingleFull(lineAmountEuro, allocations) {
  * @return {Array} dieselbe Liste oder die mitgezogene
  */
 export function followAmount(oldAmountEuro, newAmountEuro, allocations) {
+	// Unveraenderter Betrag: dieselbe Liste zurueck, nicht eine gleiche neue -
+	// sonst gaelte das Formular als geaendert und der Watcher im Dialog liefe
+	// ohne Ende.
+	if (cents(oldAmountEuro) === cents(newAmountEuro)) { return allocations }
 	if (!isSingleFull(oldAmountEuro, allocations)) { return allocations }
 	return [{ ...allocations[0], amount: Number(newAmountEuro || 0) }]
 }

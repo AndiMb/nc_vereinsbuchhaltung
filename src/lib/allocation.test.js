@@ -99,6 +99,13 @@ describe('isSingleFull / followAmount', () => {
 		expect(followAmount(1000, 1200, allocations)).toBe(allocations)
 	})
 
+	it('gibt bei unveraendertem Betrag dieselbe Liste zurueck', () => {
+		// Eine neue Liste hiesse fuer den Dialog "geaendert" - und fuer den
+		// Watcher dort eine Endlosschleife.
+		const allocations = [{ costCenterId: SEN, amount: 1000 }]
+		expect(followAmount(1000, 1000, allocations)).toBe(allocations)
+	})
+
 	it('laesst eine Teilzuordnung stehen', () => {
 		const allocations = [{ costCenterId: SEN, amount: 600 }]
 		expect(followAmount(1000, 1200, allocations)).toBe(allocations)
@@ -186,6 +193,23 @@ describe('syncAllocations', () => {
 		const allocations = { 5300: split }
 		const lines = [{ accountId: 5300, amount: 1000 }]
 		expect(syncAllocations(lines, lines, allocations)).toBe(allocations)
+	})
+
+	it('laesst die eine Kostenstelle ueber den ganzen Betrag stehen, wenn sich nichts aendert', () => {
+		// Der Fall nach dem Auswaehlen im einfachen Feld: gleiche Zeile, gleicher
+		// Betrag. Kaeme hier ein neues Objekt zurueck, schriebe der Dialog es ins
+		// Formular, der Watcher liefe erneut - ohne Ende.
+		const allocations = { 5300: [{ costCenterId: SEN, amount: 1000 }] }
+		const lines = [{ accountId: 5300, amount: 1000 }]
+		expect(syncAllocations(lines, [{ accountId: 5300, amount: 1000 }], allocations)).toBe(allocations)
+	})
+
+	it('kommt nach einer Aenderung zur Ruhe', () => {
+		// Zweimal hintereinander angewendet aendert der zweite Lauf nichts mehr.
+		const prev = [{ accountId: 5300, amount: 1000 }]
+		const next = [{ accountId: 5300, amount: 1200 }]
+		const once = syncAllocations(prev, next, { 5300: [{ costCenterId: SEN, amount: 1000 }] })
+		expect(syncAllocations(next, next, once)).toBe(once)
 	})
 
 	it('nimmt die Verteilung beim Kontowechsel mit', () => {
