@@ -17,6 +17,9 @@ import { t } from '../lib/l10n.js'
  */
 const state = reactive({
 	enabled: false,
+	// Erst wenn die Einstellungen gelesen sind, ist `enabled` verlaesslich -
+	// bis dahin darf niemand aus "aus" Schluesse ziehen (Deep-Link).
+	known: false,
 	bookingCostCenters: [],
 })
 
@@ -49,6 +52,7 @@ async function loadBookingCostCenters() {
  */
 function setBookingCostCentersEnabled(enabled) {
 	state.enabled = !!enabled
+	state.known = true
 	if (state.enabled) {
 		loadBookingCostCenters()
 	} else {

@@ -638,6 +638,7 @@ export default {
 			loadCostCenters: costCenters.loadCostCenters,
 			setBookingCostCentersEnabled: bookingCostCenters.setBookingCostCentersEnabled,
 			costCentersEnabled: toRef(bookingCostCenters.state, 'enabled'),
+			costCentersKnown: toRef(bookingCostCenters.state, 'known'),
 			// Regeln: geteilter Zustand (useRules.js), seit dem Umzug der Pflege
 			// nach RulesPanel.vue (Unterreiter „Regeln" von BookingsTab.vue) hier
 			// nur noch fuer computeSuggestion()/createRuleFromTx() gebraucht.
@@ -1263,6 +1264,7 @@ export default {
 		},
 
 		reportView(v) {
+			if (v === 'allocations' && this.leaveDisabledAllocationView()) { return }
 			if (v === 'summary') { this.loadBalances() } else if (v === 'costcenters') { this.loadReport() } else if (v === 'spheres') { this.loadSphereReport() } else if (v === 'budget') { this.loadBudget() } else if (v === 'audit') { this.loadAudit() }
 		},
 
@@ -1775,7 +1777,7 @@ export default {
 				// ausgeschaltet gibt es den Bericht nicht, ein Deep-Link dorthin
 				// faellt auf die Auswertung zurueck.
 				this.setBookingCostCentersEnabled(!!data.cost_centers_enabled)
-				if (!data.cost_centers_enabled && this.reportView === 'allocations') { this.reportView = 'summary' }
+				this.leaveDisabledAllocationView()
 			} catch { /* ignorieren */ }
 		},
 
@@ -2887,6 +2889,19 @@ export default {
 				documentRef: f.documentRef || null,
 				lines: this.buildSplitPayloadLines(),
 			}
+		},
+
+		/**
+		 * Der Bericht "Kostenstellen" existiert nur bei eingeschaltetem Modul.
+		 * Wer per Direktlink dort landet, kommt zur Auswertung - aber erst, wenn
+		 * die Einstellungen gelesen sind (vorher ist "aus" nur die Vorgabe).
+		 *
+		 * @return {boolean} ob die Ansicht verlassen wurde
+		 */
+		leaveDisabledAllocationView() {
+			if (this.reportView !== 'allocations' || !this.costCentersKnown || this.costCentersEnabled) { return false }
+			this.reportView = 'summary'
+			return true
 		},
 
 		/**

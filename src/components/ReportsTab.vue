@@ -29,6 +29,20 @@
 				</button>
 			</div>
 			<div class="vbh-sectiontop-actions">
+				<!-- Kostenstellen an der Buchungszeile (Issue #7): Druckseite und CSV -->
+				<a
+					v-if="costCentersEnabled && reportView === 'allocations'"
+					:href="costCenterPrintUrl"
+					target="_blank"
+					rel="noopener"
+					class="vbh-export-btn"
+					:title="t('Druckfertiger Bericht je Kostenstelle (öffnet in neuem Tab, dort drucken oder als PDF speichern)')"><NcIconSvgWrapper :path="mdiPrinter" :size="16" inline /> {{ t('Drucken') }}</a>
+				<a
+					v-if="costCentersEnabled && reportView === 'allocations'"
+					:href="costCenterCsvUrl"
+					download=""
+					class="vbh-export-btn"
+					:title="t('Bericht je Kostenstelle als CSV exportieren')"><NcIconSvgWrapper :path="mdiDownload" :size="16" inline /> {{ t('CSV') }}</a>
 				<a
 					v-if="reportView === 'summary' && selectedPeriodId && !isMobile"
 					:href="kassenberichtUrl"
@@ -189,7 +203,7 @@
 					{{ t('Auswertungsgruppen verwalten') }}
 				</NcButton>
 				<NcButton
-					v-if="canWrite && reportView === 'allocations'"
+					v-if="canWrite && costCentersEnabled && reportView === 'allocations'"
 					variant="secondary"
 					size="small"
 					@click="bookingCcPanelOpen = true">
@@ -889,11 +903,12 @@
 				@openSpheres="spherePanelOpen = true" />
 
 			<!-- KOSTENSTELLEN an der Buchungszeile (Issue #7) -->
-			<div v-if="costCentersEnabled && reportView === 'allocations'">
-				<p class="vbh-empty">
-					{{ t('Noch keine Beträge einer Kostenstelle zugeordnet.') }}
-				</p>
-			</div>
+			<CostCenterAllocationReport
+				v-if="costCentersEnabled && reportView === 'allocations'"
+				:periodId="selectedPeriodId"
+				:isActive="isActive"
+				:refreshKey="allocationRefreshKey + structuredRefreshKey"
+				@openAccount="$emit('open-account', $event)" />
 
 			<!-- ÄNDERUNGSPROTOKOLL -->
 			<div v-show="reportView === 'audit'">
@@ -1006,6 +1021,7 @@ import NcModal from '@nextcloud/vue/components/NcModal'
 import NcSelect from '@nextcloud/vue/components/NcSelect'
 import BookingCostCenterPanel from './BookingCostCenterPanel.vue'
 import BudgetTreeTable from './BudgetTreeTable.vue'
+import CostCenterAllocationReport from './CostCenterAllocationReport.vue'
 import CostCenterPanel from './CostCenterPanel.vue'
 import SphereAssignPanel from './SphereAssignPanel.vue'
 import StructuredReportView from './StructuredReportView.vue'
@@ -1026,7 +1042,7 @@ import { statementRowKeys } from '../lib/rowKeys.js'
 
 export default {
 	name: 'ReportsTab',
-	components: { NcButton, NcActions, NcActionInput, NcActionLink, NcCheckboxRadioSwitch, NcEmptyContent, NcIconSvgWrapper, NcModal, NcSelect, BookingCostCenterPanel, BudgetTreeTable, CostCenterPanel, SphereAssignPanel, StructuredReportView },
+	components: { NcButton, NcActions, NcActionInput, NcActionLink, NcCheckboxRadioSwitch, NcEmptyContent, NcIconSvgWrapper, NcModal, NcSelect, BookingCostCenterPanel, BudgetTreeTable, CostCenterAllocationReport, CostCenterPanel, SphereAssignPanel, StructuredReportView },
 	props: {
 		// Kostenstellen-Modus (group|account|manual), gesteuert ueber den
 		// Gruppierungs-Waehler in der Kopfzeile (nur reportView==='costcenters').
@@ -1146,6 +1162,8 @@ export default {
 		attachmentsZipUrl() { return api.exportAttachmentsUrl(this.selectedPeriodId) },
 		exportBalancesUrl() { return api.exportBalancesUrl(this.selectedPeriodId) },
 		exportReportUrl() { return api.exportReportUrl(this.selectedPeriodId) },
+		costCenterPrintUrl() { return api.exportCostCenterAllocationsUrl(this.selectedPeriodId) },
+		costCenterCsvUrl() { return api.exportCostCenterAllocationsCsvUrl(this.selectedPeriodId) },
 		exportMultiyearUrl() { return api.exportMultiyearUrl() },
 		// Druck und CSV bekommen immer die tatsächliche Wahl (ID oder 0), damit
 		// sie nie stillschweigend anders vergleichen als der Bildschirm.
