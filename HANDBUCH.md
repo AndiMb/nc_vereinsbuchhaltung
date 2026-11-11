@@ -1119,8 +1119,21 @@ eingeschalteter Funktion diese Kostenstelle (Kürzel oder Name); eine Tabelle,
 die dort noch Auswertungsgruppen nennt, meldet die Zeile dann als Fehler.
 Eine Rabattposition mindert den Anteil ihrer Kostenstelle.
 
-Buchungen aus Auslagen und dem SEPA-Einzug entstehen ohne Kostenstelle.
-Sie lässt sich an der Buchung nachtragen.
+**Auslagen:** Der Dialog „Umsatz einer Auslage zuordnen“ hat unter dem
+Aufwandskonto das Feld **Kostenstelle**; die Buchung der Auszahlung trägt
+sie.
+
+**Beiträge und SEPA-Einzug:** Jede Beitragsgruppe (Kapitel 13) kann eine
+Kostenstelle als Vorgabe tragen. Beim Verbuchen einer Sammelgutschrift im
+Bankabgleich ordnet die App den Beitrag jedes Mitglieds der Kostenstelle
+seiner Gruppe zu – in einer Buchung, je Erlöskonto summiert; Beiträge aus
+Gruppen ohne Vorgabe bleiben ohne. Dasselbe gilt für einen einzeln
+zugeordneten Zahlungseingang. Eine Rücklastschrift nimmt den Erlös wieder
+aus der Kostenstelle heraus; die Bankgebühr gehört keiner. Die Vorgabe
+gilt für Forderungen, die der Einzugszyklus aus einer Zuweisung erzeugt –
+von Hand angelegte Forderungen haben keine Gruppe und bleiben ohne. Ist
+die Kostenstelle inaktiv, wird ohne sie verbucht; die Verbuchung scheitert
+daran nie.
 
 **Kostenstelle verpflichtend:** Soll auf einem Konto möglichst jeder Betrag
 eine Kostenstelle bekommen, setzen Sie im Kontodialog (Tab Konten → Konto
