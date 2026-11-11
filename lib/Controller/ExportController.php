@@ -14,6 +14,7 @@ use OCA\Vereinsbuchhaltung\Service\Export\CsvFile;
 use OCA\Vereinsbuchhaltung\Service\Export\DatenuebersichtRenderer;
 use OCA\Vereinsbuchhaltung\Service\Export\FinanzplanRenderer;
 use OCA\Vereinsbuchhaltung\Service\Export\GliederungsberichtRenderer;
+use OCA\Vereinsbuchhaltung\Service\Export\GliederungsberichtVisuellRenderer;
 use OCA\Vereinsbuchhaltung\Service\Export\KassenberichtRenderer;
 use OCA\Vereinsbuchhaltung\Service\Export\KurzberichtRenderer;
 use OCA\Vereinsbuchhaltung\Service\Export\PrintableReportPage;
@@ -21,6 +22,7 @@ use OCA\Vereinsbuchhaltung\Service\PeriodService;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
 use OCA\Vereinsbuchhaltung\Service\Report\ReportTemplateService;
 use OCA\Vereinsbuchhaltung\Service\Report\StructuredReportService;
+use OCA\Vereinsbuchhaltung\Service\Report\VisualReportService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http;
@@ -65,8 +67,10 @@ class ExportController extends Controller {
 		private AccountStatementRenderer $accountStatement,
 		private FinanzplanRenderer $finanzplan,
 		private GliederungsberichtRenderer $gliederungsbericht,
+		private GliederungsberichtVisuellRenderer $gliederungsberichtVisuell,
 		private ReportTemplateService $reportTemplates,
 		private StructuredReportService $structuredReport,
+		private VisualReportService $visualReport,
 		private PeriodService $periods,
 		private IL10N $l10n,
 	) {
@@ -171,6 +175,28 @@ class ExportController extends Controller {
 	public function gliederungsberichtCsv(string $template, ?int $period = null): DataDownloadResponse|DataResponse {
 		$report = $this->structuredReport($template, $period);
 		return $report === null ? $this->templateNotFound() : $this->download($this->csv->gliederungsbericht($report));
+	}
+
+	/**
+	 * Visuelle Gliederungsansicht (Plan gegen Ist) als druckfertige HTML-Seite.
+	 *
+	 * @param string|null $asOf Stand `YYYY-MM` oder `current`; leer oder fehlend = Vorgabe
+	 * @param string $basis `time` (zeitanteiliger Plan), sonst Jahresplan
+	 */
+	#[NoAdminRequired]
+	#[NoCSRFRequired]
+	public function gliederungsberichtVisuell(string $template, ?int $period = null, ?string $asOf = null, string $basis = 'year'): DataDisplayResponse|DataResponse {
+		$userId = $this->userId();
+		$found = $this->reportTemplates->find($userId, $template);
+		if ($found === null) {
+			return $this->templateNotFound();
+		}
+		try {
+			$visual = $this->visualReport->build($userId, $found, $period, $asOf === '' ? null : $asOf);
+		} catch (\InvalidArgumentException) {
+			return new DataResponse(['message' => $this->l10n->t('Ungültiger Stand')], Http::STATUS_UNPROCESSABLE_ENTITY);
+		}
+		return $this->printableResponse($this->gliederungsberichtVisuell->render($visual, $basis === 'time' ? 'time' : 'year'));
 	}
 
 	/** @return array<string, mixed>|null */

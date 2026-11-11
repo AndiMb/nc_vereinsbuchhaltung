@@ -10,6 +10,7 @@ use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
 use OCA\Vereinsbuchhaltung\Service\AttachmentStorageService;
 use OCA\Vereinsbuchhaltung\Service\AttachmentWatchFolderService;
 use OCA\Vereinsbuchhaltung\Service\AuditService;
+use OCA\Vereinsbuchhaltung\Service\BudgetStatusSettings;
 use OCA\Vereinsbuchhaltung\Service\ClubCurrency;
 use OCA\Vereinsbuchhaltung\Service\ClubCurrencySwitchGuard;
 use OCA\Vereinsbuchhaltung\Service\ContributionYearService;
@@ -66,6 +67,7 @@ class SettingsController extends Controller {
 		private ForeignHomeGuard $foreignHomeGuard,
 		private ClubCurrency $currency,
 		private ClubCurrencySwitchGuard $currencySwitchGuard,
+		private BudgetStatusSettings $budgetStatusSettings,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -489,6 +491,16 @@ class SettingsController extends Controller {
 		if (array_key_exists('dunning_interval_days', $params)) {
 			try {
 				$this->dunningSettings->setIntervalDays((int)$params['dunning_interval_days']);
+			} catch (\InvalidArgumentException $e) {
+				return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
+			}
+		}
+
+		// Ampel-Schwellen der visuellen Gliederungsansicht: die fünf Werte nur gemeinsam.
+		if (array_key_exists(BudgetStatusSettings::KEY, $params)) {
+			$thresholds = $params[BudgetStatusSettings::KEY];
+			try {
+				$this->budgetStatusSettings->set(is_array($thresholds) ? $thresholds : []);
 			} catch (\InvalidArgumentException $e) {
 				return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
 			}

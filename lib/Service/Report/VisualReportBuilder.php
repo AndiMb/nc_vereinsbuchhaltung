@@ -25,10 +25,11 @@ final class VisualReportBuilder {
 	 * @param array{income: array{plan:int, actual:int}, expense: array{plan:int, actual:int}} $totals
 	 * @param array<string, int> $thresholds
 	 * @param list<int> $coveredIds Konten ohne eigenen Plan, deren Plan auf einem Vorfahren liegt
+	 * @param list<int> $parentIds Konten mit Unterkonten (ihre Zahlen schließen die Unterkonten ein)
 	 * @return array{rows: list<array<string, mixed>>, kpis: array<string, mixed>,
 	 *               distribution: array<string, mixed>, deviations: array<string, mixed>}
 	 */
-	public static function build(array $rows, array $planLevel, array $totals, int $elapsed, int $total, array $thresholds, array $coveredIds = []): array {
+	public static function build(array $rows, array $planLevel, array $totals, int $elapsed, int $total, array $thresholds, array $coveredIds = [], array $parentIds = []): array {
 		// Fälliger Anteil des Plans als Bruch [Zähler, Nenner], damit
 		// BudgetStatus ganzzahlig vergleichen kann.
 		$factors = [
@@ -36,12 +37,36 @@ final class VisualReportBuilder {
 			'time' => [$elapsed, $total],
 		];
 
+		$parents = array_fill_keys($parentIds, true);
 		return [
-			'rows' => self::buildRows($rows, $factors, $thresholds, array_fill_keys($coveredIds, true)),
+			'rows' => self::buildRows($rows, $factors, $thresholds, array_fill_keys($coveredIds, true), $parents),
 			'kpis' => self::buildKpis($totals, $factors, $elapsed, $total, $thresholds),
 			'distribution' => self::buildDistribution($planLevel, $factors, $thresholds),
-			'deviations' => self::buildDeviations($planLevel, $factors, $thresholds),
+			'deviations' => self::buildDeviations($planLevel, $factors, $thresholds, $parents),
 		];
+	}
+
+	/**
+	 * Verlauf des kumulierten Ist über die Monate: Monate ohne Buchung
+	 * übernehmen den Wert des Vormonats.
+	 *
+	 * @param list<string> $months `YYYY-MM`, aufsteigend
+	 * @param array<string, int> $incomeByMonth Einnahmen je Monat (nicht kumuliert)
+	 * @param array<string, int> $expenseByMonth Ausgaben je Monat (nicht kumuliert)
+	 * @return array{months: list<string>, income: list<int>, expense: list<int>}
+	 */
+	public static function series(array $months, array $incomeByMonth, array $expenseByMonth): array {
+		$income = [];
+		$expense = [];
+		$incomeSum = 0;
+		$expenseSum = 0;
+		foreach ($months as $month) {
+			$incomeSum += $incomeByMonth[$month] ?? 0;
+			$expenseSum += $expenseByMonth[$month] ?? 0;
+			$income[] = $incomeSum;
+			$expense[] = $expenseSum;
+		}
+		return ['months' => array_values($months), 'income' => $income, 'expense' => $expense];
 	}
 
 	/**
@@ -49,9 +74,10 @@ final class VisualReportBuilder {
 	 * @param array<string, array{int, int}> $factors
 	 * @param array<string, int> $thresholds
 	 * @param array<int, true> $covered Konto-Ids, deren Plan auf einem Vorfahren liegt
+	 * @param array<int, true> $parents Konto-Ids mit Unterkonten
 	 * @return list<array<string, mixed>>
 	 */
-	private static function buildRows(array $rows, array $factors, array $thresholds, array $covered): array {
+	private static function buildRows(array $rows, array $factors, array $thresholds, array $covered, array $parents): array {
 		$out = [];
 		foreach ($rows as $row) {
 			$kind = $row['kind'] ?? '';
@@ -76,6 +102,12 @@ final class VisualReportBuilder {
 				$row['flags'] = [...(is_array($row['flags'] ?? null) ? $row['flags'] : []), 'covered'];
 			} else {
 				$row['status'] = self::status((string)($row['nature'] ?? 'expense'), $plan, $actual, $factors, $thresholds);
+			}
+			// Ein Oberkonto zeigt die Summe samt Unterkonten, auch wenn die
+			// Vorlage sie nicht einzeln zeigt. Die Buchungsliste filtert aber
+			// genau ein Konto – die Oberfläche bietet hier keinen Sprung an.
+			if ($kind === 'account' && isset($parents[(int)($row['accountId'] ?? 0)])) {
+				$row['flags'] = [...(is_array($row['flags'] ?? null) ? $row['flags'] : []), 'parent'];
 			}
 			$out[] = $row;
 		}
@@ -167,9 +199,10 @@ final class VisualReportBuilder {
 	 * @param list<array{id:int, type:string, number:string, name:string, plan:int, actual:int}> $planLevel
 	 * @param array<string, array{int, int}> $factors
 	 * @param array<string, int> $thresholds
+	 * @param array<int, true> $parents Konto-Ids mit Unterkonten
 	 * @return array<string, array<string, list<array<string, mixed>>>>
 	 */
-	private static function buildDeviations(array $planLevel, array $factors, array $thresholds): array {
+	private static function buildDeviations(array $planLevel, array $factors, array $thresholds, array $parents): array {
 		$accounts = self::uniqueAccounts($planLevel);
 		$dev = [];
 		foreach (self::BASES as $basis) {
@@ -185,6 +218,10 @@ final class VisualReportBuilder {
 				if ($nature !== 'income' && $nature !== 'expense') {
 					continue;
 				}
+				// Ein negativer Plan hat keinen Status (none): keine Abweichung.
+				if ($account['plan'] < 0) {
+					continue;
+				}
 				$reference = $account['plan'] * $e / $t;
 				$amount = $nature === 'expense' ? $account['actual'] - $reference : $reference - $account['actual'];
 				if ($amount <= self::MIN_DEVIATION) {
@@ -196,6 +233,7 @@ final class VisualReportBuilder {
 					'label' => $account['name'],
 					'amount' => (int)round($amount),
 					'level' => BudgetStatus::of($nature, $account['plan'], $account['actual'], $e, $t, $thresholds)['level'],
+					'parent' => isset($parents[$account['id']]),
 				];
 			}
 			foreach (['income', 'expense'] as $nature) {

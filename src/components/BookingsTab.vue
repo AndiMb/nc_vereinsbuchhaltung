@@ -827,7 +827,7 @@ import { useOpenItems } from '../composables/useOpenItems.js'
 import { usePeriods } from '../composables/usePeriods.js'
 import { useSort } from '../composables/useSort.js'
 import { journalRowMatchesAccountFilter } from '../lib/accountFilter.js'
-import { accountFilterBy, accountLabel } from '../lib/accountLabel.js'
+import { accountFilterBy, accountLabel, accountOption } from '../lib/accountLabel.js'
 import { claimTypeLabel } from '../lib/claims.js'
 import { currencySymbol } from '../lib/clubCurrency.js'
 import { bookingFlow, flowClass, flowLabel, formatFlowMoney, transactionFlow } from '../lib/flow.js'
@@ -883,9 +883,13 @@ export default {
 		openFolderPickerForBookings: { type: Function, default: async () => false },
 		// Hochzählen = die Auslagen neu laden (nach der Auszahlungsbuchung in App.vue).
 		reimbursementsReloadKey: { type: Number, default: 0 },
+		// Kontofilter des Journals von außen (URL-Parameter account, Sprung aus
+		// dem Gliederungsbericht). Eine Änderung in der Auswahl meldet
+		// update:filter-account-id zurück; ein Kategoriefilter meldet null.
+		filterAccountId: { type: Number, default: null },
 	},
 
-	emits: ['attachments-changed', 'go-claims', 'help', 'invoice-paid', 'pay-reimbursement', 'reimbursement-booking-changed', 'update:booking-view'],
+	emits: ['attachments-changed', 'go-claims', 'help', 'invoice-paid', 'pay-reimbursement', 'reimbursement-booking-changed', 'update:booking-view', 'update:filter-account-id'],
 
 	setup() {
 		const auth = useAuth()
@@ -981,7 +985,13 @@ export default {
 		// waehlbar und meinen alle Konten der Kategorie. In den Konto-Pickern
 		// (Zuordnen, Offene Posten) bleiben sie reine Trenner.
 		accountFilterOptions() {
-			return buildAccountOptions(this.accountsSorted, this.accountUsageCounts, this.t, { selectableCategories: true })
+			const opts = buildAccountOptions(this.accountsSorted, this.accountUsageCounts, this.t, { selectableCategories: true })
+			// Ein nicht mehr aktives Konto steht nur dann zur Wahl, wenn es von
+			// außen gefiltert wurde (Gliederungsbericht) - sonst fehlte der Auswahl
+			// die Anzeige des wirksamen Filters.
+			const acc = this.bookingFilter?.accountId ? this.accountsById[this.bookingFilter.accountId] : null
+			if (acc && !acc.active) { opts.push(accountOption(acc)) }
+			return opts
 		},
 
 		journalFilterActive() {
@@ -1006,6 +1016,8 @@ export default {
 					// Leeren oder eine reine Trenner-Option (id null): kein Filter.
 					this.bookingFilter = null
 				}
+				const accountId = this.bookingFilter?.accountId ?? null
+				if (accountId !== this.filterAccountId) { this.$emit('update:filter-account-id', accountId) }
 			},
 		},
 
@@ -1205,6 +1217,14 @@ export default {
 		// Neue Auswahl, neue Liste: wieder mit den ersten JOURNAL_PAGE Buchungen.
 		bookingSearch() { this.journalLimit = JOURNAL_PAGE },
 		bookingFilter() { this.journalLimit = JOURNAL_PAGE },
+
+		filterAccountId: {
+			handler() { this.applyFilterAccountId() },
+			immediate: true,
+		},
+
+		// Kaltstart per Link: das Konto kann vor den Konten ankommen.
+		accountsById() { this.applyFilterAccountId() },
 		journalOnlyNoAttachment() { this.journalLimit = JOURNAL_PAGE },
 
 		// Nach jeder Änderung an Belegen und beim Ein-/Ausschalten des
@@ -1236,6 +1256,22 @@ export default {
 		formatMoney,
 		formatDate,
 		levelIcon,
+
+		/**
+		 * Übernimmt den Kontofilter von außen (Prop filterAccountId). null hebt
+		 * nur einen Konto-, keinen Kategoriefilter auf. Ein noch nicht geladenes
+		 * Konto holt der Watcher auf accountsById nach.
+		 */
+		applyFilterAccountId() {
+			const id = this.filterAccountId
+			const current = this.bookingFilter?.accountId ?? null
+			if (id === current) { return }
+			if (id === null) {
+				this.bookingFilter = null
+			} else if (this.accountsById[id]) {
+				this.bookingFilter = { accountId: id }
+			}
+		},
 
 		// --- Belegvorschläge (#229) ---------------------------------------
 		async loadReceiptSuggestions() {

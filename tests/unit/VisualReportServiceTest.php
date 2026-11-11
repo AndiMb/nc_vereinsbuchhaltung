@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Tests\Unit;
 
 use OCA\Vereinsbuchhaltung\Db\Account;
+use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
 use OCA\Vereinsbuchhaltung\Db\Period;
+use OCA\Vereinsbuchhaltung\Service\BudgetStatusSettings;
 use OCA\Vereinsbuchhaltung\Service\PeriodService;
 use OCA\Vereinsbuchhaltung\Service\Report\BudgetStatus;
 use OCA\Vereinsbuchhaltung\Service\Report\StructuredReportService;
 use OCA\Vereinsbuchhaltung\Service\Report\VisualReportService;
 use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubClockStub;
+use OCP\IAppConfig;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
@@ -21,7 +24,10 @@ class VisualReportServiceTest extends TestCase {
 
 	private StructuredReportService&MockObject $structured;
 	private PeriodService&MockObject $periods;
+	private JournalLineMapper&MockObject $lines;
 	private Period $period;
+	/** @var array<string, string> App-Konfiguration für BudgetStatusSettings */
+	private array $store = [];
 
 	protected function setUp(): void {
 		$this->period = new Period();
@@ -32,6 +38,7 @@ class VisualReportServiceTest extends TestCase {
 
 		$this->structured = $this->createMock(StructuredReportService::class);
 		$this->periods = $this->createMock(PeriodService::class);
+		$this->lines = $this->createMock(JournalLineMapper::class);
 		$this->periods->method('selectedOrCurrent')->willReturn($this->period);
 		$this->structured->method('planActual')->willReturn(['accounts' => [], 'plan' => [], 'actual' => []]);
 	}
@@ -47,7 +54,10 @@ class VisualReportServiceTest extends TestCase {
 	}
 
 	private function service(string $utcNow = '2026-11-10 10:00:00'): VisualReportService {
-		return new VisualReportService($this->structured, $this->periods, ClubClockStub::at($utcNow));
+		// BudgetStatusSettings ist final: echte Instanz über einen In-Memory-Konfigurationsspeicher.
+		$config = $this->createMock(IAppConfig::class);
+		$config->method('getValueString')->willReturnCallback(fn (string $app, string $key, string $default = '') => $this->store[$key] ?? $default);
+		return new VisualReportService($this->structured, $this->periods, $this->lines, ClubClockStub::at($utcNow), new BudgetStatusSettings($config));
 	}
 
 	private function report(): array {
@@ -116,13 +126,121 @@ class VisualReportServiceTest extends TestCase {
 
 		$rows = $this->service()->build('u', self::TEMPLATE, null, null)['rows'];
 
-		$this->assertSame([], $rows[0]['flags']);
+		// 5000 hat Unterkonten: seine Zahlen schließen sie ein, kein Sprung in die Buchungen.
+		$this->assertSame(['parent'], $rows[0]['flags']);
 		$this->assertSame('good', $rows[0]['status']['year']['level']);
 		$this->assertSame(['covered'], $rows[1]['flags']);
 		$this->assertSame('none', $rows[1]['status']['year']['level']);
 		$this->assertSame('none', $rows[1]['status']['time']['level']);
 		$this->assertSame([], $rows[2]['flags']);
 		$this->assertSame('unplanned', $rows[2]['status']['year']['level']);
+	}
+
+	public function testSeriesIsCumulatedNetPerAccountType(): void {
+		$this->structured = $this->createMock(StructuredReportService::class);
+		$this->structured->method('build')->willReturn($this->report());
+		$this->structured->method('planActual')->willReturn([
+			'accounts' => [
+				$this->account(1, null, 'income', '4000'),
+				$this->account(2, null, 'expense', '5000'),
+				$this->account(3, null, 'asset', '1000'),
+			],
+			'plan' => [1 => 100000, 2 => 80000],
+			'actual' => [1 => 35000, 2 => 12000],
+		]);
+		$this->lines->expects($this->once())->method('sumByAccountAndMonth')
+			->with('u', '2026-01-01', '2026-02-28')
+			->willReturn([
+				'2026-01' => [
+					1 => ['debit' => 0, 'credit' => 20000],
+					2 => ['debit' => 5000, 'credit' => 0],
+					3 => ['debit' => 99999, 'credit' => 0],
+				],
+				'2026-02' => [
+					1 => ['debit' => 1000, 'credit' => 16000],
+					2 => ['debit' => 8000, 'credit' => 1000],
+				],
+			]);
+
+		$result = $this->service()->build('u', self::TEMPLATE, null, '2026-02');
+
+		$this->assertSame(['2026-01', '2026-02'], $result['series']['months']);
+		$this->assertSame([20000, 35000], $result['series']['income']);
+		$this->assertSame([5000, 12000], $result['series']['expense']);
+		$this->assertSame($result['kpis']['income']['actual'], end($result['series']['income']));
+		$this->assertSame($result['kpis']['expense']['actual'], end($result['series']['expense']));
+	}
+
+	public function testSeriesForCurrentEndsAtTodaysMonth(): void {
+		$this->structured->method('build')->willReturn($this->report());
+		$this->lines->expects($this->once())->method('sumByAccountAndMonth')
+			->with('u', '2026-01-01', '2026-12-31')
+			->willReturn([]);
+
+		$series = $this->service('2026-03-10 10:00:00')->build('u', self::TEMPLATE, null, 'current')['series'];
+
+		$this->assertSame(['2026-01', '2026-02', '2026-03'], $series['months']);
+		$this->assertSame([0, 0, 0], $series['income']);
+	}
+
+	public function testSeriesIsEmptyWithoutElapsedMonths(): void {
+		$this->structured->method('build')->willReturn($this->report());
+		$this->lines->method('sumByAccountAndMonth')->willReturn([]);
+
+		$series = $this->service('2025-11-10 10:00:00')->build('u', self::TEMPLATE, null, 'current')['series'];
+
+		$this->assertSame(['months' => [], 'income' => [], 'expense' => []], $series);
+	}
+
+	private function bookedAccounts(): void {
+		$this->structured = $this->createMock(StructuredReportService::class);
+		$this->structured->method('build')->willReturn($this->report());
+		$this->structured->method('planActual')->willReturn([
+			'accounts' => [$this->account(1, null, 'income', '4000'), $this->account(2, null, 'expense', '5000')],
+			'plan' => [],
+			'actual' => [1 => 9000, 2 => 4000],
+		]);
+	}
+
+	public function testSeriesForCurrentExtendsToLaterBookedMonths(): void {
+		$this->bookedAccounts();
+		$this->lines->method('sumByAccountAndMonth')->willReturn([
+			'2026-01' => [1 => ['debit' => 0, 'credit' => 5000], 2 => ['debit' => 1000, 'credit' => 0]],
+			'2026-05' => [1 => ['debit' => 0, 'credit' => 4000], 2 => ['debit' => 3000, 'credit' => 0]],
+		]);
+
+		$result = $this->service('2026-03-10 10:00:00')->build('u', self::TEMPLATE, null, 'current');
+
+		$this->assertSame(['2026-01', '2026-02', '2026-03', '2026-04', '2026-05'], $result['series']['months']);
+		$this->assertSame([5000, 5000, 5000, 5000, 9000], $result['series']['income']);
+		$this->assertSame($result['kpis']['income']['actual'], end($result['series']['income']));
+		$this->assertSame($result['kpis']['expense']['actual'], end($result['series']['expense']));
+	}
+
+	public function testSeriesForCurrentKeepsTodaysMonthWhenBookingsEndEarlier(): void {
+		$this->bookedAccounts();
+		$this->lines->method('sumByAccountAndMonth')->willReturn([
+			'2026-02' => [1 => ['debit' => 0, 'credit' => 9000], 2 => ['debit' => 4000, 'credit' => 0]],
+		]);
+
+		$series = $this->service('2026-03-10 10:00:00')->build('u', self::TEMPLATE, null, 'current')['series'];
+
+		$this->assertSame(['2026-01', '2026-02', '2026-03'], $series['months']);
+		$this->assertSame([0, 9000, 9000], $series['income']);
+	}
+
+	public function testSeriesForPeriodNotStartingInJanuary(): void {
+		$this->period->setStartDate('2026-07-01');
+		$this->period->setEndDate('2027-06-30');
+		$this->bookedAccounts();
+		$this->lines->expects($this->once())->method('sumByAccountAndMonth')
+			->with('u', '2026-07-01', '2027-01-31')
+			->willReturn(['2026-12' => [1 => ['debit' => 0, 'credit' => 700]]]);
+
+		$series = $this->service('2027-03-10 10:00:00')->build('u', self::TEMPLATE, null, '2027-01')['series'];
+
+		$this->assertSame(['2026-07', '2026-08', '2026-09', '2026-10', '2026-11', '2026-12', '2027-01'], $series['months']);
+		$this->assertSame([0, 0, 0, 0, 0, 700, 700], $series['income']);
 	}
 
 	public function testInvalidAsOfThrows(): void {
@@ -132,11 +250,35 @@ class VisualReportServiceTest extends TestCase {
 		$this->service()->build('u', self::TEMPLATE, null, '2026-13');
 	}
 
-	public function testThresholdsAreDefaults(): void {
+	public function testThresholdsAreDefaultsWithoutSetting(): void {
 		$this->structured->method('build')->willReturn($this->report());
 
 		$result = $this->service()->build('u', self::TEMPLATE, null, null);
 
 		$this->assertSame(BudgetStatus::DEFAULTS, $result['thresholds']);
+	}
+
+	public function testThresholdsFollowSettings(): void {
+		$configured = ['expWarn' => 95, 'expCrit' => 130, 'incGood' => 90, 'incWarn' => 50, 'resTol' => 5];
+		$this->store[BudgetStatusSettings::KEY] = (string)json_encode($configured);
+		$row = static fn (int $id, string $number, int $plan, int $actual): array => [
+			'kind' => 'account', 'depth' => 0, 'label' => 'Konto ' . $number, 'nature' => 'expense',
+			'accountId' => $id, 'number' => $number, 'flags' => [], 'values' => [$plan, $actual],
+		];
+		$report = $this->report();
+		$report['rows'] = [$row(1, '5000', 100000, 90000)];
+		$this->structured = $this->createMock(StructuredReportService::class);
+		$this->structured->method('build')->willReturn($report);
+		$this->structured->method('planActual')->willReturn([
+			'accounts' => [$this->account(1, null, 'expense', '5000')],
+			'plan' => [1 => 100000],
+			'actual' => [1 => 90000],
+		]);
+
+		$result = $this->service()->build('u', self::TEMPLATE, null, null);
+
+		$this->assertSame($configured, $result['thresholds']);
+		// 90 % ausgeschöpft: mit den Vorgaben (orange ab 80 %) „warn“, hier erst ab 95 %.
+		$this->assertSame('good', $result['rows'][0]['status']['year']['level']);
 	}
 }

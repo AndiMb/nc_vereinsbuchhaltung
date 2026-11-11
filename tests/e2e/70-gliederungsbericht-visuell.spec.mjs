@@ -157,7 +157,7 @@ test.describe('Gliederungsbericht visuell', () => {
 		await expect(breakdown.locator('.vbh-visual-filter')).toContainText('Ausgaben – überschritten')
 		// Die Vorlage führt das Konto zweimal (Abschnitt und Zusammenfassung);
 		// der Filter zeigt es nur einmal.
-		const accounts = breakdown.locator('.vbh-visual-row__text--account, .vbh-visual-row__toggle')
+		const accounts = breakdown.locator('.vbh-visual-row__link, .vbh-visual-row__text--account')
 		await expect(accounts.first()).toBeVisible()
 		const shown = await accounts.allInnerTexts()
 		expect(shown.length, shown.join(' | ')).toBe(1)
@@ -205,6 +205,43 @@ test.describe('Gliederungsbericht visuell', () => {
 		// Zurück auf den Jahresplan, damit die gemerkte Wahl keine Folgetests färbt.
 		await yearButton.click()
 		await expect(incomePill).toHaveText(/beobachten/)
+	})
+
+	test('Klick auf ein Konto im Aufriss öffnet die gefilterte Buchungsliste; Zurück führt in die visuelle Ansicht', async ({ page, request }) => {
+		const { id: period } = await currentPeriod(request)
+		await openStructure(page, USERS.verwalter)
+		await showVisual(page)
+
+		// Die Vorlage führt das Konto zweimal (Abschnitt und Zusammenfassung).
+		const breakdown = visibleSection(page).locator('.vbh-visual-breakdown')
+		await breakdown.getByRole('button', { name: `Buchungen von ${EXPENSE_ACCOUNT} Raum- / Mietkosten zeigen` }).first().click()
+
+		await expect(page).toHaveURL(new RegExp(`/bookings\\?.*account=${expense.id}(&|$)`))
+		await expect(page).toHaveURL(new RegExp(`[?&]period=${period}(&|$)`))
+		const section = visibleSection(page)
+		await expect(section.locator('.vbh-filter-select .vs__selected')).toContainText(EXPENSE_ACCOUNT)
+		await expect(section.getByText('Miete über Plan').first()).toBeVisible()
+		// Ausgefilterte Zeilen bleiben im DOM (nur hidden) – gezählt werden sichtbare.
+		await expect(section.getByText('Beiträge knapp unter Plan').filter({ visible: true })).toHaveCount(0)
+
+		await page.goBack()
+		await expect(page).toHaveURL(/\/reports\/structure\?.*view=visual/)
+		await expect(visibleSection(page).locator('.vbh-visual-tiles')).toBeVisible()
+	})
+
+	test('Klick in der Liste der größten Lücken öffnet die Buchungen des Einnahmenkontos', async ({ page }) => {
+		await openStructure(page, USERS.verwalter)
+		await showVisual(page)
+
+		const gaps = visibleSection(page).locator('.vbh-visual-dev')
+			.filter({ has: page.getByRole('heading', { name: 'Größte Lücken (Einnahmen)' }) })
+		await gaps.getByRole('button', { name: `Buchungen von ${INCOME_ACCOUNT} Mitgliedsbeiträge zeigen` }).click()
+
+		await expect(page).toHaveURL(new RegExp(`/bookings\\?.*account=${income.id}(&|$)`))
+		const section = visibleSection(page)
+		await expect(section.locator('.vbh-filter-select .vs__selected')).toContainText(INCOME_ACCOUNT)
+		await expect(section.getByText('Beiträge knapp unter Plan').first()).toBeVisible()
+		await expect(section.getByText('Miete über Plan').filter({ visible: true })).toHaveCount(0)
 	})
 
 	test('Start-URL mit view=visual öffnet die visuelle Ansicht', async ({ page }) => {
@@ -256,6 +293,8 @@ test.describe('Gliederungsbericht visuell', () => {
 // zeigt alle Kontoebenen. Das Unterkonto ist dann nicht „ungeplant“.
 test.describe('Gliederungsbericht visuell: Unterkonto unter geplantem Oberkonto', () => {
 	const CHILD_LABEL = `${EXPENSE_ACCOUNT} 99 Nebenkosten (E2E)`
+	const PARENT_LABEL = `${EXPENSE_ACCOUNT} Raum- / Mietkosten`
+	let parent
 	let child
 	let template
 
@@ -263,6 +302,7 @@ test.describe('Gliederungsbericht visuell: Unterkonto unter geplantem Oberkonto'
 		await api.resetBook(request)
 		await api.seedDefaultAccounts(request)
 		const [bank, expense] = await api.accountsByNumber(request, BANK_ACCOUNT, EXPENSE_ACCOUNT)
+		parent = expense
 		child = await api.createAccount(request, { number: `${EXPENSE_ACCOUNT} 99`, name: 'Nebenkosten (E2E)', type: 'expense', parentId: expense.id })
 		const { id: period, firstDay } = await currentPeriod(request)
 		await api.raw(request, 'POST', '/budget', { data: { accountId: expense.id, period, amount: 1000 } })
@@ -310,6 +350,9 @@ test.describe('Gliederungsbericht visuell: Unterkonto unter geplantem Oberkonto'
 		const childRow = breakdown.locator('.vbh-visual-row', { hasText: CHILD_LABEL })
 		await expect(childRow.locator('.vbh-pill')).toHaveText('im Oberkonto geplant')
 		await expect(childRow.locator('.vbh-visual-pill')).toHaveCount(0)
+		// Ohne eigenen Plan kein Balken; die Zeile führt trotzdem zu den Buchungen.
+		await expect(childRow.locator('.vbh-visual-bullet')).toHaveCount(0)
+		await expect(childRow.getByRole('button', { name: `Buchungen von ${CHILD_LABEL} zeigen` })).toBeVisible()
 
 		const expenseDist = visibleSection(page).locator('.vbh-visual-dist')
 			.filter({ has: page.getByRole('heading', { name: 'Ampel der Ausgabenkonten' }) })
@@ -317,6 +360,317 @@ test.describe('Gliederungsbericht visuell: Unterkonto unter geplantem Oberkonto'
 		await expect(breakdown.locator('.vbh-visual-filter')).toContainText('Ausgaben – ungeplant')
 		await expect(breakdown).toContainText('Kein Konto der Gliederung hat diese Ampelstufe.')
 		await expect(breakdown).not.toContainText(CHILD_LABEL)
+	})
+
+	test('Oberkonto mit Unterkonto führt nicht in die Buchungen, das Unterkonto schon', async ({ page, request }) => {
+		const data = await api.getJson(request, `${VISUAL_ROUTE}?template=${template.id}&asOf=current`)
+		const parentRow = data.rows.find((r) => r.kind === 'account' && r.accountId === parent.id)
+		expect(parentRow.flags).toContain('parent')
+		expect(data.rows.find((r) => r.kind === 'account' && r.accountId === child.id).flags).not.toContain('parent')
+
+		await openApp(page, USERS.verwalter)
+		await page.evaluate((id) => {
+			localStorage.setItem('vbh.structuredReport.template', id)
+			localStorage.setItem('vbh.structuredReport.view', 'visual')
+		}, String(template.id))
+		await page.goto(`${BASE_URL}/index.php/apps/vereinsbuchhaltung/reports/structure?view=visual`)
+		await waitForAppLoaded(page)
+		const breakdown = visibleSection(page).locator('.vbh-visual-breakdown')
+		await expect(breakdown).toBeVisible()
+
+		const childLink = breakdown.getByRole('button', { name: `Buchungen von ${CHILD_LABEL} zeigen` })
+		await expect(childLink).toBeVisible()
+		// Die Summe des Oberkontos schließt das Unterkonto ein: kein Link,
+		// aber weiter der Umschalter für seine Unterkonten.
+		await expect(breakdown.getByRole('button', { name: `Buchungen von ${PARENT_LABEL} zeigen` })).toHaveCount(0)
+		const parentRowEl = breakdown.locator('.vbh-visual-row', { hasText: PARENT_LABEL })
+		await expect(parentRowEl.locator('.vbh-visual-row__text')).toHaveText(PARENT_LABEL)
+		await expect(parentRowEl.getByRole('button', { name: `Unterkonten von ${PARENT_LABEL}` })).toBeVisible()
+
+		await childLink.click()
+		await expect(page).toHaveURL(new RegExp(`/bookings\\?.*account=${child.id}(&|$)`))
+		await expect(visibleSection(page).getByText('Nebenkosten auf dem Unterkonto').first()).toBeVisible()
+	})
+})
+
+/** `YYYY-MM` um n Monate verschoben. */
+function addMonths(ym, n) {
+	const [year, month] = ym.split('-').map(Number)
+	const index = year * 12 + month - 1 + n
+	return `${Math.floor(index / 12)}-${String((index % 12) + 1).padStart(2, '0')}`
+}
+
+/** Monate von a bis b (beide `YYYY-MM`), b − a. */
+function monthDiff(a, b) {
+	const [ya, ma] = a.split('-').map(Number)
+	const [yb, mb] = b.split('-').map(Number)
+	return (yb * 12 + mb) - (ya * 12 + ma)
+}
+
+const EXPORT_ROUTE = '/export/gliederungsbericht-visuell'
+const DEFAULT_THRESHOLDS = { expWarn: 80, expCrit: 120, incGood: 100, incWarn: 80, resTol: 20 }
+
+// Verlauf (Monatsreihe gegen die echte Datenbank), Ampel-Schwellen, Druckseite
+// und Drucklink. Eigene Vorlage mit allen Einnahmen- und Ausgabenkonten.
+//
+// Bestand (Monat 0 = erster Monat der laufenden Periode):
+//   5000: Plan 2.000 €; 400 € in Monat 0, 500 € in Monat 1, 100 € im Monat
+//         nach dem heutigen (nur wenn die Periode dann noch läuft)
+//   5100: Plan 1.000 €; 900 € in Monat 0 (90 % – mit Vorgaben „beobachten“)
+//   4000: Plan 3.000 €; 900 € in Monat 1
+// Stand der Reihe: Monat 2 (bzw. der heutige, falls früher).
+test.describe('Gliederungsbericht visuell: Verlauf, Schwellen und Druck', () => {
+	const TEMPLATE_NAME = 'Verlauf und Druck (E2E)'
+	let template
+	let period
+	let rent
+	let office
+	let fees
+	let startYm
+	let todayIndex
+	let asOfIndex
+	let laterIndex = null
+
+	test.beforeAll(async ({ request }) => {
+		await api.resetBook(request)
+		await api.seedDefaultAccounts(request)
+		const [bank, inc, exp, exp2] = await api.accountsByNumber(request, BANK_ACCOUNT, INCOME_ACCOUNT, EXPENSE_ACCOUNT, '5100')
+		rent = exp
+		office = exp2
+		fees = inc
+		const today = new Date().toISOString().slice(0, 10)
+		const id = await api.periodIdForDate(request, today)
+		period = (await api.listPeriods(request)).find((p) => p.id === id)
+		startYm = period.startDate.slice(0, 7)
+		todayIndex = monthDiff(startYm, today.slice(0, 7))
+		const total = monthDiff(startYm, period.endDate.slice(0, 7)) + 1
+		asOfIndex = Math.min(todayIndex, 2)
+		// Buchungen in zwei Monaten gehen erst ab dem zweiten Monat der Periode.
+		if (todayIndex < 1) { return }
+
+		for (const [account, amount] of [[rent, 2000], [office, 1000], [fees, 3000]]) {
+			await api.raw(request, 'POST', '/budget', { data: { accountId: account.id, period: period.id, amount } })
+		}
+		const book = (ym, day, description, debit, credit, amount) => api.createBooking(request, {
+			date: `${ym}-${day}`,
+			description,
+			debitAccountId: debit.id,
+			creditAccountId: credit.id,
+			amount,
+		})
+		await book(startYm, '01', 'Miete Monat 0', rent, bank, 400)
+		await book(startYm, '02', 'Bürobedarf Monat 0', office, bank, 900)
+		await book(addMonths(startYm, 1), '15', 'Miete Monat 1', rent, bank, 500)
+		await book(addMonths(startYm, 1), '15', 'Beiträge Monat 1', bank, fees, 900)
+		if (todayIndex + 1 < total) {
+			laterIndex = todayIndex + 1
+			await book(addMonths(startYm, laterIndex), '10', 'Miete im Folgemonat', rent, bank, 100)
+		}
+
+		const created = await api.raw(request, 'POST', '/report-templates', {
+			data: {
+				name: TEMPLATE_NAME,
+				definition: {
+					columns: [{ source: 'plan', periodOffset: 0 }, { source: 'actual', periodOffset: 0 }],
+					sections: [
+						{ title: 'Einnahmen', filter: { types: ['income'] }, levels: [{ by: 'account', depth: 'all' }] },
+						{ title: 'Ausgaben', filter: { types: ['expense'] }, levels: [{ by: 'account', depth: 'all' }] },
+					],
+				},
+			},
+		})
+		expect(created.status()).toBe(201)
+		template = await created.json()
+	})
+
+	test.beforeEach(() => {
+		test.skip(todayIndex < 1, 'Die laufende Periode steht im ersten Monat – Buchungen in zwei vergangenen Monaten gibt es noch nicht.')
+	})
+
+	test.afterAll(async ({ request }) => {
+		// Auch nach einem Fehlschlag: die Vorgaben für die folgenden Specs.
+		await api.updateSettings(request, { budget_status_thresholds: DEFAULT_THRESHOLDS })
+	})
+
+	test('Monatsreihe kumuliert je Monat bis zum Stand, letzter Wert = Kennzahl (API)', async ({ request }) => {
+		const asOf = addMonths(startYm, asOfIndex)
+		const data = await api.getJson(request, `${VISUAL_ROUTE}?template=${template.id}&asOf=${asOf}`)
+
+		const months = Array.from({ length: asOfIndex + 1 }, (_, i) => addMonths(startYm, i))
+		expect(data.series.months).toEqual(months)
+		// Monat 0: 400 + 900 Ausgaben; Monat 1: + 500 Ausgaben, 900 Einnahmen; danach unverändert.
+		const expense = [130000, 180000, 180000].slice(0, months.length)
+		const income = [0, 90000, 90000].slice(0, months.length)
+		expect(data.series.expense).toEqual(expense)
+		expect(data.series.income).toEqual(income)
+		expect(data.series.expense.at(-1)).toBe(data.kpis.expense.actual)
+		expect(data.series.income.at(-1)).toBe(data.kpis.income.actual)
+	})
+
+	test('Stand „Aktuell“ mit Buchung nach dem heutigen Monat: Reihe reicht bis dorthin (API)', async ({ request }) => {
+		test.skip(laterIndex === null, 'Die laufende Periode endet in diesem Monat – es gibt keinen späteren Monat für eine Buchung.')
+		const data = await api.getJson(request, `${VISUAL_ROUTE}?template=${template.id}&asOf=current`)
+
+		expect(data.series.months).toEqual(Array.from({ length: laterIndex + 1 }, (_, i) => addMonths(startYm, i)))
+		expect(data.series.expense.at(-1)).toBe(190000)
+		expect(data.series.expense.at(-1)).toBe(data.kpis.expense.actual)
+		expect(data.series.income.at(-1)).toBe(data.kpis.income.actual)
+		// Der Monat davor trägt die Folgebuchung noch nicht.
+		expect(data.series.expense.at(-2)).toBe(180000)
+	})
+
+	test('Schwellen: expWarn 95 macht 90 % grün; ungültige Werte 400 ohne Speichern; nur Verwalter (API)', async ({ request }) => {
+		const officeLevel = async () => {
+			const data = await api.getJson(request, `${VISUAL_ROUTE}?template=${template.id}&asOf=current`)
+			const row = data.rows.find((r) => r.kind === 'account' && r.accountId === office.id)
+			return row.status.year.level
+		}
+		expect(await officeLevel()).toBe('warn')
+
+		const custom = { ...DEFAULT_THRESHOLDS, expWarn: 95 }
+		const saved = await api.updateSettings(request, { budget_status_thresholds: custom })
+		expect((await saved.json()).budget_status_thresholds).toEqual(custom)
+		expect(await officeLevel()).toBe('good')
+
+		const { resTol, ...missing } = custom
+		expect(resTol).toBe(20)
+		const invalid = [
+			{ ...custom, expWarn: 120, expCrit: 120 },
+			{ ...custom, incWarn: 100 },
+			missing,
+			{ ...custom, expWarn: 'abc' },
+			'abc',
+		]
+		for (const value of invalid) {
+			const resp = await api.updateSettings(request, { budget_status_thresholds: value }, { expectOk: false })
+			expect(resp.status(), JSON.stringify(value)).toBe(400)
+			expect((await resp.json()).message, JSON.stringify(value)).toBeTruthy()
+			expect((await api.getSettings(request)).budget_status_thresholds).toEqual(custom)
+		}
+
+		for (const user of [USERS.revisor, USERS.buchhalter]) {
+			const resp = await api.updateSettings(request, { budget_status_thresholds: DEFAULT_THRESHOLDS }, { user, expectOk: false })
+			expect(resp.status(), user).toBe(403)
+		}
+		expect((await api.getSettings(request)).budget_status_thresholds).toEqual(custom)
+
+		await api.updateSettings(request, { budget_status_thresholds: DEFAULT_THRESHOLDS })
+		expect(await officeLevel()).toBe('warn')
+	})
+
+	test('Druckseite: Vorlagenname, SVG, kein Skript; Basis und Stand; Fehlerfälle (API)', async ({ request }) => {
+		const page = await api.raw(request, 'GET', `${EXPORT_ROUTE}?template=${template.id}`)
+		expect(page.status()).toBe(200)
+		expect(page.headers()['content-type']).toMatch(/text\/html/)
+		const html = await page.text()
+		expect(html).toContain(TEMPLATE_NAME)
+		expect(html).toContain('<svg')
+		expect(html).not.toMatch(/<script/i)
+		expect(html).toContain('Vergleich gegen: Jahresplan')
+
+		const time = await api.raw(request, 'GET', `${EXPORT_ROUTE}?template=${template.id}&basis=time`)
+		expect(time.status()).toBe(200)
+		expect(await time.text()).toContain('Vergleich gegen: zeitanteiligen Plan')
+
+		const current = await api.raw(request, 'GET', `${EXPORT_ROUTE}?template=${template.id}&asOf=current`)
+		expect(current.status()).toBe(200)
+		expect(await current.text()).toContain('Stand: Aktuell (alle Buchungen)')
+
+		expect((await api.raw(request, 'GET', `${EXPORT_ROUTE}?template=${template.id}&asOf=2026-13`)).status()).toBe(422)
+		expect((await api.raw(request, 'GET', `${EXPORT_ROUTE}?template=999999`)).status()).toBe(404)
+		expect((await api.raw(request, 'GET', `${EXPORT_ROUTE}?template=${template.id}`, { user: USERS.ohneRolle })).status()).toBe(403)
+		expect((await api.raw(request, 'GET', `${EXPORT_ROUTE}?template=${template.id}`, { user: USERS.revisor })).status()).toBe(200)
+	})
+
+	/** Visuelle Ansicht mit der eigenen Vorlage, Basis Jahresplan. */
+	async function openOwnVisual(page) {
+		await openApp(page, USERS.verwalter)
+		await page.evaluate((id) => {
+			localStorage.setItem('vbh.structuredReport.template', id)
+			localStorage.setItem('vbh.structuredReport.view', 'visual')
+			localStorage.setItem('vbh.structuredReport.basis', 'year')
+		}, String(template.id))
+		await page.goto(`${BASE_URL}/index.php/apps/vereinsbuchhaltung/reports/structure?view=visual`)
+		await waitForAppLoaded(page)
+		const intro = page.getByRole('button', { name: 'Verstanden' })
+		if (await intro.isVisible().catch(() => false)) { await intro.click() }
+		await expect(visibleSection(page).locator('.vbh-visual-tiles')).toBeVisible()
+	}
+
+	test('Verlauf sichtbar: Zeichenfläche und Textzeilen mit Ist und Hochrechnung', async ({ page }) => {
+		await openOwnVisual(page)
+		const trend = visibleSection(page).locator('.vbh-visual-trendsection')
+		await expect(trend.getByRole('heading', { name: 'Verlauf', exact: true })).toBeVisible()
+		const canvas = trend.locator('canvas')
+		await expect(canvas).toBeVisible()
+		await expect.poll(async () => {
+			const box = await canvas.boundingBox()
+			return box ? Math.min(box.width, box.height) : 0
+		}).toBeGreaterThan(50)
+		// Chart.js hat tatsächlich gezeichnet (nicht nur ein leeres Canvas).
+		await expect.poll(() => canvas.evaluate((el) => {
+			const { data } = el.getContext('2d').getImageData(0, 0, el.width, el.height)
+			for (let i = 3; i < data.length; i += 4) { if (data[i] !== 0) { return true } }
+			return false
+		})).toBe(true)
+
+		const lines = trend.locator('.vbh-visual-trend__summary li')
+		await expect(lines).toHaveCount(2)
+		await expect(lines.nth(0)).toHaveText(/^Einnahmen: Ist .+ zum Stand, Hochrechnung .+ zum Periodenende$/)
+		await expect(lines.nth(1)).toHaveText(/^Ausgaben: Ist .+ zum Stand, Hochrechnung .+ zum Periodenende$/)
+		await expect(canvas).toHaveAttribute('aria-label', /Verlauf: kumuliertes Ist je Monat/)
+
+		// Eigene Legende unter der Zeichenfläche: zwei Farben, drei Linienarten.
+		await expect(trend.locator('.vbh-visual-trend__legend li')).toHaveText(['Einnahmen', 'Ausgaben', 'Ist', 'Hochrechnung', 'Plan'])
+		const dashOf = (cls) => trend.locator(`.vbh-visual-trend__line${cls}`).evaluate((el) => getComputedStyle(el).borderTopStyle)
+		expect(await dashOf(':not([class*="--"])')).toBe('solid')
+		expect(await dashOf('.vbh-visual-trend__line--forecast')).toBe('dashed')
+		expect(await dashOf('.vbh-visual-trend__line--plan')).toBe('dotted')
+	})
+
+	test('Drucklink der visuellen Ansicht trägt Stand und Basis; kein CSV-Link', async ({ page, request }) => {
+		const { asOf } = await api.getJson(request, `${VISUAL_ROUTE}?template=${template.id}`)
+		await openOwnVisual(page)
+		const head = visibleSection(page).locator('.vbh-structured-actions')
+		const print = head.getByRole('link', { name: 'Drucken / PDF' })
+		await expect(head.getByRole('link', { name: 'CSV' })).toHaveCount(0)
+
+		const query = async () => {
+			const href = await print.getAttribute('href')
+			expect(href).toContain(`/apps/vereinsbuchhaltung/api${EXPORT_ROUTE}?`)
+			return new URL(href, BASE_URL).searchParams
+		}
+		await expect.poll(async () => (await query()).get('asOf')).toBe(asOf.default)
+		let params = await query()
+		expect(params.get('template')).toBe(String(template.id))
+		expect(params.get('basis')).toBe('year')
+
+		// Anderen Stand wählen (Monat 0) und auf „Zeitanteilig“ schalten.
+		const target = startYm
+		const label = new Intl.DateTimeFormat('de-DE', { month: 'long', year: 'numeric', timeZone: 'UTC' })
+			.format(new Date(`${target}-01T00:00:00Z`))
+		const asOfSelect = visibleSection(page).locator('.vbh-visual-asof')
+		await asOfSelect.locator('.vs__dropdown-toggle').click()
+		await page.locator('li.vs__dropdown-option', { hasText: label }).first().click()
+		await expect(asOfSelect.locator('.vs__selected')).toHaveText(label)
+		await visibleSection(page).getByRole('button', { name: 'Zeitanteilig', exact: true }).click()
+
+		await expect.poll(async () => (await query()).get('asOf')).toBe(target)
+		params = await query()
+		expect(params.get('basis')).toBe('time')
+		expect(params.get('template')).toBe(String(template.id))
+
+		// Der Link liefert die Seite für genau diese Wahl.
+		const resp = await page.request.get(new URL(await print.getAttribute('href'), BASE_URL).href)
+		expect(resp.status()).toBe(200)
+		expect(await resp.text()).toContain('Vergleich gegen: zeitanteiligen Plan (1 von')
+
+		// In der Tabelle gibt es den CSV-Link wieder, der Druck zeigt auf die Tabellenroute.
+		await visibleSection(page).getByRole('button', { name: 'Tabelle', exact: true }).click()
+		await expect(head.getByRole('link', { name: 'CSV' })).toBeVisible()
+		expect(await print.getAttribute('href')).toContain('/export/gliederungsbericht?')
+		await visibleSection(page).getByRole('button', { name: 'Visuell', exact: true }).click()
+		await visibleSection(page).getByRole('button', { name: 'Jahresplan', exact: true }).click()
 	})
 })
 

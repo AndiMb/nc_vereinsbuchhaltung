@@ -23,6 +23,12 @@
 			</NcSettingsSection>
 		</div>
 
+		<div id="settings-section_ampel">
+			<NcSettingsSection :name="t('Ampel im Gliederungsbericht')">
+				<SettingsBudgetStatus v-model:thresholds="budgetStatusThresholds" />
+			</NcSettingsSection>
+		</div>
+
 		<div id="settings-section_belege">
 			<NcSettingsSection :name="t('Belege')">
 				<SettingsAttachments
@@ -132,6 +138,7 @@ import NcButton from '@nextcloud/vue/components/NcButton'
 import NcDialog from '@nextcloud/vue/components/NcDialog'
 import NcSettingsSection from '@nextcloud/vue/components/NcSettingsSection'
 import SettingsAttachments from './components/SettingsAttachments.vue'
+import SettingsBudgetStatus from './components/SettingsBudgetStatus.vue'
 import SettingsClub from './components/SettingsClub.vue'
 import SettingsDisplay from './components/SettingsDisplay.vue'
 import SettingsInvoices from './components/SettingsInvoices.vue'
@@ -149,6 +156,7 @@ import { useAccounts } from './composables/useAccounts.js'
 import { useConfirm } from './composables/useConfirm.js'
 import { usePeriods } from './composables/usePeriods.js'
 import { usePermissions } from './composables/usePermissions.js'
+import { THRESHOLD_DEFAULTS } from './lib/budgetStatusSettings.js'
 import { currencySettingsPayload, setClubCurrency } from './lib/clubCurrency.js'
 import { setClubTimeZone } from './lib/clubTime.js'
 import { errMsg } from './lib/format.js'
@@ -174,6 +182,7 @@ export default {
 		NcDialog,
 		NcSettingsSection,
 		SettingsAttachments,
+		SettingsBudgetStatus,
 		SettingsClub,
 		SettingsDisplay,
 		SettingsInvoices,
@@ -213,6 +222,9 @@ export default {
 			hasLogo: false,
 			// Betragsdarstellung in den Buchungslisten: 'plain' | 'signed'
 			amountDisplay: 'plain',
+			// Ampel-Schwellen der visuellen Gliederungsansicht; speichert
+			// SettingsBudgetStatus selbst (nicht über saveSettings()).
+			budgetStatusThresholds: { ...THRESHOLD_DEFAULTS },
 			storageSaving: false,
 			// Überwachter Ordner für Kontoauszüge (leer = aus); der stündliche
 			// Hintergrundjob liest daraus ein.
@@ -272,6 +284,7 @@ export default {
 				this.clubName = data.club_name || ''
 				this.brandColor = data.brand_color || ''
 				this.amountDisplay = data.amount_display === 'signed' ? 'signed' : 'plain'
+				this.budgetStatusThresholds = { ...THRESHOLD_DEFAULTS, ...data.budget_status_thresholds }
 				this.hasLogo = !!data.has_logo
 				this.statementWatchUser = data.statement_watch_user || ''
 				this.statementWatchPath = data.statement_watch_path || ''

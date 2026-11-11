@@ -200,8 +200,8 @@ class JournalLineMapper extends QBMapper {
 	 * Summen Soll/Haben je Konto für die Saldenliste.
 	 *
 	 * Optional auf einen Datumsbereich (Geschäftsjahr) eingegrenzt. Das Datum
-	 * ist als ISO-String (YYYY-MM-DD) gespeichert, daher ist der lexikografische
-	 * Vergleich identisch mit dem chronologischen.
+	 * ist eine DATE-Spalte; die Grenzen werden als ISO-Datum (YYYY-MM-DD)
+	 * übergeben und von der Datenbank als Datum verglichen.
 	 *
 	 * @param string|null $from inklusive untere Datumsgrenze (z.B. 2026-01-01)
 	 * @param string|null $to inklusive obere Datumsgrenze (z.B. 2026-12-31)
@@ -231,6 +231,59 @@ class JournalLineMapper extends QBMapper {
 			];
 		}
 		$result->closeCursor();
+		return $out;
+	}
+
+	/**
+	 * Wie {@see sumByAccount()}, aber zusätzlich nach Monat getrennt.
+	 *
+	 * Die Datenbank gruppiert nach Konto und Buchungstag; den Monat bildet
+	 * {@see foldByMonth()} in PHP. Eine Teilstring-Funktion im SQL ginge auf
+	 * PostgreSQL nicht: `date` ist eine DATE-Spalte, und substr() gibt es dort
+	 * nur für Text. Höchstens Konten × Buchungstage einer Periode Zeilen.
+	 *
+	 * @param string $from inklusive untere Datumsgrenze
+	 * @param string $to inklusive obere Datumsgrenze
+	 * @return array<string, array<int, array{debit:int, credit:int}>> Monat (`YYYY-MM`) => Konto-ID => Summen
+	 */
+	public function sumByAccountAndMonth(string $userId, string $from, string $to): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('l.account_id', 'j.date')
+			->selectAlias($qb->func()->sum('l.debit_cents'), 'debit')
+			->selectAlias($qb->func()->sum('l.credit_cents'), 'credit')
+			->from($this->getTableName(), 'l')
+			->innerJoin('l', 'vbh_journal', 'j', $qb->expr()->eq('l.journal_id', 'j.id'))
+			->where($qb->expr()->eq('j.user_id', $qb->createNamedParameter($userId)))
+			->andWhere($qb->expr()->gte('j.date', $qb->createNamedParameter($from)))
+			->andWhere($qb->expr()->lte('j.date', $qb->createNamedParameter($to)))
+			->groupBy('l.account_id')
+			->addGroupBy('j.date');
+		$result = $qb->executeQuery();
+		$rows = [];
+		while (($row = $result->fetch()) !== false) {
+			$rows[] = $row;
+		}
+		$result->closeCursor();
+		return self::foldByMonth($rows);
+	}
+
+	/**
+	 * Tagessummen je Konto zu Monatssummen je Konto. Der Monat sind die
+	 * ersten sieben Zeichen des Datums – gleich, ob der Treiber `2026-03-05`
+	 * oder `2026-03-05 00:00:00` liefert. Öffentlich für den Unit-Test.
+	 *
+	 * @param iterable<array{account_id:int|string, date:string, debit:int|string|null, credit:int|string|null}> $rows
+	 * @return array<string, array<int, array{debit:int, credit:int}>> Monat => Konto-ID => Summen
+	 */
+	public static function foldByMonth(iterable $rows): array {
+		$out = [];
+		foreach ($rows as $row) {
+			$month = substr((string)$row['date'], 0, 7);
+			$accountId = (int)$row['account_id'];
+			$out[$month][$accountId] ??= ['debit' => 0, 'credit' => 0];
+			$out[$month][$accountId]['debit'] += (int)$row['debit'];
+			$out[$month][$accountId]['credit'] += (int)$row['credit'];
+		}
 		return $out;
 	}
 }

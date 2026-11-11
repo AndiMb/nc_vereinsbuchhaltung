@@ -16,6 +16,7 @@ use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Service\AttachmentStorageService;
 use OCA\Vereinsbuchhaltung\Service\AttachmentWatchFolderService;
 use OCA\Vereinsbuchhaltung\Service\AuditService;
+use OCA\Vereinsbuchhaltung\Service\BudgetStatusSettings;
 use OCA\Vereinsbuchhaltung\Service\ClubClock;
 use OCA\Vereinsbuchhaltung\Service\ClubCurrency;
 use OCA\Vereinsbuchhaltung\Service\ClubCurrencySwitchGuard;
@@ -32,6 +33,7 @@ use OCA\Vereinsbuchhaltung\Service\PeriodService;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
 use OCA\Vereinsbuchhaltung\Service\ReimbursementAccess;
 use OCA\Vereinsbuchhaltung\Service\ReimbursementSettings;
+use OCA\Vereinsbuchhaltung\Service\Report\BudgetStatus;
 use OCA\Vereinsbuchhaltung\Service\SelfServiceService;
 use OCA\Vereinsbuchhaltung\Service\SepaDebtorAccountService;
 use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubClockStub;
@@ -92,6 +94,7 @@ class SettingsControllerSepaTest extends TestCase {
 		$invoiceSettings = new InvoiceSettings($config, new FolderPathValidator($l10n));
 		$reimbursementSettings = $this->createMock(ReimbursementSettings::class);
 		$currency = new ClubCurrency($config);
+		$budgetStatusSettings = new BudgetStatusSettings($config, $l10n);
 		$mandates = $this->createMock(MandateMapper::class);
 		$mandates->method('countNotEnded')->willReturnCallback(fn () => $this->liveMandates);
 		$batches = $this->createMock(DebitBatchMapper::class);
@@ -118,6 +121,7 @@ class SettingsControllerSepaTest extends TestCase {
 			$invoiceSettings,
 			$reimbursementSettings,
 			$currency,
+			$budgetStatusSettings,
 		);
 
 		return new SettingsController(
@@ -141,6 +145,7 @@ class SettingsControllerSepaTest extends TestCase {
 			$this->createMock(ForeignHomeGuard::class),
 			$currency,
 			new ClubCurrencySwitchGuard($currency, $mandates, $batches, $this->createMock(AssignmentMapper::class), ClubClockStub::system(), $l10n),
+			$budgetStatusSettings,
 		);
 	}
 
@@ -242,6 +247,32 @@ class SettingsControllerSepaTest extends TestCase {
 		$this->assertSame(Http::STATUS_OK, $response->getStatus());
 		$this->assertSame(90, $response->getData()['expiry_warning_days']);
 		$this->assertSame(21, $response->getData()['dunning_interval_days']);
+	}
+
+	public function testEinstellungssatzLiefertDieStandardSchwellenDerAmpel(): void {
+		$this->assertSame(BudgetStatus::DEFAULTS, $this->controller()->index()->getData()['budget_status_thresholds']);
+	}
+
+	public function testAmpelSchwellenWerdenGeschriebenUndZurueckgegeben(): void {
+		$response = $this->update(['budget_status_thresholds' => ['expWarn' => '90', 'expCrit' => '110', 'incGood' => '100', 'incWarn' => '70', 'resTol' => '15']]);
+
+		$this->assertSame(Http::STATUS_OK, $response->getStatus());
+		$this->assertSame(['expWarn' => 90, 'expCrit' => 110, 'incGood' => 100, 'incWarn' => 70, 'resTol' => 15], $response->getData()['budget_status_thresholds']);
+	}
+
+	public function testUngueltigeAmpelSchwellenWerdenMitMeldungAbgelehnt(): void {
+		$response = $this->update(['budget_status_thresholds' => ['expWarn' => 120, 'expCrit' => 120, 'incGood' => 100, 'incWarn' => 80, 'resTol' => 20]]);
+
+		$this->assertSame(Http::STATUS_BAD_REQUEST, $response->getStatus());
+		$this->assertNotSame('', $response->getData()['message']);
+		$this->assertArrayNotHasKey(BudgetStatusSettings::KEY, $this->store);
+	}
+
+	public function testAmpelSchwellenOhneObjektWerdenAbgelehnt(): void {
+		$response = $this->update(['budget_status_thresholds' => '80']);
+
+		$this->assertSame(Http::STATUS_BAD_REQUEST, $response->getStatus());
+		$this->assertArrayNotHasKey(BudgetStatusSettings::KEY, $this->store);
 	}
 
 	/** @dataProvider ungueltigeTage */

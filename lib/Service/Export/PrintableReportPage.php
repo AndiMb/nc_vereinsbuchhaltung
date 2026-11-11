@@ -49,11 +49,14 @@ final class PrintableReportPage {
 	 * @param string $title Fenstertitel (wird maskiert)
 	 * @param string $body fertiges HTML des Berichtsinhalts
 	 * @param string $accent Farbe für Trennlinien und Überschrift
+	 * @param bool $darkOnScreen false für Seiten mit festen Druckfarben (z. B.
+	 *                           Balken, SVG), die auf dunklem Grund unlesbar
+	 *                           würden: sie bleiben auch am Bildschirm hell
 	 */
-	public static function document(string $title, string $body, string $accent = self::DEFAULT_ACCENT): string {
+	public static function document(string $title, string $body, string $accent = self::DEFAULT_ACCENT, bool $darkOnScreen = true): string {
 		return '<!DOCTYPE html><html lang="de"><head><meta charset="utf-8">'
 			. '<title>' . self::escape($title) . '</title>'
-			. '<style>' . self::stylesheet($accent) . '</style></head><body>'
+			. '<style>' . self::stylesheet($accent, $darkOnScreen) . '</style></head><body>'
 			. $body
 			. '</body></html>';
 	}
@@ -121,10 +124,10 @@ final class PrintableReportPage {
 	/**
 	 * Das gemeinsame Stylesheet. A4-Breite, druckbare Tabellen, dunkle
 	 * Darstellung – Letztere wirkt nur am Bildschirm, gedruckt wird immer auf
-	 * hellem Grund.
+	 * hellem Grund. Ohne $darkOnScreen entfällt der dunkle Block.
 	 */
-	private static function stylesheet(string $accent): string {
-		return '
+	private static function stylesheet(string $accent, bool $darkOnScreen = true): string {
+		$css = '
 			* { box-sizing: border-box; }
 			body { font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif; color: #222; margin: 0 auto; padding: 24px; max-width: 210mm; font-size: 11pt; }
 			header { border-bottom: 2px solid ' . $accent . '; margin-bottom: 18px; padding-bottom: 10px; }
@@ -147,7 +150,11 @@ final class PrintableReportPage {
 			.noprint { background: #fffbe6; border: 1px solid #e0d8a0; padding: 8px 12px; margin-bottom: 16px; font-size: 10pt; }
 			@media print { .noprint { display: none; } body { padding: 0; } }
 			@page { margin: 18mm 15mm; }
-			@media (prefers-color-scheme: dark) {
+		';
+		if (!$darkOnScreen) {
+			return $css;
+		}
+		return $css . '	@media (prefers-color-scheme: dark) {
 				body { background: #1b1b1b; color: #ddd; }
 				h2 { border-color: #444; }
 				th, td { border-color: #3a3a3a; }

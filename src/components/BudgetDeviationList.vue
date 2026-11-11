@@ -9,14 +9,22 @@
 		<ul v-else class="vbh-visual-dev__list">
 			<li v-for="item in items" :key="item.accountId" class="vbh-visual-dev__item">
 				<component
-					:is="linkable ? 'button' : 'span'"
-					:type="linkable ? 'button' : null"
+					:is="isLink(item) ? 'button' : 'span'"
+					:type="isLink(item) ? 'button' : null"
 					class="vbh-visual-dev__entry"
-					:class="{ 'vbh-visual-dev__entry--link': linkable }"
-					@click="linkable && $emit('open-account', item.accountId)">
-					<BudgetStatusPill :level="item.level" :nature="nature" compact />
+					:class="{ 'vbh-visual-dev__entry--link': isLink(item) }"
+					:aria-label="isLink(item) ? t('Buchungen von {konto} zeigen', { konto: item.number + ' ' + item.label }) : null"
+					:aria-describedby="isLink(item) ? detailId(item, 'level') + ' ' + detailId(item, 'amount') : null"
+					@click="isLink(item) && $emit('open-account', item.accountId)">
+					<!-- Als Knopf trägt der Eintrag den Namen „Buchungen von … zeigen“;
+					     Stufe und Betrag bleiben als Beschreibung hörbar. -->
+					<BudgetStatusPill
+						:id="detailId(item, 'level')"
+						:level="item.level"
+						:nature="nature"
+						compact />
 					<span class="vbh-visual-dev__label">{{ item.number }} {{ item.label }}</span>
-					<span class="vbh-visual-dev__amount">{{ money(item.amount) }}</span>
+					<span :id="detailId(item, 'amount')" class="vbh-visual-dev__amount">{{ money(item.amount) }}</span>
 				</component>
 			</li>
 		</ul>
@@ -30,6 +38,8 @@ import { formatMoney, formatSigned } from '../lib/format.js'
 /**
  * Liste der größten Abweichungen. Nur mit `linkable` sind die Einträge
  * Schaltflächen, die `open-account` auslösen; sonst bleiben sie reiner Text.
+ * Oberkonten (`parent`) bleiben immer Text: ihr Betrag schließt die
+ * Unterkonten ein, die Buchungsliste filtert aber genau ein Konto.
  * Beträge (Abweichung) in Cent.
  */
 export default {
@@ -46,6 +56,15 @@ export default {
 	emits: ['open-account'],
 
 	methods: {
+		isLink(item) {
+			return this.linkable && !item.parent
+		},
+
+		// Eindeutig je Liste: ein Konto steht nur in der Liste seiner Art.
+		detailId(item, part) {
+			return `vbh-visual-dev-${this.nature}-${item.accountId}-${part}`
+		},
+
 		// Überschreitungen mit Vorzeichen; eine Lücke bei Einnahmen ist ein
 		// Fehlbetrag, ein „+“ davor läse sich wie ein Mehrertrag.
 		money(cents) {
@@ -62,22 +81,43 @@ export default {
 
 .vbh-visual-dev__list { margin: 0; padding: 0; list-style: none; }
 
-.vbh-visual-dev__entry {
+/* Mit `linkable` ein nackter <button>: doppelte Klasse gegen Nextclouds
+   Grundstil, auch für :hover/:focus/:active (siehe Kopf von src/styles.css). */
+.vbh-visual-dev__entry.vbh-visual-dev__entry,
+.vbh-visual-dev__entry.vbh-visual-dev__entry:hover,
+.vbh-visual-dev__entry.vbh-visual-dev__entry:focus,
+.vbh-visual-dev__entry.vbh-visual-dev__entry:active {
 	display: flex;
 	align-items: center;
 	gap: 8px;
-	width: 100%;
-	padding: 4px 0;
+	/* Innenabstand für die Hover-Fläche, ausgeglichen: der Text bleibt bündig zum Titel. */
+	width: calc(100% + 8px);
+	min-height: 0;
+	margin: 0 -4px;
+	padding: 4px;
 	border: 0;
+	border-radius: var(--border-radius);
 	background: none;
 	color: var(--color-main-text);
 	font: inherit;
 	text-align: start;
 }
 
-.vbh-visual-dev__entry--link { cursor: pointer; border-radius: var(--border-radius); }
+.vbh-visual-dev__entry.vbh-visual-dev__entry--link { cursor: pointer; }
 
-.vbh-visual-dev__entry--link:hover { background-color: var(--color-background-hover); }
+.vbh-visual-dev__entry.vbh-visual-dev__entry--link:hover { background-color: var(--color-background-hover); }
+
+.vbh-visual-dev__entry.vbh-visual-dev__entry--link:focus-visible {
+	outline: 2px solid var(--color-primary-element);
+	outline-offset: -2px;
+}
+
+/* Die Kontobezeichnung zeigt wie im Aufriss, dass sie in die Buchungen führt. */
+.vbh-visual-dev__entry--link .vbh-visual-dev__label {
+	text-decoration: underline;
+	text-decoration-color: var(--color-text-maxcontrast);
+	text-underline-offset: 3px;
+}
 
 .vbh-visual-dev__label { flex: 1 1 auto; min-width: 0; overflow-wrap: break-word; hyphens: auto; }
 

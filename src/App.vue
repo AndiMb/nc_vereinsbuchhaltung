@@ -177,6 +177,8 @@
 					:removeTxPendingFile="removeTxPendingFile"
 					:openFolderPickerForBookings="openFolderPickerForBookings"
 					:reimbursementsReloadKey="reimbursementsReloadKey"
+					:filterAccountId="bookingFilterAccountId"
+					@update:filterAccountId="bookingFilterAccountId = $event"
 					@payReimbursement="openBookingForReimbursement"
 					@update:bookingView="bookingView = $event"
 					@attachmentsChanged="afterAttachmentsChanged"
@@ -275,6 +277,7 @@
 					@costCentersChanged="onCostCentersChanged"
 					@spheresChanged="onSpheresChanged"
 					@help="openHelp"
+					@openAccount="openAccountBookings"
 					@budgetChanged="loadBudget"
 					@budgetCompareChanged="setBudgetCompare"
 					@snapshotsChanged="loadBudgetSnapshots" />
@@ -710,6 +713,9 @@ export default {
 			],
 
 			bookingView: 'journal',
+			// Kontofilter des Journals (BookingsTab); in der URL als account=<id>,
+			// nur auf der Route bookings. Kategoriefilter stehen nicht in der URL.
+			bookingFilterAccountId: null,
 			// "Mein Bereich": Unterreiter beitrag | auslagen (MyAreaTab)
 			selfView: 'beitrag',
 			// Auslage, deren Auszahlung gerade im Buchungsdialog gebucht wird (siehe saveBooking)
@@ -1173,6 +1179,7 @@ export default {
 
 			if (this.activeTab === 'bookings') {
 				const names = { unassigned: 'bookings-unassigned', openitems: 'bookings-open-items', rules: 'bookings-rules', reimbursements: 'bookings-reimbursements' }
+				if (this.bookingView === 'journal' && this.bookingFilterAccountId !== null) { query.account = this.bookingFilterAccountId }
 				return { name: names[this.bookingView] || 'bookings', query }
 			}
 			if (this.activeTab === 'invoices') {
@@ -1489,6 +1496,7 @@ export default {
 			const schonWeitergeklicktVorErstemAbgleich = !this.routeReady && tab === 'dashboard' && this.activeTab !== 'dashboard'
 			if (this.activeTab !== tab && !schonWeitergeklicktVorErstemAbgleich) { this.activeTab = tab }
 			if (tab === 'bookings' && this.bookingView !== meta.bookingView) { this.bookingView = meta.bookingView }
+			if (tab === 'bookings' && meta.bookingView === 'journal') { this.applyAccountQuery(route) }
 			if (tab === 'reports' && this.reportView !== meta.reportView) { this.reportView = meta.reportView }
 			if (tab === 'contributions' && this.contribView !== meta.contribView) { this.contribView = meta.contribView }
 			if (tab === 'self' && this.selfView !== meta.selfView) { this.selfView = meta.selfView }
@@ -1586,6 +1594,44 @@ export default {
 			} else if (param(target, 'view') !== param(current, 'view')) {
 				this.$router.replace(this.vbhRouteLocation)
 			}
+		},
+
+		/**
+		 * Kontofilter des Journals aus ?account= (nur Route bookings). Ein
+		 * unbekanntes Konto oder ein Wert, der keine Zahl ist, gilt nicht und
+		 * verschwindet aus der URL - per replace, ohne eigenen Verlaufseintrag.
+		 *
+		 * @param {object} route aktuelle vue-router-Route
+		 */
+		applyAccountQuery(route) {
+			const raw = route.query.account
+			if (raw === undefined) {
+				this.bookingFilterAccountId = null
+				return
+			}
+			const id = /^\d+$/.test(String(raw)) ? Number(raw) : null
+			if (id !== null && this.accountsById[id]) {
+				this.bookingFilterAccountId = id
+				return
+			}
+			this.bookingFilterAccountId = null
+			const query = { ...route.query }
+			delete query.account
+			this.$router.replace({ name: route.name, query })
+		},
+
+		/**
+		 * Sprung aus dem Gliederungsbericht (visuelle Ansicht): Buchungsliste der
+		 * Periode, die der Bericht zeigt, auf das Konto gefiltert. Bei „alle
+		 * Perioden“ rechnet der Bericht mit der laufenden Periode – die Liste
+		 * nimmt dann dieselbe statt aller Jahre. push statt replace - Zurück
+		 * führt in den Bericht.
+		 *
+		 * @param {{ accountId: number, periodId: number|null }} target Konto der angeklickten Zeile, Periode des Berichts
+		 */
+		openAccountBookings({ accountId, periodId }) {
+			const period = periodId ?? this.selectedPeriodId ?? 'all'
+			this.$router.push({ name: 'bookings', query: { period, account: accountId } })
 		},
 
 		/** Ersetzt die Route, behält aber den gewählten Zeitraum (?period=) bei. */
