@@ -72,6 +72,13 @@ return [
 		['name' => 'costCenter#assign', 'url' => '/api/costcenters/assign', 'verb' => 'POST'],
 		['name' => 'costCenter#update', 'url' => '/api/costcenters/{id}', 'verb' => 'PUT'],
 		['name' => 'costCenter#destroy', 'url' => '/api/costcenters/{id}', 'verb' => 'DELETE'],
+		// Kostenstellen an der Buchungszeile (Issue #7). Die Routen darüber
+		// heißen aus historischen Gründen "costcenters", meinen aber die
+		// Auswertungsgruppen.
+		['name' => 'bookingCostCenter#index', 'url' => '/api/booking-cost-centers', 'verb' => 'GET'],
+		['name' => 'bookingCostCenter#create', 'url' => '/api/booking-cost-centers', 'verb' => 'POST'],
+		['name' => 'bookingCostCenter#update', 'url' => '/api/booking-cost-centers/{id}', 'verb' => 'PUT'],
+		['name' => 'bookingCostCenter#destroy', 'url' => '/api/booking-cost-centers/{id}', 'verb' => 'DELETE'],
 		['name' => 'report#multiyearTrend', 'url' => '/api/report/multiyear-trend', 'verb' => 'GET'],
 		['name' => 'report#reserves', 'url' => '/api/report/reserves', 'verb' => 'GET'],
 
