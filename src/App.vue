@@ -467,7 +467,7 @@
 import { mdiAccountCashOutline, mdiAccountPlusOutline, mdiCardAccountDetailsOutline, mdiChartBar, mdiFileDocumentOutline, mdiFileTreeOutline, mdiHelpCircleOutline, mdiPlus, mdiPrinter, mdiSwapHorizontal, mdiViewDashboardOutline } from '@mdi/js'
 import { showError, showInfo, showSuccess, showUndo } from '@nextcloud/dialogs'
 import { generateUrl } from '@nextcloud/router'
-import { defineAsyncComponent, toRefs } from 'vue'
+import { defineAsyncComponent, toRef, toRefs } from 'vue'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcDialog from '@nextcloud/vue/components/NcDialog'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
@@ -504,6 +504,7 @@ import { useSync } from './composables/useSync.js'
 import { useTasks } from './composables/useTasks.js'
 import { buildWhatsNewEntries, filterWhatsNewEntries } from './data/whatsNew.js'
 import { accountLabel, accountOption } from './lib/accountLabel.js'
+import { bookingLines, carryingLines, firstAllocationError, withAllocations } from './lib/allocation.js'
 import { takeBootState } from './lib/bootState.js'
 import { setClubCurrency } from './lib/clubCurrency.js'
 import { clubToday, setClubTimeZone } from './lib/clubTime.js'
@@ -636,6 +637,7 @@ export default {
 			loadOpenItems: openItems.loadOpenItems,
 			loadCostCenters: costCenters.loadCostCenters,
 			setBookingCostCentersEnabled: bookingCostCenters.setBookingCostCentersEnabled,
+			costCentersEnabled: toRef(bookingCostCenters.state, 'enabled'),
 			// Regeln: geteilter Zustand (useRules.js), seit dem Umzug der Pflege
 			// nach RulesPanel.vue (Unterreiter „Regeln" von BookingsTab.vue) hier
 			// nur noch fuer computeSuggestion()/createRuleFromTx() gebraucht.
@@ -1834,6 +1836,9 @@ export default {
 				splitMode: false,
 				splitSide: 'credit',
 				splitLines: [],
+				// Kostenstellen (Issue #7): Verteilung je Konto der Buchung,
+				// { [accountId]: [{ costCenterId, amount }] }; leer = keine.
+				allocations: {},
 				// Gespeicherte Belege, die im Dialog zum Lösen bzw. Löschen
 				// markiert sind - ausgeführt erst beim Speichern
 				// (removeMarkedAttachments), bis dahin gilt der Dialog als geändert.
@@ -2781,6 +2786,11 @@ export default {
 					this.bookingMode = 'expert'
 				}
 			}
+			// Kostenstellen der Zeilen ins Formular (nur bei eingeschaltetem Modul
+			// liefert das Journal sie mit).
+			for (const l of r.lines || []) {
+				if (l.allocations && l.allocations.length) { this.bookingForm.allocations[l.accountId] = l.allocations.map((a) => ({ ...a })) }
+			}
 			this.loadAttachments(r.id)
 			this.bookingForceFolderPanel = folderPanel
 			this.showBooking = true
@@ -2870,12 +2880,44 @@ export default {
 			}
 		},
 
+		/**
+		 * Ergaenzt die Nutzlast um die Kostenstellen (Issue #7). Bei
+		 * ausgeschaltetem Modul bleibt sie exakt wie bisher - das Backend laesst
+		 * eine vorhandene Verteilung dann stehen. Eingeschaltet geht immer die
+		 * Zeilenform hinaus, jede Zeile mit `allocations` (auch leer = keine).
+		 *
+		 * @param {object} payload aus buildSimplePayload()/buildSplitPayload()
+		 * @return {object|null} null, wenn eine Meldung gezeigt wurde
+		 */
+		withCostCenters(payload) {
+			if (!this.costCentersEnabled) { return payload }
+			const f = this.bookingForm
+			const carrying = carryingLines(bookingLines(f, this.bookingMode), this.accountsById)
+			const problem = firstAllocationError(carrying, f.allocations)
+			if (problem) {
+				showError(this.t('Die Verteilung auf Kostenstellen passt noch nicht – bitte im Abschnitt „Kostenstelle“ korrigieren.'))
+				return null
+			}
+			const lines = payload.lines ?? [
+				{ accountId: payload.debitAccountId, debit: payload.amount, credit: 0 },
+				{ accountId: payload.creditAccountId, debit: 0, credit: payload.amount },
+			]
+			return {
+				date: payload.date,
+				description: payload.description,
+				documentRef: payload.documentRef,
+				lines: withAllocations(lines, f.allocations, carrying.map((l) => l.accountId)),
+			}
+		},
+
 		async saveBooking() {
 			if (this.bookingSaving) { return }
 			const f = this.bookingForm
 			// Abgeschlossener Zeitraum: nur der Kommentar ist noch aenderbar.
 			const commentOnly = this.bookingLocked
-			const payload = commentOnly ? null : (f.splitMode ? this.buildSplitPayload() : this.buildSimplePayload())
+			const basePayload = commentOnly ? null : (f.splitMode ? this.buildSplitPayload() : this.buildSimplePayload())
+			if (!commentOnly && !basePayload) { return }
+			const payload = basePayload ? this.withCostCenters(basePayload) : null
 			if (!commentOnly && !payload) { return }
 			this.bookingSaving = true
 			const revision = this.attachmentsRevision

@@ -1222,6 +1222,14 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 /* Splittbuchung: eine feste Seite oben, hier die Gegenkonten mit Teilbetraegen */
 .vbh-split { margin-top: 10px; padding: 10px; border: 1px solid var(--color-border); border-radius: var(--border-radius-large, 12px); background: var(--color-background-hover); }
 
+/* Kostenstellen je Buchungszeile (Issue #7), in Buchungs- und Aufteilen-Dialog.
+   Bewusst ohne .vbh-Vorfahr: NcModal haengt den Dialog ausserhalb von .vbh ein. */
+.vbh-allocblock { margin-top: 10px; display: flex; flex-direction: column; gap: 10px; }
+
+.vbh-allocline { display: flex; flex-direction: column; gap: 4px; }
+
+.vbh-allocline-label { font-size: 0.9em; color: var(--color-text-maxcontrast); }
+
 .vbh-split-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
 
 .vbh-split-title { font-weight: 600; }
