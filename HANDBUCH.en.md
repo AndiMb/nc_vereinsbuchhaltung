@@ -1103,7 +1103,8 @@ reconciliation, the app assigns each member's contribution to the cost
 centre of their group – in one entry, summed per revenue account;
 contributions from groups without a default stay without. The same applies
 to a single incoming payment assigned to a claim. A returned debit takes
-the revenue out of the cost centre again; the bank fee belongs to none. The
+the revenue out of the cost centre again, provided the collection had
+assigned it there; the bank fee belongs to none. The
 default applies to claims the collection cycle creates from an assignment –
 claims created by hand have no group and stay without. If the cost centre
 is inactive, the entry is booked without it; booking never fails because

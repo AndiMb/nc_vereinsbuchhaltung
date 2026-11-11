@@ -1129,7 +1129,8 @@ Bankabgleich ordnet die App den Beitrag jedes Mitglieds der Kostenstelle
 seiner Gruppe zu – in einer Buchung, je Erlöskonto summiert; Beiträge aus
 Gruppen ohne Vorgabe bleiben ohne. Dasselbe gilt für einen einzeln
 zugeordneten Zahlungseingang. Eine Rücklastschrift nimmt den Erlös wieder
-aus der Kostenstelle heraus; die Bankgebühr gehört keiner. Die Vorgabe
+aus der Kostenstelle heraus, sofern der Einzug ihn ihr zugeordnet hatte; die
+Bankgebühr gehört keiner. Die Vorgabe
 gilt für Forderungen, die der Einzugszyklus aus einer Zuweisung erzeugt –
 von Hand angelegte Forderungen haben keine Gruppe und bleiben ohne. Ist
 die Kostenstelle inaktiv, wird ohne sie verbucht; die Verbuchung scheitert

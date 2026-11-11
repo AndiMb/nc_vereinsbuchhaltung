@@ -135,11 +135,12 @@ class SepaImportConfirmationService {
 	 * sie auf diesem Konto nicht anwendbar ist (Konto trägt keine Kostenstelle,
 	 * Kostenstelle inaktiv, Modul aus). Eine Vorgabe scheitert weich.
 	 */
-	private function costCenterOf(OpenItem $openItem, int $accountId, int $amountCents): ?int {
-		if ($this->costCenterResolver === null || $this->costCenterDefaults === null) {
+	private function costCenterOf(OpenItem $openItem, int $accountId, int $amountCents, bool $isReturn = false): ?int {
+		// Bei ausgeschaltetem Modul gar nicht erst nachschlagen.
+		if ($this->costCenterResolver === null || $this->costCenterDefaults === null || $this->costCenterDefaults->usableIds(Application::BOOK) === []) {
 			return null;
 		}
-		$costCenterId = $this->costCenterResolver->forOpenItem($openItem);
+		$costCenterId = $isReturn ? $this->costCenterResolver->forReturn($openItem) : $this->costCenterResolver->forOpenItem($openItem);
 		return $this->costCenterDefaults->fullAllocation(Application::BOOK, $costCenterId, $accountId, $amountCents) !== null ? $costCenterId : null;
 	}
 
@@ -351,9 +352,9 @@ class SepaImportConfirmationService {
 			// Bankgebühr (nicht des Gesamt-Umsatzes) - bei mehreren gebündelten
 			// Rückgaben in einer Buchung trägt jede Zeile ihre eigene Gebühr.
 			$originalCents = abs($row['detail']->getAmountCents()) - max(0, $row['detail']->getChargesCents() ?? 0);
-			// Die Rückgabe nimmt den Erlös wieder aus der Kostenstelle der
-			// Beitragsgruppe heraus; die Bankgebühr unten gehört keiner.
-			$amounts[] = ['accountId' => $accountId, 'amountCents' => max(0, $originalCents), 'costCenterId' => $this->costCenterOf($row['openItem'], $accountId, max(0, $originalCents))];
+			// Die Rückgabe nimmt den Erlös wieder aus der Kostenstelle heraus, die
+			// der Einzug trug; die Bankgebühr unten gehört keiner.
+			$amounts[] = ['accountId' => $accountId, 'amountCents' => max(0, $originalCents), 'costCenterId' => $this->costCenterOf($row['openItem'], $accountId, max(0, $originalCents), true)];
 		}
 		$parts = self::partsWithAllocations($amounts);
 		if ($totalCharges > 0) {
