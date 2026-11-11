@@ -563,6 +563,7 @@ import {
 	PLAN_INTERVALS,
 	planIntervalLabel,
 	quantityToE4,
+	sendsCostCenters,
 	suggestTaxKey,
 	taxKeyLabel,
 	todayIso,
@@ -830,7 +831,6 @@ export default {
 			return new Intl.NumberFormat('de-DE', { maximumFractionDigits: 2 }).format(rateBp / 100) + ' %'
 		},
 
-		/** Ein neues Erlöskonto schlägt den Steuersatz vor, solange er nicht von Hand gewählt wurde. */
 		/** Aktive Kostenstellen, dazu die an der Position gespeicherte inaktive. */
 		costCenterOptions(line) {
 			const list = [...this.activeCostCenters]
@@ -839,6 +839,7 @@ export default {
 			return list
 		},
 
+		/** Ein neues Erlöskonto schlägt den Steuersatz vor, solange er nicht von Hand gewählt wurde. */
 		onAccountChange(line) {
 			if (!this.regular || line.taxTouched) { return }
 			line.taxKey = suggestTaxKey(this.accountsById[line.accountId] || null, this.rates)
@@ -941,7 +942,7 @@ export default {
 				noteHead: f.noteHead,
 				noteFoot: f.noteFoot,
 				paymentTerms: f.paymentTerms,
-				lines: linesToPayload(f.lines, this.regular, this.costCentersEnabled),
+				lines: linesToPayload(f.lines, this.regular, sendsCostCenters(f.lines, this.costCentersEnabled)),
 			}
 		},
 
@@ -1048,7 +1049,7 @@ export default {
 		async savePlan() {
 			const f = this.form
 			const p = this.planForm
-			const lines = linesToPayload(f.lines, this.regular, this.costCentersEnabled)
+			const lines = linesToPayload(f.lines, this.regular, sendsCostCenters(f.lines, this.costCentersEnabled))
 			if (lines.length === 0) {
 				this.error = this.t('Mindestens eine Position ist nötig.')
 				return

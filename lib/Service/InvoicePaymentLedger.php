@@ -136,14 +136,25 @@ class InvoicePaymentLedger {
 			'lineNetCents' => $line->getLineNetCents(),
 			'bookingCostCenterId' => $line->getBookingCostCenterId(),
 		], $this->lines->findByInvoice((int)$invoice->getId()));
-		return self::sharesByCostCenter($lines, $parts, $usable);
+		// Ein Erlöskonto, das inzwischen keine Kostenstelle mehr trägt (Kontotyp
+		// geändert), bleibt ohne: der Schreiber lehnte die Verteilung sonst ab,
+		// und die Zahlung scheiterte an einer Vorgabe.
+		$defaults = $this->costCenterDefaults;
+		$carrying = array_filter(
+			$parts,
+			static fn (int $accountId): bool => $defaults->carries(Application::BOOK, $accountId),
+			ARRAY_FILTER_USE_KEY,
+		);
+		return self::sharesByCostCenter($lines, $carrying, $usable);
 	}
 
 	/**
 	 * Verteilt den gezahlten Betrag je Erlöskonto anteilig auf die
 	 * Kostenstellen der Rechnungszeilen.
 	 *
-	 * Gewicht ist der Nettobetrag der Zeilen je Kostenstelle; Zeilen ohne –
+	 * Gewicht ist der Nettobetrag der Zeilen je Kostenstelle, saldiert: eine
+	 * Rabattzeile mindert den Anteil ihrer Kostenstelle, ein negativer Saldo
+	 * zählt als 0. Zeilen ohne –
 	 * oder mit nicht nutzbarer – Kostenstelle bilden eine Gruppe „ohne“, deren
 	 * Anteil keiner Kostenstelle zugeordnet wird. Verteilt wird wie bei den
 	 * Erlöskonten nach dem größten Rest: die Anteile eines Kontos ergeben
@@ -164,7 +175,7 @@ class InvoicePaymentLedger {
 		foreach ($lines as $line) {
 			$accountId = $line['accountId'];
 			$net = (int)$line['lineNetCents'];
-			if ($accountId === null || $net <= 0) {
+			if ($accountId === null || $net === 0) {
 				continue;
 			}
 			$costCenterId = $line['bookingCostCenterId'];
@@ -174,8 +185,10 @@ class InvoicePaymentLedger {
 
 		$out = [];
 		foreach ($parts as $accountId => $paid) {
-			$byCostCenter = $weights[(int)$accountId] ?? [];
-			if ($paid <= 0 || array_diff(array_keys($byCostCenter), [0]) === []) {
+			$byCostCenter = array_map(static fn (int $net): int => max(0, $net), $weights[(int)$accountId] ?? []);
+			$withCostCenter = $byCostCenter;
+			unset($withCostCenter[0]);
+			if ($paid <= 0 || array_sum($withCostCenter) <= 0) {
 				continue;
 			}
 			$shares = InvoiceCalculator::allocate((int)$paid, array_values($byCostCenter));

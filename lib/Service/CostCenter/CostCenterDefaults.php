@@ -50,15 +50,22 @@ class CostCenterDefaults {
 		if (!in_array($costCenterId, $this->usableIds($userId), true)) {
 			return null;
 		}
-		try {
-			$account = $this->accounts->find($accountId, $userId);
-		} catch (\Throwable) {
-			return null;
-		}
-		if (!$account->canCarryCostCenter()) {
+		if (!$this->carries($userId, $accountId)) {
 			return null;
 		}
 		return [['costCenterId' => $costCenterId, 'amountCents' => $amountCents]];
+	}
+
+	/**
+	 * Ob Zeilen dieses Kontos eine Kostenstelle tragen dürfen. Ein Konto, das
+	 * es nicht (mehr) gibt, trägt keine – eine Vorgabe scheitert weich.
+	 */
+	public function carries(string $userId, int $accountId): bool {
+		try {
+			return $this->accounts->find($accountId, $userId)->canCarryCostCenter();
+		} catch (\Throwable) {
+			return false;
+		}
 	}
 
 	/**

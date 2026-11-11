@@ -1090,7 +1090,9 @@ each payment is distributed on its own; across several partial payments the
 total per cost centre can therefore differ from the item amount by one cent
 per payment. Copies, cancellations and recurring invoices take the cost
 centres over. In the batch import the *Kostenstelle* column means this cost
-centre (code or name) when the feature is switched on.
+centre (code or name) when the feature is switched on; a sheet that still
+names evaluation groups there then reports the row as an error. A discount
+item reduces the share of its cost centre.
 
 Entries from expense claims and SEPA collection are created without a cost
 centre. You can add one on the entry afterwards.
