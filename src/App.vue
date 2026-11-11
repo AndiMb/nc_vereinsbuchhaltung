@@ -504,7 +504,7 @@ import { useSync } from './composables/useSync.js'
 import { useTasks } from './composables/useTasks.js'
 import { buildWhatsNewEntries, filterWhatsNewEntries } from './data/whatsNew.js'
 import { accountLabel, accountOption } from './lib/accountLabel.js'
-import { allocationError, bookingLines, carryingLines, firstAllocationError, toPayload, withAllocations } from './lib/allocation.js'
+import { allocationError, bookingLines, carryingLines, defaultAllocation, firstAllocationError, toPayload, withAllocations } from './lib/allocation.js'
 import { takeBootState } from './lib/bootState.js'
 import { setClubCurrency } from './lib/clubCurrency.js'
 import { clubToday, setClubTimeZone } from './lib/clubTime.js'
@@ -639,6 +639,7 @@ export default {
 			setBookingCostCentersEnabled: bookingCostCenters.setBookingCostCentersEnabled,
 			costCentersEnabled: toRef(bookingCostCenters.state, 'enabled'),
 			costCentersKnown: toRef(bookingCostCenters.state, 'known'),
+			bookingCostCentersById: bookingCostCenters.bookingCostCentersById,
 			// Regeln: geteilter Zustand (useRules.js), seit dem Umzug der Pflege
 			// nach RulesPanel.vue (Unterreiter „Regeln" von BookingsTab.vue) hier
 			// nur noch fuer computeSuggestion()/createRuleFromTx() gebraucht.
@@ -2163,7 +2164,7 @@ export default {
 			if (this.activeTab === 'reports' && this.reportView === 'costcenters') { await this.loadReport() }
 		},
 
-		async onAssign(tx, value) {
+		async onAssign(tx, value, allocations = undefined) {
 			const prevContra = tx.contraAccountId
 			const revision = this.attachmentsRevision
 			try {
@@ -2179,7 +2180,7 @@ export default {
 						})
 					}
 				} else {
-					const { data } = await api.assignTransaction(tx.id, Number(value))
+					const { data } = await api.assignTransaction(tx.id, Number(value), allocations)
 					await this.linkTxPendingFiles(tx.id, data && data.journalId)
 				}
 				this.afterOwnJournalWrite(revision)
@@ -2261,7 +2262,8 @@ export default {
 				const haystack = { counterparty: tx.counterparty, purpose: tx.purpose, iban: tx.iban }[rule.matchField]
 				if (haystack && rule.matchValue && haystack.toLowerCase().includes(rule.matchValue.toLowerCase())) {
 					const acc = this.accountsById[rule.contraAccountId]
-					if (acc && acc.active) { return { accountId: acc.id, label: accountLabel(acc) } }
+					// Die Vorgabe-Kostenstelle der Regel (Issue #331) reist mit dem Vorschlag.
+					if (acc && acc.active) { return { accountId: acc.id, label: accountLabel(acc), costCenterId: rule.costCenterId ?? null } }
 				}
 			}
 			if (tx.counterparty) {
@@ -2277,7 +2279,13 @@ export default {
 
 		applySuggestion(tx) {
 			const s = this.suggestionsById[tx.id]
-			if (s) { this.onAssign(tx, s.accountId) }
+			if (!s) { return }
+			// Kommt der Vorschlag aus einer Regel mit Kostenstelle, gehoert ihr der
+			// ganze Betrag - wie beim Import. Nicht anwendbar heisst: ohne.
+			const allocations = this.costCentersEnabled
+				? defaultAllocation(s.costCenterId, Math.abs(tx.amountCents || 0) / 100, this.accountsById[s.accountId], this.bookingCostCentersById)
+				: undefined
+			this.onAssign(tx, s.accountId, allocations)
 		},
 
 		async createRuleFromTx(tx) {

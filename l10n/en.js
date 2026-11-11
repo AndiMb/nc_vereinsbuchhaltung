@@ -4543,5 +4543,7 @@ OC.L10N.register("vereinsbuchhaltung", {
 	"Kostenstellen lassen sich nur Einnahmen und Ausgaben zuordnen.": "Cost centres can only be allocated to income and expenses.",
 	"Jeder Anteil einer Kostenstelle braucht einen Betrag größer als 0.": "Each share of a cost centre needs an amount greater than 0.",
 	"Das Ergebnis entspricht dem Ergebnis laut Kontensalden.": "The result matches the result according to the account balances.",
-	"Das Ergebnis weicht vom Ergebnis laut Kontensalden (%s) ab.": "The result differs from the result according to the account balances (%s)."
+	"Das Ergebnis weicht vom Ergebnis laut Kontensalden (%s) ab.": "The result differs from the result according to the account balances (%s).",
+	"Die Kostenstelle „%1$s\" ist noch als Vorgabe eingetragen (%2$s). Sie lässt sich deaktivieren, aber nicht löschen.": "Cost centre “%1$s” is still set as a default (%2$s). It can be deactivated, but not deleted.",
+	"Importregeln": "Import rules"
 }, "nplurals=2; plural=(n != 1);");

@@ -5,6 +5,7 @@ import {
 	allocationSummary,
 	bookingLines,
 	carryingLines,
+	defaultAllocation,
 	firstAllocationError,
 	followAmount,
 	isSingleFull,
@@ -284,5 +285,37 @@ describe('allocationSummary', () => {
 
 	it('faellt bei unbekannter Kostenstelle auf die Nummer zurueck', () => {
 		expect(allocationSummary([{ costCenterId: 99, amount: 1 }], byId)).toBe('#99')
+	})
+})
+
+describe('defaultAllocation', () => {
+	// Vorgabe-Kostenstelle einer Importregel (Issue #331) beim Uebernehmen eines
+	// Vorschlags: der ganze Betrag - oder gar nichts, wenn die Vorgabe nicht
+	// anwendbar ist. Der Umsatz wird dann trotzdem zugeordnet.
+	const byId = { [SEN]: { id: SEN, active: true }, [AJU]: { id: AJU, active: false } }
+
+	it('liefert die volle Zuordnung', () => {
+		expect(defaultAllocation(SEN, 120, { type: 'expense' }, byId)).toEqual([{ costCenterId: SEN, amount: 120 }])
+	})
+
+	it('liefert undefined bei inaktiver Kostenstelle', () => {
+		expect(defaultAllocation(AJU, 120, { type: 'expense' }, byId)).toBeUndefined()
+	})
+
+	it('liefert undefined bei unbekannter Kostenstelle', () => {
+		expect(defaultAllocation(77, 120, { type: 'expense' }, byId)).toBeUndefined()
+	})
+
+	it('liefert undefined bei einem Konto, das keine traegt', () => {
+		expect(defaultAllocation(SEN, 120, { type: 'asset', isBank: true }, byId)).toBeUndefined()
+		expect(defaultAllocation(SEN, 120, undefined, byId)).toBeUndefined()
+	})
+
+	it('liefert undefined ohne Vorgabe', () => {
+		expect(defaultAllocation(null, 120, { type: 'income' }, byId)).toBeUndefined()
+	})
+
+	it('liefert undefined ohne Betrag', () => {
+		expect(defaultAllocation(SEN, 0, { type: 'income' }, byId)).toBeUndefined()
 	})
 })

@@ -62,7 +62,9 @@ export default {
 	listTransactions: (status) => axios.get(url('/transactions'), { params: { status } }),
 	// Historie, Fortschritt und Umsätze der Journal-Zeilen zu den bereits zugeordneten Umsätzen (Issue #255).
 	transactionContext: (period) => axios.get(url('/transactions/context'), { params: { period } }),
-	assignTransaction: (id, contraAccountId) => axios.post(url(`/transactions/${id}/assign`), { contraAccountId }),
+	// allocations (Kostenstellen, Issue #7/#331) nur mitschicken, wenn angegeben -
+	// ohne drittes Argument ist der Request wie vor der Funktion.
+	assignTransaction: (id, contraAccountId, allocations) => axios.post(url(`/transactions/${id}/assign`), allocations ? { contraAccountId, allocations } : { contraAccountId }),
 	// Aufteilung auf mehrere Gegenkonten: parts = [{accountId, amount}, …] in Euro
 	assignTransactionParts: (id, parts) => axios.post(url(`/transactions/${id}/assign`), { parts }),
 	unassignTransaction: (id) => axios.delete(url(`/transactions/${id}/assign`)),
