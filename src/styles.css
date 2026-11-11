@@ -1228,6 +1228,10 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 
 .vbh-allocline { display: flex; flex-direction: column; gap: 4px; }
 
+.vbh-split-row--alloc { flex-wrap: wrap; }
+
+.vbh-split-alloc { flex: 1 1 100%; display: flex; flex-direction: column; gap: 4px; padding-bottom: 6px; }
+
 .vbh-allocline-label { font-size: 0.9em; color: var(--color-text-maxcontrast); }
 
 .vbh-split-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 6px; }

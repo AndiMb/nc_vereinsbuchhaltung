@@ -504,7 +504,7 @@ import { useSync } from './composables/useSync.js'
 import { useTasks } from './composables/useTasks.js'
 import { buildWhatsNewEntries, filterWhatsNewEntries } from './data/whatsNew.js'
 import { accountLabel, accountOption } from './lib/accountLabel.js'
-import { bookingLines, carryingLines, firstAllocationError, withAllocations } from './lib/allocation.js'
+import { allocationError, bookingLines, carryingLines, firstAllocationError, toPayload, withAllocations } from './lib/allocation.js'
 import { takeBootState } from './lib/bootState.js'
 import { setClubCurrency } from './lib/clubCurrency.js'
 import { clubToday, setClubTimeZone } from './lib/clubTime.js'
@@ -2223,6 +2223,10 @@ export default {
 			if (rows.length < 2) { showError(this.t('Eine Aufteilung braucht mindestens zwei Zeilen.')); return }
 			if (rows.some((p) => !p.accountId)) { showError(this.t('Jeder Zeile der Aufteilung fehlt noch ein Konto.')); return }
 			if (rows.some((p) => !(Number(p.amount) > 0))) { showError(this.t('Jede Zeile der Aufteilung braucht einen Betrag größer als 0.')); return }
+			if (this.costCentersEnabled && rows.some((p) => allocationError(Number(p.amount), p.allocations))) {
+				showError(this.t('Die Verteilung auf Kostenstellen passt noch nicht – bitte in der betroffenen Zeile korrigieren.'))
+				return
+			}
 			const total = Math.abs(tx.amountCents || 0) / 100
 			if (!splitBalanced(total, rows)) {
 				const rest = splitRemainder(total, rows)
@@ -2233,7 +2237,12 @@ export default {
 			}
 			try {
 				const revision = this.attachmentsRevision
-				const { data } = await api.assignTransactionParts(tx.id, rows.map((p) => ({ accountId: p.accountId, amount: Number(p.amount) })))
+				const { data } = await api.assignTransactionParts(tx.id, rows.map((p) => ({
+					accountId: p.accountId,
+					amount: Number(p.amount),
+					// Kostenstellen (Issue #7) nur bei eingeschaltetem Modul mitschicken.
+					...(this.costCentersEnabled ? { allocations: toPayload(p.allocations) } : {}),
+				})))
 				showSuccess(this.t('Umsatz aufgeteilt zugeordnet.'))
 				this.closeSplitAssign()
 				await this.linkTxPendingFiles(tx.id, data && data.journalId)
