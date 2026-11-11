@@ -6,6 +6,7 @@ namespace OCA\Vereinsbuchhaltung\Service\CostCenter;
 
 use OCA\Vereinsbuchhaltung\Db\AccountMapper;
 use OCA\Vereinsbuchhaltung\Db\BookingCostCenterMapper;
+use OCA\Vereinsbuchhaltung\Db\ContributionGroupMapper;
 use OCA\Vereinsbuchhaltung\Db\InvoiceLineMapper;
 use OCA\Vereinsbuchhaltung\Db\RuleMapper;
 use OCA\Vereinsbuchhaltung\Service\CostCenterSettings;
@@ -35,6 +36,7 @@ class CostCenterDefaults {
 		private AccountMapper $accounts,
 		private RuleMapper $rules,
 		private ?InvoiceLineMapper $invoiceLines = null,
+		private ?ContributionGroupMapper $contributionGroups = null,
 	) {
 	}
 
@@ -101,6 +103,18 @@ class CostCenterDefaults {
 	}
 
 	/**
+	 * Ob sich die Kostenstelle als Vorgabe in Stammdaten eintragen lässt.
+	 *
+	 * @return string|null Fehlercode `disabled` (Modul aus) oder `unknown`, sonst null
+	 */
+	public function assignableError(string $userId, int $costCenterId): ?string {
+		if (!$this->settings->isEnabled()) {
+			return 'disabled';
+		}
+		return in_array($costCenterId, $this->knownIds($userId), true) ? null : 'unknown';
+	}
+
+	/**
 	 * Nachschlagetabelle für Importe: Kürzel oder Name (klein) => ID, nur
 	 * nutzbare Kostenstellen. Das Kürzel geht dem Namen vor. null bei
 	 * ausgeschaltetem Modul – der Aufrufer verhält sich dann wie zuvor.
@@ -131,6 +145,7 @@ class CostCenterDefaults {
 		return [
 			'rules' => $this->rules->countByCostCenter($costCenterId),
 			'invoiceLines' => $this->invoiceLines?->countByBookingCostCenter($costCenterId) ?? 0,
+			'contributionGroups' => $this->contributionGroups?->countByBookingCostCenter($costCenterId) ?? 0,
 		];
 	}
 }

@@ -54,6 +54,22 @@
 					{{ tc('Zustand', 'Aktiv') }}
 				</NcCheckboxRadioSwitch>
 			</div>
+			<!-- Vorgabe-Kostenstelle (Issue #333): nur bei eingeschaltetem Modul -->
+			<div v-if="costCentersEnabled" class="vbh-form">
+				<label class="vbh-grow">{{ t('Kostenstelle') }}
+					<select v-model="form.bookingCostCenterId">
+						<option :value="null">
+							{{ t('– keine –') }}
+						</option>
+						<option v-for="cc in costCenterOptions" :key="cc.id" :value="cc.id">
+							{{ cc.code }} · {{ cc.name }}{{ cc.active ? '' : ' (' + t('inaktiv') + ')' }}
+						</option>
+					</select>
+				</label>
+			</div>
+			<p v-if="costCentersEnabled" class="vbh-hint">
+				{{ t('Beiträge dieser Gruppe werden beim Verbuchen des Einzugs dieser Kostenstelle zugeordnet.') }}
+			</p>
 			<div class="vbh-modal-actions">
 				<NcButton variant="tertiary" @click="$emit('close')">
 					{{ t('Abbrechen') }}
@@ -67,10 +83,12 @@
 </template>
 
 <script>
+import { toRef } from 'vue'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcCheckboxRadioSwitch from '@nextcloud/vue/components/NcCheckboxRadioSwitch'
 import NcModal from '@nextcloud/vue/components/NcModal'
 import AmountInput from './AmountInput.vue'
+import { useBookingCostCenters } from '../composables/useBookingCostCenters.js'
 import { currencySymbol } from '../lib/clubCurrency.js'
 import { intervalLabel } from '../lib/frequency.js'
 import { focusOnOpen } from '../lib/modalFocus.js'
@@ -78,7 +96,7 @@ import { focusOnOpen } from '../lib/modalFocus.js'
 const INTERVAL_OPTIONS = [1, 2, 3, 4, 6, 12]
 
 function emptyForm() {
-	return { name: '', minMonthlyAmount: '', defaultMonthlyAmount: '', allowedIntervals: [1, 12], defaultInterval: 12, isActive: true }
+	return { name: '', minMonthlyAmount: '', defaultMonthlyAmount: '', allowedIntervals: [1, 12], defaultInterval: 12, isActive: true, bookingCostCenterId: null }
 }
 
 /**
@@ -98,8 +116,27 @@ export default {
 
 	emits: ['close', 'save', 'update:show'],
 
+	setup() {
+		const costCenters = useBookingCostCenters()
+		return {
+			costCentersEnabled: toRef(costCenters.state, 'enabled'),
+			activeCostCenters: costCenters.activeBookingCostCenters,
+			costCentersById: costCenters.bookingCostCentersById,
+		}
+	},
+
 	data() {
 		return { form: emptyForm(), intervalOptions: INTERVAL_OPTIONS }
+	},
+
+	computed: {
+		/** Aktive Kostenstellen, dazu die an der Gruppe gespeicherte inaktive. */
+		costCenterOptions() {
+			const list = [...this.activeCostCenters]
+			const current = this.costCentersById[this.form.bookingCostCenterId]
+			if (current && !list.some((cc) => cc.id === current.id)) { list.push(current) }
+			return list
+		},
 	},
 
 	watch: {
@@ -128,7 +165,10 @@ export default {
 		},
 
 		save() {
-			this.$emit('save', { ...this.form })
+			// Die Vorgabe-Kostenstelle geht nur bei eingeschaltetem Modul mit: fehlt
+			// das Feld, lässt der Server den gespeicherten Wert stehen.
+			const { bookingCostCenterId, ...rest } = this.form
+			this.$emit('save', this.costCentersEnabled ? { ...rest, bookingCostCenterId } : rest)
 		},
 	},
 }

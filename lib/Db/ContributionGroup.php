@@ -34,6 +34,8 @@ use OCP\AppFramework\Db\Entity;
  * @method void setIsActive(bool $isActive)
  * @method string getCreatedAt()
  * @method void setCreatedAt(string $createdAt)
+ * @method int|null getBookingCcId()
+ * @method void setBookingCcId(?int $bookingCcId)
  */
 class ContributionGroup extends Entity implements \JsonSerializable {
 	// Bewusst ohne "realistische" Standardwerte (siehe Entity::setter():
@@ -56,6 +58,9 @@ class ContributionGroup extends Entity implements \JsonSerializable {
 	protected $defaultInterval;
 	protected $isActive;
 	protected $createdAt;
+	// bookingCcId setzt applyFields() nicht: die Spalte ist nullable, ein nicht
+	// gesetzter Wert fehlt im INSERT und bleibt NULL.
+	protected $bookingCcId;
 
 	/** Erlaubte Turnuswerte – Teiler von 12 (siehe PeriodRule::LENGTHS). */
 	public const VALID_INTERVALS = [1, 2, 3, 4, 6, 12];
@@ -65,6 +70,15 @@ class ContributionGroup extends Entity implements \JsonSerializable {
 		$this->addType('defaultMonthlyAmountCents', 'integer');
 		$this->addType('defaultInterval', 'integer');
 		$this->addType('isActive', 'boolean');
+		$this->addType('bookingCcId', 'integer');
+	}
+
+	/**
+	 * Vorgabe-Kostenstelle (vbh_booking_cc.id, Issue #333): Beiträge dieser
+	 * Gruppe werden beim Verbuchen des Einzugs ihr zugeordnet.
+	 */
+	public function getBookingCostCenterId(): ?int {
+		return $this->bookingCcId !== null ? (int)$this->bookingCcId : null;
 	}
 
 	/** @return int[] aufsteigend sortiert, ohne Duplikate */
@@ -96,6 +110,7 @@ class ContributionGroup extends Entity implements \JsonSerializable {
 			'defaultInterval' => $this->defaultInterval,
 			'isActive' => $this->isActive,
 			'createdAt' => $this->createdAt,
+			'bookingCostCenterId' => $this->getBookingCostCenterId(),
 		];
 	}
 }

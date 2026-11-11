@@ -4553,5 +4553,6 @@ OC.L10N.register("vereinsbuchhaltung", {
 	"Für dieses Konto ist eine Kostenstelle vorgesehen; {amount} sind noch nicht zugeordnet.": "A cost centre is expected for this account; {amount} is not allocated yet.",
 	"Für diese Konten ist eine Kostenstelle vorgesehen. Die Beträge sind noch keiner Kostenstelle zugeordnet – ein Klick auf das Konto führt zu den Buchungen.": "A cost centre is expected for these accounts. The amounts are not allocated to a cost centre yet – click the account to see its entries.",
 	"Rechnungspositionen": "Invoice items",
-	"Position %d: Die Kostenstelle gibt es nicht.": "Item %d: the cost centre does not exist."
+	"Position %d: Die Kostenstelle gibt es nicht.": "Item %d: the cost centre does not exist.",
+	"Beiträge dieser Gruppe werden beim Verbuchen des Einzugs dieser Kostenstelle zugeordnet.": "Contributions of this group are assigned to this cost centre when the collection is booked."
 }, "nplurals=2; plural=(n != 1);");

@@ -122,6 +122,7 @@ class BookingCostCenterService {
 		$labels = [
 			'rules' => $this->l10n->t('Importregeln'),
 			'invoiceLines' => $this->l10n->t('Rechnungspositionen'),
+			'contributionGroups' => $this->l10n->t('Beitragsgruppen'),
 		];
 		$parts = [];
 		foreach ($this->defaults?->usage($costCenterId) ?? [] as $kind => $count) {

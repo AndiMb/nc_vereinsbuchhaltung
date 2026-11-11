@@ -4553,5 +4553,6 @@ OC.L10N.register("vereinsbuchhaltung", {
 	"Für dieses Konto ist eine Kostenstelle vorgesehen; {amount} sind noch nicht zugeordnet.": "Voor deze rekening is een kostenplaats voorzien; {amount} is nog niet toegewezen.",
 	"Für diese Konten ist eine Kostenstelle vorgesehen. Die Beträge sind noch keiner Kostenstelle zugeordnet – ein Klick auf das Konto führt zu den Buchungen.": "Voor deze rekeningen is een kostenplaats voorzien. De bedragen zijn nog niet aan een kostenplaats toegewezen – klik op de rekening om de boekingen te zien.",
 	"Rechnungspositionen": "Factuurregels",
-	"Position %d: Die Kostenstelle gibt es nicht.": "Regel %d: de kostenplaats bestaat niet."
+	"Position %d: Die Kostenstelle gibt es nicht.": "Regel %d: de kostenplaats bestaat niet.",
+	"Beiträge dieser Gruppe werden beim Verbuchen des Einzugs dieser Kostenstelle zugeordnet.": "Bijdragen van deze groep worden bij het boeken van de incasso aan deze kostenplaats toegewezen."
 }, "nplurals=2; plural=(n != 1);");

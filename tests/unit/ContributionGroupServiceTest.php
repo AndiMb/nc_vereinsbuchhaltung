@@ -11,6 +11,7 @@ use OCA\Vereinsbuchhaltung\Db\ContributionGroupMapper;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Service\AssignmentService;
 use OCA\Vereinsbuchhaltung\Service\ContributionGroupService;
+use OCA\Vereinsbuchhaltung\Service\CostCenter\CostCenterDefaults;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\IL10N;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -27,6 +28,8 @@ class ContributionGroupServiceTest extends TestCase {
 	private AssignmentMapper&MockObject $assignmentMapper;
 	private MemberMapper&MockObject $memberMapper;
 	private AssignmentService&MockObject $assignmentService;
+	/** Vorgabe-Kostenstellen (Issue #333); null = Dienst ohne sie */
+	private (CostCenterDefaults&MockObject)|null $costCenterDefaults = null;
 
 	protected function setUp(): void {
 		$this->mapper = $this->createMock(ContributionGroupMapper::class);
@@ -40,7 +43,7 @@ class ContributionGroupServiceTest extends TestCase {
 		$time->method('getDateTime')->willReturn(new \DateTime('2026-06-15'));
 		$l10n = $this->createMock(IL10N::class);
 		$l10n->method('t')->willReturnCallback(static fn (string $text, array $parameters = []): string => vsprintf($text, $parameters));
-		return new ContributionGroupService($this->mapper, $this->assignmentMapper, $this->memberMapper, $this->assignmentService, $time, $l10n);
+		return new ContributionGroupService($this->mapper, $this->assignmentMapper, $this->memberMapper, $this->assignmentService, $time, $l10n, null, $this->costCenterDefaults);
 	}
 
 	private function group(int $minCents = 500): ContributionGroup {
@@ -212,5 +215,82 @@ class ContributionGroupServiceTest extends TestCase {
 
 		$this->assertSame(1, $result['raisedCount']);
 		$this->assertSame(600, $result['newMinAmountCents']);
+	}
+
+	// ---- Vorgabe-Kostenstelle (Issue #333) ----
+
+	private function withCostCenters(?string $error): void {
+		$this->costCenterDefaults = $this->createMock(CostCenterDefaults::class);
+		$this->costCenterDefaults->method('assignableError')->willReturn($error);
+		$this->mapper->method('update')->willReturnArgument(0);
+	}
+
+	private function groupWithCostCenter(?int $costCenterId): ContributionGroup {
+		$group = $this->group(500);
+		$group->setBookingCcId($costCenterId);
+		return $group;
+	}
+
+	public function testVorgabeKostenstelleWirdGesetzt(): void {
+		$this->withCostCenters(null);
+		$this->mapper->method('find')->willReturn($this->groupWithCostCenter(null));
+
+		$group = $this->service()->update(1, 'Jugend', 500, 800, [1, 12], 12, true, 3);
+
+		$this->assertSame(3, $group->getBookingCostCenterId());
+	}
+
+	/** Alter Client oder Formular bei ausgeschaltetem Modul: der Parameter fehlt, die Vorgabe bleibt. */
+	public function testOhneAngabeBleibtDieVorgabeStehen(): void {
+		$this->withCostCenters('disabled');
+		$this->mapper->method('find')->willReturn($this->groupWithCostCenter(3));
+
+		$group = $this->service()->update(1, 'Jugend', 500, 800, [1, 12], 12, true);
+
+		$this->assertSame(3, $group->getBookingCostCenterId());
+	}
+
+	public function testNullEntferntDieVorgabeAuchBeiAusgeschaltetemModul(): void {
+		$this->withCostCenters('disabled');
+		$this->mapper->method('find')->willReturn($this->groupWithCostCenter(3));
+
+		$group = $this->service()->update(1, 'Jugend', 500, 800, [1, 12], 12, true, null);
+
+		$this->assertNull($group->getBookingCostCenterId());
+	}
+
+	public function testUnbekannteKostenstelleWirdAbgelehnt(): void {
+		$this->withCostCenters('unknown');
+		$this->mapper->method('find')->willReturn($this->groupWithCostCenter(null));
+
+		$this->expectExceptionMessage('Kostenstelle nicht gefunden');
+		$this->service()->update(1, 'Jugend', 500, 800, [1, 12], 12, true, 77);
+	}
+
+	public function testNeuerWertBeiAusgeschaltetemModulWirdAbgelehnt(): void {
+		$this->withCostCenters('disabled');
+		$this->mapper->method('find')->willReturn($this->groupWithCostCenter(null));
+
+		$this->expectExceptionMessage('ausgeschaltet');
+		$this->service()->update(1, 'Jugend', 500, 800, [1, 12], 12, true, 3);
+	}
+
+	/** Schickt ein Client den unveränderten Wert mit, scheitert das Speichern der Gruppe nicht am ausgeschalteten Modul. */
+	public function testUnveraenderterWertBleibtAuchBeiAusgeschaltetemModul(): void {
+		$this->withCostCenters('disabled');
+		$this->mapper->method('find')->willReturn($this->groupWithCostCenter(3));
+
+		$group = $this->service()->update(1, 'Jugend', 500, 800, [1, 12], 12, true, 3);
+
+		$this->assertSame(3, $group->getBookingCostCenterId());
+	}
+
+	public function testAnlegenMitVorgabeKostenstelle(): void {
+		$this->withCostCenters(null);
+		$this->mapper->method('insert')->willReturnArgument(0);
+
+		$group = $this->service()->create('Jugend', 500, 800, [1, 12], 12, true, 3);
+
+		$this->assertSame(3, $group->getBookingCostCenterId());
 	}
 }

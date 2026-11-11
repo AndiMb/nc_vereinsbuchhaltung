@@ -30,6 +30,7 @@
 						<tr v-for="g in groups" :key="g.id">
 							<td class="vbh-stack-title">
 								{{ g.name }}
+								<small v-if="costCentersEnabled && costCentersById[g.bookingCostCenterId]" class="vbh-cgroup-cc">{{ t('Kostenstelle') }}: {{ costCentersById[g.bookingCostCenterId].code }}</small>
 							</td>
 							<td class="num">
 								{{ euro(g.minMonthlyAmountCents) }}
@@ -178,7 +179,7 @@
 <script>
 import { mdiAccountSwitch, mdiArrowUpBold, mdiCalendarRemove, mdiCashEdit, mdiDelete } from '@mdi/js'
 import { showError, showSuccess } from '@nextcloud/dialogs'
-import { toRefs } from 'vue'
+import { toRef, toRefs } from 'vue'
 import NcActionButton from '@nextcloud/vue/components/NcActionButton'
 import NcActions from '@nextcloud/vue/components/NcActions'
 import NcButton from '@nextcloud/vue/components/NcButton'
@@ -189,6 +190,7 @@ import ContributionGroupDialog from './ContributionGroupDialog.vue'
 import MinAmountIncreaseDialog from './MinAmountIncreaseDialog.vue'
 import api from '../api.js'
 import { useAssignments } from '../composables/useAssignments.js'
+import { useBookingCostCenters } from '../composables/useBookingCostCenters.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { useContributionGroups } from '../composables/useContributionGroups.js'
 import { useMembers } from '../composables/useMembers.js'
@@ -214,7 +216,10 @@ export default {
 		const assignments = useAssignments()
 		const members = useMembers()
 		const { askConfirm } = useConfirm()
+		const costCenters = useBookingCostCenters()
 		return {
+			costCentersEnabled: toRef(costCenters.state, 'enabled'),
+			costCentersById: costCenters.bookingCostCentersById,
 			...toRefs(groups.state),
 			loadContributionGroups: groups.loadContributionGroups,
 			...toRefs(assignments.state),
@@ -303,6 +308,7 @@ export default {
 				allowedIntervals: [...g.allowedIntervals],
 				defaultInterval: g.defaultInterval,
 				isActive: g.isActive,
+				bookingCostCenterId: g.bookingCostCenterId ?? null,
 			}
 			this.groupDialogOpen = true
 		},
@@ -386,6 +392,12 @@ export default {
 </script>
 
 <style scoped>
+.vbh-cgroup-cc {
+	display: block;
+	color: var(--color-text-maxcontrast);
+	font-weight: normal;
+}
+
 /*
  * Eigene, gescopte Klasse statt einer globalen Ergänzung in styles.css: eine
  * einfache Kopfzeile (Überschrift + Aktions-Button) je Abschnitt, ohne das

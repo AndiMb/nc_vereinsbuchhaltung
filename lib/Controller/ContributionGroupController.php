@@ -50,9 +50,10 @@ class ContributionGroupController extends Controller {
 		array $allowedIntervals,
 		int $defaultInterval,
 		bool $isActive = true,
+		?int $bookingCostCenterId = null,
 	): DataResponse {
 		try {
-			$group = $this->service->create($name, (int)round($minMonthlyAmount * 100), (int)round($defaultMonthlyAmount * 100), $allowedIntervals, $defaultInterval, $isActive);
+			$group = $this->service->create($name, (int)round($minMonthlyAmount * 100), (int)round($defaultMonthlyAmount * 100), $allowedIntervals, $defaultInterval, $isActive, $this->costCenterParam($bookingCostCenterId));
 			return new DataResponse($group->jsonSerialize(), Http::STATUS_CREATED);
 		} catch (\InvalidArgumentException $e) {
 			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
@@ -69,15 +70,24 @@ class ContributionGroupController extends Controller {
 		array $allowedIntervals,
 		int $defaultInterval,
 		bool $isActive,
+		?int $bookingCostCenterId = null,
 	): DataResponse {
 		try {
-			$group = $this->service->update($id, $name, (int)round($minMonthlyAmount * 100), (int)round($defaultMonthlyAmount * 100), $allowedIntervals, $defaultInterval, $isActive);
+			$group = $this->service->update($id, $name, (int)round($minMonthlyAmount * 100), (int)round($defaultMonthlyAmount * 100), $allowedIntervals, $defaultInterval, $isActive, $this->costCenterParam($bookingCostCenterId));
 			return new DataResponse($group->jsonSerialize());
 		} catch (\InvalidArgumentException $e) {
 			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
 		} catch (DoesNotExistException) {
 			return new DataResponse(['message' => $this->l10n->t('Beitragsgruppe nicht gefunden')], Http::STATUS_NOT_FOUND);
 		}
+	}
+
+	/**
+	 * Vorgabe-Kostenstelle aus dem Request (Issue #333): fehlt der Parameter,
+	 * ist nichts gesagt (`false`) und der gespeicherte Wert bleibt.
+	 */
+	private function costCenterParam(?int $bookingCostCenterId): int|false|null {
+		return array_key_exists('bookingCostCenterId', $this->request->getParams()) ? $bookingCostCenterId : false;
 	}
 
 	#[NoAdminRequired]

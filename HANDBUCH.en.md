@@ -1094,8 +1094,21 @@ centre (code or name) when the feature is switched on; a sheet that still
 names evaluation groups there then reports the row as an error. A discount
 item reduces the share of its cost centre.
 
-Entries from expense claims and SEPA collection are created without a cost
-centre. You can add one on the entry afterwards.
+**Expense claims:** the dialog "Umsatz einer Auslage zuordnen" has a **Cost
+centre** field below the expense account; the payout entry carries it.
+
+**Contributions and SEPA collection:** every contribution group (chapter 13)
+can carry a default cost centre. When a bulk credit is booked in the bank
+reconciliation, the app assigns each member's contribution to the cost
+centre of their group – in one entry, summed per revenue account;
+contributions from groups without a default stay without. The same applies
+to a single incoming payment assigned to a claim. A returned debit takes
+the revenue out of the cost centre again, provided the collection had
+assigned it there; the bank fee belongs to none. The
+default applies to claims the collection cycle creates from an assignment –
+claims created by hand have no group and stay without. If the cost centre
+is inactive, the entry is booked without it; booking never fails because
+of it.
 
 **Cost centre required:** if every amount on an account should ideally get a
 cost centre, switch on **Cost centre required** in the account dialog

@@ -883,6 +883,48 @@ class ReimbursementServiceTest extends TestCase {
 		$this->assertChainIsValid($service, $r->getId());
 	}
 
+	/** Issue #333: die im Dialog gewaehlte Verteilung reist zur Zuordnung des Umsatzes mit. */
+	public function testAuszahlungReichtDieVerteilungAnDieZuordnungDurch(): void {
+		$service = $this->service();
+		$r = $this->approved($service);
+		$tx = $this->outflow();
+		$allocations = [['costCenterId' => 3, 'amountCents' => $r->getAmountCents()]];
+		$this->booking->expects($this->once())->method('assign')->with($tx, 31, $allocations)->willReturnCallback(function (BankTransaction $t): BankTransaction {
+			$t->setJournalId(55);
+			return $t;
+		});
+
+		$r = $service->payFromBankTransaction($r->getId(), $tx, 31, 'berta', $allocations);
+
+		$this->assertSame(Reimbursement::STATUS_PAID, $r->getStatus());
+	}
+
+	public function testAuszahlungOhneAngabeRuftAssignWieBisher(): void {
+		$service = $this->service();
+		$r = $this->approved($service);
+		$tx = $this->outflow();
+		$this->booking->expects($this->once())->method('assign')->with($tx, 31, null)->willReturnCallback(function (BankTransaction $t): BankTransaction {
+			$t->setJournalId(55);
+			return $t;
+		});
+
+		$service->payFromBankTransaction($r->getId(), $tx, 31, 'berta');
+	}
+
+	public function testUngueltigeVerteilungLaesstDieAuslageUnbezahlt(): void {
+		$service = $this->service();
+		$r = $this->approved($service);
+		$this->booking->method('assign')->willThrowException(new \InvalidArgumentException('Verteilung zu hoch'));
+
+		try {
+			$service->payFromBankTransaction($r->getId(), $this->outflow(), 31, 'berta', [['costCenterId' => 3, 'amountCents' => 999999]]);
+			$this->fail('Die Auszahlung haette scheitern muessen.');
+		} catch (\InvalidArgumentException) {
+		}
+
+		$this->assertSame(Reimbursement::STATUS_APPROVED, $service->find($r->getId())->getStatus());
+	}
+
 	#[DataProvider('unpassendeUmsaetze')]
 	public function testKontoumsatzMussZurAuslagePassen(int $cents, string $status): void {
 		$service = $this->service();

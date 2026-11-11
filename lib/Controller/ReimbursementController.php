@@ -12,6 +12,7 @@ use OCA\Vereinsbuchhaltung\Exception\ForbiddenException;
 use OCA\Vereinsbuchhaltung\Http\ReceiptPreviewPolicy;
 use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
 use OCA\Vereinsbuchhaltung\Service\ActorContextService;
+use OCA\Vereinsbuchhaltung\Service\CostCenter\AllocationRules;
 use OCA\Vereinsbuchhaltung\Service\NumberRangeService;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
 use OCA\Vereinsbuchhaltung\Service\ReimbursementFileService;
@@ -182,15 +183,18 @@ class ReimbursementController extends Controller {
 	/**
 	 * Ordnet einen Kontoumsatz der Auslage zu und bucht ihn gegen das gewählte
 	 * Aufwandskonto.
+	 *
+	 * @param array|null $allocations Verteilung auf Kostenstellen, Beträge in Euro (Issue #333)
 	 */
 	#[NoAdminRequired]
 	#[RequiresRole(PermissionService::ROLE_WRITE)]
-	public function assignTransaction(int $id, int $bankTxId, int $contraAccountId): DataResponse {
+	public function assignTransaction(int $id, int $bankTxId, int $contraAccountId, ?array $allocations = null): DataResponse {
 		return $this->decide(fn () => $this->service->payFromBankTransaction(
 			$id,
 			$this->txMapper->find($bankTxId, $this->userId()),
 			$contraAccountId,
 			$this->uid(),
+			AllocationRules::parseEuro(['allocations' => $allocations]),
 		));
 	}
 

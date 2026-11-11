@@ -50,6 +50,15 @@
 							label="label"
 							:placeholder="t('Konto wählen')" />
 					</label>
+					<!-- Kostenstelle des Aufwands (Issue #333): nur bei eingeschaltetem Modul, freiwillig -->
+					<div v-if="costCentersEnabled && account" class="vbh-reimb-alloc">
+						<span class="vbh-allocline-label">{{ t('Kostenstelle') }}</span>
+						<AllocationEditor
+							v-model="allocations"
+							:lineAmount="amountEuro"
+							:label="t('Kostenstelle')"
+							:required="!!accountsById[account.id]?.costCenterRequired" />
+					</div>
 					<p class="vbh-hint vbh-hint--info" role="note">
 						{{ t('Der Umsatz wird auf dieses Konto gebucht, die Auslage gilt als ausgezahlt und die Belege hängen an der Buchung.') }}
 					</p>
@@ -65,7 +74,7 @@
 				</NcButton>
 				<NcButton
 					variant="primary"
-					:disabled="busy || !reimbursementId || !account"
+					:disabled="busy || !reimbursementId || !account || !!allocationProblem"
 					@click="assign">
 					{{ t('Zuordnen und buchen') }}
 				</NcButton>
@@ -75,14 +84,18 @@
 </template>
 
 <script>
+import { toRef } from 'vue'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcEmptyContent from '@nextcloud/vue/components/NcEmptyContent'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import NcModal from '@nextcloud/vue/components/NcModal'
 import NcSelect from '@nextcloud/vue/components/NcSelect'
+import AllocationEditor from './AllocationEditor.vue'
 import api from '../api.js'
 import { useAccounts } from '../composables/useAccounts.js'
+import { useBookingCostCenters } from '../composables/useBookingCostCenters.js'
 import { accountOption } from '../lib/accountLabel.js'
+import { allocationError, toPayload } from '../lib/allocation.js'
 import { errMsg, formatDate, formatMoney } from '../lib/format.js'
 
 /**
@@ -94,7 +107,7 @@ import { errMsg, formatDate, formatMoney } from '../lib/format.js'
  */
 export default {
 	name: 'ReimbursementAssignDialog',
-	components: { NcButton, NcEmptyContent, NcLoadingIcon, NcModal, NcSelect },
+	components: { AllocationEditor, NcButton, NcEmptyContent, NcLoadingIcon, NcModal, NcSelect },
 
 	props: {
 		/** Der Kontoumsatz (Abgang). */
@@ -107,11 +120,12 @@ export default {
 
 	setup() {
 		const accounts = useAccounts()
-		return { accountsSorted: accounts.accountsSorted }
+		const costCenters = useBookingCostCenters()
+		return { accountsSorted: accounts.accountsSorted, accountsById: accounts.accountsById, costCentersEnabled: toRef(costCenters.state, 'enabled') }
 	},
 
 	data() {
-		return { loading: true, busy: false, error: '', candidates: [], reimbursementId: this.suggestedId, account: null }
+		return { loading: true, busy: false, error: '', candidates: [], reimbursementId: this.suggestedId, account: null, allocations: [] }
 	},
 
 	computed: {
@@ -120,6 +134,11 @@ export default {
 				.filter((a) => a.type === 'expense' && !a.isBank && a.active !== false)
 				.map((a) => accountOption(a))
 		},
+
+		/** Betrag des Umsatzes in Euro – Obergrenze der Verteilung. */
+		amountEuro() { return Math.abs(this.tx.amountCents) / 100 },
+
+		allocationProblem() { return this.costCentersEnabled ? allocationError(this.amountEuro, this.allocations) : null },
 	},
 
 	async mounted() {
@@ -145,7 +164,8 @@ export default {
 			this.busy = true
 			this.error = ''
 			try {
-				await api.assignReimbursementTransaction(this.reimbursementId, this.tx.id, this.account.id)
+				// Die Verteilung geht nur bei eingeschaltetem Modul mit – sonst bleibt der Request, wie er war.
+				await api.assignReimbursementTransaction(this.reimbursementId, this.tx.id, this.account.id, this.costCentersEnabled ? toPayload(this.allocations) : undefined)
 				this.$emit('assigned')
 			} catch (e) {
 				this.error = errMsg(e, this.t('Die Zuordnung zur Auslage ist fehlgeschlagen.'))
@@ -158,6 +178,12 @@ export default {
 </script>
 
 <style scoped>
+.vbh-reimb-alloc {
+	display: grid;
+	gap: 4px;
+	margin: 12px 0;
+}
+
 .vbh-reimb-pick {
 	display: grid;
 	gap: 6px;
