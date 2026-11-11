@@ -64,7 +64,8 @@ class CostCenterAllocationReportService {
 	 *     unassigned: array<string, mixed>,
 	 *     total: array{incomeCents:int, expenseCents:int, resultCents:int},
 	 *     ledgerResultCents:int,
-	 *     reconciled:bool
+	 *     reconciled:bool,
+	 *     requiredOpen: list<array{accountId:int, number:string, name:string, amountCents:int, kind:string}>
 	 * }
 	 */
 	public static function compute(iterable $accounts, array $ledgerSums, array $allocSums, iterable $costCenters): array {

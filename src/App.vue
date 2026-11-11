@@ -3163,9 +3163,11 @@ export default {
 				} else {
 					// active bleibt hier aussen vor: ein neu angelegtes Konto ist
 					// immer aktiv, der Schalter erscheint erst beim Bearbeiten.
-					// eslint-disable-next-line no-unused-vars -- active wird bewusst nur herausdestrukturiert, um es aus rest auszuschliessen
-					const { active, ...rest } = f
-					await api.createAccount({ ...rest, parentId: f.parentId || null, sphere: f.sphere || null, reserveKind: f.reserveKind || null, iban: f.iban || null, costCenterId: f.costCenterId || null })
+					// costCenterRequired geht nur bei eingeschaltetem Kostenstellen-Modul
+					// mit (unten), sonst bleibt der Request wie vor der Funktion.
+					// eslint-disable-next-line no-unused-vars -- active und costCenterRequired werden bewusst nur herausdestrukturiert, um sie aus rest auszuschliessen
+					const { active, costCenterRequired, ...rest } = f
+					await api.createAccount({ ...rest, parentId: f.parentId || null, sphere: f.sphere || null, reserveKind: f.reserveKind || null, iban: f.iban || null, costCenterId: f.costCenterId || null, ...(this.costCentersEnabled ? { costCenterRequired: !!costCenterRequired } : {}) })
 				}
 				this.showAccount = false
 				this.accountEditId = null
