@@ -16,6 +16,7 @@ import {
 	isDunningDue,
 	isEmptyLine,
 	lineFromPlan,
+	lineFromServer,
 	lineFromTemplate,
 	lineNet,
 	linesToPayload,
@@ -314,5 +315,40 @@ describe('Sortierwerte der Rechnungsliste (Issue #213)', () => {
 
 	it('sortiert den Status nach dem angezeigten Text', () => {
 		expect(invoiceSortFields({ status: 'issued', overdue: true }).status).toBe('Überfällig')
+	})
+})
+
+describe('Kostenstelle der Position (Issue #332)', () => {
+	const stored = { name: 'Teilnahme', description: '', quantityE4: 10000, unitCode: 'C62', unitPriceCents: 12000, discountBp: 0, accountId: 40, taxCategory: 'S', taxRateBp: 1900, bookingCostCenterId: 3 }
+
+	it('lineFromServer uebernimmt die Kostenstelle', () => {
+		expect(lineFromServer(stored).bookingCostCenterId).toBe(3)
+		expect(lineFromServer({ ...stored, bookingCostCenterId: null }).bookingCostCenterId).toBeNull()
+	})
+
+	it('eine neue Zeile hat keine', () => {
+		expect(emptyLine().bookingCostCenterId).toBeNull()
+	})
+
+	it('linesToPayload laesst den Schluessel bei ausgeschaltetem Modul weg', () => {
+		// Fehlt er, laesst der Server die gespeicherte Kostenstelle der Zeile
+		// stehen - schickte der Editor hier null, ginge sie verloren.
+		const [row] = linesToPayload([lineFromServer(stored)])
+		expect(row).not.toHaveProperty('bookingCostCenterId')
+	})
+
+	it('linesToPayload schickt die Kostenstelle bei eingeschaltetem Modul', () => {
+		const [row] = linesToPayload([lineFromServer(stored)], false, true)
+		expect(row.bookingCostCenterId).toBe(3)
+	})
+
+	it('linesToPayload schickt null fuer "keine" bei eingeschaltetem Modul', () => {
+		const [row] = linesToPayload([{ ...lineFromServer(stored), bookingCostCenterId: null }], false, true)
+		expect(row).toHaveProperty('bookingCostCenterId', null)
+	})
+
+	it('lineFromPlan uebernimmt die Kostenstelle', () => {
+		expect(lineFromPlan({ name: 'Miete', unitPriceCents: 5000, bookingCostCenterId: 5 }).bookingCostCenterId).toBe(5)
+		expect(lineFromPlan({ name: 'Miete', unitPriceCents: 5000 }).bookingCostCenterId).toBeNull()
 	})
 })

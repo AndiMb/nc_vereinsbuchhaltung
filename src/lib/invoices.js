@@ -239,6 +239,8 @@ export function emptyLine(accountId = null, taxKey = 'S1900') {
 		taxKey,
 		// Hat jemand den Satz von Hand gewählt, folgt er dem Konto nicht mehr.
 		taxTouched: false,
+		// Kostenstelle der Position (Issue #332); null = keine.
+		bookingCostCenterId: null,
 	}
 }
 
@@ -256,6 +258,7 @@ export function lineFromServer(line) {
 		accountId: line.accountId,
 		taxKey: taxKeyOf(line.taxCategory, line.taxRateBp),
 		taxTouched: true,
+		bookingCostCenterId: line.bookingCostCenterId ?? null,
 	}
 }
 
@@ -273,8 +276,18 @@ export function isEmptyLine(line) {
 	return String(line.name).trim() === '' && String(line.description).trim() === '' && (line.unitPrice === '' || Number(line.unitPrice) === 0)
 }
 
-/** Positionen für den Server; leere Zeilen entfallen. Die Steuer geht nur bei Regelbesteuerung mit. */
-export function linesToPayload(lines, regular = false) {
+/**
+ * Positionen für den Server; leere Zeilen entfallen. Die Steuer geht nur bei
+ * Regelbesteuerung mit, die Kostenstelle (Issue #332) nur bei eingeschaltetem
+ * Kostenstellen-Modul: fehlt der Schlüssel, lässt der Server die gespeicherte
+ * Kostenstelle der Zeile stehen – ein mitgeschicktes null würde sie löschen.
+ *
+ * @param {Array} lines Editor-Zeilen
+ * @param {boolean} regular Regelbesteuerung
+ * @param {boolean} costCenters Kostenstellen-Modul eingeschaltet
+ * @return {Array}
+ */
+export function linesToPayload(lines, regular = false, costCenters = false) {
 	return lines.filter((l) => !isEmptyLine(l)).map((l) => ({
 		name: l.name,
 		description: l.description,
@@ -284,6 +297,7 @@ export function linesToPayload(lines, regular = false) {
 		discountPercent: l.discountPercent === '' ? 0 : l.discountPercent,
 		accountId: l.accountId,
 		...(regular ? { taxCategory: TAX_KEYS[l.taxKey || 'S1900'].category, taxRateBp: TAX_KEYS[l.taxKey || 'S1900'].rateBp } : {}),
+		...(costCenters ? { bookingCostCenterId: l.bookingCostCenterId ?? null } : {}),
 	}))
 }
 
@@ -399,6 +413,8 @@ export function planLinesFromInvoice(invoice) {
 		accountId: l.accountId,
 		taxCategory: l.taxCategory,
 		taxRateBp: l.taxRateBp,
+		// Die Kostenstelle der Position reist in den Plan mit (Issue #332).
+		...(l.bookingCostCenterId ? { bookingCostCenterId: l.bookingCostCenterId } : {}),
 	}))
 }
 
@@ -432,6 +448,7 @@ export function lineFromPlan(line) {
 	row.unitPrice = cents === 0 ? '' : cents / 100
 	row.discountPercent = line.discountPercent ? String(line.discountPercent) : ''
 	row.taxTouched = true
+	row.bookingCostCenterId = line.bookingCostCenterId ?? null
 	return row
 }
 

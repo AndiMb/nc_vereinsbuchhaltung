@@ -262,6 +262,17 @@
 										</option>
 									</select>
 								</label>
+								<!-- Kostenstelle der Position (Issue #332): nur bei eingeschaltetem Modul -->
+								<label v-if="costCentersEnabled">{{ t('Kostenstelle') }}
+									<select v-model="line.bookingCostCenterId">
+										<option :value="null">
+											{{ t('– keine –') }}
+										</option>
+										<option v-for="cc in costCenterOptions(line)" :key="cc.id" :value="cc.id">
+											{{ cc.code }} · {{ cc.name }}{{ cc.active ? '' : ' (' + t('inaktiv') + ')' }}
+										</option>
+									</select>
+								</label>
 								<label v-if="regular">{{ t('USt') }}
 									<select v-model="line.taxKey" :aria-label="t('Umsatzsteuer der Position')" @change="line.taxTouched = true">
 										<option v-for="key in taxKeys" :key="key" :value="key">
@@ -524,6 +535,7 @@
 import { mdiAlertOutline, mdiArrowDown, mdiArrowLeft, mdiArrowUp, mdiCheckCircleOutline, mdiCircleOutline, mdiDelete, mdiFilePdfBox, mdiPlus } from '@mdi/js'
 import { showError, showSuccess } from '@nextcloud/dialogs'
 import { generateUrl } from '@nextcloud/router'
+import { toRef } from 'vue'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
@@ -533,6 +545,7 @@ import DebtorSelect from './DebtorSelect.vue'
 import InvoiceIssueDialog from './InvoiceIssueDialog.vue'
 import api from '../api.js'
 import { useAuth } from '../composables/useAuth.js'
+import { useBookingCostCenters } from '../composables/useBookingCostCenters.js'
 import { errMsg, formatMoney } from '../lib/format.js'
 import {
 	addDays,
@@ -588,7 +601,22 @@ export default {
 
 	setup() {
 		const { state: auth } = useAuth()
-		return { auth, mdiArrowDown, mdiArrowLeft, mdiAlertOutline, mdiArrowUp, mdiCheckCircleOutline, mdiCircleOutline, mdiDelete, mdiFilePdfBox, mdiPlus }
+		const costCenters = useBookingCostCenters()
+		return {
+			costCentersEnabled: toRef(costCenters.state, 'enabled'),
+			activeCostCenters: costCenters.activeBookingCostCenters,
+			costCentersById: costCenters.bookingCostCentersById,
+			auth,
+			mdiArrowDown,
+			mdiArrowLeft,
+			mdiAlertOutline,
+			mdiArrowUp,
+			mdiCheckCircleOutline,
+			mdiCircleOutline,
+			mdiDelete,
+			mdiFilePdfBox,
+			mdiPlus,
+		}
 	},
 
 	data() {
@@ -803,6 +831,14 @@ export default {
 		},
 
 		/** Ein neues Erlöskonto schlägt den Steuersatz vor, solange er nicht von Hand gewählt wurde. */
+		/** Aktive Kostenstellen, dazu die an der Position gespeicherte inaktive. */
+		costCenterOptions(line) {
+			const list = [...this.activeCostCenters]
+			const current = this.costCentersById[line.bookingCostCenterId]
+			if (current && !list.some((cc) => cc.id === current.id)) { list.push(current) }
+			return list
+		},
+
 		onAccountChange(line) {
 			if (!this.regular || line.taxTouched) { return }
 			line.taxKey = suggestTaxKey(this.accountsById[line.accountId] || null, this.rates)
@@ -905,7 +941,7 @@ export default {
 				noteHead: f.noteHead,
 				noteFoot: f.noteFoot,
 				paymentTerms: f.paymentTerms,
-				lines: linesToPayload(f.lines, this.regular),
+				lines: linesToPayload(f.lines, this.regular, this.costCentersEnabled),
 			}
 		},
 
@@ -1012,7 +1048,7 @@ export default {
 		async savePlan() {
 			const f = this.form
 			const p = this.planForm
-			const lines = linesToPayload(f.lines, this.regular)
+			const lines = linesToPayload(f.lines, this.regular, this.costCentersEnabled)
 			if (lines.length === 0) {
 				this.error = this.t('Mindestens eine Position ist nötig.')
 				return
