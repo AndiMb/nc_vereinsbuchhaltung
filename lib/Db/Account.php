@@ -155,6 +155,18 @@ class Account extends Entity implements \JsonSerializable, AccountNature {
 	}
 
 	/**
+	 * Darf eine Buchungszeile auf diesem Konto einer Kostenstelle zugeordnet
+	 * werden (Issue #7)? Nur Einnahmen und Ausgaben – ein Bank-, Bestands-
+	 * oder Durchlaufkonto beantwortet die Frage "für welche Abteilung" nicht.
+	 *
+	 * Heute dieselbe Bedingung wie {@see isBudgetable()}, aber eine eigene
+	 * Regel: beide sollen sich unabhängig voneinander ändern können.
+	 */
+	public function canCarryCostCenter(): bool {
+		return $this->type === 'income' || $this->type === 'expense';
+	}
+
+	/**
 	 * Wirtschaftlicher Geschäftsbetrieb: die steuerlich sensibelste Sphäre
 	 * (Freigrenze, siehe ReportService::sphereReport()).
 	 */
