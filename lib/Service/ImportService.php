@@ -10,6 +10,7 @@ use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Db\Rule;
 use OCA\Vereinsbuchhaltung\Db\RuleMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
+use OCA\Vereinsbuchhaltung\Service\CostCenter\CostCenterDefaults;
 use OCA\Vereinsbuchhaltung\Service\Sepa\SepaImportExtractionService;
 use OCA\Vereinsbuchhaltung\Service\Statement\RowNormalizer;
 use OCA\Vereinsbuchhaltung\Service\Statement\StatementParserRegistry;
@@ -38,6 +39,9 @@ class ImportService {
 		private ?InvoiceMatchingService $invoiceMatching = null,
 		private ?InvoicePaymentService $invoicePayments = null,
 		private ?InvoiceSettings $invoiceSettings = null,
+		// Vorgabe-Kostenstelle einer Regel (Issue #331); ohne den Helfer ordnet
+		// der Import wie zuvor ohne Kostenstelle zu.
+		private ?CostCenterDefaults $costCenterDefaults = null,
 	) {
 	}
 
@@ -103,7 +107,7 @@ class ImportService {
 	/**
 	 * Importiert die Datei: nur neue Buchungen werden gespeichert.
 	 *
-	 * @return array{total:int, new:int, duplicate:int, autoAssigned:int, sepaReturnsDetected:int}
+	 * @return array{total:int, new:int, duplicate:int, autoAssigned:int, ruleFailed:int, sepaReturnsDetected:int}
 	 */
 	public function commit(string $userId, string $content, bool $applyRules = true): array {
 		[$rows, $format] = $this->parsers->parse($content);
@@ -121,7 +125,7 @@ class ImportService {
 	 * und WatchFolderService::handle().
 	 *
 	 * @param array<int, array<string, mixed>> $rows
-	 * @return array{total:int, new:int, duplicate:int, autoAssigned:int, sepaReturnsDetected:int}
+	 * @return array{total:int, new:int, duplicate:int, autoAssigned:int, ruleFailed:int, sepaReturnsDetected:int}
 	 */
 	public function commitRows(string $userId, array $rows, string $source, bool $applyRules = true): array {
 		// Ganz oder gar nicht: bricht der Import in der Mitte ab (Timeout,
@@ -132,7 +136,7 @@ class ImportService {
 
 	/**
 	 * @param array<int, array<string, mixed>> $rows
-	 * @return array{total:int, new:int, duplicate:int, autoAssigned:int, sepaReturnsDetected:int}
+	 * @return array{total:int, new:int, duplicate:int, autoAssigned:int, ruleFailed:int, sepaReturnsDetected:int}
 	 */
 	private function doCommit(string $userId, array $rows, string $source, bool $applyRules): array {
 		[$new, , $existingBookings] = $this->splitNewAndDuplicate($userId, $rows);
@@ -162,10 +166,23 @@ class ImportService {
 					$autoAssigned++;
 					continue;
 				}
-				$accountId = $this->matchRule($tx, $rules);
-				if ($accountId !== null) {
+				$rule = $this->matchRule($tx, $rules);
+				if ($rule !== null) {
+					$accountId = (int)$rule->getContraAccountId();
+					// Gibt die Regel eine Kostenstelle vor, gehört ihr der ganze
+					// Betrag. Ist die Vorgabe nicht anwendbar (Modul aus,
+					// Kostenstelle inaktiv, Konto trägt keine), kommt null zurück
+					// und der Umsatz wird wie bisher ohne Kostenstelle zugeordnet.
+					// Die Ermittlung steht im try: auch ein Fehler dabei darf nur
+					// diese eine Zuordnung kosten, nicht den ganzen Import.
 					try {
-						$this->bookingService->assign($tx, $accountId);
+						$allocations = $this->costCenterDefaults?->fullAllocation(
+							$userId,
+							$rule->getCostCenterId(),
+							$accountId,
+							abs((int)$tx->getAmountCents()),
+						);
+						$this->bookingService->assign($tx, $accountId, $allocations);
 						$autoAssigned++;
 					} catch (\Throwable) {
 						// Regel ins Leere (gelöschtes Gegenkonto) oder Jahr bereits
@@ -361,7 +378,7 @@ class ImportService {
 	/**
 	 * @param Rule[] $rules nach Priorität sortiert
 	 */
-	private function matchRule(BankTransaction $tx, array $rules): ?int {
+	private function matchRule(BankTransaction $tx, array $rules): ?Rule {
 		foreach ($rules as $rule) {
 			$haystack = match ($rule->getMatchField()) {
 				'counterparty' => $tx->getCounterparty(),
@@ -373,7 +390,7 @@ class ImportService {
 				continue;
 			}
 			if (mb_stripos($haystack, $rule->getMatchValue()) !== false) {
-				return $rule->getContraAccountId();
+				return $rule;
 			}
 		}
 		return null;

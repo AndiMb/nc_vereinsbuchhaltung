@@ -1098,9 +1098,16 @@ Kostenstelle zeigen in der Buchungsliste ein kleines Etikett mit dem Kürzel
 wandert eine einzelne Kostenstelle mit; eine Aufteilung auf mehrere bleibt
 stehen und muss gegebenenfalls angepasst werden.
 
-Automatisch erzeugte Buchungen – aus Regeln, Rechnungen, Auslagen und dem
-SEPA-Einzug – entstehen ohne Kostenstelle. Sie lässt sich an der Buchung
-nachtragen.
+**Vorgabe an einer Importregel:** Eine Regel (Tab Buchungen → Regeln) kann
+neben dem Gegenkonto eine Kostenstelle vorgeben. Greift die Regel beim
+Import, wird der ganze Betrag dieser Kostenstelle zugeordnet; übernehmen
+Sie den Vorschlag einer Regel in der Zuordnungsliste, gilt dasselbe. Ist
+die Kostenstelle inzwischen inaktiv oder trägt das Gegenkonto keine
+Kostenstelle, wird der Umsatz trotzdem zugeordnet, nur ohne Kostenstelle.
+Eine Kostenstelle, auf die noch eine Regel zeigt, lässt sich nicht löschen.
+
+Buchungen aus Rechnungen, Auslagen und dem SEPA-Einzug entstehen ohne
+Kostenstelle. Sie lässt sich an der Buchung nachtragen.
 
 **Auswerten:** Tab **Berichte → Kostenstellen** zeigt je Kostenstelle die
 Einnahmen und Ausgaben nach Konten und das Ergebnis, darunter den Block

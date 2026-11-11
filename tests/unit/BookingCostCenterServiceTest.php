@@ -9,6 +9,7 @@ use OCA\Vereinsbuchhaltung\Db\BookingCostCenterMapper;
 use OCA\Vereinsbuchhaltung\Db\LineAllocationMapper;
 use OCA\Vereinsbuchhaltung\Service\AuditService;
 use OCA\Vereinsbuchhaltung\Service\CostCenter\BookingCostCenterService;
+use OCA\Vereinsbuchhaltung\Service\CostCenter\CostCenterDefaults;
 use OCA\Vereinsbuchhaltung\Service\CostCenterSettings;
 use OCP\IL10N;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -24,9 +25,12 @@ class BookingCostCenterServiceTest extends TestCase {
 	private BookingCostCenterMapper&MockObject $mapper;
 	private LineAllocationMapper&MockObject $allocations;
 	private bool $enabled = true;
+	/** @var array<string, int> Verweise aus Vorgaben (Regeln, …), siehe CostCenterDefaults::usage() */
+	private array $usage = [];
 
 	protected function setUp(): void {
 		$this->enabled = true;
+		$this->usage = [];
 		$this->mapper = $this->createMock(BookingCostCenterMapper::class);
 		$this->allocations = $this->createMock(LineAllocationMapper::class);
 		$this->mapper->method('insert')->willReturnCallback(static function (BookingCostCenter $cc): BookingCostCenter {
@@ -41,12 +45,15 @@ class BookingCostCenterServiceTest extends TestCase {
 		$settings->method('isEnabled')->willReturnCallback(fn (): bool => $this->enabled);
 		$l10n = $this->createMock(IL10N::class);
 		$l10n->method('t')->willReturnCallback(static fn (string $text, array $params = []): string => vsprintf($text, $params));
+		$defaults = $this->createMock(CostCenterDefaults::class);
+		$defaults->method('usage')->willReturnCallback(fn (): array => $this->usage);
 		return new BookingCostCenterService(
 			$this->mapper,
 			$this->allocations,
 			$settings,
 			$this->createMock(AuditService::class),
 			$l10n,
+			$defaults,
 		);
 	}
 
@@ -117,6 +124,19 @@ class BookingCostCenterServiceTest extends TestCase {
 		$this->mapper->expects($this->never())->method('delete');
 		$this->expectException(\InvalidArgumentException::class);
 		$this->service()->delete(3, 'u');
+	}
+
+	public function testLoeschenWirdAbgelehntWennEineRegelDaraufZeigt(): void {
+		$this->mapper->method('find')->willReturn($this->existing(3, 'SEN'));
+		$this->allocations->method('countByCostCenter')->willReturn(0);
+		$this->usage = ['rules' => 2];
+		$this->mapper->expects($this->never())->method('delete');
+		try {
+			$this->service()->delete(3, 'u');
+			$this->fail('Kostenstelle mit Regel-Verweis wurde gelöscht.');
+		} catch (\InvalidArgumentException $e) {
+			$this->assertStringContainsString('Importregel', $e->getMessage());
+		}
 	}
 
 	public function testLoeschenOhneVerwendungLoescht(): void {

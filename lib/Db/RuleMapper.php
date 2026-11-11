@@ -54,6 +54,18 @@ class RuleMapper extends EncryptingMapper {
 		$qb->executeStatement();
 	}
 
+	/** Regeln, die diese Kostenstelle vorgeben (Issue #331) – solange es welche gibt, bleibt sie. */
+	public function countByCostCenter(int $costCenterId): int {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select($qb->func()->count('*', 'cnt'))
+			->from($this->getTableName())
+			->where($qb->expr()->eq('cost_center_id', $qb->createNamedParameter($costCenterId, IQueryBuilder::PARAM_INT)));
+		$result = $qb->executeQuery();
+		$count = (int)$result->fetchOne();
+		$result->closeCursor();
+		return $count;
+	}
+
 	/**
 	 * @return Rule[]
 	 */

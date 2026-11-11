@@ -33,6 +33,8 @@ class BookingCostCenterService {
 		private CostCenterSettings $settings,
 		private AuditService $audit,
 		private IL10N $l10n,
+		// Vorgaben aus Stammdaten (Regeln, …), die auf eine Kostenstelle zeigen.
+		private ?CostCenterDefaults $defaults = null,
 	) {
 	}
 
@@ -101,11 +103,32 @@ class BookingCostCenterService {
 		if ($this->allocations->countByCostCenter($cc->getId()) > 0) {
 			throw new \InvalidArgumentException($this->l10n->t('Der Kostenstelle „%s" sind Buchungen zugeordnet. Sie lässt sich deaktivieren, aber nicht löschen.', [$cc->getCode()]));
 		}
+		$inUse = $this->usageText($cc->getId());
+		if ($inUse !== '') {
+			throw new \InvalidArgumentException($this->l10n->t('Die Kostenstelle „%1$s" ist noch als Vorgabe eingetragen (%2$s). Sie lässt sich deaktivieren, aber nicht löschen.', [$cc->getCode(), $inUse]));
+		}
 		$this->mapper->delete($cc);
 		$this->audit->log('Kostenstelle gelöscht', 'booking_cost_center', $id, [
 			'code' => $cc->getCode(),
 			'name' => $cc->getName(),
 		]);
+	}
+
+	/**
+	 * Wo die Kostenstelle noch als Vorgabe eingetragen ist, als Aufzählung
+	 * für die Meldung; leer, wenn nirgends.
+	 */
+	private function usageText(int $costCenterId): string {
+		$labels = [
+			'rules' => $this->l10n->t('Importregeln'),
+		];
+		$parts = [];
+		foreach ($this->defaults?->usage($costCenterId) ?? [] as $kind => $count) {
+			if ($count > 0) {
+				$parts[] = ($labels[$kind] ?? $kind) . ': ' . $count;
+			}
+		}
+		return implode(', ', $parts);
 	}
 
 	private function assertEnabled(): void {

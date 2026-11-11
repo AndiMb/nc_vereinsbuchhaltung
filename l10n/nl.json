@@ -4544,7 +4544,9 @@
         "Kostenstellen lassen sich nur Einnahmen und Ausgaben zuordnen.": "Kostenplaatsen kunnen alleen aan inkomsten en uitgaven worden toegewezen.",
         "Jeder Anteil einer Kostenstelle braucht einen Betrag größer als 0.": "Elk deel van een kostenplaats heeft een bedrag groter dan 0 nodig.",
         "Das Ergebnis entspricht dem Ergebnis laut Kontensalden.": "Het resultaat komt overeen met het resultaat volgens de rekeningsaldi.",
-        "Das Ergebnis weicht vom Ergebnis laut Kontensalden (%s) ab.": "Het resultaat wijkt af van het resultaat volgens de rekeningsaldi (%s)."
+        "Das Ergebnis weicht vom Ergebnis laut Kontensalden (%s) ab.": "Het resultaat wijkt af van het resultaat volgens de rekeningsaldi (%s).",
+        "Die Kostenstelle „%1$s\" ist noch als Vorgabe eingetragen (%2$s). Sie lässt sich deaktivieren, aber nicht löschen.": "Kostenplaats ‘%1$s’ is nog als standaard ingesteld (%2$s). Deze kan worden gedeactiveerd, maar niet verwijderd.",
+        "Importregeln": "Importregels"
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

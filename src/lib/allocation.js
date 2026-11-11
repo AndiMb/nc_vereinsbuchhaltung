@@ -229,6 +229,25 @@ export function withAllocations(payloadLines, allocations, carryingIds) {
 }
 
 /**
+ * Die Vorgabe-Kostenstelle (z. B. einer Importregel) als Verteilung ueber
+ * den ganzen Betrag - oder undefined, wenn sie nicht anwendbar ist: keine
+ * Vorgabe, Kostenstelle unbekannt oder inaktiv, Konto traegt keine. Mit
+ * undefined bleibt der Request wie ohne die Funktion.
+ *
+ * @param {number|null} costCenterId Vorgabe
+ * @param {number} amountEuro Betrag der Zeile
+ * @param {object|undefined} account Konto der Zeile
+ * @param {object} costCentersById Kostenstellen nach ID
+ * @return {Array<{costCenterId: number, amount: number}>|undefined}
+ */
+export function defaultAllocation(costCenterId, amountEuro, account, costCentersById) {
+	if (!costCenterId || !(cents(amountEuro) > 0)) { return undefined }
+	if (!costCentersById[costCenterId]?.active) { return undefined }
+	if (account?.type !== 'income' && account?.type !== 'expense') { return undefined }
+	return [{ costCenterId, amount: cents(amountEuro) / 100 }]
+}
+
+/**
  * Kurzform fuer die Buchungsliste: das Kuerzel, bei mehreren "SEN +1".
  *
  * @param {Array<{costCenterId: number}>} allocations Verteilung
