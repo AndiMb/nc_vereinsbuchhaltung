@@ -1073,9 +1073,16 @@ several, e.g. "SEN +1"). If you later change the amount of a line, a single
 cost centre follows it; a split across several stays as it is and may need
 adjusting.
 
-Automatically created entries – from rules, invoices, expense claims and
-SEPA collection – are created without a cost centre. You can add one on the
-entry afterwards.
+**Default on an import rule:** a rule (Entries → Rules tab) can set a cost
+centre in addition to the contra account. When the rule applies during
+import, the whole amount is allocated to that cost centre; the same happens
+when you accept a rule's suggestion in the assignment list. If the cost
+centre has become inactive, or the contra account carries no cost centre,
+the transaction is still assigned, just without a cost centre. A cost
+centre that a rule still points to cannot be deleted.
+
+Entries from invoices, expense claims and SEPA collection are created
+without a cost centre. You can add one on the entry afterwards.
 
 **Evaluating:** the **Reports → Cost centres** tab shows, per cost centre,
 income and expenses by account and the result, followed by the **Without cost

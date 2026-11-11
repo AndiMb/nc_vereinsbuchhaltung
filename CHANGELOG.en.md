@@ -29,9 +29,15 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   expenses and result per cost centre by account, plus "Without cost centre"
   and the reconciliation with the account balances, also as a print page and
   CSV. With the feature on, the journal export gets a last column
-  "Kostenstellen". Entries from rules, invoices, expense claims and SEPA
+  "Kostenstellen". Entries from invoices, expense claims and SEPA
   collection are created without a cost centre for now. Reporting groups and
   spheres are unchanged. Manual chapter 5.8.
+- **Cost centre on import rules** (#331): a rule can set a cost centre in
+  addition to the contra account. When it applies during import, or its
+  suggestion is accepted, the whole amount belongs to that cost centre. If
+  the default cannot be applied (cost centre inactive, contra account
+  carries none), the transaction is assigned without a cost centre as
+  before.
 - For existing installations nothing changes unless you switch it on: no new
   column in the journal export, no new field, no new report. If the feature
   is switched off again, the allocations stay saved.
