@@ -116,7 +116,7 @@ export default {
 	},
 
 	data() {
-		return { loading: true, loadError: '', rows: [], errors: {} }
+		return { loading: true, loadError: '', rows: [], errors: {}, queue: Promise.resolve() }
 	},
 
 	async mounted() {
@@ -131,7 +131,17 @@ export default {
 	},
 
 	methods: {
-		async save(row) {
+		/**
+		 * Speichert nacheinander: verlässt jemand zwei Felder kurz hintereinander,
+		 * wartet die zweite Anfrage auf die erste – sonst könnte die ältere die
+		 * neuere überholen und einen veralteten Wert hinterlassen.
+		 */
+		save(row) {
+			this.queue = this.queue.then(() => this.doSave(row))
+			return this.queue
+		},
+
+		async doSave(row) {
 			try {
 				await api.setCostCenterBudget({ period: this.periodId, costCenterId: row.id, income: Number(row.income) || 0, expense: Number(row.expense) || 0 })
 				delete this.errors[row.id]

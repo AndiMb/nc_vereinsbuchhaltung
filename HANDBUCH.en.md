@@ -1139,9 +1139,10 @@ income, expenses and result per cost centre – also for cost centres with
 no entries yet – and likewise on the print page and in the CSV file. With
 "All periods" there is no plan. A plan is not an entry: it can be changed
 for a closed financial year too and changes no total. The budget per cost
-centre is independent of the financial plan per account (chapter 6). If
-the financial years are restructured later, these planned values do not
-move along and have to be entered again.
+centre is independent of the financial plan per account (chapter 6). A
+financial year that carries such planned values cannot be removed. If the
+financial years are restructured later, these planned values do not move
+along and have to be entered again.
 
 With the feature switched on, the journal export (CSV) gets an additional
 last column **Kostenstellen**, e.g. `SEN 600,00 | AJU 400,00`. The existing

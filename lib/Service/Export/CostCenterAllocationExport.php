@@ -126,7 +126,12 @@ class CostCenterAllocationExport {
 		if ($block['income'] === [] && $block['expense'] === [] && $plan === null) {
 			return '';
 		}
-		$h = '<section><h2>' . PrintableReportPage::escape($title) . '</h2>' . $this->planTable($block, $plan) . '<table>';
+		$h = '<section><h2>' . PrintableReportPage::escape($title) . '</h2>' . $this->planTable($block, $plan);
+		if ($block['income'] === [] && $block['expense'] === []) {
+			// Geplant, aber noch nichts gebucht: die Plan-Tabelle sagt schon alles.
+			return $h . '</section>';
+		}
+		$h .= '<table>';
 		foreach ([$this->l10n->t('Einnahmen') => 'income', $this->l10n->t('Ausgaben') => 'expense'] as $label => $key) {
 			if ($block[$key] === []) {
 				continue;

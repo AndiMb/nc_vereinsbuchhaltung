@@ -78,6 +78,18 @@ class CostCenterBudgetMapper extends QBMapper {
 		}
 	}
 
+	/** Anzahl Planwerte in einem Geschäftsjahr – solange es welche gibt, bleibt das Jahr. */
+	public function countByPeriod(int $periodId): int {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select($qb->func()->count('*', 'cnt'))
+			->from($this->getTableName())
+			->where($qb->expr()->eq('period_id', $qb->createNamedParameter($periodId, IQueryBuilder::PARAM_INT)));
+		$result = $qb->executeQuery();
+		$count = (int)$result->fetchOne();
+		$result->closeCursor();
+		return $count;
+	}
+
 	/** Mit der Kostenstelle gehen ihre Planwerte. */
 	public function deleteByCostCenter(int $costCenterId): void {
 		$qb = $this->db->getQueryBuilder();

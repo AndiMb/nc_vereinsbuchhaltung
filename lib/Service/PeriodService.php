@@ -7,6 +7,7 @@ namespace OCA\Vereinsbuchhaltung\Service;
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\BudgetMapper;
 use OCA\Vereinsbuchhaltung\Db\BudgetSnapshotMapper;
+use OCA\Vereinsbuchhaltung\Db\CostCenterBudgetMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Db\Period;
 use OCA\Vereinsbuchhaltung\Db\PeriodMapper;
@@ -70,6 +71,8 @@ class PeriodService {
 		private IAppConfig $config,
 		private IL10N $l10n,
 		private ClubClock $clock,
+		// Budget je Kostenstelle (Issue #335): hält ein Geschäftsjahr wie der Finanzplan fest.
+		private ?CostCenterBudgetMapper $costCenterBudgets = null,
 	) {
 	}
 
@@ -441,7 +444,7 @@ class PeriodService {
 		if ($this->journalMapper->countByPeriod($userId, $id) > 0) {
 			throw new \InvalidArgumentException($this->l10n->t('Der Zeitraum %s enthält Buchungen.', [$period->getLabel()]));
 		}
-		if ($this->budgetMapper->countByPeriod($userId, $id) > 0 || $this->snapshotMapper->countByPeriod($userId, $id) > 0) {
+		if ($this->budgetMapper->countByPeriod($userId, $id) > 0 || $this->snapshotMapper->countByPeriod($userId, $id) > 0 || ($this->costCenterBudgets?->countByPeriod($id) ?? 0) > 0) {
 			throw new \InvalidArgumentException($this->l10n->t('Der Zeitraum %s enthält Planwerte.', [$period->getLabel()]));
 		}
 

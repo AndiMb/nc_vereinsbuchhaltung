@@ -144,6 +144,23 @@ test.describe('Budget je Kostenstelle', () => {
 		expect(await api.getJson(request, `/cost-center-budgets?period=${ctx.period}`)).toEqual([])
 	})
 
+	test('ein Geschäftsjahr mit Kostenstellen-Budget lässt sich nicht entfernen', async ({ request }) => {
+		const ctx = await setup(request)
+		// Das Folgejahr anhängen und nur dort planen - gebucht ist darin nichts.
+		const next = await (await api.raw(request, 'POST', '/periods', { expectOk: true, data: {} })).json()
+		const data = { period: next.id, costCenterId: ctx.sen.id, income: 0, expense: 300 }
+		await setBudget(request, data, { expectOk: true })
+
+		// Ohne die Sperre verschwände der Plan mit dem Jahr, ohne dass es jemand merkt.
+		const blocked = await api.raw(request, 'DELETE', `/periods/${next.id}`)
+		expect(blocked.status()).toBe(400)
+		expect((await blocked.json()).message).toContain('Planwerte')
+
+		// Plan entfernt: das Jahr lässt sich wieder entfernen.
+		await setBudget(request, { ...data, expense: 0 }, { expectOk: true })
+		await api.raw(request, 'DELETE', `/periods/${next.id}`, { expectOk: true })
+	})
+
 	test('ausgeschaltet: kein Knopf, Schreiben abgelehnt; nach dem Einschalten ist der Plan noch da', async ({ page, request }) => {
 		const ctx = await setup(request)
 		const data = { period: ctx.period, costCenterId: ctx.sen.id, income: 250, expense: 180 }

@@ -1166,7 +1166,8 @@ gebucht wurde – und ebenso auf der Druckseite und in der CSV-Datei. Bei
 „Alle Zeiträume“ gibt es keinen Plan. Ein Plan ist keine Buchung: er lässt
 sich auch für ein abgeschlossenes Geschäftsjahr ändern und ändert keine
 Summe. Das Budget je Kostenstelle ist unabhängig vom Finanzplan je Konto
-(Kapitel 6). Werden die Geschäftsjahre später umgestellt, wandern diese
+(Kapitel 6). Ein Geschäftsjahr, das solche Planwerte trägt, lässt sich nicht
+entfernen. Werden die Geschäftsjahre später umgestellt, wandern diese
 Planwerte nicht mit und sind neu einzugeben.
 
 Der Journal-Export (CSV) bekommt bei eingeschalteter Funktion eine
