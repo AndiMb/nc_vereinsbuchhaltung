@@ -20,6 +20,24 @@ verwenden, z. B. `**Neu:**`.
 ## [Unreleased]
 
 **Neu:**
+- **Kostenstellen an der Buchungszeile** (#7, optional, ab Werk
+  ausgeschaltet): Ein Betrag auf einem Einnahmen- oder Ausgabenkonto lässt
+  sich einer oder mehreren Kostenstellen zuordnen – 1.000 € Ausrüstung, davon
+  600 € Senioren und 400 € A-Junioren, in einer Buchung auf einem Konto.
+  Einschalten unter *Einstellungen → Kostenstellen*; Kostenstellen anlegen
+  unter *Berichte → Kostenstellen → Kostenstellen verwalten*. Das Feld
+  „Kostenstelle" steht im Buchungsdialog und bei „Aufteilen…" eines
+  Bankumsatzes; die Angabe ist immer freiwillig. Der neue Bericht
+  *Berichte → Kostenstellen* zeigt Einnahmen, Ausgaben und Ergebnis je
+  Kostenstelle nach Konten, dazu „Ohne Kostenstelle" und die Abstimmung mit
+  den Kontensalden, auch als Druckseite und CSV. Der Journal-Export bekommt
+  bei eingeschalteter Funktion eine letzte Spalte „Kostenstellen".
+  Buchungen aus Regeln, Rechnungen, Auslagen und dem SEPA-Einzug entstehen
+  vorerst ohne Kostenstelle. Auswertungsgruppen und Sphären bleiben
+  unverändert. Handbuch Kapitel 5.8.
+- Für bestehende Installationen ändert sich ohne Einschalten nichts: keine
+  neue Spalte im Journal-Export, kein neues Feld, kein neuer Bericht. Wird
+  die Funktion wieder ausgeschaltet, bleiben die Zuordnungen gespeichert.
 - **Vereinswährung** (#202): unter *Einstellungen → Verein* wählbar – Euro,
   CHF, GBP, DKK, SEK, NOK, PLN oder CZK. Das Zeichen steht hinter jedem
   Betrag in Oberfläche, Berichten, Exporten, Rechnungen und E-Mails; das

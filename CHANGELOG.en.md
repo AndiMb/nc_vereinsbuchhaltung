@@ -18,6 +18,23 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 ## [Unreleased]
 
 **New:**
+- **Cost centres on the entry line** (#7, optional, switched off by
+  default): an amount on an income or expense account can be allocated to
+  one or more cost centres – €1,000 equipment, of which €600 seniors and
+  €400 under-19s, in one entry on one account. Switch it on under
+  *Settings → Cost centres*; create cost centres under *Reports → Cost
+  centres → Manage cost centres*. The "Cost centre" field is available in
+  the entry dialog and in "Split…" for a bank transaction; entering one is
+  always optional. The new report *Reports → Cost centres* shows income,
+  expenses and result per cost centre by account, plus "Without cost centre"
+  and the reconciliation with the account balances, also as a print page and
+  CSV. With the feature on, the journal export gets a last column
+  "Kostenstellen". Entries from rules, invoices, expense claims and SEPA
+  collection are created without a cost centre for now. Reporting groups and
+  spheres are unchanged. Manual chapter 5.8.
+- For existing installations nothing changes unless you switch it on: no new
+  column in the journal export, no new field, no new report. If the feature
+  is switched off again, the allocations stay saved.
 - **Club currency** (#202): selectable under *Settings → Club* – euro, CHF,
   GBP, DKK, SEK, NOK, PLN or CZK. The sign follows every amount in the
   interface, reports, exports, invoices and emails; the number format stays

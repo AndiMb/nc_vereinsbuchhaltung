@@ -939,7 +939,10 @@ anpassen.
 > zur Gesamtsumme zusammenziehen. Bis Version 0.28.0 hieß die
 > Auswertungsgruppe „Kostenstelle"; der Begriff ist bewusst aufgegeben worden,
 > weil eine Kostenstelle in der Kosten- und Leistungsrechnung genau jene
-> zweite Dimension je Buchungszeile bezeichnet, die die App nicht führt.
+> zweite Dimension je Buchungszeile bezeichnet. Diese zweite Dimension gibt
+> es inzwischen als eigene, zuschaltbare Funktion: mit **Kostenstellen**
+> (Kapitel 5.8) verteilen Sie einen Betrag auf demselben Konto auf mehrere
+> Mannschaften, ohne Unterkonten anzulegen.
 
 Wie die App die Konten zu Auswertungsgruppen zusammenfasst, entscheidet der
 **Auswertungsgruppen-Modus** (Auswahl „Gruppierung" in der Kopfzeile des Berichts,
@@ -1045,6 +1048,80 @@ allgemeine Eigenkapitalkonto).
 **Auswerten:** Tab Berichte → „Rücklagen" zeigt den aktuellen Saldo je Art
 sowie die beteiligten Konten – so ist auf einen Blick sichtbar, wie viel
 bereits zurückgelegt wurde.
+
+### 5.8 Kostenstellen (optional)
+
+Mit **Kostenstellen** ordnen Sie einen einzelnen Betrag einer Abteilung,
+Mannschaft oder einem Projekt zu – auch anteilig. Das klassische Beispiel:
+1.000 € für Trikots auf dem Konto „Ausrüstung", davon 600 € für die Senioren
+und 400 € für die A-Junioren. Es bleibt **eine** Buchung auf **einem** Konto;
+ein eigenes Konto je Mannschaft ist dafür nicht nötig.
+
+Die Funktion ist **ab Werk ausgeschaltet**. Wer sie nicht braucht, sieht von
+ihr nichts.
+
+**Drei Begriffe, drei Fragen:**
+
+| Begriff | Beantwortet | Hängt an |
+|---|---|---|
+| **Sphäre** (Kapitel 5.6) | Wie ist der Betrag steuerlich einzuordnen? | dem Konto |
+| **Auswertungsgruppe** (Kapitel 5.4) | Welche Konten gehören für den Bericht zusammen? | dem Konto |
+| **Kostenstelle** | Für welche Abteilung, Mannschaft, welches Projekt war das Geld? | dem einzelnen Betrag einer Buchung |
+
+Kostenstellen haben keine steuerliche Bedeutung und ersetzen die Sphären
+nicht.
+
+**Einschalten:** *Einstellungen → Vereinsbuchhaltung → Kostenstellen →
+Kostenstellen aktivieren* (nur Verwalter).
+
+**Anlegen:** Tab **Berichte → Kostenstellen → Kostenstellen verwalten**. Jede
+Kostenstelle hat ein Kürzel (höchstens acht Zeichen, z. B. `SEN`) und einen
+Namen. Eine Kostenstelle, der schon Beträge zugeordnet sind, lässt sich nicht
+löschen, aber **deaktivieren**: Sie steht dann beim Buchen nicht mehr zur
+Auswahl, ihre bisherigen Beträge bleiben im Bericht.
+
+**Zuordnen beim Buchen:** Im Buchungsdialog erscheint unter dem Buchungstext
+das Feld **Kostenstelle**, sobald ein Einnahmen- oder Ausgabenkonto gewählt
+ist. Die Angabe ist immer freiwillig.
+
+- Eine Kostenstelle wählen – der ganze Betrag der Zeile ist zugeordnet.
+- **Auf mehrere verteilen…** – je Kostenstelle ein Betrag. Was Sie nicht
+  verteilen, bleibt „ohne Kostenstelle"; das ist erlaubt. Mehr als den Betrag
+  der Zeile können Sie nicht verteilen.
+- Bei einer Aufteilung auf mehrere Gegenkonten (*Betrag aufteilen*) hat jede
+  Zeile ihr eigenes Feld. Dasselbe gilt für **„Aufteilen…"** beim Zuordnen
+  eines Bankumsatzes (Kapitel 4.1).
+
+Geld-, Bestands- und Durchlaufkonten tragen keine Kostenstelle. Buchungen mit
+Kostenstelle zeigen in der Buchungsliste ein kleines Etikett mit dem Kürzel
+(bei mehreren z. B. „SEN +1"). Ändern Sie später den Betrag einer Zeile,
+wandert eine einzelne Kostenstelle mit; eine Aufteilung auf mehrere bleibt
+stehen und muss gegebenenfalls angepasst werden.
+
+Automatisch erzeugte Buchungen – aus Regeln, Rechnungen, Auslagen und dem
+SEPA-Einzug – entstehen ohne Kostenstelle. Sie lässt sich an der Buchung
+nachtragen.
+
+**Auswerten:** Tab **Berichte → Kostenstellen** zeigt je Kostenstelle die
+Einnahmen und Ausgaben nach Konten und das Ergebnis, darunter den Block
+**Ohne Kostenstelle** mit allem, was nicht zugeordnet ist. Die Gesamtsumme
+am Ende ist dieselbe wie in den übrigen Berichten; der Bericht weist das
+eigens aus („entspricht dem Ergebnis laut Kontensalden"). Ein Klick auf ein
+Konto führt zu seinen Buchungen. Über **Drucken** und **CSV** gibt es den
+Bericht druckfertig bzw. als Tabelle.
+
+Der Journal-Export (CSV) bekommt bei eingeschalteter Funktion eine
+zusätzliche letzte Spalte **Kostenstellen**, z. B. `SEN 600,00 | AJU 400,00`.
+Die bisherigen Spalten bleiben an ihrer Stelle.
+
+**Wieder ausschalten:** Feld, Etikett, Bericht und Exportspalte verschwinden.
+Die gespeicherten Zuordnungen bleiben erhalten – auch wenn Sie in der
+Zwischenzeit Buchungen bearbeiten – und erscheinen wieder, sobald Sie die
+Funktion erneut einschalten. Nur wer an einer Zeile das Konto oder den Betrag
+ändert, während die Funktion aus ist, verliert die Zuordnung dieser Zeile.
+
+**Alle Daten löschen** (Kapitel 12.1) entfernt auch die Kostenstellen und
+ihre Zuordnungen.
 
 ---
 

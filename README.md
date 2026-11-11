@@ -71,6 +71,7 @@ Eine schlanke Buchhaltungs-App für Vereine, direkt in Nextcloud integriert. Kon
 - **Kassenbericht (druckfertig)**: eigenständige Druckseite für die Mitgliederversammlung – Vereinsname, Vermögensübersicht der Geldkonten (Bestand 01.01./31.12.), Einnahmen-/Ausgaben-Rechnung, Soll-Ist-Vergleich, Sphärenübersicht (steuerlich) mit Freigrenzen-Hinweis, Vollständigkeitsvermerk, Abschlussvermerk und Unterschriftszeilen; Drucken/Als-PDF-speichern über den Browser
 - **Kurzbericht für Vorstandssitzungen (druckfertig)**: kompakte Druckseite mit wählbarem Stichtag – Kontostände seither, Bewegungen, Finanzplan-Kurzfassung; optional im Corporate Design (Vereinslogo + Akzentfarbe, unter Zahnrad → Verein hinterlegbar)
 - **CSV-Exporte** (für Kassenprüfung/Excel): Journal, Saldenliste, Einnahmen-/Ausgaben-Übersicht, Soll-Ist-Vergleich (inkl. Notizen)
+- **Kostenstellen** (optional, ab Werk aus): ein Betrag auf einem Einnahmen-/Ausgabenkonto lässt sich einer oder mehreren Kostenstellen zuordnen (1.000 € Ausrüstung, davon 600 € Senioren und 400 € A-Junioren – eine Buchung, ein Konto); eigener Bericht je Kostenstelle mit Abstimmung gegen die Kontensalden, Druckseite und CSV
 - **Mehrjahresübersicht** (CSV-Matrix, Spalten = Jahre): Erfolgsrechnung nach Konten (Einnahmen/Ausgaben/Ergebnis) + Vermögen zum Jahresende sowie Ergebnis je Auswertungsgruppe/Projekt und nach steuerlichen Sphären über alle Jahre; zusätzlich als Liniendiagramm (Berichte → Auswertung) für Sitzungspräsentationen
 - **Geldkonten-Abstimmung**: Kontostand (Journal) vs. offene (nicht zugeordnete) Bankbuchungen, mit Summe über alle Geldkonten
 - **Geldbestand in der Kopfzeile**: die Kontostände aller Geldkonten als eine Zahl; einzelne Konten (z. B. Festgeld) lassen sich davon ausnehmen, ohne dass sie aus Kassenbericht, Vermögensübersicht oder Saldenliste verschwinden
@@ -219,6 +220,8 @@ vereinsbuchhaltung/
 | `vbh_bank_tx` | importierte Bankbuchungen inkl. Dedup-Hash und Zuordnungsstatus |
 | `vbh_journal` | Buchungssätze (Datum, Beschreibung, Belegnr., Buchungsnr.) |
 | `vbh_journal_line` | Soll-/Haben-Zeilen je Buchungssatz (Betrag in Cent) |
+| `vbh_booking_cc` | Kostenstellen an der Buchungszeile (Kürzel, Name, aktiv) – nicht zu verwechseln mit `vbh_costcenters` |
+| `vbh_line_alloc` | Verteilung einer Buchungszeile auf Kostenstellen (Zeile, Kostenstelle, Betrag); ohne Einträge verhält sich die App wie ohne die Funktion |
 | `vbh_costcenters` | Auswertungsgruppen (Kürzel, Name); Konten verweisen über `vbh_accounts.cost_center_id` darauf. Tabellen- und Spaltenname stammen aus der Zeit, als die Auswertungsgruppe „Kostenstelle" hieß – sie bleiben, damit bestehende Installationen ohne Migration weiterlaufen |
 | `vbh_budgets` | Finanzplan (Konto × Jahr × Betrag in Cent + Notiz) |
 | `vbh_budget_snapshots` | eingefrorene Plan-Stände (Jahr, Label, Zeitpunkt) |
