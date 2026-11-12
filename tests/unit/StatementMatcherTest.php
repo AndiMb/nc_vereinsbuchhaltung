@@ -186,6 +186,30 @@ class StatementMatcherTest extends TestCase {
 	}
 
 	/** Ein exakter Treffer darf nicht an eine nur ähnliche Zeile verloren gehen, die zufällig früher steht. */
+	/**
+	 * Jahresauszug mit vielen gleich hohen Beiträgen gegen Buchungen mit anderem
+	 * Text: der Abgleich darf nicht jedes Paar teuer vergleichen.
+	 */
+	public function testVieleGleicheBetraegeBleibenSchnell(): void {
+		$statement = [];
+		$app = [];
+		$day = new \DateTimeImmutable('2025-01-01');
+		for ($i = 0; $i < 1500; $i++) {
+			$date = $day->modify('+' . ($i % 300) . ' days')->format('Y-m-d');
+			$statement[] = $this->s($date, 1000, 'Dauerauftrag Mitglied Nummer ' . $i . ' Beitrag laufendes Jahr');
+			$app[] = $this->a(StatementMatcher::KIND_BOOKING, $i + 1, $date, 1000, 'Import Zeile ' . ($i * 7) . ' Sammelbuchung Verein xyz');
+		}
+
+		$start = microtime(true);
+		$r = $this->matcher->match($statement, $app, '2025-01-01', '2025-12-31', 3);
+		$elapsed = microtime(true) - $start;
+
+		$this->assertCount(1500, $r['pairs']);
+		$this->assertSame([], $r['missing']);
+		$this->assertSame([], $r['surplus']);
+		$this->assertLessThan(5.0, $elapsed, 'Abgleich von 1500 gleichen Beträgen dauert zu lange');
+	}
+
 	public function testExakterTrefferGehtVorAehnlichem(): void {
 		$r = $this->match(
 			[$this->s('2026-01-10', 6000, 'Beitrag Anna Beispiel'), $this->s('2026-01-10', 6000, 'Beitrag Max Mustermann')],

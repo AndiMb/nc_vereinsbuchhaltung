@@ -327,13 +327,14 @@ class JournalMapper extends QBMapper {
 	 * Buchungen eines Zeitraums, die ein Konto bewegen, mit ihrem Nettobetrag
 	 * auf diesem Konto (Soll − Haben) – für ein Geldkonto also Zugang positiv,
 	 * Abgang negativ (Kontoabstimmung, Issue #159). Buchungen, die das Konto
-	 * unterm Strich nicht bewegen, entfallen.
+	 * unterm Strich nicht bewegen, entfallen. `opening` kennzeichnet die
+	 * Eröffnungsbuchung ({@see OPENING_REF}): sie ist Anfangsbestand, kein Umsatz.
 	 *
-	 * @return list<array{journalId:int, date:string, description:string, bankTxId:?int, netCents:int}> nach Datum, dann ID
+	 * @return list<array{journalId:int, date:string, description:string, bankTxId:?int, netCents:int, opening:bool}> nach Datum, dann ID
 	 */
 	public function findAccountMovements(string $userId, int $accountId, string $from, string $to): array {
 		$qb = $this->db->getQueryBuilder();
-		$qb->select('j.id', 'j.date', 'j.description', 'j.bank_tx_id', 'l.debit_cents', 'l.credit_cents')
+		$qb->select('j.id', 'j.date', 'j.description', 'j.bank_tx_id', 'j.document_ref', 'l.debit_cents', 'l.credit_cents')
 			->from($this->getTableName(), 'j')
 			->innerJoin('j', 'vbh_journal_line', 'l', $qb->expr()->eq('l.journal_id', 'j.id'))
 			->where($qb->expr()->eq('j.user_id', $qb->createNamedParameter($userId)))
@@ -353,6 +354,7 @@ class JournalMapper extends QBMapper {
 				'description' => (string)($row['description'] ?? ''),
 				'bankTxId' => $row['bank_tx_id'] !== null ? (int)$row['bank_tx_id'] : null,
 				'netCents' => 0,
+				'opening' => ($row['document_ref'] ?? null) === self::OPENING_REF,
 			];
 			$byId[$id]['netCents'] += (int)$row['debit_cents'] - (int)$row['credit_cents'];
 		}

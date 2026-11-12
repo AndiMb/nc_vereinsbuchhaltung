@@ -89,22 +89,34 @@ class StatementMatcher {
 		}
 
 		// Stufe 2 und 3: alle zulässigen Paare bilden, die besten zuerst vergeben.
+		// Bei vielen gleich hohen Beträgen (Jahresauszug mit Beiträgen) gibt es
+		// sehr viele Paare gleichen Betrags: erst der billige Datumsvergleich,
+		// der teure Textvergleich nur für das, was übrig bleibt.
+		$sDay = array_map(fn (array $s): ?int => $this->dayNumber($s['date']), $statement);
+		$aDay = array_map(fn (array $a): ?int => $this->dayNumber($a['date']), $app);
 		foreach ([2, 3] as $stage) {
+			$byAmount = [];
+			foreach (array_keys($aFree) as $a) {
+				$byAmount[$app[$a]['amountCents']][] = $a;
+			}
 			$candidates = [];
 			foreach (array_keys($sFree) as $s) {
-				foreach (array_keys($aFree) as $a) {
-					if ($statement[$s]['amountCents'] !== $app[$a]['amountCents']) {
+				foreach ($byAmount[$statement[$s]['amountCents']] ?? [] as $a) {
+					if ($statement[$s]['date'] === $app[$a]['date']) {
+						$distance = 0;
+					} elseif ($stage === 2 || $sDay[$s] === null || $aDay[$a] === null) {
 						continue;
+					} else {
+						$distance = abs($sDay[$s] - $aDay[$a]);
+						if ($distance > $toleranceDays) {
+							continue;
+						}
 					}
-					$distance = $this->dayDistance($statement[$s]['date'], $app[$a]['date']);
 					$similarity = $this->similarity($sNorm[$s], $aNorm[$a]);
-					if ($stage === 2 && ($distance !== 0 || $similarity < self::MIN_SIMILARITY)) {
+					if ($stage === 2 && $similarity < self::MIN_SIMILARITY) {
 						continue;
 					}
-					if ($stage === 3 && $distance > $toleranceDays) {
-						continue;
-					}
-					$candidates[] = [$stage === 3 ? $distance : 0, -$similarity, $rank[$a], $s, $a];
+					$candidates[] = [$distance, -$similarity, $rank[$a], $s, $a];
 				}
 			}
 			sort($candidates);
@@ -161,15 +173,9 @@ class StatementMatcher {
 		return $best;
 	}
 
-	private function dayDistance(string $a, string $b): int {
-		if ($a === $b) {
-			return 0;
-		}
-		$x = \DateTimeImmutable::createFromFormat('!Y-m-d', $a);
-		$y = \DateTimeImmutable::createFromFormat('!Y-m-d', $b);
-		if ($x === false || $y === false) {
-			return PHP_INT_MAX;
-		}
-		return (int)$x->diff($y)->days;
+	/** Laufende Tagesnummer eines Datums (YYYY-MM-DD); null, wenn es keines ist. */
+	private function dayNumber(string $date): ?int {
+		$parsed = \DateTimeImmutable::createFromFormat('!Y-m-d', $date, new \DateTimeZone('UTC'));
+		return $parsed === false ? null : intdiv($parsed->getTimestamp(), 86400);
 	}
 }

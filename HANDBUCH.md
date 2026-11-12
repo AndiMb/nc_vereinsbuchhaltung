@@ -1206,23 +1206,28 @@ von Umsätzen dient weiter der Import (Kapitel 3.2).
    Formaten wie beim Import (CSV-CAMT, CAMT.053, MT940). Der Abgleich
    startet sofort.
 3. Optional den Zeitraum mit **Von** und **Bis** einengen und erneut
-   **Abgleichen**. Ohne Angabe gilt der Zeitraum des Auszugs.
+   **Abgleichen**. Ohne Angabe gilt der Zeitraum des Auszugs; über ihn
+   hinaus reicht der Vergleich nie – ein weiter gefasster Zeitraum wird auf
+   den ersten und letzten Buchungstag des Auszugs begrenzt.
 
 Enthält der Auszug mehrere Konten, zählen nur die Zeilen des gewählten
-Geldkontos; maßgeblich ist dessen IBAN (Kapitel 2.2). Passt der Auszug zu
-keinem Konto, sagt die Meldung, welche IBAN in der Datei steht.
+Geldkontos; maßgeblich ist dessen IBAN (Kapitel 2.2). Gehört der Auszug zu
+einem anderen Konto, sagt die Meldung, welche IBAN in der Datei steht.
+Nennt der Auszug kein Konto oder trägt das Geldkonto keine IBAN, gilt er
+für das gewählte Konto.
 
 **Was das Ergebnis zeigt:**
 
 | Liste | Bedeutung | Typische Ursache |
 |---|---|---|
-| **Zu viel in der App** | Bewegungen auf dem Konto, die der Auszug nicht kennt | doppelt gebucht, falsches Geldkonto, falscher Betrag oder Tag; auch ein Eröffnungssaldo, der im Zeitraum gebucht ist |
+| **Zu viel in der App** | Bewegungen auf dem Konto, die der Auszug nicht kennt | doppelt gebucht, falsches Geldkonto, falscher Betrag oder Tag |
 | **Fehlt in der App** | Zeilen des Auszugs ohne Buchung und ohne Bankumsatz | Auszug nicht importiert, Umsatz verworfen, Barbewegung vergessen |
 | **Zeitlich verschoben** | Zeilen mit Gegenstück, das aber außerhalb des Zeitraums gebucht ist | Buchung über den Monats- oder Jahreswechsel hinweg |
 
 Als Bewegung der App zählen die Buchungen auf dem Geldkonto **und** die noch
 nicht zugeordneten Bankumsätze dieses Kontos – ein importierter, aber noch
-nicht zugeordneter Umsatz gilt also nicht als fehlend. Aus „Zu viel in der
+nicht zugeordneter Umsatz gilt also nicht als fehlend. Der Eröffnungssaldo
+(Kapitel 2.3) ist keine Bewegung, sondern Anfangsbestand. Aus „Zu viel in der
 App" führt **Zur Buchung** in die Buchungsliste des Tages, **Zum Umsatz** zu
 den noch zuzuordnenden Bankumsätzen.
 

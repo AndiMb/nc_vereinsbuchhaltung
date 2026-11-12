@@ -1180,23 +1180,28 @@ the import (chapter 3.2).
    formats as the import (CSV-CAMT, CAMT.053, MT940). The comparison starts
    immediately.
 3. Optionally narrow the period with **From** and **To** and **Compare**
-   again. Without dates, the period of the statement applies.
+   again. Without dates, the period of the statement applies; the
+   comparison never reaches beyond it – a wider period is limited to the
+   first and last booking day of the statement.
 
 If the statement covers several accounts, only the rows of the chosen cash
-account count; its IBAN decides (chapter 2.2). If the statement matches no
-account, the message names the IBAN found in the file.
+account count; its IBAN decides (chapter 2.2). If the statement belongs to
+a different account, the message names the IBAN found in the file. If the
+statement names no account, or the cash account has no IBAN, it is taken
+to be for the chosen account.
 
 **What the result shows:**
 
 | List | Meaning | Typical cause |
 |---|---|---|
-| **Surplus in the app** | movements on the account that the statement does not contain | recorded twice, wrong cash account, wrong amount or day; also an opening balance dated inside the period |
+| **Surplus in the app** | movements on the account that the statement does not contain | recorded twice, wrong cash account, wrong amount or day |
 | **Missing in the app** | statement rows with neither an entry nor a bank transaction | statement not imported, transaction discarded, cash movement forgotten |
 | **Shifted in time** | rows with a counterpart that is dated outside the period | entry across the turn of a month or year |
 
 The app's movements are the entries on the cash account **and** the bank
 transactions of this account that are not yet assigned – an imported but
-unassigned transaction therefore does not count as missing. From "Surplus
+unassigned transaction therefore does not count as missing. The opening
+balance (chapter 2.3) is not a movement but the starting stock. From "Surplus
 in the app", **To the entry** opens the entry list for that day and **To
 the transaction** the bank transactions still to be assigned.
 

@@ -31,7 +31,9 @@ use OCP\IL10N;
  * ({@see StatementMatcher}): Buchungen zu einem zugeordneten Bankumsatz,
  * Buchungen ohne Bankumsatz und noch nicht zugeordnete Bankumsätze. Der
  * App-Saldo ist entsprechend Kontostand laut Buchungen plus die noch nicht
- * zugeordneten Umsätze des Kontos – „Geldbestand + offen“. Damit gilt:
+ * zugeordneten Umsätze des Kontos – „Geldbestand + offen“. Eine
+ * Eröffnungsbuchung ist Anfangsbestand und keine Bewegung, auch wenn sie im
+ * Zeitraum datiert ist. Damit gilt:
  *
  *   Differenz Ende = Differenz Anfang + zu viel − fehlt − verschoben + Rest
  *
@@ -76,7 +78,7 @@ class ReconciliationService {
 		$foreign = [];
 		foreach ($parsed as $row) {
 			$own = isset($row['ownAccount']) ? (string)$row['ownAccount'] : null;
-			if ($this->owner($own, $banks)?->getId() === $account->getId()) {
+			if ($this->concerns($own, $account, $banks)) {
 				$rows[] = $row;
 			} else {
 				$foreign[(string)$own] = ($foreign[(string)$own] ?? 0) + 1;
@@ -100,6 +102,11 @@ class ReconciliationService {
 		if ($from > $statementTo || $to < $statementFrom) {
 			throw new \InvalidArgumentException($this->l10n->t('Der Zeitraum liegt außerhalb des Auszugs (%1$s bis %2$s).', [$statementFrom, $statementTo]));
 		}
+		// Verglichen wird nur, was der Auszug abdeckt: ragt der Zeitraum darüber
+		// hinaus, wäre dort jede Buchung „zu viel“ und der Anfangssaldo der Bank
+		// gälte für einen Tag, zu dem der Auszug nichts sagt.
+		$from = max($from, $statementFrom);
+		$to = min($to, $statementTo);
 
 		$statement = [];
 		foreach ($rows as $row) {
@@ -112,7 +119,7 @@ class ReconciliationService {
 		// --- App-Seite -------------------------------------------------------
 		$windowFrom = $this->shift($from, -$tolerance);
 		$windowTo = $this->shift($to, $tolerance);
-		$app = $this->bookingMovements($userId, $accountId, $windowFrom, $windowTo);
+		[$app, $openingInPeriod] = $this->bookingMovements($userId, $accountId, $windowFrom, $windowTo, $from, $to);
 
 		// Alle offenen Umsätze bis zum Fensterende: die älteren zählen zum Anfangssaldo.
 		$openBefore = 0;
@@ -169,7 +176,7 @@ class ReconciliationService {
 					$bankClosing -= (int)$row['amountCents'];
 				}
 			}
-			$appOpening = $this->stock($userId, $account, $this->shift($from, -1)) + $openBefore;
+			$appOpening = $this->stock($userId, $account, $this->shift($from, -1)) + $openBefore + $openingInPeriod;
 			$appClosing = $this->stock($userId, $account, $to) + $openUntilEnd;
 			$surplusCents = array_sum(array_column($surplus, 'amountCents'));
 			$missingCents = array_sum(array_column($missing, 'amountCents'));
@@ -212,14 +219,24 @@ class ReconciliationService {
 	/**
 	 * Buchungen auf dem Konto als Bewegungen: je zugeordnetem Bankumsatz eine
 	 * (auch wenn er auf mehrere Buchungen aufgeteilt wurde), je Buchung ohne
-	 * Bankumsatz eine.
+	 * Bankumsatz eine. Eröffnungsbuchungen sind keine Bewegung; die im
+	 * Zeitraum datierten kommen als Summe zurück und zählen zum Anfangssaldo.
 	 *
-	 * @return list<array{kind:string, id:int, date:string, amountCents:int, texts:list<string>, ref:array<string,mixed>}>
+	 * @param string $from erster Tag des Fensters (Zeitraum samt Toleranzrand)
+	 * @param string $to letzter Tag des Fensters
+	 * @return array{0: list<array{kind:string, id:int, date:string, amountCents:int, texts:list<string>, ref:array<string,mixed>}>, 1: int}
 	 */
-	private function bookingMovements(string $userId, int $accountId, string $from, string $to): array {
+	private function bookingMovements(string $userId, int $accountId, string $from, string $to, string $periodFrom, string $periodTo): array {
 		$movements = [];
 		$byTx = [];
+		$openingInPeriod = 0;
 		foreach ($this->journals->findAccountMovements($userId, $accountId, $from, $to) as $m) {
+			if ($m['opening']) {
+				if ($m['date'] >= $periodFrom && $m['date'] <= $periodTo) {
+					$openingInPeriod += $m['netCents'];
+				}
+				continue;
+			}
 			if ($m['bankTxId'] !== null) {
 				$byTx[$m['bankTxId']][] = $m;
 				continue;
@@ -257,11 +274,11 @@ class ReconciliationService {
 				],
 			];
 		}
-		return $movements;
+		return [$movements, $openingInPeriod];
 	}
 
 	/**
-	 * Das Geldkonto, zu dem eine Kontoangabe aus Auszug oder Bankumsatz gehört
+	 * Das Geldkonto, zu dem die Kontoangabe eines gespeicherten Bankumsatzes gehört
 	 * – dieselbe Regel wie beim Zuordnen eines Umsatzes
 	 * ({@see \OCA\Vereinsbuchhaltung\Service\AccountService::resolveBankAccount()}),
 	 * hier ohne Datenbankzugriff je Zeile: ein eindeutiger Treffer über IBAN,
@@ -286,10 +303,32 @@ class ReconciliationService {
 		return null;
 	}
 
+	/**
+	 * Gehört eine Zeile (oder ein Saldo) des hochgeladenen Auszugs zum
+	 * gewählten Geldkonto? Anders als bei {@see owner()} ist das Konto hier
+	 * schon gewählt: ohne verwertbare Kontoangabe gilt die Zeile ihm. Zeigt die
+	 * Angabe dagegen auf ein Konto, entscheidet der Vergleich – auch wenn es
+	 * nur ein Geldkonto gibt, denn sonst fiele eine falsche Datei nicht auf.
+	 * Nur ein Geldkonto ohne IBAN lässt sich nicht gegenprüfen.
+	 *
+	 * @param list<Account> $banks
+	 */
+	private function concerns(?string $ownAccount, Account $account, array $banks): bool {
+		$matcher = new BankAccountMatcher($this->normalizer);
+		if (!$matcher->identifiesAccount($ownAccount)) {
+			return true;
+		}
+		$hits = $matcher->candidates($ownAccount, $banks);
+		if ($hits !== []) {
+			return in_array($account->getId(), array_map(static fn (Account $a): int => (int)$a->getId(), $hits), true);
+		}
+		return $this->normalizer->normalizeOwnAccount($account->getIban()) === null;
+	}
+
 	/** @param list<Account> $banks */
 	private function balanceFor(string $content, Account $account, array $banks): ?StatementBalance {
 		foreach ($this->parsers->balances($content) as $balance) {
-			if ($this->owner($balance->ownAccount, $banks)?->getId() === $account->getId()) {
+			if ($this->concerns($balance->ownAccount, $account, $banks)) {
 				return $balance;
 			}
 		}

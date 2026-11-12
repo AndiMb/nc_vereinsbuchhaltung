@@ -55,8 +55,8 @@ class ReconciliationServiceTest extends TestCase {
 		return $a;
 	}
 
-	private function booking(int $journalId, string $date, int $cents, string $description = '', ?int $bankTxId = null, int $accountId = 1): void {
-		$this->ledger[] = ['accountId' => $accountId, 'journalId' => $journalId, 'date' => $date, 'description' => $description, 'bankTxId' => $bankTxId, 'netCents' => $cents];
+	private function booking(int $journalId, string $date, int $cents, string $description = '', ?int $bankTxId = null, int $accountId = 1, bool $opening = false): void {
+		$this->ledger[] = ['accountId' => $accountId, 'journalId' => $journalId, 'date' => $date, 'description' => $description, 'bankTxId' => $bankTxId, 'netCents' => $cents, 'opening' => $opening];
 	}
 
 	private function tx(int $id, string $date, int $cents, string $status, ?string $ownAccount = self::IBAN, string $counterparty = 'Max Mustermann', string $purpose = 'Beitrag'): void {
@@ -309,6 +309,75 @@ class ReconciliationServiceTest extends TestCase {
 		$this->expectExceptionMessage(self::OTHER_IBAN);
 
 		$this->service()->reconcile(self::USER, 1, $this->csv([['03.01.2026', '5,00', '25,00', 'Zins', self::OTHER_IBAN]]), null, null);
+	}
+
+	/** Eine Eröffnungsbuchung im Zeitraum ist der Anfangsbestand, keine Bewegung – der Auszug kennt sie nicht. */
+	public function testEroeffnungsbuchungImZeitraumZaehltZumAnfangssaldo(): void {
+		$this->openingStock[1] = 0;
+		$this->booking(1, '2026-01-02', 100000, 'Eröffnungsbuchung 1200 Girokonto', null, 1, true);
+		$this->booking(10, '2026-01-02', 6000, 'Max Mustermann Beitrag');
+		$this->booking(11, '2026-01-05', -25000, 'Stadtwerke Beitrag');
+
+		$r = $this->service()->reconcile(self::USER, 1, $this->twoRows(), null, null);
+
+		$this->assertSame([], $r['surplus']);
+		$this->assertSame([], $r['missing']);
+		$this->assertSame(100000, $r['balance']['appOpeningCents']);
+		$this->assertSame(0, $r['balance']['diffOpeningCents']);
+		$this->assertSame(0, $r['balance']['diffClosingCents']);
+		$this->assertSame(0, $r['balance']['restCents']);
+	}
+
+	/** Auch mit nur einem Geldkonto: nennt der Auszug eine andere IBAN als das Konto, ist es die falsche Datei. */
+	public function testEinzigesGeldkontoMitAndererIbanImAuszug(): void {
+		$this->accounts = [$this->account(1, '1200', 'Girokonto', self::IBAN)];
+		$this->booking(10, '2026-01-03', 500, 'Zins');
+
+		$this->expectException(\InvalidArgumentException::class);
+		$this->expectExceptionMessage(self::OTHER_IBAN);
+
+		$this->service()->reconcile(self::USER, 1, $this->csv([['03.01.2026', '5,00', '25,00', 'Zins', self::OTHER_IBAN]]), null, null);
+	}
+
+	/** Ein Geldkonto ohne IBAN lässt sich nicht gegenprüfen – der Auszug gilt dann für das gewählte Konto. */
+	public function testGeldkontoOhneIbanNimmtJedenAuszug(): void {
+		$this->accounts = [$this->account(1, '1200', 'Girokonto', null)];
+		$this->booking(10, '2026-01-03', 500, 'Zins Beitrag');
+
+		$r = $this->service()->reconcile(self::USER, 1, $this->csv([['03.01.2026', '5,00', '25,00', 'Zins', self::OTHER_IBAN]]), null, null);
+
+		$this->assertSame(1, $r['counts']['matched']);
+	}
+
+	/** Zeilen ohne Kontoangabe gehören zum gewählten Konto, nicht zum ersten Geldkonto. */
+	public function testZeilenOhneKontoangabeGehoerenZumGewaehltenKonto(): void {
+		$this->booking(20, '2026-01-02', 6000, 'Max Mustermann Beitrag', null, 2);
+		$content = $this->csv([['02.01.2026', '60,00', '60,00', 'Max Mustermann', '']]);
+
+		$r = $this->service()->reconcile(self::USER, 2, $content, null, null);
+
+		$this->assertSame(1, $r['counts']['statementRows']);
+		$this->assertSame(0, $r['counts']['otherAccountRows']);
+		$this->assertSame([], $r['missing']);
+		$this->assertSame([], $r['surplus']);
+		$this->assertSame(0, $r['balance']['diffClosingCents']);
+	}
+
+	/** Ragt der Zeitraum über den Auszug hinaus (Tippfehler im Jahr), gilt nur der Teil, den der Auszug abdeckt. */
+	public function testZeitraumWirdAufDenAuszugBegrenzt(): void {
+		$this->openingStock[1] = 95000;
+		$this->booking(5, '2025-06-01', 5000, 'Altes Jahr');
+		$this->booking(10, '2026-01-02', 6000, 'Max Mustermann Beitrag');
+		$this->booking(11, '2026-01-05', -25000, 'Stadtwerke Beitrag');
+		$this->booking(12, '2026-03-01', 700, 'Später');
+
+		$r = $this->service()->reconcile(self::USER, 1, $this->twoRows(), '2025-01-02', '2026-12-31');
+
+		$this->assertSame('2026-01-02', $r['period']['from']);
+		$this->assertSame('2026-01-05', $r['period']['to']);
+		$this->assertSame([], $r['surplus']);
+		$this->assertSame(0, $r['balance']['diffOpeningCents']);
+		$this->assertSame(0, $r['balance']['diffClosingCents']);
 	}
 
 	public function testKeinGeldkonto(): void {

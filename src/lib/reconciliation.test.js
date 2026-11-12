@@ -132,6 +132,20 @@ describe('reconciliationCsv', () => {
 		expect(csv).toContain('2026-01-05;"Miete\nJanuar";Stadtwerke;-25,00')
 	})
 
+	it('entschärft Texte, die eine Tabellenkalkulation als Formel läse – Beträge bleiben Zahlen', () => {
+		const evil = reconciliationCsv({
+			...result,
+			surplus: [],
+			missing: [
+				{ date: '2026-01-05', valueDate: null, amountCents: -2500, text: '=HYPERLINK("http://x")', counterparty: '@SUM(A1)' },
+				{ date: '2026-01-06', valueDate: null, amountCents: 100, text: '+49 30 1234', counterparty: '-Rabatt' },
+			],
+			balance: null,
+		}, labels)
+		expect(evil).toContain('2026-01-05;"\'=HYPERLINK(""http://x"")";\'@SUM(A1);-25,00')
+		expect(evil).toContain('2026-01-06;\'+49 30 1234;\'-Rabatt;1,00')
+	})
+
 	it('lässt leere Abschnitte weg', () => {
 		expect(lines).not.toContain('Zeitlich verschoben')
 	})

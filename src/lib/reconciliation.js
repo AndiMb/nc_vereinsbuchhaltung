@@ -64,12 +64,23 @@ function csvAmount(cents) {
 }
 
 /**
+ * Ein Betrag, wie ihn csvAmount() schreibt – der einzige Zellinhalt, der mit
+ * einem Minus beginnen darf.
+ */
+const CSV_AMOUNT = /^-?\d+,\d{2}$/
+
+/**
+ * Texte des Auszugs bestimmt, wer überweist. Beginnt einer mit einem Zeichen,
+ * das eine Tabellenkalkulation als Formel liest, erzwingt ein Apostroph die
+ * Text-Deutung – wie in den Server-Exporten (CsvFormatter::safeField()).
+ *
  * @param {Array<string|number|null|undefined>} cells
  * @return {string}
  */
 function csvLine(cells) {
 	return cells.map((cell) => {
-		const value = cell === null || cell === undefined ? '' : String(cell)
+		let value = cell === null || cell === undefined ? '' : String(cell)
+		if (/^[=+\-@\t\r]/.test(value) && !CSV_AMOUNT.test(value)) { value = '\'' + value }
 		return /[;"\r\n]/.test(value) ? '"' + value.replace(/"/g, '""') + '"' : value
 	}).join(';')
 }
