@@ -42,6 +42,7 @@ class ControllerRoleDeclarationTest extends TestCase {
 	 */
 	private const MODULE_CONTROLLERS = [
 		'AssignmentController',
+		'BackupController',
 		'BankReconciliationController',
 		'ClaimController',
 		'ContributionGroupController',

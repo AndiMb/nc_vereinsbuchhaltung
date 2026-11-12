@@ -33,6 +33,14 @@ return [
 		['name' => 'import#xbucCommitWithReset', 'url' => '/api/import/xbuc/reset', 'verb' => 'POST'],
 		['name' => 'import#reset', 'url' => '/api/reset', 'verb' => 'POST'],
 
+		// Sicherung und Umzug (Issue #111)
+		['name' => 'backup#status', 'url' => '/api/backup/status', 'verb' => 'GET'],
+		['name' => 'backup#export', 'url' => '/api/backup/export', 'verb' => 'POST'],
+		['name' => 'backup#download', 'url' => '/api/backup/download/{token}', 'verb' => 'GET'],
+		['name' => 'backup#inspect', 'url' => '/api/backup/inspect', 'verb' => 'POST'],
+		['name' => 'backup#import', 'url' => '/api/backup/import', 'verb' => 'POST'],
+		['name' => 'backup#wipe', 'url' => '/api/backup/wipe', 'verb' => 'POST'],
+
 		// Journal / reports
 		['name' => 'journal#index', 'url' => '/api/journal', 'verb' => 'GET'],
 		['name' => 'journal#balances', 'url' => '/api/journal/balances', 'verb' => 'GET'],
