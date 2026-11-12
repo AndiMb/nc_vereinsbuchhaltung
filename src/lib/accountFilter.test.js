@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { accountCategoryLabel, journalRowAccountIds, journalRowMatchesAccountFilter } from './accountFilter.js'
+import { accountCategoryLabel, accountSubtreeIds, journalRowAccountIds, journalRowMatchesAccountFilter } from './accountFilter.js'
 
 // Der Kontofilter des Journals kennt zwei Formen: ein einzelnes Konto oder
 // eine ganze Kategorie. Beide muessen auch Splitbuchungen treffen, deren
@@ -94,5 +94,56 @@ describe('journalRowMatchesAccountFilter', () => {
 	it('ignoriert unbekannte Konten statt zu werfen', () => {
 		const fremd = row({ debit: 1, credit: 42 })
 		expect(journalRowMatchesAccountFilter(fremd, { category: 'Einnahmen' }, accountsById, t)).toBe(false)
+	})
+})
+
+describe('accountSubtreeIds', () => {
+	// 10 Veranstaltungen
+	//   11 Sommerfest
+	//     12 Sommerfest Catering
+	//   13 Weihnachtsfeier
+	// 20 Miete (ohne Unterkonten)
+	const accounts = [
+		{ id: 10, parentId: null },
+		{ id: 11, parentId: 10 },
+		{ id: 12, parentId: 11 },
+		{ id: 13, parentId: 10 },
+		{ id: 20, parentId: null },
+	]
+
+	it('nennt das Konto und alle Unterkonten in jeder Tiefe', () => {
+		expect([...accountSubtreeIds(10, accounts)].sort()).toEqual([10, 11, 12, 13])
+		expect([...accountSubtreeIds(11, accounts)].sort()).toEqual([11, 12])
+	})
+
+	it('ein Konto ohne Unterkonten steht allein', () => {
+		expect([...accountSubtreeIds(20, accounts)]).toEqual([20])
+	})
+
+	it('eine kaputte Hierarchie (Kreis) endet trotzdem', () => {
+		const loop = [{ id: 1, parentId: 2 }, { id: 2, parentId: 1 }]
+		expect([...accountSubtreeIds(1, loop)].sort()).toEqual([1, 2])
+	})
+})
+
+describe('journalRowMatchesAccountFilter mit Unterkonten', () => {
+	const onChild = { debitAccountId: 12, creditAccountId: 99, lines: [] }
+	const onParent = { debitAccountId: 10, creditAccountId: 99, lines: [] }
+	const elsewhere = { debitAccountId: 20, creditAccountId: 99, lines: [] }
+	const subtree = { accountId: 10, accountIds: new Set([10, 11, 12, 13]) }
+
+	it('trifft Buchungen auf dem Konto und auf jedem Unterkonto', () => {
+		expect(journalRowMatchesAccountFilter(onParent, subtree, {}, t)).toBe(true)
+		expect(journalRowMatchesAccountFilter(onChild, subtree, {}, t)).toBe(true)
+		expect(journalRowMatchesAccountFilter(elsewhere, subtree, {}, t)).toBe(false)
+	})
+
+	it('ohne die Menge bleibt es bei genau einem Konto', () => {
+		expect(journalRowMatchesAccountFilter(onChild, { accountId: 10 }, {}, t)).toBe(false)
+	})
+
+	it('trifft Splitbuchungen ueber eine Zeile auf einem Unterkonto', () => {
+		const split = { lines: [{ accountId: 99 }, { accountId: 20 }, { accountId: 13 }] }
+		expect(journalRowMatchesAccountFilter(split, subtree, {}, t)).toBe(true)
 	})
 })

@@ -4571,5 +4571,6 @@ OC.L10N.register("vereinsbuchhaltung", {
 	"Budget planen": "Plan budget",
 	"Die Kontonummer %s ist bereits vergeben.": "The account number %s is already in use.",
 	"Buchungsdatum": "Booking date",
-	"Datumsfilter aufheben": "Clear date filter"
+	"Datumsfilter aufheben": "Clear date filter",
+	"Auch die Buchungen aller Unterkonten dieses Kontos zeigen": "Also show the bookings of all sub-accounts of this account"
 }, "nplurals=2; plural=(n != 1);");

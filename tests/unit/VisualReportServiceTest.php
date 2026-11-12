@@ -104,6 +104,38 @@ class VisualReportServiceTest extends TestCase {
 		$this->assertSame(50000, $result['kpis']['expense']['actual']);
 	}
 
+	/**
+	 * Das Ist je Oberkonto (allein und samt Unterkonten jeder Tiefe) entscheidet,
+	 * was die Zeile zählt – und damit, wie der Sprung in die Buchungen filtert (#326).
+	 */
+	public function testParentRowsAreJudgedByWhatTheyCount(): void {
+		$row = static fn (int $id, int $actual): array => [
+			'kind' => 'account', 'depth' => 1, 'label' => 'Konto ' . $id, 'nature' => 'expense',
+			'accountId' => $id, 'number' => (string)$id, 'flags' => [], 'values' => [0, $actual],
+		];
+		$report = $this->report();
+		// 1 → 2 → 3: eigenes Ist 10000 / 2000 / 300.
+		$report['rows'] = [$row(1, 12300), $row(1, 10000), $row(1, 12000), $row(2, 2300)];
+		$this->structured = $this->createMock(StructuredReportService::class);
+		$this->structured->method('build')->willReturn($report);
+		$this->structured->method('planActual')->willReturn([
+			'accounts' => [
+				$this->account(1, null, 'expense', '5000'),
+				$this->account(2, 1, 'expense', '5000 1'),
+				$this->account(3, 2, 'expense', '5000 11'),
+			],
+			'plan' => [],
+			'actual' => [1 => 10000, 2 => 2000, 3 => 300],
+		]);
+
+		$rows = $this->service()->build('u', self::TEMPLATE, null, null)['rows'];
+
+		$this->assertSame(['parent'], $rows[0]['flags'], 'samt Unterkonto und Enkel');
+		$this->assertSame([], $rows[1]['flags'], 'nur das Konto selbst');
+		$this->assertSame(['mixed'], $rows[2]['flags'], 'ohne den Enkel');
+		$this->assertSame(['parent'], $rows[3]['flags'], 'Unterkonto mit eigenem Unterkonto');
+	}
+
 	public function testSubAccountsCoveredByParentPlanAreNeutral(): void {
 		$row = static fn (int $id, string $number, int $plan, int $actual): array => [
 			'kind' => 'account', 'depth' => 1, 'label' => 'Konto ' . $number, 'nature' => 'expense',
@@ -126,7 +158,7 @@ class VisualReportServiceTest extends TestCase {
 
 		$rows = $this->service()->build('u', self::TEMPLATE, null, null)['rows'];
 
-		// 5000 hat Unterkonten: seine Zahlen schließen sie ein, kein Sprung in die Buchungen.
+		// 5000 hat Unterkonten: seine Zahlen schließen sie ein, der Sprung filtert samt Unterkonten.
 		$this->assertSame(['parent'], $rows[0]['flags']);
 		$this->assertSame('good', $rows[0]['status']['year']['level']);
 		$this->assertSame(['covered'], $rows[1]['flags']);

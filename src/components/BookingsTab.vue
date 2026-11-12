@@ -109,6 +109,19 @@
 					<NcEllipsisedOption v-else :name="opt.label" :search="bookingFilterSearch" />
 				</template>
 			</NcSelect>
+			<!-- Nur an einem Konto mit Unterkonten: der Filter trifft sonst genau ein
+			     Konto, der Gliederungsbericht rechnet ein Oberkonto aber samt
+			     Unterkonten (Issue #326). -->
+			<label
+				v-if="bookingView === 'journal' && filterAccountHasChildren && (!isMobile || filtersOpen)"
+				class="vbh-checkinline"
+				:title="t('Auch die Buchungen aller Unterkonten dieses Kontos zeigen')">
+				<input
+					type="checkbox"
+					:checked="filterIncludeSub"
+					@change="$emit('update:filter-include-sub', $event.target.checked)">
+				{{ t('inkl. Unterkonten') }}
+			</label>
 			<!-- Buchungsdatum von/bis, beide Tage eingeschlossen (Issue #328). Steht wie
 			     der Kontofilter in der URL; der Sprung aus dem visuellen
 			     Gliederungsbericht setzt „bis“ auf das Ende des Stand-Monats. -->
@@ -861,7 +874,7 @@ import { useJournal } from '../composables/useJournal.js'
 import { useOpenItems } from '../composables/useOpenItems.js'
 import { usePeriods } from '../composables/usePeriods.js'
 import { useSort } from '../composables/useSort.js'
-import { journalRowMatchesAccountFilter } from '../lib/accountFilter.js'
+import { accountSubtreeIds, journalRowMatchesAccountFilter } from '../lib/accountFilter.js'
 import { accountFilterBy, accountLabel, accountOption } from '../lib/accountLabel.js'
 import { claimTypeLabel } from '../lib/claims.js'
 import { currencySymbol } from '../lib/clubCurrency.js'
@@ -928,9 +941,12 @@ export default {
 		// update:filter-from / update:filter-to zurück.
 		filterFrom: { type: String, default: null },
 		filterTo: { type: String, default: null },
+		// Kontofilter samt Unterkonten (URL-Parameter sub=1); wirkt nur zusammen
+		// mit einem Kontofilter. Meldet update:filter-include-sub zurück.
+		filterIncludeSub: { type: Boolean, default: false },
 	},
 
-	emits: ['attachments-changed', 'go-claims', 'help', 'invoice-paid', 'pay-reimbursement', 'reimbursement-booking-changed', 'update:booking-view', 'update:filter-account-id', 'update:filter-from', 'update:filter-to'],
+	emits: ['attachments-changed', 'go-claims', 'help', 'invoice-paid', 'pay-reimbursement', 'reimbursement-booking-changed', 'update:booking-view', 'update:filter-account-id', 'update:filter-from', 'update:filter-include-sub', 'update:filter-to'],
 
 	setup() {
 		const auth = useAuth()
@@ -1036,6 +1052,20 @@ export default {
 			return opts
 		},
 
+		// Hat das gefilterte Konto Unterkonten? Nur dann gibt es die Option.
+		filterAccountHasChildren() {
+			const id = this.bookingFilter?.accountId
+			return !!id && this.accountsSorted.some((a) => a.parentId === id)
+		},
+
+		// Der Filter, wie er auf die Zeilen wirkt: mit „inkl. Unterkonten“ die
+		// Menge aus Konto und Unterkonten, einmal je Auswahl berechnet.
+		effectiveBookingFilter() {
+			const f = this.bookingFilter
+			if (!f?.accountId || !this.filterIncludeSub) { return f }
+			return { ...f, accountIds: accountSubtreeIds(f.accountId, this.accountsSorted) }
+		},
+
 		journalFilterActive() {
 			return !!this.bookingFilter || this.journalOnlyNoAttachment || !!this.filterFrom || !!this.filterTo
 		},
@@ -1059,7 +1089,11 @@ export default {
 					this.bookingFilter = null
 				}
 				const accountId = this.bookingFilter?.accountId ?? null
-				if (accountId !== this.filterAccountId) { this.$emit('update:filter-account-id', accountId) }
+				if (accountId !== this.filterAccountId) {
+					// Ein anderes Konto ist eine neue Frage: wieder genau dieses Konto.
+					if (this.filterIncludeSub) { this.$emit('update:filter-include-sub', false) }
+					this.$emit('update:filter-account-id', accountId)
+				}
 			},
 		},
 
@@ -1084,8 +1118,9 @@ export default {
 				const index = this.journalSearchIndex
 				rows = rows.filter((r) => matchesQuery(index.get(r.id), q))
 			}
-			if (this.bookingFilter) {
-				rows = rows.filter((r) => journalRowMatchesAccountFilter(r, this.bookingFilter, this.accountsById, this.t))
+			const filter = this.effectiveBookingFilter
+			if (filter) {
+				rows = rows.filter((r) => journalRowMatchesAccountFilter(r, filter, this.accountsById, this.t))
 			}
 			if (this.filterFrom || this.filterTo) {
 				rows = rows.filter((r) => journalRowInDateRange(r, this.filterFrom, this.filterTo))
@@ -1263,6 +1298,7 @@ export default {
 		bookingSearch() { this.journalLimit = JOURNAL_PAGE },
 		bookingFilter() { this.journalLimit = JOURNAL_PAGE },
 		filterFrom() { this.journalLimit = JOURNAL_PAGE },
+		filterIncludeSub() { this.journalLimit = JOURNAL_PAGE },
 		filterTo() { this.journalLimit = JOURNAL_PAGE },
 
 		filterAccountId: {

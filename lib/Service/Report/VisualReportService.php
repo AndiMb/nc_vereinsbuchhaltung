@@ -49,7 +49,7 @@ class VisualReportService {
 		[$planLevel, $totals, $coveredIds] = $this->planLevel($data['accounts'], $data['plan'], $data['actual']);
 
 		$thresholds = $this->statusSettings->thresholds();
-		$visual = VisualReportBuilder::build($report['rows'], $planLevel, $totals, $resolved['elapsed'], $resolved['total'], $thresholds, $coveredIds, self::parentIds($data['accounts']));
+		$visual = VisualReportBuilder::build($report['rows'], $planLevel, $totals, $resolved['elapsed'], $resolved['total'], $thresholds, $coveredIds, self::parentIds($data['accounts']), self::parentActual($data['accounts'], $data['actual']));
 
 		return [
 			'template' => $report['template'],
@@ -81,6 +81,33 @@ class VisualReportService {
 			}
 		}
 		return array_keys($ids);
+	}
+
+	/**
+	 * Ist je Oberkonto: das Konto allein und samt aller Unterkonten. Daran
+	 * erkennt der Bericht, ob eine Zeile die Unterkonten mitzählt.
+	 *
+	 * @param Account[] $accounts
+	 * @param array<int, int> $actual eigenes Ist je Konto
+	 * @return array<int, array{own:int, subtree:int}>
+	 */
+	private static function parentActual(array $accounts, array $actual): array {
+		$parentOf = [];
+		foreach ($accounts as $account) {
+			$parent = $account->getParentId();
+			$parentOf[(int)$account->getId()] = $parent !== null && $parent > 0 ? (int)$parent : null;
+		}
+		$out = [];
+		foreach ($parentOf as $id => $_) {
+			$own = (int)($actual[$id] ?? 0);
+			$seen = [$id => true];
+			for ($p = $parentOf[$id]; $p !== null && !isset($seen[$p]); $p = $parentOf[$p] ?? null) {
+				$seen[$p] = true;
+				$out[$p] ??= ['own' => (int)($actual[$p] ?? 0), 'subtree' => (int)($actual[$p] ?? 0)];
+				$out[$p]['subtree'] += $own;
+			}
+		}
+		return $out;
 	}
 
 	/**

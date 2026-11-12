@@ -219,6 +219,39 @@ class VisualReportBuilderTest extends TestCase {
 		$this->assertSame([5 => true, 6 => false], $byId);
 	}
 
+	/**
+	 * Eine Oberkonto-Zeile zählt nur die Unterkonten ihres Abschnitts mit.
+	 * Der Sprung in die Buchungsliste (#326) muss dieselbe Summe zeigen:
+	 * „parent“ nur, wenn das Ist der Zeile das ganze Konto samt Unterkonten ist.
+	 */
+	public function testParentFlagFollowsWhatTheRowCounts(): void {
+		$row = static fn (int $id, int $actual): array => ['kind' => 'account', 'depth' => 1, 'label' => 'K', 'nature' => 'expense', 'accountId' => $id, 'flags' => [], 'values' => [0, $actual]];
+		$rows = [
+			$row(5, 12300), // eigenes Ist 10000 + Unterkonten 2300: alles in der Zeile
+			$row(6, 10000), // Unterkonten stehen in einem anderen Abschnitt: nur das eigene Ist
+			$row(7, 11000), // ein Teil der Unterkonten: weder noch
+			$row(8, 0),     // Strukturzeile ohne Werte in diesem Abschnitt, das Konto hat aber Buchungen
+		];
+		$actual = [
+			5 => ['own' => 10000, 'subtree' => 12300],
+			6 => ['own' => 10000, 'subtree' => 12300],
+			7 => ['own' => 10000, 'subtree' => 12300],
+			8 => ['own' => 400, 'subtree' => 900],
+		];
+		$out = VisualReportBuilder::build($rows, [], self::TOTALS, 6, 12, BudgetStatus::DEFAULTS, [], [5, 6, 7, 8], $actual);
+
+		$this->assertSame(['parent'], $out['rows'][0]['flags']);
+		$this->assertSame([], $out['rows'][1]['flags'], 'nur das Konto selbst: Sprung ohne Unterkonten');
+		$this->assertSame(['mixed'], $out['rows'][2]['flags'], 'kein Sprung, der zur Zahl passt');
+		$this->assertSame(['mixed'], $out['rows'][3]['flags']);
+	}
+
+	public function testParentWithoutOwnBookingsAndEmptySubAccountsStaysParent(): void {
+		$rows = [['kind' => 'account', 'depth' => 1, 'label' => 'K', 'nature' => 'expense', 'accountId' => 5, 'flags' => [], 'values' => [0, 0]]];
+		$out = VisualReportBuilder::build($rows, [], self::TOTALS, 6, 12, BudgetStatus::DEFAULTS, [], [5], [5 => ['own' => 0, 'subtree' => 0]]);
+		$this->assertSame(['parent'], $out['rows'][0]['flags']);
+	}
+
 	public function testNoElapsedMonths(): void {
 		$out = self::build([self::account(1, 'expense', 100000, 130000)], 0, [
 			['kind' => 'account', 'depth' => 1, 'label' => 'Miete', 'nature' => 'expense', 'accountId' => 1, 'values' => [100000, 130000]],

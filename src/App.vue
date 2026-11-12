@@ -180,9 +180,11 @@
 					:filterAccountId="bookingFilterAccountId"
 					:filterFrom="bookingFilterFrom"
 					:filterTo="bookingFilterTo"
+					:filterIncludeSub="bookingFilterSub"
 					@update:filterAccountId="bookingFilterAccountId = $event"
 					@update:filterFrom="bookingFilterFrom = $event"
 					@update:filterTo="bookingFilterTo = $event"
+					@update:filterIncludeSub="bookingFilterSub = $event"
 					@payReimbursement="openBookingForReimbursement"
 					@update:bookingView="bookingView = $event"
 					@attachmentsChanged="afterAttachmentsChanged"
@@ -729,6 +731,8 @@ export default {
 			// Kontofilter des Journals (BookingsTab); in der URL als account=<id>,
 			// nur auf der Route bookings. Kategoriefilter stehen nicht in der URL.
 			bookingFilterAccountId: null,
+			// Kontofilter samt Unterkonten; in der URL als sub=1, nur zusammen mit account.
+			bookingFilterSub: false,
 			// Datumsfilter des Journals (JJJJ-MM-TT, beide Tage eingeschlossen); in
 			// der URL als from=/to=, ebenfalls nur auf der Route bookings.
 			bookingFilterFrom: null,
@@ -1196,7 +1200,10 @@ export default {
 
 			if (this.activeTab === 'bookings') {
 				const names = { unassigned: 'bookings-unassigned', openitems: 'bookings-open-items', rules: 'bookings-rules', reimbursements: 'bookings-reimbursements' }
-				if (this.bookingView === 'journal' && this.bookingFilterAccountId !== null) { query.account = this.bookingFilterAccountId }
+				if (this.bookingView === 'journal' && this.bookingFilterAccountId !== null) {
+					query.account = this.bookingFilterAccountId
+					if (this.bookingFilterSub) { query.sub = 1 }
+				}
 				if (this.bookingView === 'journal' && this.bookingFilterFrom) { query.from = this.bookingFilterFrom }
 				if (this.bookingView === 'journal' && this.bookingFilterTo) { query.to = this.bookingFilterTo }
 				return { name: names[this.bookingView] || 'bookings', query }
@@ -1628,18 +1635,22 @@ export default {
 		 */
 		applyAccountQuery(route) {
 			const raw = route.query.account
-			if (raw === undefined) {
-				this.bookingFilterAccountId = null
-				return
-			}
-			const id = /^\d+$/.test(String(raw)) ? Number(raw) : null
+			const id = raw !== undefined && /^\d+$/.test(String(raw)) ? Number(raw) : null
 			if (id !== null && this.accountsById[id]) {
 				this.bookingFilterAccountId = id
-				return
+				// sub=1 = samt Unterkonten; jeder andere Wert gilt nicht.
+				this.bookingFilterSub = String(route.query.sub ?? '') === '1'
+				if (route.query.sub === undefined || this.bookingFilterSub) { return }
+			} else {
+				this.bookingFilterAccountId = null
+				this.bookingFilterSub = false
+				if (raw === undefined && route.query.sub === undefined) { return }
 			}
-			this.bookingFilterAccountId = null
+			// Was nicht gilt, verschwindet aus der URL: ein unbekanntes Konto und
+			// ein sub ohne Konto oder mit anderem Wert.
 			const query = { ...route.query }
-			delete query.account
+			if (this.bookingFilterAccountId === null) { delete query.account }
+			delete query.sub
 			this.$router.replace({ name: route.name, query })
 		},
 
@@ -1672,11 +1683,14 @@ export default {
 		 * und summiert sich damit zum angeklickten Ist; bei „Aktuell“ bleibt sie
 		 * ohne Datumsfilter. push statt replace - Zurück führt in den Bericht.
 		 *
-		 * @param {{ accountId: number, periodId: number|null, until?: string|null }} target Konto der angeklickten Zeile, Periode und Stand des Berichts
+		 * Ein Oberkonto rechnet der Bericht samt Unterkonten – die Liste dann
+		 * ebenso (`includeSub`, Issue #326).
+		 *
+		 * @param {{ accountId: number, periodId: number|null, until?: string|null, includeSub?: boolean }} target Konto der angeklickten Zeile, Periode und Stand des Berichts
 		 */
-		openAccountBookings({ accountId, periodId, until = null }) {
+		openAccountBookings({ accountId, periodId, until = null, includeSub = false }) {
 			const period = periodId ?? this.selectedPeriodId ?? 'all'
-			this.$router.push({ name: 'bookings', query: { period, account: accountId, ...(until ? { to: until } : {}) } })
+			this.$router.push({ name: 'bookings', query: { period, account: accountId, ...(includeSub ? { sub: 1 } : {}), ...(until ? { to: until } : {}) } })
 		},
 
 		/** Ersetzt die Route, behält aber den gewählten Zeitraum (?period=) bei. */
