@@ -107,7 +107,7 @@
 							:items="data.deviations[effectiveBasis].expense"
 							:emptyText="t('Kein Ausgabenkonto liegt über dem Plan.')"
 							linkable
-							@openAccount="$emit('open-account', $event)" />
+							@openAccount="openAccount" />
 					</div>
 					<div class="vbh-visual-card">
 						<BudgetDeviationList
@@ -116,7 +116,7 @@
 							:items="data.deviations[effectiveBasis].income"
 							:emptyText="t('Kein Einnahmenkonto liegt unter dem Plan.')"
 							linkable
-							@openAccount="$emit('open-account', $event)" />
+							@openAccount="openAccount" />
 					</div>
 				</div>
 
@@ -196,7 +196,7 @@
 											class="vbh-visual-row__link"
 											:class="{ 'vbh-visual-row__link--indent': !hasToggle(entry) }"
 											:aria-label="t('Buchungen von {konto} zeigen', { konto: rowLabel(entry.row) })"
-											@click="$emit('open-account', entry.row.accountId)">
+											@click="openAccount(entry.row.accountId)">
 											{{ rowLabel(entry.row) }}
 										</button>
 										<span
@@ -290,7 +290,8 @@ export default {
 	},
 
 	// state: { asOf, basis } für den Drucklink der Elternansicht
-	// open-account: accountId einer Kontozeile oder Abweichung (Sprung zu den Buchungen)
+	// open-account: { accountId, until } einer Kontozeile oder Abweichung (Sprung
+	// zu den Buchungen); until = letzter Tag des Stands, null bei „Aktuell“
 	emits: ['loaded', 'open-account', 'open-spheres', 'state'],
 
 	setup() {
@@ -460,6 +461,14 @@ export default {
 
 		selectFilter(nature, level) {
 			this.filter = level ? { nature, level } : null
+		},
+
+		// Sprung in die Buchungsliste. Mit einem Monat als Stand zählt der Bericht
+		// nur bis zu dessen letztem Tag – die Liste bekommt dieselbe Grenze, damit
+		// sie sich zum angeklickten Ist summiert (Issue #328).
+		openAccount(accountId) {
+			const { value, until } = this.data.asOf
+			this.$emit('open-account', { accountId, until: value === 'current' ? null : until })
 		},
 
 		// Auf- und Zuklappen nur ohne Ampelfilter und nur bei Kontozeilen mit Unterkonten.

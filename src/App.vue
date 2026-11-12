@@ -178,7 +178,11 @@
 					:openFolderPickerForBookings="openFolderPickerForBookings"
 					:reimbursementsReloadKey="reimbursementsReloadKey"
 					:filterAccountId="bookingFilterAccountId"
+					:filterFrom="bookingFilterFrom"
+					:filterTo="bookingFilterTo"
 					@update:filterAccountId="bookingFilterAccountId = $event"
+					@update:filterFrom="bookingFilterFrom = $event"
+					@update:filterTo="bookingFilterTo = $event"
 					@payReimbursement="openBookingForReimbursement"
 					@update:bookingView="bookingView = $event"
 					@attachmentsChanged="afterAttachmentsChanged"
@@ -510,6 +514,7 @@ import { setClubCurrency } from './lib/clubCurrency.js'
 import { clubToday, setClubTimeZone } from './lib/clubTime.js'
 import { amountClass, budgetDiffClass, errMsg, formatDate, formatDateTime, formatMoney, typeLabel } from './lib/format.js'
 import { createHeaderCollapse } from './lib/headerCollapse.js'
+import { parseDateParam } from './lib/journalDateFilter.js'
 import { createLatestRequest } from './lib/latestRequest.js'
 import { withPasswordConfirmation } from './lib/passwordGate.js'
 import { linkFilesToBookings } from './lib/receiptBatch.js'
@@ -724,6 +729,10 @@ export default {
 			// Kontofilter des Journals (BookingsTab); in der URL als account=<id>,
 			// nur auf der Route bookings. Kategoriefilter stehen nicht in der URL.
 			bookingFilterAccountId: null,
+			// Datumsfilter des Journals (JJJJ-MM-TT, beide Tage eingeschlossen); in
+			// der URL als from=/to=, ebenfalls nur auf der Route bookings.
+			bookingFilterFrom: null,
+			bookingFilterTo: null,
 			// "Mein Bereich": Unterreiter beitrag | auslagen (MyAreaTab)
 			selfView: 'beitrag',
 			// Auslage, deren Auszahlung gerade im Buchungsdialog gebucht wird (siehe saveBooking)
@@ -1188,6 +1197,8 @@ export default {
 			if (this.activeTab === 'bookings') {
 				const names = { unassigned: 'bookings-unassigned', openitems: 'bookings-open-items', rules: 'bookings-rules', reimbursements: 'bookings-reimbursements' }
 				if (this.bookingView === 'journal' && this.bookingFilterAccountId !== null) { query.account = this.bookingFilterAccountId }
+				if (this.bookingView === 'journal' && this.bookingFilterFrom) { query.from = this.bookingFilterFrom }
+				if (this.bookingView === 'journal' && this.bookingFilterTo) { query.to = this.bookingFilterTo }
 				return { name: names[this.bookingView] || 'bookings', query }
 			}
 			if (this.activeTab === 'invoices') {
@@ -1505,7 +1516,10 @@ export default {
 			const schonWeitergeklicktVorErstemAbgleich = !this.routeReady && tab === 'dashboard' && this.activeTab !== 'dashboard'
 			if (this.activeTab !== tab && !schonWeitergeklicktVorErstemAbgleich) { this.activeTab = tab }
 			if (tab === 'bookings' && this.bookingView !== meta.bookingView) { this.bookingView = meta.bookingView }
-			if (tab === 'bookings' && meta.bookingView === 'journal') { this.applyAccountQuery(route) }
+			if (tab === 'bookings' && meta.bookingView === 'journal') {
+				this.applyAccountQuery(route)
+				this.applyDateQuery(route)
+			}
 			if (tab === 'reports' && this.reportView !== meta.reportView) { this.reportView = meta.reportView }
 			if (tab === 'contributions' && this.contribView !== meta.contribView) { this.contribView = meta.contribView }
 			if (tab === 'self' && this.selfView !== meta.selfView) { this.selfView = meta.selfView }
@@ -1630,17 +1644,39 @@ export default {
 		},
 
 		/**
+		 * Datumsfilter des Journals aus ?from= und ?to= (nur Route bookings).
+		 * Was kein Kalenderdatum JJJJ-MM-TT ist, gilt nicht und verschwindet aus
+		 * der URL - per replace, ohne eigenen Verlaufseintrag.
+		 *
+		 * @param {object} route aktuelle vue-router-Route
+		 */
+		applyDateQuery(route) {
+			const from = parseDateParam(route.query.from)
+			const to = parseDateParam(route.query.to)
+			this.bookingFilterFrom = from
+			this.bookingFilterTo = to
+			const query = { ...route.query }
+			if (query.from !== undefined && from === null) { delete query.from }
+			if (query.to !== undefined && to === null) { delete query.to }
+			if (Object.keys(query).length !== Object.keys(route.query).length) {
+				this.$router.replace({ name: route.name, query })
+			}
+		},
+
+		/**
 		 * Sprung aus dem Gliederungsbericht (visuelle Ansicht): Buchungsliste der
 		 * Periode, die der Bericht zeigt, auf das Konto gefiltert. Bei „alle
 		 * Perioden“ rechnet der Bericht mit der laufenden Periode – die Liste
-		 * nimmt dann dieselbe statt aller Jahre. push statt replace - Zurück
-		 * führt in den Bericht.
+		 * nimmt dann dieselbe statt aller Jahre. Rechnet der Bericht mit einem
+		 * Monat als Stand, endet die Liste am letzten Tag dieses Monats (`until`)
+		 * und summiert sich damit zum angeklickten Ist; bei „Aktuell“ bleibt sie
+		 * ohne Datumsfilter. push statt replace - Zurück führt in den Bericht.
 		 *
-		 * @param {{ accountId: number, periodId: number|null }} target Konto der angeklickten Zeile, Periode des Berichts
+		 * @param {{ accountId: number, periodId: number|null, until?: string|null }} target Konto der angeklickten Zeile, Periode und Stand des Berichts
 		 */
-		openAccountBookings({ accountId, periodId }) {
+		openAccountBookings({ accountId, periodId, until = null }) {
 			const period = periodId ?? this.selectedPeriodId ?? 'all'
-			this.$router.push({ name: 'bookings', query: { period, account: accountId } })
+			this.$router.push({ name: 'bookings', query: { period, account: accountId, ...(until ? { to: until } : {}) } })
 		},
 
 		/** Ersetzt die Route, behält aber den gewählten Zeitraum (?period=) bei. */

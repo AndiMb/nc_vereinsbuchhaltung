@@ -85,6 +85,13 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   in the breakdown or in the deviation lists jumps to the bookings list
   filtered to that account; the list's account filter is now part of the
   link (`account=`). The table, its print and its CSV stay unchanged.
+- **Date filter in the bookings list** (#328): The fields “Von” and
+  “Bis” narrow the journal to a range of booking dates, both days
+  included; each field works on its own, and the cross next to them clears
+  the filter. The range is part of the link like the account filter
+  (`from=`, `to=`). The jump from the visual view of the structured report
+  sets “Bis” to the last day of the chosen snapshot month, so the list adds
+  up to the figure that was clicked. With “Aktuell” it stays unfiltered.
 
 **Fixed:**
 - **A contribution-free assignment stopped the daily claim run:** With an

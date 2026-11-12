@@ -109,6 +109,39 @@
 					<NcEllipsisedOption v-else :name="opt.label" :search="bookingFilterSearch" />
 				</template>
 			</NcSelect>
+			<!-- Buchungsdatum von/bis, beide Tage eingeschlossen (Issue #328). Steht wie
+			     der Kontofilter in der URL; der Sprung aus dem visuellen
+			     Gliederungsbericht setzt „bis“ auf das Ende des Stand-Monats. -->
+			<div
+				v-if="bookingView === 'journal' && (!isMobile || filtersOpen)"
+				class="vbh-filter-dates"
+				role="group"
+				:aria-label="t('Buchungsdatum')">
+				<label class="vbh-filter-date">{{ t('Von') }}
+					<input
+						type="date"
+						:value="filterFrom || ''"
+						:max="filterTo || null"
+						@change="$emit('update:filter-from', $event.target.value || null)">
+				</label>
+				<label class="vbh-filter-date">{{ t('Bis') }}
+					<input
+						type="date"
+						:value="filterTo || ''"
+						:min="filterFrom || null"
+						@change="$emit('update:filter-to', $event.target.value || null)">
+				</label>
+				<NcButton
+					v-if="filterFrom || filterTo"
+					variant="tertiary"
+					:aria-label="t('Datumsfilter aufheben')"
+					:title="t('Datumsfilter aufheben')"
+					@click="clearDateFilter">
+					<template #icon>
+						<NcIconSvgWrapper :path="mdiClose" :size="20" />
+					</template>
+				</NcButton>
+			</div>
 			<label v-if="bookingView === 'journal' && (!isMobile || filtersOpen)" class="vbh-checkinline" :title="t('Nur Buchungen ohne angehängten Beleg zeigen (z. B. vor der Kassenprüfung)')">
 				<input v-model="journalOnlyNoAttachment" type="checkbox">
 				{{ t('nur ohne Beleg') }}
@@ -802,7 +835,7 @@
 </template>
 
 <script>
-import { mdiDelete, mdiDownload, mdiFilterVariant, mdiFlash, mdiPaperclip, mdiPaperclipCheck, mdiPencil, mdiUpload } from '@mdi/js'
+import { mdiClose, mdiDelete, mdiDownload, mdiFilterVariant, mdiFlash, mdiPaperclip, mdiPaperclipCheck, mdiPencil, mdiUpload } from '@mdi/js'
 import { showError, showSuccess } from '@nextcloud/dialogs'
 import { toRefs } from 'vue'
 import NcActionButton from '@nextcloud/vue/components/NcActionButton'
@@ -834,6 +867,7 @@ import { claimTypeLabel } from '../lib/claims.js'
 import { currencySymbol } from '../lib/clubCurrency.js'
 import { bookingFlow, flowClass, flowLabel, formatFlowMoney, transactionFlow } from '../lib/flow.js'
 import { amountClass, errMsg, formatDate, formatMoney } from '../lib/format.js'
+import { journalRowInDateRange } from '../lib/journalDateFilter.js'
 import { openItemStatusLabel } from '../lib/openItems.js'
 import { rangeIds } from '../lib/receiptBatch.js'
 import { levelIcon, suggestionTitle, sureSuggestionPairs } from '../lib/receiptSuggestions.js'
@@ -889,9 +923,14 @@ export default {
 		// dem Gliederungsbericht). Eine Änderung in der Auswahl meldet
 		// update:filter-account-id zurück; ein Kategoriefilter meldet null.
 		filterAccountId: { type: Number, default: null },
+		// Datumsfilter des Journals (URL-Parameter from/to, JJJJ-MM-TT, beide
+		// Tage eingeschlossen); null = offen. Die Felder melden
+		// update:filter-from / update:filter-to zurück.
+		filterFrom: { type: String, default: null },
+		filterTo: { type: String, default: null },
 	},
 
-	emits: ['attachments-changed', 'go-claims', 'help', 'invoice-paid', 'pay-reimbursement', 'reimbursement-booking-changed', 'update:booking-view', 'update:filter-account-id'],
+	emits: ['attachments-changed', 'go-claims', 'help', 'invoice-paid', 'pay-reimbursement', 'reimbursement-booking-changed', 'update:booking-view', 'update:filter-account-id', 'update:filter-from', 'update:filter-to'],
 
 	setup() {
 		const auth = useAuth()
@@ -924,6 +963,7 @@ export default {
 	data() {
 		return {
 			mdiDownload,
+			mdiClose,
 			mdiFilterVariant,
 			mdiUpload,
 			mdiPaperclip,
@@ -997,7 +1037,7 @@ export default {
 		},
 
 		journalFilterActive() {
-			return !!this.bookingFilter || this.journalOnlyNoAttachment
+			return !!this.bookingFilter || this.journalOnlyNoAttachment || !!this.filterFrom || !!this.filterTo
 		},
 
 		bookingFilterAccountOption: {
@@ -1046,6 +1086,9 @@ export default {
 			}
 			if (this.bookingFilter) {
 				rows = rows.filter((r) => journalRowMatchesAccountFilter(r, this.bookingFilter, this.accountsById, this.t))
+			}
+			if (this.filterFrom || this.filterTo) {
+				rows = rows.filter((r) => journalRowInDateRange(r, this.filterFrom, this.filterTo))
 			}
 			if (this.journalOnlyNoAttachment) {
 				rows = rows.filter((r) => !this.attachmentCountMap[r.id])
@@ -1219,6 +1262,8 @@ export default {
 		// Neue Auswahl, neue Liste: wieder mit den ersten JOURNAL_PAGE Buchungen.
 		bookingSearch() { this.journalLimit = JOURNAL_PAGE },
 		bookingFilter() { this.journalLimit = JOURNAL_PAGE },
+		filterFrom() { this.journalLimit = JOURNAL_PAGE },
+		filterTo() { this.journalLimit = JOURNAL_PAGE },
 
 		filterAccountId: {
 			handler() { this.applyFilterAccountId() },
@@ -1258,6 +1303,11 @@ export default {
 		formatMoney,
 		formatDate,
 		levelIcon,
+
+		clearDateFilter() {
+			this.$emit('update:filter-from', null)
+			this.$emit('update:filter-to', null)
+		},
 
 		/**
 		 * Übernimmt den Kontofilter von außen (Prop filterAccountId). null hebt

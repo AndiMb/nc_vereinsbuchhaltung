@@ -1425,9 +1425,10 @@ Die Ansicht spricht von **Plan** und **Ist**.
   Kontoäste lassen sich ein- und ausklappen. Ein Klick auf ein Konto ohne
   Unterkonten öffnet die Buchungsliste der Periode, gefiltert auf dieses
   Konto. Konten mit Unterkonten sind keine Links – auch nicht in den
-  Abweichungslisten –, weil ihre Zahlen die Unterkonten einschließen. Die
-  Buchungsliste hat keinen Datumsfilter: Mit einem Monat als Stand zeigt sie
-  daher auch spätere Buchungen des Kontos.
+  Abweichungslisten –, weil ihre Zahlen die Unterkonten einschließen. Mit
+  einem Monat als Stand endet die Liste am letzten Tag dieses Monats (Feld
+  „Bis“ der Buchungsliste) und summiert sich so zum angeklickten Ist; mit
+  „Aktuell“ bleibt sie ohne Datumsfilter.
 
 Tragen die Unterkonten eines Oberkontos eigene Planwerte, zählen in den
 Ampelzahlen und Abweichungslisten die Unterkonten; Buchungen direkt auf dem
@@ -1668,6 +1669,10 @@ Handbuch einzulesen.
 - **Filter „nur ohne Beleg"** im Tab Buchungen (Journal): zeigt alle
   Buchungen ohne angehängten Beleg. Diese vorab zu klären spart in der
   Prüfung Rückfragen.
+- **Datumsfilter „Von“ / „Bis“** im Journal: grenzt die Liste auf eine
+  Spanne des Buchungsdatums ein, beide Tage eingeschlossen – etwa ein Quartal
+  oder einen einzelnen Tag. Jedes Feld gilt für sich; das Kreuz daneben hebt
+  den Filter auf. Die Spanne steht wie der Kontofilter im Link der Seite.
 - **Lückenprüfung:** Über dem Journal erscheint automatisch ein
   Warnhinweis, falls Buchungsnummern fehlen oder doppelt sind. Im
   Kassenbericht steht dasselbe als Vollständigkeitszeile. In einem offenen

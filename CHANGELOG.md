@@ -87,6 +87,13 @@ verwenden, z. B. `**Neu:**`.
   Aufriss oder in den Abweichungslisten springt in die Buchungsliste,
   gefiltert auf dieses Konto; der Kontofilter der Liste steht jetzt im Link
   (`account=`). Tabelle, Druck und CSV der Tabelle bleiben unverändert.
+- **Datumsfilter in der Buchungsliste** (#328): Die Felder „Von“ und
+  „Bis“ grenzen das Journal auf eine Spanne des Buchungsdatums ein, beide
+  Tage eingeschlossen; jedes Feld gilt für sich, das Kreuz daneben hebt den
+  Filter auf. Die Spanne steht wie der Kontofilter im Link (`from=`,
+  `to=`). Der Sprung aus der visuellen Ansicht des Gliederungsberichts setzt
+  „Bis“ auf den letzten Tag des gewählten Stands – die Liste summiert
+  sich damit zum angeklickten Ist. Mit „Aktuell“ bleibt sie ungefiltert.
 
 **Behoben:**
 - **Beitragsfreie Zuweisung hielt den täglichen Forderungslauf an:** Gab es
