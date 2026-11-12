@@ -100,6 +100,11 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   that day or on any following day. The run now records the contribution-free
   period as intended and carries on; the next run catches up on the claims
   that were missed.
+- **A duplicate account number ended in a server error** (#327): Creating
+  an account with a number that was already taken, or changing an account to
+  such a number, answered with “Internal server error”. The app now says
+  that the account number is already in use, and the dialog stays open with
+  what was entered.
 
 ## [0.52.0] – 2026-11-09
 

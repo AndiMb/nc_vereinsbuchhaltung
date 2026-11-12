@@ -15,6 +15,7 @@ use OCA\Vereinsbuchhaltung\Service\Sepa\SepaImportSettingsService;
 use OCA\Vereinsbuchhaltung\Service\Statement\BankAccountMatcher;
 use OCA\Vereinsbuchhaltung\Service\Statement\RowNormalizer;
 use OCP\AppFramework\Db\DoesNotExistException;
+use OCP\DB\Exception as DbException;
 use OCP\IL10N;
 
 class AccountService {
@@ -103,6 +104,7 @@ class AccountService {
 		$account = new Account();
 		$account->setUserId($userId);
 		$account->setNumber(trim($number));
+		$this->assertNumberFree($userId, $account->getNumber(), null);
 		$account->setName(trim($name));
 		$account->setShortName($this->normalizeShortName($shortName));
 		$account->setDescription($this->normalizeDescription($description));
@@ -128,7 +130,7 @@ class AccountService {
 			$this->mapper->find($parentId, $userId);
 			$account->setParentId($parentId);
 		}
-		$account = $this->mapper->insert($account);
+		$account = $this->storeUnique($account, fn (Account $a): Account => $this->mapper->insert($a));
 		if ($audit) {
 			$this->audit->log('Konto angelegt', 'account', $account->getId(), [
 				'konto' => $account->getNumber() . ' ' . $account->getName(),
@@ -149,6 +151,7 @@ class AccountService {
 		$labelBefore = $account->getNumber() . ' ' . $account->getName();
 		if (isset($data['number'])) {
 			$account->setNumber(trim((string)$data['number']));
+			$this->assertNumberFree($userId, $account->getNumber(), $id);
 		}
 		if (isset($data['name'])) {
 			$account->setName(trim((string)$data['name']));
@@ -225,7 +228,7 @@ class AccountService {
 			$this->evaluationLock->assertOpen($userId, $account->getId(), $labelBefore, $changed);
 		}
 
-		$saved = $this->mapper->update($account);
+		$saved = $this->storeUnique($account, fn (Account $a): Account => $this->mapper->update($a));
 		if ($saved->jsonSerialize() !== $stateBefore) {
 			$label = $saved->getNumber() . ' ' . $saved->getName();
 			$this->audit->log('Konto geändert', 'account', $saved->getId(), [
@@ -235,6 +238,42 @@ class AccountService {
 			]);
 		}
 		return $saved;
+	}
+
+	/**
+	 * Eine Kontonummer gibt es je Bestand nur einmal (Issue #327).
+	 *
+	 * @param int|null $ownId das Konto, das gerade bearbeitet wird – seine eigene Nummer ist kein Konflikt
+	 * @throws \InvalidArgumentException wenn ein anderes Konto die Nummer trägt
+	 */
+	private function assertNumberFree(string $userId, string $number, ?int $ownId): void {
+		$other = $this->mapper->findByNumber($userId, $number);
+		if ($other !== null && $other->getId() !== $ownId) {
+			throw $this->numberTaken($number);
+		}
+	}
+
+	/**
+	 * Speichert das Konto und übersetzt den Verstoß gegen den eindeutigen Index
+	 * (Bestand, Nummer) in dieselbe Meldung wie {@see assertNumberFree()}: zwei
+	 * gleichzeitige Anfragen bestehen beide die Prüfung, die Datenbank lehnt
+	 * die zweite ab.
+	 *
+	 * @param \Closure(Account): Account $store
+	 */
+	private function storeUnique(Account $account, \Closure $store): Account {
+		try {
+			return $store($account);
+		} catch (DbException $e) {
+			if ($e->getReason() !== DbException::REASON_UNIQUE_CONSTRAINT_VIOLATION) {
+				throw $e;
+			}
+			throw $this->numberTaken($account->getNumber());
+		}
+	}
+
+	private function numberTaken(string $number): \InvalidArgumentException {
+		return new \InvalidArgumentException($this->l10n->t('Die Kontonummer %s ist bereits vergeben.', [$number]));
 	}
 
 	/**
