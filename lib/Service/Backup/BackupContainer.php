@@ -48,14 +48,21 @@ class BackupContainer {
 	}
 
 	/**
+	 * @throws UserFacingException wenn das Passwort zu kurz ist
+	 */
+	public function assertPassword(string $password): void {
+		if (mb_strlen($password) < self::MIN_PASSWORD_LENGTH) {
+			throw new UserFacingException($this->l10n->t('Das Passwort braucht mindestens %s Zeichen.', [self::MIN_PASSWORD_LENGTH]));
+		}
+	}
+
+	/**
 	 * Verschlüsselt die Datei `$plainPath` nach `$targetPath`.
 	 *
 	 * @throws UserFacingException bei zu kurzem Passwort
 	 */
 	public function encrypt(string $plainPath, string $targetPath, string $password): void {
-		if (mb_strlen($password) < self::MIN_PASSWORD_LENGTH) {
-			throw new UserFacingException($this->l10n->t('Das Passwort braucht mindestens %s Zeichen.', [self::MIN_PASSWORD_LENGTH]));
-		}
+		$this->assertPassword($password);
 		$salt = random_bytes(self::SALT_LENGTH);
 		$key = hash_pbkdf2('sha256', $password, $salt, self::ITERATIONS, 32, true);
 
