@@ -73,6 +73,8 @@ export default {
 	// Import CSV-CAMT
 	previewImport: (formData) => axios.post(url('/import/preview'), formData),
 	commitImport: (formData) => axios.post(url('/import/commit'), formData),
+	// Kontoabstimmung (#159): vergleicht einen Auszug mit dem Geldkonto, importiert nichts.
+	reconcileAccount: (accountId, formData) => axios.post(url('/accounts/' + accountId + '/reconciliation'), formData),
 
 	// Import zero Buchhaltung (.xbuc)
 	previewXbuc: (formData) => axios.post(url('/import/xbuc/preview'), formData),

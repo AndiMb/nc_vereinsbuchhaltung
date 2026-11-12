@@ -29,6 +29,7 @@ export default createRouter({
 		{ path: '/accounts/new', name: 'accounts-new', component: RouteHost },
 		{ path: '/accounts/:accountId(\\d+)', name: 'accounts-detail', component: RouteHost },
 		{ path: '/accounts/:accountId(\\d+)/edit', name: 'accounts-edit', component: RouteHost },
+		{ path: '/accounts/:accountId(\\d+)/reconcile', name: 'accounts-reconcile', component: RouteHost },
 
 		{ path: '/reports', name: 'reports', component: RouteHost },
 		{ path: '/reports/costcenters', name: 'reports-costcenters', component: RouteHost },
