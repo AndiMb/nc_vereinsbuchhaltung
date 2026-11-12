@@ -148,7 +148,7 @@
 				{{ t('Keine überzähligen Bewegungen.') }}
 			</p>
 			<div v-else class="vbh-tablecard">
-				<table class="vbh-table" data-test="reconcile-surplus">
+				<table class="vbh-table vbh-reconcile-list" data-test="reconcile-surplus">
 					<thead>
 						<tr>
 							<th class="nowrap">
@@ -190,7 +190,7 @@
 				{{ t('Im Auszug fehlt nichts.') }}
 			</p>
 			<div v-else class="vbh-tablecard">
-				<table class="vbh-table" data-test="reconcile-missing">
+				<table class="vbh-table vbh-reconcile-list" data-test="reconcile-missing">
 					<thead>
 						<tr>
 							<th class="nowrap">
@@ -224,7 +224,7 @@
 					{{ t('Diese Zeilen des Auszugs haben ein Gegenstück in der App, das aber außerhalb des Zeitraums gebucht ist.') }}
 				</p>
 				<div class="vbh-tablecard">
-					<table class="vbh-table" data-test="reconcile-shifted">
+					<table class="vbh-table vbh-reconcile-list" data-test="reconcile-shifted">
 						<thead>
 							<tr>
 								<th class="nowrap">
@@ -453,11 +453,16 @@ export default {
 
 .vbh-reconcile-balance, .vbh-reconcile-breakdown { width: auto; min-width: min(100%, 420px); }
 
+.vbh-reconcile-balance tbody tr > :first-child { white-space: nowrap; }
+
 .vbh-reconcile-breakdown caption { padding: 8px 12px 4px; text-align: start; font-weight: 600; }
 
 .vbh-reconcile-total td { border-top: 2px solid var(--color-border-dark, #ccc); font-weight: 700; }
 
 .vbh-reconcile-diff { color: var(--color-error-text, #c00); font-weight: 700; }
+
+/* Schmale Fenster: die Listen laufen in der Tabellenkarte quer, statt die Textspalte zu zerdrücken. */
+.vbh-reconcile-list { min-width: 560px; }
 
 .vbh-reconcile-export { margin: 16px 0; }
 </style>

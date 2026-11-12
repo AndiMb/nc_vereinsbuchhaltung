@@ -19,6 +19,15 @@ verwenden, z. B. `**Neu:**`.
 
 ## [Unreleased]
 
+**Neu:**
+- **Kontoabstimmung** (#159): Am Geldkonto (Reiter „Konten") lässt sich ein
+  Kontoauszug der Bank hochladen und Zeile für Zeile mit dem Konto
+  vergleichen. Die App zeigt, was in der App zu viel ist (etwa doppelte
+  Buchungen), was fehlt und was zeitlich verschoben gebucht wurde, und
+  erklärt bei Auszügen mit Salden die Differenz zum Kontostand. Es wird
+  nur verglichen – nichts wird importiert oder gespeichert. Für alle ab
+  Revisor; Handbuch Kapitel 5.9.
+
 ## [0.53.0] – 2026-11-12
 
 **Neu:**

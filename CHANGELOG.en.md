@@ -17,6 +17,15 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 
 ## [Unreleased]
 
+**New:**
+- **Account reconciliation** (#159): on a cash account ("Accounts" tab) you
+  can upload a bank statement and compare it row by row with the account.
+  The app shows what is surplus in the app (entries recorded twice, for
+  example), what is missing and what was dated in a different period, and
+  for statements with balances it explains the difference to the account
+  balance. It only compares – nothing is imported or stored. For everyone
+  from the auditor role upwards; manual chapter 5.9.
+
 ## [0.53.0] – 2026-11-12
 
 **New:**

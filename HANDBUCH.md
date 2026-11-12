@@ -992,6 +992,9 @@ Verein genau ein Geldkonto, steht dort weiterhin dessen Name. Die
 Aufschlüsselung nach Konten erscheint als Tooltip, wenn die Maus auf der
 Zahl steht; Screenreader lesen sie ohne Umweg mit vor.
 
+Ob ein Geldkonto mit dem Kontoauszug der Bank übereinstimmt, prüft die
+**Kontoabstimmung** (Kapitel 5.9).
+
 ### 5.6 Steuerliche Sphären
 
 Gemeinnützige Vereine müssen ihre Einnahmen und Ausgaben in bis zu vier
@@ -1182,6 +1185,71 @@ Funktion erneut einschalten. Nur wer an einer Zeile das Konto oder den Betrag
 
 **Alle Daten löschen** (Kapitel 12.1) entfernt auch die Kostenstellen und
 ihre Zuordnungen.
+
+### 5.9 Kontoabstimmung: Geldkonto gegen den Kontoauszug prüfen
+
+Stimmt das Geldkonto in der App mit dem überein, was die Bank ausweist? Die
+**Kontoabstimmung** vergleicht einen Kontoauszug Zeile für Zeile mit den
+Bewegungen eines Geldkontos und zeigt, was nicht zusammenpasst – etwa eine
+doppelt erfasste Buchung oder einen Umsatz, der nie in der App angekommen
+ist. Sie ist die Prüfung, die Kassenprüfer am Jahresende verlangen, und sie
+steht allen ab der Rolle Revisor offen.
+
+**Es wird nur verglichen.** Der Auszug wird weder importiert noch
+gespeichert; Buchungen und Bankumsätze bleiben, wie sie sind. Zum Einlesen
+von Umsätzen dient weiter der Import (Kapitel 3.2).
+
+**So geht es:**
+
+1. Reiter **Konten** → das Geldkonto anklicken → **Kontoabstimmung**.
+2. **Datei wählen**: den Kontoauszug aus dem Onlinebanking, in denselben
+   Formaten wie beim Import (CSV-CAMT, CAMT.053, MT940). Der Abgleich
+   startet sofort.
+3. Optional den Zeitraum mit **Von** und **Bis** einengen und erneut
+   **Abgleichen**. Ohne Angabe gilt der Zeitraum des Auszugs.
+
+Enthält der Auszug mehrere Konten, zählen nur die Zeilen des gewählten
+Geldkontos; maßgeblich ist dessen IBAN (Kapitel 2.2). Passt der Auszug zu
+keinem Konto, sagt die Meldung, welche IBAN in der Datei steht.
+
+**Was das Ergebnis zeigt:**
+
+| Liste | Bedeutung | Typische Ursache |
+|---|---|---|
+| **Zu viel in der App** | Bewegungen auf dem Konto, die der Auszug nicht kennt | doppelt gebucht, falsches Geldkonto, falscher Betrag oder Tag; auch ein Eröffnungssaldo, der im Zeitraum gebucht ist |
+| **Fehlt in der App** | Zeilen des Auszugs ohne Buchung und ohne Bankumsatz | Auszug nicht importiert, Umsatz verworfen, Barbewegung vergessen |
+| **Zeitlich verschoben** | Zeilen mit Gegenstück, das aber außerhalb des Zeitraums gebucht ist | Buchung über den Monats- oder Jahreswechsel hinweg |
+
+Als Bewegung der App zählen die Buchungen auf dem Geldkonto **und** die noch
+nicht zugeordneten Bankumsätze dieses Kontos – ein importierter, aber noch
+nicht zugeordneter Umsatz gilt also nicht als fehlend. Aus „Zu viel in der
+App" führt **Zur Buchung** in die Buchungsliste des Tages, **Zum Umsatz** zu
+den noch zuzuordnenden Bankumsätzen.
+
+**Datumstoleranz:** Bank und Buchung tragen nicht immer denselben Tag
+(Buchungstag, Wertstellung, Belegdatum). Die Toleranz – ab Werk 3 Tage,
+höchstens 10 – erlaubt diesen Abstand. Gleicher Betrag am selben Tag hat
+stets Vorrang.
+
+**Saldenprüfung:** Trägt der Auszug Salden (MT940, CAMT.053, CSV mit
+Saldospalte), stellt die App Anfangs- und Endsaldo der Bank dem eigenen
+Stand gegenüber. „App" ist der Kontostand laut Buchungen zuzüglich der noch
+nicht zugeordneten Bankumsätze; die Differenz ist App − Bank. Darunter
+steht, wie sich die Differenz am Ende zusammensetzt: Differenz am Anfang,
+zu viel, fehlend, verschoben. Bleibt ein **nicht erklärter Rest**, passen
+Zeilen und Salden des Auszugs nicht zusammen – die App nennt dann die
+Stellen, an denen die Salden des Auszugs nicht lückenlos aufgehen (meist
+fehlen Zeilen). Eine Differenz schon am Anfang weist auf einen falschen
+Eröffnungssaldo (Kapitel 2.3) oder einen Fehler vor dem Zeitraum hin.
+Auszüge ohne Salden werden nur zeilenweise verglichen.
+
+**Als CSV herunterladen** sichert das Ergebnis, etwa für die Kassenprüfung.
+
+> **Nicht verwechseln:** Die *Geldkonten-Abstimmung* (Kapitel 5.5) zeigt nur,
+> wie viel an Bankumsätzen noch nicht zugeordnet ist. Der *Bankabgleich* des
+> Beitragseinzugs (Kapitel 13.10) verbucht Lastschriften und
+> Rücklastschriften. Die Kontoabstimmung prüft dagegen, ob Konto und
+> Kontoauszug übereinstimmen – und ändert nichts.
 
 ---
 
