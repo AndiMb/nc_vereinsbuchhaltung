@@ -253,6 +253,15 @@ class MemberAnonymizationService {
 		if ($mandate->getDocumentFileId() === null) {
 			return;
 		}
+		if ($mandate->getDocumentFileId() === MandateDocumentService::APPDATA_FILE_ID) {
+			// App-intern abgelegt (aus einer eingespielten Sicherung, Issue #111).
+			$documents = $this->mandateDocuments;
+			$mandateId = $mandate->getId();
+			$this->transaction->afterCommit(static function () use ($documents, $mandateId): void {
+				$documents->deleteFromAppData($mandateId);
+			});
+			return;
+		}
 		$node = $this->mandateDocuments->nodeOrNull($mandate);
 		if ($node === null) {
 			return;

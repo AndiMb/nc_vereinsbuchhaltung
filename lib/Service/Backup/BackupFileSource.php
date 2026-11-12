@@ -62,7 +62,7 @@ class BackupFileSource {
 			if ($mandate->getDocumentFileId() === null) {
 				continue;
 			}
-			yield ['kind' => 'mandates', 'id' => $mandate->getId(), 'read' => fn (): ?string => $this->quiet(fn (): ?string => $this->mandateDocuments->nodeOrNull($mandate)?->getContent())];
+			yield ['kind' => 'mandates', 'id' => $mandate->getId(), 'read' => fn (): ?string => $this->mandateDocuments->contentOrNull($mandate)];
 		}
 	}
 

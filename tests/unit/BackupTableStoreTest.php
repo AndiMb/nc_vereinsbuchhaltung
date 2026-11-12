@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Tests\Unit;
 
 use OCA\Vereinsbuchhaltung\Exception\UserFacingException;
-use OCA\Vereinsbuchhaltung\Service\Backup\BackupTableStore;
+use OCA\Vereinsbuchhaltung\Tests\Unit\Support\RecordingBackupTables;
 use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\IConfig;
 use OCP\IDBConnection;
@@ -20,8 +20,11 @@ use PHPUnit\Framework\TestCase;
  */
 class BackupTableStoreTest extends TestCase {
 
-	/** Ersetzt die drei Stellen, an denen der Dienst die Datenbank berührt. */
-	private function store(string $platform, array $table = [], array $booleans = []): BackupTableStore {
+	/**
+	 * @param list<array<string, mixed>> $table
+	 * @param list<string> $booleans
+	 */
+	private function store(string $platform, array $table = [], array $booleans = []): RecordingBackupTables {
 		$db = $this->createMock(IDBConnection::class);
 		$db->method('getDatabaseProvider')->willReturn($platform);
 		$config = $this->createMock(IConfig::class);
@@ -29,31 +32,7 @@ class BackupTableStoreTest extends TestCase {
 		$l10n = $this->createMock(IL10N::class);
 		$l10n->method('t')->willReturnCallback(static fn (string $text, array $params = []): string => $params === [] ? $text : vsprintf($text, $params));
 
-		return new class($db, $config, $l10n, $table, $booleans) extends BackupTableStore {
-			/** @var list<array{table:string, values:array<string,mixed>, types:array<string,int>}> */
-			public array $inserted = [];
-			/** @var list<array{after:int, limit:int}> */
-			public array $queries = [];
-			public int $booleanLookups = 0;
-
-			public function __construct(IDBConnection $db, IConfig $config, IL10N $l10n, private array $table, private array $booleans) {
-				parent::__construct($db, $config, $l10n);
-			}
-
-			protected function fetchBlock(string $table, int $afterId, int $limit): array {
-				$this->queries[] = ['after' => $afterId, 'limit' => $limit];
-				return array_slice(array_values(array_filter($this->table, static fn (array $r): bool => $r['id'] > $afterId)), 0, $limit);
-			}
-
-			protected function insertRow(string $table, array $values, array $types): void {
-				$this->inserted[] = ['table' => $table, 'values' => $values, 'types' => $types];
-			}
-
-			protected function loadBooleanColumns(string $table): array {
-				$this->booleanLookups++;
-				return $this->booleans;
-			}
-		};
+		return new RecordingBackupTables($db, $config, $l10n, $table, $booleans);
 	}
 
 	public function testRowsLiestBlockweiseInSchluesselreihenfolge(): void {
