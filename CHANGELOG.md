@@ -100,6 +100,11 @@ verwenden, z. B. `**Neu:**`.
   solche Nummer änderte, bekam „Interner Serverfehler“. Jetzt sagt die
   App, dass die Kontonummer bereits vergeben ist, und der Dialog bleibt
   mit den Eingaben offen.
+- **Druckseite des visuellen Gliederungsberichts** (#329): Eine Überschrift
+  oder ein Konto mit Unterzeilen steht im Aufriss nicht mehr als letzte Zeile
+  einer Seite, während die zugehörigen Zeilen erst auf der nächsten beginnen.
+  Die Kopfzeile der Tabelle bleibt einzeilig („Ist zu Plan“ brach bei
+  großen Beträgen um).
 
 ## [0.52.0] – 2026-11-09
 
