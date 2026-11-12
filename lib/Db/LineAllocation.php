@@ -25,6 +25,9 @@ class LineAllocation extends Entity {
 	protected $amountCents = 0;
 
 	public function __construct() {
+		// Pflichtspalte ohne Datenbank-Vorgabe: auch der Vorgabewert muss im INSERT stehen
+		// (der Setter merkt nur geänderte Werte vor, siehe EntityDefaultValueInsertTest).
+		$this->markFieldUpdated('amountCents');
 		$this->addType('lineId', 'integer');
 		$this->addType('costCenterId', 'integer');
 		$this->addType('amountCents', 'integer');

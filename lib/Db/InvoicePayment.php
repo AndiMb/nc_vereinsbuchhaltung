@@ -38,6 +38,9 @@ class InvoicePayment extends Entity implements \JsonSerializable {
 	protected $createdBy;
 
 	public function __construct() {
+		// Pflichtspalte ohne Datenbank-Vorgabe: auch der Vorgabewert muss im INSERT stehen
+		// (der Setter merkt nur geänderte Werte vor, siehe EntityDefaultValueInsertTest).
+		$this->markFieldUpdated('amountCents');
 		$this->addType('invoiceId', 'integer');
 		$this->addType('openItemId', 'integer');
 		$this->addType('bankTxId', 'integer');

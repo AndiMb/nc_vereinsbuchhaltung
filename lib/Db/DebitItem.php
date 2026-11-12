@@ -99,6 +99,9 @@ class DebitItem extends Entity implements \JsonSerializable {
 	public const ORIGINAL_DEBTOR_ACCOUNT_SMNDA = 'SMNDA';
 
 	public function __construct() {
+		// Pflichtspalte ohne Datenbank-Vorgabe: auch der Vorgabewert muss im INSERT stehen
+		// (der Setter merkt nur geänderte Werte vor, siehe EntityDefaultValueInsertTest).
+		$this->markFieldUpdated('amountCents');
 		$this->addType('batchId', 'integer');
 		$this->addType('openItemId', 'integer');
 		$this->addType('liveOpenItemId', 'integer');
