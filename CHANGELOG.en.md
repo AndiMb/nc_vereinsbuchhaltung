@@ -92,6 +92,14 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   (`from=`, `to=`). The jump from the visual view of the structured report
   sets “Bis” to the last day of the chosen snapshot month, so the list adds
   up to the figure that was clicked. With “Aktuell” it stays unfiltered.
+- **Account filter “inkl. Unterkonten” in the bookings list** (#326): when
+  the journal is filtered to an account that has sub-accounts, a checkbox
+  next to it also shows the bookings of all sub-accounts at any depth; in
+  the link this is `sub=1`. In the visual view of the structured report
+  parent accounts are therefore links too – in the breakdown and in the
+  deviation lists – and the list adds up to the figure that was clicked. If
+  a row does not count the sub-accounts because they sit in another section
+  of the template, the jump filters the account alone.
 
 **Fixed:**
 - **A contribution-free assignment stopped the daily claim run:** With an

@@ -1395,9 +1395,12 @@ The view speaks of **plan** and **actual**.
   expenses, the plan line and the dashed forecast.
 - **Breakdown by template:** every row of the template with traffic light
   and bar; account branches can be collapsed and expanded. A click on an
-  account without sub-accounts opens the bookings list of the period filtered
-  to that account. Accounts with sub-accounts are not links – in the
-  deviation lists neither – because their figures include the sub-accounts.
+  account opens the bookings list of the period filtered to that account.
+  For an account with sub-accounts – in the deviation lists as well –
+  "inkl. Unterkonten" is switched on there, because its figure includes the
+  sub-accounts. If a row does not count the sub-accounts (they sit in
+  another section of the template), the jump filters the account alone; if
+  it counts only some of them, the name is not a link.
   With a month as the snapshot the list ends on the last day of that month
   (field "Bis" of the bookings list) and so adds up to the figure that was
   clicked; with "Aktuell" it stays without a date filter.
@@ -1633,6 +1636,11 @@ the auditor from having to read through this entire manual.
   of booking dates, both days included – a quarter, say, or a single day.
   Each field works on its own; the cross next to them clears the filter. The
   range is part of the page's link, like the account filter.
+- **Account filter "inkl. Unterkonten"** in the journal: when the list is
+  filtered to an account that has sub-accounts, this checkbox appears next
+  to it. Switched on, the list shows the bookings of the account and of all
+  its sub-accounts at any depth – the way reports calculate the row of a
+  parent account. Without it the filter stays on exactly that one account.
 - **Gap check:** a warning automatically appears above the journal if
   posting numbers are missing or duplicated. The treasurer's report shows
   the same as a completeness line. In an open fiscal year, the app itself

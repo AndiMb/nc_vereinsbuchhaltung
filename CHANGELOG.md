@@ -94,6 +94,14 @@ verwenden, z. B. `**Neu:**`.
   `to=`). Der Sprung aus der visuellen Ansicht des Gliederungsberichts setzt
   „Bis“ auf den letzten Tag des gewählten Stands – die Liste summiert
   sich damit zum angeklickten Ist. Mit „Aktuell“ bleibt sie ungefiltert.
+- **Kontofilter „inkl. Unterkonten“ in der Buchungsliste** (#326): Ist das
+  Journal auf ein Konto mit Unterkonten gefiltert, zeigt ein Häkchen daneben
+  auch die Buchungen aller Unterkonten in jeder Tiefe; im Link steht das als
+  `sub=1`. In der visuellen Ansicht des Gliederungsberichts sind damit auch
+  Oberkonten Links – im Aufriss und in den Abweichungslisten –, und die
+  Liste summiert sich zur angeklickten Zahl. Zählt eine Zeile die
+  Unterkonten nicht mit, weil sie in einem anderen Abschnitt der Vorlage
+  stehen, filtert der Sprung nur das Konto selbst.
 
 **Behoben:**
 - **Beitragsfreie Zuweisung hielt den täglichen Forderungslauf an:** Gab es

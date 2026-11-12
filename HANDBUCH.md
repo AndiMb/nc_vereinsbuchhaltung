@@ -1422,10 +1422,13 @@ Die Ansicht spricht von **Plan** und **Ist**.
 - **Verlauf:** Diagramm mit dem kumulierten Ist je Monat für Einnahmen und
   Ausgaben, der Plan-Linie und der gestrichelten Hochrechnung.
 - **Aufriss nach Vorlage:** jede Zeile der Vorlage mit Ampel und Balken;
-  Kontoäste lassen sich ein- und ausklappen. Ein Klick auf ein Konto ohne
-  Unterkonten öffnet die Buchungsliste der Periode, gefiltert auf dieses
-  Konto. Konten mit Unterkonten sind keine Links – auch nicht in den
-  Abweichungslisten –, weil ihre Zahlen die Unterkonten einschließen. Mit
+  Kontoäste lassen sich ein- und ausklappen. Ein Klick auf ein Konto öffnet
+  die Buchungsliste der Periode, gefiltert auf dieses Konto. Bei einem Konto
+  mit Unterkonten – auch in den Abweichungslisten – ist dort „inkl.
+  Unterkonten“ eingeschaltet, weil seine Zahl die Unterkonten einschließt.
+  Zählt eine Zeile die Unterkonten nicht mit (sie stehen in einem anderen
+  Abschnitt der Vorlage), filtert der Sprung nur das Konto selbst; zählt sie
+  nur einen Teil davon, ist die Bezeichnung kein Link. Mit
   einem Monat als Stand endet die Liste am letzten Tag dieses Monats (Feld
   „Bis“ der Buchungsliste) und summiert sich so zum angeklickten Ist; mit
   „Aktuell“ bleibt sie ohne Datumsfilter.
@@ -1673,6 +1676,11 @@ Handbuch einzulesen.
   Spanne des Buchungsdatums ein, beide Tage eingeschlossen – etwa ein Quartal
   oder einen einzelnen Tag. Jedes Feld gilt für sich; das Kreuz daneben hebt
   den Filter auf. Die Spanne steht wie der Kontofilter im Link der Seite.
+- **Kontofilter „inkl. Unterkonten“** im Journal: Ist auf ein Konto mit
+  Unterkonten gefiltert, erscheint daneben dieses Häkchen. Eingeschaltet
+  zeigt die Liste die Buchungen des Kontos und aller seiner Unterkonten in
+  jeder Tiefe – so, wie Berichte die Zeile eines Oberkontos rechnen. Ohne
+  das Häkchen bleibt es bei genau dem einen Konto.
 - **Lückenprüfung:** Über dem Journal erscheint automatisch ein
   Warnhinweis, falls Buchungsnummern fehlen oder doppelt sind. Im
   Kassenbericht steht dasselbe als Vollständigkeitszeile. In einem offenen

@@ -4570,5 +4570,6 @@ OC.L10N.register("vereinsbuchhaltung", {
 	"Der Planwert konnte nicht gespeichert werden.": "De geplande waarde kon niet worden opgeslagen.",
 	"Budget planen": "Budget plannen",
 	"Buchungsdatum": "Boekingsdatum",
-	"Datumsfilter aufheben": "Datumfilter wissen"
+	"Datumsfilter aufheben": "Datumfilter wissen",
+	"Auch die Buchungen aller Unterkonten dieses Kontos zeigen": "Ook de boekingen van alle subrekeningen van deze rekening tonen"
 }, "nplurals=2; plural=(n != 1);");

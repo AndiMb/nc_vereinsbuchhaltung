@@ -362,7 +362,7 @@ test.describe('Gliederungsbericht visuell: Unterkonto unter geplantem Oberkonto'
 		await expect(breakdown).not.toContainText(CHILD_LABEL)
 	})
 
-	test('Oberkonto mit Unterkonto führt nicht in die Buchungen, das Unterkonto schon', async ({ page, request }) => {
+	test('Oberkonto führt samt Unterkonten in die Buchungen, das Unterkonto für sich', async ({ page, request }) => {
 		const data = await api.getJson(request, `${VISUAL_ROUTE}?template=${template.id}&asOf=current`)
 		const parentRow = data.rows.find((r) => r.kind === 'account' && r.accountId === parent.id)
 		expect(parentRow.flags).toContain('parent')
@@ -380,15 +380,24 @@ test.describe('Gliederungsbericht visuell: Unterkonto unter geplantem Oberkonto'
 
 		const childLink = breakdown.getByRole('button', { name: `Buchungen von ${CHILD_LABEL} zeigen` })
 		await expect(childLink).toBeVisible()
-		// Die Summe des Oberkontos schließt das Unterkonto ein: kein Link,
-		// aber weiter der Umschalter für seine Unterkonten.
-		await expect(breakdown.getByRole('button', { name: `Buchungen von ${PARENT_LABEL} zeigen` })).toHaveCount(0)
+		// Die Summe des Oberkontos schließt das Unterkonto ein: der Sprung schaltet
+		// in der Buchungsliste „inkl. Unterkonten“ ein (#326). Der Umschalter für
+		// seine Unterkonten bleibt daneben.
 		const parentRowEl = breakdown.locator('.vbh-visual-row', { hasText: PARENT_LABEL })
-		await expect(parentRowEl.locator('.vbh-visual-row__text')).toHaveText(PARENT_LABEL)
 		await expect(parentRowEl.getByRole('button', { name: `Unterkonten von ${PARENT_LABEL}` })).toBeVisible()
+		await parentRowEl.getByRole('button', { name: `Buchungen von ${PARENT_LABEL} zeigen` }).click()
+		await expect(page).toHaveURL(new RegExp(`/bookings\\?.*account=${parent.id}(&|$)`))
+		await expect(page).toHaveURL(/[?&]sub=1(&|$)/)
+		await expect(visibleSection(page).getByLabel('inkl. Unterkonten')).toBeChecked()
+		await expect(visibleSection(page).getByText('Nebenkosten auf dem Unterkonto').first()).toBeVisible()
 
-		await childLink.click()
+		// Das Unterkonto selbst hat keine Unterkonten: genau dieses Konto, ohne die Option.
+		await page.goBack()
+		await expect(visibleSection(page).locator('.vbh-visual-breakdown')).toBeVisible()
+		await visibleSection(page).locator('.vbh-visual-breakdown').getByRole('button', { name: `Buchungen von ${CHILD_LABEL} zeigen` }).click()
 		await expect(page).toHaveURL(new RegExp(`/bookings\\?.*account=${child.id}(&|$)`))
+		await expect(page).not.toHaveURL(/[?&]sub=/)
+		await expect(visibleSection(page).getByLabel('inkl. Unterkonten')).toHaveCount(0)
 		await expect(visibleSection(page).getByText('Nebenkosten auf dem Unterkonto').first()).toBeVisible()
 	})
 })

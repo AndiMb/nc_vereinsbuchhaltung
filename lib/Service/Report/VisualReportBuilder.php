@@ -26,10 +26,12 @@ final class VisualReportBuilder {
 	 * @param array<string, int> $thresholds
 	 * @param list<int> $coveredIds Konten ohne eigenen Plan, deren Plan auf einem Vorfahren liegt
 	 * @param list<int> $parentIds Konten mit Unterkonten (ihre Zahlen schließen die Unterkonten ein)
+	 * @param array<int, array{own:int, subtree:int}> $parentActual Ist je Oberkonto: nur das Konto
+	 *                                                              und samt aller Unterkonten
 	 * @return array{rows: list<array<string, mixed>>, kpis: array<string, mixed>,
 	 *               distribution: array<string, mixed>, deviations: array<string, mixed>}
 	 */
-	public static function build(array $rows, array $planLevel, array $totals, int $elapsed, int $total, array $thresholds, array $coveredIds = [], array $parentIds = []): array {
+	public static function build(array $rows, array $planLevel, array $totals, int $elapsed, int $total, array $thresholds, array $coveredIds = [], array $parentIds = [], array $parentActual = []): array {
 		// Fälliger Anteil des Plans als Bruch [Zähler, Nenner], damit
 		// BudgetStatus ganzzahlig vergleichen kann.
 		$factors = [
@@ -39,7 +41,7 @@ final class VisualReportBuilder {
 
 		$parents = array_fill_keys($parentIds, true);
 		return [
-			'rows' => self::buildRows($rows, $factors, $thresholds, array_fill_keys($coveredIds, true), $parents),
+			'rows' => self::buildRows($rows, $factors, $thresholds, array_fill_keys($coveredIds, true), $parents, $parentActual),
 			'kpis' => self::buildKpis($totals, $factors, $elapsed, $total, $thresholds),
 			'distribution' => self::buildDistribution($planLevel, $factors, $thresholds),
 			'deviations' => self::buildDeviations($planLevel, $factors, $thresholds, $parents),
@@ -75,9 +77,10 @@ final class VisualReportBuilder {
 	 * @param array<string, int> $thresholds
 	 * @param array<int, true> $covered Konto-Ids, deren Plan auf einem Vorfahren liegt
 	 * @param array<int, true> $parents Konto-Ids mit Unterkonten
+	 * @param array<int, array{own:int, subtree:int}> $parentActual
 	 * @return list<array<string, mixed>>
 	 */
-	private static function buildRows(array $rows, array $factors, array $thresholds, array $covered, array $parents): array {
+	private static function buildRows(array $rows, array $factors, array $thresholds, array $covered, array $parents, array $parentActual): array {
 		$out = [];
 		foreach ($rows as $row) {
 			$kind = $row['kind'] ?? '';
@@ -103,15 +106,35 @@ final class VisualReportBuilder {
 			} else {
 				$row['status'] = self::status((string)($row['nature'] ?? 'expense'), $plan, $actual, $factors, $thresholds);
 			}
-			// Ein Oberkonto zeigt die Summe samt Unterkonten, auch wenn die
-			// Vorlage sie nicht einzeln zeigt. Die Buchungsliste filtert aber
-			// genau ein Konto – die Oberfläche bietet hier keinen Sprung an.
 			if ($kind === 'account' && isset($parents[(int)($row['accountId'] ?? 0)])) {
-				$row['flags'] = [...(is_array($row['flags'] ?? null) ? $row['flags'] : []), 'parent'];
+				$flag = self::parentFlag($actual, $parentActual[(int)$row['accountId']] ?? null);
+				if ($flag !== null) {
+					$row['flags'] = [...(is_array($row['flags'] ?? null) ? $row['flags'] : []), $flag];
+				}
 			}
 			$out[] = $row;
 		}
 		return $out;
+	}
+
+	/**
+	 * Was zählt die Zeile eines Oberkontos? Danach richtet sich der Sprung in
+	 * die Buchungsliste (Issue #326), denn die Liste soll sich zum Ist der
+	 * Zeile summieren:
+	 *
+	 * - `parent`: das Konto samt allen Unterkonten – die Liste filtert ebenso.
+	 * - kein Kennzeichen: nur das Konto selbst (seine Unterkonten stehen in
+	 *   einem anderen Abschnitt der Vorlage) – die Liste filtert genau dieses Konto.
+	 * - `mixed`: nur ein Teil der Unterkonten, oder die Zeile ist eine reine
+	 *   Zwischenüberschrift – kein Filter der Liste trifft die Zahl, kein Sprung.
+	 *
+	 * @param array{own:int, subtree:int}|null $known null: nichts bekannt, wie bisher `parent`
+	 */
+	private static function parentFlag(int $actual, ?array $known): ?string {
+		if ($known === null || $actual === $known['subtree']) {
+			return 'parent';
+		}
+		return $actual === $known['own'] ? null : 'mixed';
 	}
 
 	/**

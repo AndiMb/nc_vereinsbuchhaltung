@@ -187,16 +187,18 @@
 											@click="toggle(entry.index)">
 											<NcIconSvgWrapper :path="collapsed.has(entry.index) ? mdiChevronRight : mdiChevronDown" :size="18" inline />
 										</button>
-										<!-- Die Kontobezeichnung führt in die Buchungsliste mit diesem Kontofilter –
-										     nicht bei Oberkonten: ihre Zahlen schließen die Unterkonten ein,
-										     die Buchungsliste filtert aber genau ein Konto. -->
+										<!-- Die Kontobezeichnung führt in die Buchungsliste mit diesem Kontofilter.
+										     Zählt die Zeile eines Oberkontos die Unterkonten mit (parent),
+										     schaltet der Sprung dort „inkl. Unterkonten“ ein (openAccount).
+										     Zählt sie nur einen Teil davon (mixed), träfe kein Filter die
+										     Zahl: dann bleibt die Bezeichnung Text. -->
 										<button
-											v-if="entry.row.kind === 'account' && entry.row.accountId && !hasFlag(entry.row, 'parent')"
+											v-if="entry.row.kind === 'account' && entry.row.accountId && !hasFlag(entry.row, 'mixed')"
 											type="button"
 											class="vbh-visual-row__link"
 											:class="{ 'vbh-visual-row__link--indent': !hasToggle(entry) }"
 											:aria-label="t('Buchungen von {konto} zeigen', { konto: rowLabel(entry.row) })"
-											@click="openAccount(entry.row.accountId)">
+											@click="openAccount(entry.row.accountId, hasFlag(entry.row, 'parent'))">
 											{{ rowLabel(entry.row) }}
 										</button>
 										<span
@@ -290,8 +292,9 @@ export default {
 	},
 
 	// state: { asOf, basis } für den Drucklink der Elternansicht
-	// open-account: { accountId, until } einer Kontozeile oder Abweichung (Sprung
-	// zu den Buchungen); until = letzter Tag des Stands, null bei „Aktuell“
+	// open-account: { accountId, until, includeSub } einer Kontozeile oder
+	// Abweichung (Sprung zu den Buchungen); until = letzter Tag des Stands, null
+	// bei „Aktuell“; includeSub = Oberkonto, die Liste zeigt die Unterkonten mit
 	emits: ['loaded', 'open-account', 'open-spheres', 'state'],
 
 	setup() {
@@ -465,10 +468,11 @@ export default {
 
 		// Sprung in die Buchungsliste. Mit einem Monat als Stand zählt der Bericht
 		// nur bis zu dessen letztem Tag – die Liste bekommt dieselbe Grenze, damit
-		// sie sich zum angeklickten Ist summiert (Issue #328).
-		openAccount(accountId) {
+		// sie sich zum angeklickten Ist summiert (Issue #328). Ein Oberkonto zählt
+		// samt Unterkonten, also filtert die Liste dort ebenso (Issue #326).
+		openAccount(accountId, includeSub = false) {
 			const { value, until } = this.data.asOf
-			this.$emit('open-account', { accountId, until: value === 'current' ? null : until })
+			this.$emit('open-account', { accountId, until: value === 'current' ? null : until, includeSub: !!includeSub })
 		},
 
 		// Auf- und Zuklappen nur ohne Ampelfilter und nur bei Kontozeilen mit Unterkonten.
