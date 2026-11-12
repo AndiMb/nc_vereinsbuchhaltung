@@ -78,6 +78,11 @@ describe('buildMemberRow – Beitrag', () => {
 		})
 	})
 
+	it('zeigt bei einem Jahresbetrag den Jahresbetrag, nicht 12 × den gerundeten Monatswert (Issue #270)', () => {
+		const row = build({ assignments: [assignment({ intervalMonths: 12, monthlyAmountCents: 417, annualAmountCents: 5000 })] })
+		expect(row.fee).toMatchObject({ amount: 50, frequencyLabel: 'jährlich', free: false })
+	})
+
 	it('schreibt ungewöhnliche Turnusse aus', () => {
 		const row = build({ assignments: [assignment({ intervalMonths: 2 })] })
 		expect(row.fee.frequencyLabel).toBe('alle 2 Monate')

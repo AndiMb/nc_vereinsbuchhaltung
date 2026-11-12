@@ -269,8 +269,9 @@ export default {
 	createContributionGroup: (data) => axios.post(url('/contribution-groups'), data),
 	updateContributionGroup: (id, data) => axios.put(url(`/contribution-groups/${id}`), data),
 	deleteContributionGroup: (id) => axios.delete(url(`/contribution-groups/${id}`)),
-	previewMinAmountIncrease: (id, newMinMonthlyAmount) => axios.get(url(`/contribution-groups/${id}/min-amount-preview`), { params: { newMinMonthlyAmount } }),
-	applyMinAmountIncrease: (id, newMinMonthlyAmount) => axios.post(url(`/contribution-groups/${id}/min-amount-increase`), { newMinMonthlyAmount }),
+	// `amount` ist { newMinMonthlyAmount } oder – bei Gruppen mit Jahresbetrag (Issue #270) – { newMinAnnualAmount }
+	previewMinAmountIncrease: (id, amount) => axios.get(url(`/contribution-groups/${id}/min-amount-preview`), { params: amount }),
+	applyMinAmountIncrease: (id, amount) => axios.post(url(`/contribution-groups/${id}/min-amount-increase`), amount),
 
 	// Zuweisungen (Issue #68)
 	listAssignments: (memberId) => axios.get(url('/assignments'), { params: memberId ? { memberId } : {} }),

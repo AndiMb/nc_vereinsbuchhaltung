@@ -67,10 +67,10 @@ class SelfServiceProvider implements IProvider {
 			SelfServiceMandateService::SUBJECT_REVOKED => $l->t('SEPA-Lastschriftmandat widerrufen'),
 			SelfServiceMandateService::SUBJECT_DRAFT_DISCARDED => $l->t('Mandats-Entwurf verworfen'),
 			SelfServiceMandateService::SUBJECT_RECONFIRMED => $l->t('Mandatstext des SEPA-Lastschriftmandats bestätigt'),
-			self::SUBJECT_CONTRIBUTION_AMOUNT_CHANGED => $l->t(
-				'Monatsbeitrag geändert: %1$s → %2$s (wirkt ab %3$s)',
-				[$this->money((int)($params['from'] ?? 0)), $this->money((int)($params['to'] ?? 0)), isset($params['effectiveFrom']) ? GermanDate::format((string)$params['effectiveFrom']) : '?'],
-			),
+			// `basis = year`: Beträge einer Gruppe mit Jahresbetrag (Issue #270); ohne den Schlüssel sind es Monatswerte.
+			self::SUBJECT_CONTRIBUTION_AMOUNT_CHANGED => ($params['basis'] ?? '') === 'year'
+				? $l->t('Jahresbeitrag geändert: %1$s → %2$s (wirkt ab %3$s)', $this->amountChangeParams($params))
+				: $l->t('Monatsbeitrag geändert: %1$s → %2$s (wirkt ab %3$s)', $this->amountChangeParams($params)),
 			self::SUBJECT_CONTRIBUTION_INTERVAL_CHANGED => $l->t(
 				'Turnus geändert: alle %1$d Monate → alle %2$d Monate (wirkt ab %3$s)',
 				[$params['from'] ?? 0, $params['to'] ?? 0, isset($params['effectiveFrom']) ? GermanDate::format((string)$params['effectiveFrom']) : '?'],
@@ -87,6 +87,11 @@ class SelfServiceProvider implements IProvider {
 		$event->setRichSubject($text);
 		$event->setIcon($this->urlGenerator->getAbsoluteURL($this->urlGenerator->imagePath(Application::APP_ID, 'app-dark.svg')));
 		return $event;
+	}
+
+	/** @return array{0:string,1:string,2:string} alter Betrag, neuer Betrag, „wirkt ab“ */
+	private function amountChangeParams(array $params): array {
+		return [$this->money((int)($params['from'] ?? 0)), $this->money((int)($params['to'] ?? 0)), isset($params['effectiveFrom']) ? GermanDate::format((string)$params['effectiveFrom']) : '?'];
 	}
 
 	private function money(int $cents): string {

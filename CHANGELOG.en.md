@@ -18,6 +18,15 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 ## [Unreleased]
 
 **New:**
+- **Annual fees** (#270): a contribution group can now state its amounts
+  *per year* instead of *per month* (*Contributions → Contribution groups →
+  Amounts apply*). A full contribution year then costs exactly the annual
+  fee – €50 a year stays €50.00 instead of 12 × €4.17 = €50.04. Each group
+  decides whether a partial year is prorated (annual fee × months ÷ 12,
+  rounded to the cent) or the full annual fee is due. Dialogs, lists, "My
+  contribution", receipt mails and the member import show and expect the
+  annual fee for these groups; collection is once a year only. Existing
+  groups keep their amounts per month.
 - **Account reconciliation** (#159): on a cash account ("Accounts" tab) you
   can upload a bank statement and compare it row by row with the account.
   The app shows what is surplus in the app (entries recorded twice, for

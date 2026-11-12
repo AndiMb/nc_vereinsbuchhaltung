@@ -2249,7 +2249,7 @@ zusätzliche Spalten (Stimmlage …) werden einfach übergangen:
 | Mandat am | `15.01.2026` | ja, sobald eine IBAN dasteht |
 | Mandatsreferenz | `ALT-0001` | nein, sonst vergibt die App eine |
 | Beitragsgruppe | `Chormitglieder` | ja, sobald ein Beitrag entstehen soll – gibt es nur eine Gruppe, darf die Spalte fehlen |
-| Betrag | `8,00` | nur wenn ein Beitrag entstehen soll – der **Monatsbeitrag**, unabhängig vom Turnus. **`0`** bedeutet beitragsfrei (Passiv-, Ehren-, Fördermitglieder, Pausen). Leer, aber mit Start: der Standardbeitrag der Beitragsgruppe |
+| Betrag | `8,00` | nur wenn ein Beitrag entstehen soll – der **Monatsbeitrag**, unabhängig vom Turnus (bei einer Beitragsgruppe mit Beträgen *pro Jahr* der **Jahresbeitrag**, siehe 13.4). **`0`** bedeutet beitragsfrei (Passiv-, Ehren-, Fördermitglieder, Pausen). Leer, aber mit Start: der Standardbeitrag der Beitragsgruppe |
 | Frequenz | `monatlich` | nein – ohne Angabe gilt **jährlich**, bei leerem Betrag der Standard-Turnus der Beitragsgruppe; bestimmt nur den Turnus, nicht den Betrag |
 | Start | `01.02.2026` | ja, sobald ein Betrag über 0 dasteht – darf nicht in der Vergangenheit liegen. Bei **0 €** darf er fehlen: die Zuweisung gilt dann ab dem Importtag |
 
@@ -2317,6 +2317,20 @@ Was ein Mitglied zahlt, steht in einer **Zuweisung** zu einer
   setzen Sie über **„Untergrenze anheben"**: die Vorschau nennt vorher die
   betroffenen Zuweisungen, und bereits eingezogene Perioden werden nie neu
   berechnet.
+- **Beträge pro Jahr:** Steht der Beitrag in Ihrer Satzung als Jahresbetrag
+  (etwa 50 € im Jahr), stellen Sie an der Gruppe **„Beträge gelten" → *pro
+  Jahr*** ein. Untergrenze, Standardbeitrag und der Beitrag jeder Zuweisung
+  sind dann Jahresbeträge, und ein volles Beitragsjahr kostet genau diesen
+  Betrag – 50 € lassen sich nicht ohne Rest auf zwölf Monate verteilen
+  (12 × 4,17 € wären 50,04 €). Eingezogen wird bei diesen Gruppen nur
+  jährlich. Der Schalter **„Angebrochenes Beitragsjahr anteilig berechnen"**
+  legt fest, was bei Ein- oder Austritt im laufenden Jahr gilt: eingeschaltet
+  Jahresbeitrag × Monate ÷ 12, auf den Cent gerundet (50 € ab Juni sind
+  29,17 €), ausgeschaltet der volle Jahresbeitrag. Den Schalter können Sie
+  jederzeit ändern, er wirkt auf künftig erzeugte Forderungen. Die Angabe *pro
+  Monat* oder *pro Jahr* selbst steht fest, sobald die Gruppe Zuweisungen
+  hat; eine Zuweisung wechselt auch nicht zwischen Gruppen mit
+  unterschiedlicher Angabe – beenden Sie sie und legen Sie eine neue an.
 - Die **Zuweisung** verbindet ein Mitglied mit einer Gruppe: *Monatsbeitrag*,
   *Turnus*, *Zahlungsart* (*Lastschrift* oder *Überweisung*) sowie *Gültig ab*
   und optional *Gültig bis*. Der **Monatsbeitrag ist der Ausgangswert**: der

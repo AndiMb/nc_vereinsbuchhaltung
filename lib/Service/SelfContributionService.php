@@ -73,10 +73,10 @@ class SelfContributionService {
 	 * @throws \InvalidArgumentException bei ungültigen Werten oder gesperrter Änderung
 	 * @throws DoesNotExistException wenn die Zuweisung nicht existiert oder nicht dem eigenen Mitglied gehört
 	 */
-	public function preview(int $assignmentId, ?int $monthlyAmountCents, ?int $intervalMonths, ?string $paymentMethod = null): array {
+	public function preview(int $assignmentId, ?int $monthlyAmountCents, ?int $intervalMonths, ?string $paymentMethod = null, ?int $annualAmountCents = null): array {
 		$assignment = $this->assertOwnership($assignmentId);
 		$this->assertPaymentMethodAllowed($assignment, $paymentMethod);
-		$preview = $this->assignments->previewChange($assignmentId, $monthlyAmountCents, $intervalMonths, null, $paymentMethod);
+		$preview = $this->assignments->previewChange($assignmentId, $monthlyAmountCents, $intervalMonths, null, $paymentMethod, $annualAmountCents);
 		$this->assertNotLocked($preview);
 		return $preview;
 	}
@@ -93,13 +93,13 @@ class SelfContributionService {
 	 * @throws \InvalidArgumentException bei ungültigen Werten oder gesperrter Änderung
 	 * @throws DoesNotExistException wenn die Zuweisung nicht existiert oder nicht dem eigenen Mitglied gehört
 	 */
-	public function apply(int $assignmentId, ?int $monthlyAmountCents, ?int $intervalMonths, ?string $paymentMethod = null): array {
+	public function apply(int $assignmentId, ?int $monthlyAmountCents, ?int $intervalMonths, ?string $paymentMethod = null, ?int $annualAmountCents = null): array {
 		$assignment = $this->assertOwnership($assignmentId);
 		$this->assertPaymentMethodAllowed($assignment, $paymentMethod);
 		// Erst die Vorschau (validiert Untergrenze/erlaubten Turnus und
 		// berechnet "wirkt ab" GENAU wie update() es gleich tun wird) - bei
 		// einem Fehler wird gar nichts gespeichert.
-		$preview = $this->assignments->previewChange($assignmentId, $monthlyAmountCents, $intervalMonths, null, $paymentMethod);
+		$preview = $this->assignments->previewChange($assignmentId, $monthlyAmountCents, $intervalMonths, null, $paymentMethod, $annualAmountCents);
 		$this->assertNotLocked($preview);
 
 		// $assignment bleibt der Stand VOR der Änderung: update() lädt sich seine eigene Kopie.
@@ -111,6 +111,8 @@ class SelfContributionService {
 			ActorContextService::TYPE_MEMBER,
 			$this->actorContext->actorUid(),
 			paymentMethod: $paymentMethod,
+			// Bei einer Gruppe mit Jahresbetrag (Issue #270) kommt der neue Beitrag als Jahresbetrag.
+			annualAmountCents: $annualAmountCents,
 		);
 
 		$this->notify($assignment, $updated, $preview);
@@ -125,12 +127,15 @@ class SelfContributionService {
 		$assignmentId = (int)$before->getId();
 
 		$whatParts = [];
-		if ($after->getMonthlyAmountCents() !== $before->getMonthlyAmountCents()) {
-			$whatParts[] = $this->l10n->t('Ihr Monatsbeitrag wurde von %1$s auf %2$s geändert.', [$this->euro($before->getMonthlyAmountCents()), $this->euro($after->getMonthlyAmountCents())]);
+		// Betrag in der Betragsangabe der Gruppe: bei Jahresgruppen (Issue #270) der Jahresbeitrag, nicht der gerundete Monatswert.
+		if ($after->amountCents() !== $before->amountCents()) {
+			$whatParts[] = $after->isAnnual()
+				? $this->l10n->t('Ihr Jahresbeitrag wurde von %1$s auf %2$s geändert.', [$this->euro($before->amountCents()), $this->euro($after->amountCents())])
+				: $this->l10n->t('Ihr Monatsbeitrag wurde von %1$s auf %2$s geändert.', [$this->euro($before->amountCents()), $this->euro($after->amountCents())]);
 			if ($ncUserId !== null) {
 				$this->activity->publish($ncUserId, SelfServiceProvider::SUBJECT_CONTRIBUTION_AMOUNT_CHANGED, [
-					'from' => $before->getMonthlyAmountCents(), 'to' => $after->getMonthlyAmountCents(), 'effectiveFrom' => $preview['effectiveFrom'],
-				], 'assignment', $assignmentId);
+					'from' => $before->amountCents(), 'to' => $after->amountCents(), 'effectiveFrom' => $preview['effectiveFrom'],
+				] + ($after->isAnnual() ? ['basis' => 'year'] : []), 'assignment', $assignmentId);
 			}
 		}
 		if ($after->getIntervalMonths() !== $before->getIntervalMonths()) {

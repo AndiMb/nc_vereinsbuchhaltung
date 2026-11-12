@@ -243,6 +243,64 @@ class ClaimGenerationServiceTest extends TestCase {
 		$this->assertSame('2026-06-30', $claim->getPeriodEnd());
 	}
 
+	/** Gruppe mit Jahresbetrag (Issue #270). */
+	private function annualGroup(bool $prorate): ContributionGroup {
+		$g = $this->group();
+		$g->setAmountBasis(ContributionGroup::BASIS_YEAR);
+		$g->setProrate($prorate);
+		return $g;
+	}
+
+	/** Zuweisung über 50 €/Jahr; der Monatswert 417 ist nur der gerundete Hilfswert. */
+	private function annualAssignment(string $validFrom = '2026-01-01', ?string $validTo = null): Assignment {
+		$a = $this->assignment(monthlyAmountCents: 417, validFrom: $validFrom, validTo: $validTo);
+		$a->setAnnualAmountCents(5000);
+		return $a;
+	}
+
+	public function testJahresbetragErgibtImVollenJahrExaktDenJahresbetrag(): void {
+		$this->assignments->method('findActiveAsOf')->willReturn([$this->annualAssignment()]);
+		$this->groups->method('find')->willReturn($this->annualGroup(true));
+		$this->setMandateActive(true);
+
+		$this->service('2025-12-14')->generateDue();
+
+		// Nicht 12 × 4,17 € = 50,04 €.
+		$this->assertSame(5000, $this->store[0]->getAmountCents());
+	}
+
+	public function testJahresbetragWirdBeiBeitrittImJahrAnteiligGerundet(): void {
+		$this->assignments->method('findActiveAsOf')->willReturn([$this->annualAssignment('2026-06-01')]);
+		$this->groups->method('find')->willReturn($this->annualGroup(true));
+		$this->setMandateActive(true);
+
+		$this->service('2026-05-14')->generateDue();
+
+		// Juni bis Dezember = 7 Monate: 50 € × 7 ÷ 12 = 29,17 €.
+		$this->assertSame(2917, $this->store[0]->getAmountCents());
+	}
+
+	public function testJahresbetragOhneAnteiligeBerechnungBleibtBeiBeitrittImJahrVoll(): void {
+		$this->assignments->method('findActiveAsOf')->willReturn([$this->annualAssignment('2026-06-01')]);
+		$this->groups->method('find')->willReturn($this->annualGroup(false));
+		$this->setMandateActive(true);
+
+		$this->service('2026-05-14')->generateDue();
+
+		$this->assertSame(5000, $this->store[0]->getAmountCents());
+		$this->assertSame('2026-06-01', $this->store[0]->getPeriodStart());
+	}
+
+	public function testJahresbetragWirdBeiAustrittImJahrAnteiligBerechnet(): void {
+		$this->assignments->method('findActiveAsOf')->willReturn([$this->annualAssignment('2026-01-01', '2026-06-30')]);
+		$this->groups->method('find')->willReturn($this->annualGroup(true));
+		$this->setMandateActive(true);
+
+		$this->service('2025-12-14')->generateDue();
+
+		$this->assertSame(2500, $this->store[0]->getAmountCents());
+	}
+
 	public function testKeineWeiterePeriodeNachEndeDerZuweisung(): void {
 		// Turnus 1 (monatlich), Zuweisung endet nach der ersten Periode.
 		$assignment = $this->assignment(intervalMonths: 1, validFrom: '2026-01-01', validTo: '2026-01-31');

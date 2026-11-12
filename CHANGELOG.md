@@ -20,6 +20,16 @@ verwenden, z. B. `**Neu:**`.
 ## [Unreleased]
 
 **Neu:**
+- **Jahresbeiträge** (#270): Eine Beitragsgruppe kann ihre Beträge jetzt *pro
+  Jahr* statt *pro Monat* angeben (*Beiträge → Beitragsgruppen → Beträge
+  gelten*). Ein volles Beitragsjahr kostet dann genau den Jahresbeitrag –
+  50 € im Jahr bleiben 50,00 € statt 12 × 4,17 € = 50,04 €. Je Gruppe ist
+  einstellbar, ob ein angebrochenes Jahr anteilig berechnet wird
+  (Jahresbeitrag × Monate ÷ 12, auf den Cent gerundet) oder der volle
+  Jahresbeitrag fällig ist. Dialoge, Listen, „Mein Beitrag", Quittungsmails
+  und der Mitgliederimport zeigen und erwarten bei diesen Gruppen den
+  Jahresbeitrag; eingezogen wird nur jährlich. Bestehende Gruppen bleiben
+  unverändert bei Beträgen pro Monat.
 - **Kontoabstimmung** (#159): Am Geldkonto (Reiter „Konten") lässt sich ein
   Kontoauszug der Bank hochladen und Zeile für Zeile mit dem Konto
   vergleichen. Die App zeigt, was in der App zu viel ist (etwa doppelte

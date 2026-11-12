@@ -36,6 +36,14 @@ use OCP\AppFramework\Db\Entity;
  * @method void setCreatedAt(string $createdAt)
  * @method int|null getBookingCcId()
  * @method void setBookingCcId(?int $bookingCcId)
+ * @method string|null getAmountBasis()
+ * @method void setAmountBasis(string $amountBasis)
+ * @method bool|null getProrate()
+ * @method void setProrate(bool $prorate)
+ * @method int|null getMinAnnualAmountCents()
+ * @method void setMinAnnualAmountCents(?int $minAnnualAmountCents)
+ * @method int|null getDefaultAnnualAmountCents()
+ * @method void setDefaultAnnualAmountCents(?int $defaultAnnualAmountCents)
  */
 class ContributionGroup extends Entity implements \JsonSerializable {
 	// Bewusst ohne "realistische" Standardwerte (siehe Entity::setter():
@@ -61,6 +69,17 @@ class ContributionGroup extends Entity implements \JsonSerializable {
 	// bookingCcId setzt applyFields() nicht: die Spalte ist nullable, ein nicht
 	// gesetzter Wert fehlt im INSERT und bleibt NULL.
 	protected $bookingCcId;
+	// Betragsangabe (Issue #270): 'month' (Vorgabe der Spalte) oder 'year'.
+	// Die Jahresspalten sind genau bei Jahresgruppen gefüllt; die
+	// Monatsspalten tragen dort den gerundeten Zwölftel-Wert.
+	protected $amountBasis;
+	protected $prorate;
+	protected $minAnnualAmountCents;
+	protected $defaultAnnualAmountCents;
+
+	public const BASIS_MONTH = 'month';
+	public const BASIS_YEAR = 'year';
+	public const AMOUNT_BASES = [self::BASIS_MONTH, self::BASIS_YEAR];
 
 	/** Erlaubte Turnuswerte – Teiler von 12 (siehe PeriodRule::LENGTHS). */
 	public const VALID_INTERVALS = [1, 2, 3, 4, 6, 12];
@@ -71,6 +90,29 @@ class ContributionGroup extends Entity implements \JsonSerializable {
 		$this->addType('defaultInterval', 'integer');
 		$this->addType('isActive', 'boolean');
 		$this->addType('bookingCcId', 'integer');
+		$this->addType('prorate', 'boolean');
+		$this->addType('minAnnualAmountCents', 'integer');
+		$this->addType('defaultAnnualAmountCents', 'integer');
+	}
+
+	/** Gibt die Gruppe ihre Beträge pro Jahr an (Issue #270)? Ohne Angabe: pro Monat. */
+	public function isAnnual(): bool {
+		return $this->amountBasis === self::BASIS_YEAR;
+	}
+
+	/** Wird ein angebrochenes Beitragsjahr anteilig berechnet? Nur bei Jahresgruppen von Belang; ohne Angabe: ja. */
+	public function prorates(): bool {
+		return $this->prorate !== false;
+	}
+
+	/** Untergrenze in der Betragsangabe der Gruppe: Jahresbetrag bei Jahresgruppen, sonst Monatsbetrag. */
+	public function minAmountCents(): int {
+		return $this->isAnnual() ? (int)$this->minAnnualAmountCents : (int)$this->minMonthlyAmountCents;
+	}
+
+	/** Standardbeitrag in der Betragsangabe der Gruppe. */
+	public function defaultAmountCents(): int {
+		return $this->isAnnual() ? (int)$this->defaultAnnualAmountCents : (int)$this->defaultMonthlyAmountCents;
 	}
 
 	/**
@@ -111,6 +153,12 @@ class ContributionGroup extends Entity implements \JsonSerializable {
 			'isActive' => $this->isActive,
 			'createdAt' => $this->createdAt,
 			'bookingCostCenterId' => $this->getBookingCostCenterId(),
+			'amountBasis' => $this->isAnnual() ? self::BASIS_YEAR : self::BASIS_MONTH,
+			'prorate' => $this->prorates(),
+			'minAnnualAmountCents' => $this->isAnnual() ? (int)$this->minAnnualAmountCents : null,
+			'minAnnualAmount' => $this->isAnnual() ? (int)$this->minAnnualAmountCents / 100 : null,
+			'defaultAnnualAmountCents' => $this->isAnnual() ? (int)$this->defaultAnnualAmountCents : null,
+			'defaultAnnualAmount' => $this->isAnnual() ? (int)$this->defaultAnnualAmountCents / 100 : null,
 		];
 	}
 }

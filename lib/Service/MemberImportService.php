@@ -43,7 +43,9 @@ use OCP\IUserSession;
  * `Assignment::monthlyAmountCents` – „Der Monatsbeitrag ist das Atom" (Spec
  * §3.3), genau wie es AssignmentDialog.vue für die manuelle Erfassung auch
  * verlangt. Eine Division des Altbetrags durch den Turnus hätte krumme Cent-
- * Beträge riskiert.
+ * Beträge riskiert. Bei einer Beitragsgruppe mit Jahresbetrag (Issue #270)
+ * ist die Spalte „Betrag" der Jahresbetrag (`Assignment::annualAmountCents`),
+ * und nur der jährliche Turnus ist möglich.
  *
  * **Betrag aus der Beitragsgruppe:** eine Zeile mit Startdatum, aber ohne
  * Betrag, bekommt den üblichen Monatsbeitrag (`default_monthly_amount_cents`)
@@ -231,7 +233,8 @@ class MemberImportService {
 		if ($row['amountCents'] !== null || $row['startDate'] !== null) {
 			[$group, $groupWarning] = $this->resolveGroup($row['groupName'], $groups);
 			if ($group !== null && $row['amountCents'] === null) {
-				$row['amountCents'] = (int)$group->getDefaultMonthlyAmountCents();
+				// In der Betragsangabe der Gruppe: Jahresbetrag bei Jahresgruppen (Issue #270), sonst Monatsbetrag.
+				$row['amountCents'] = $group->defaultAmountCents();
 			}
 			$assignmentPlanned = $group !== null;
 			if ($groupWarning !== null) {
@@ -262,8 +265,10 @@ class MemberImportService {
 			if (!in_array($this->intervalMonthsFor($row, $group), $group->getAllowedIntervalsArray(), true)) {
 				$errors[] = $this->l10n->t('Dieser Turnus ist für die gewählte Beitragsgruppe nicht erlaubt.');
 			}
-			if ((int)$row['amountCents'] < $group->getMinMonthlyAmountCents()) {
-				$errors[] = $this->l10n->t('Der Monatsbeitrag darf die Untergrenze von %s nicht unterschreiten.', [$this->currency->format($group->getMinMonthlyAmountCents())]);
+			if ((int)$row['amountCents'] < $group->minAmountCents()) {
+				$errors[] = $group->isAnnual()
+					? $this->l10n->t('Der Jahresbeitrag darf die Untergrenze von %s nicht unterschreiten.', [$this->currency->format($group->minAmountCents())])
+					: $this->l10n->t('Der Monatsbeitrag darf die Untergrenze von %s nicht unterschreiten.', [$this->currency->format($group->minAmountCents())]);
 			}
 		}
 		if ($errors !== []) {
@@ -371,7 +376,7 @@ class MemberImportService {
 				(int)$member->getId(),
 				(int)$group->getId(),
 				$intervalMonths,
-				(int)$row['amountCents'],
+				$group->isAnnual() ? 0 : (int)$row['amountCents'],
 				$paymentMethod,
 				(string)$row['startDate'],
 				null,
@@ -379,6 +384,7 @@ class MemberImportService {
 				null,
 				AssignmentEvent::ACTOR_STAFF,
 				$this->currentUid(),
+				annualAmountCents: $group->isAnnual() ? (int)$row['amountCents'] : null,
 			);
 			$assignmentId = $assignment->getId();
 		}

@@ -254,7 +254,10 @@ class ClaimGenerationService {
 		$effectiveTo = ($assignment->getValidTo() !== null && $assignment->getValidTo() < $periodEnd)
 			? $assignment->getValidTo()
 			: $periodEnd;
-		return [ProrataCalculator::amountCents($assignment->getMonthlyAmountCents(), $effectiveFrom, $effectiveTo), $effectiveFrom, $effectiveTo];
+		// Monatsgruppen: Monatsbeitrag × Monate. Jahresgruppen (Issue #270): volles Jahr exakt der Jahresbetrag,
+		// angebrochenes Jahr anteilig gerundet oder – wenn die Gruppe nicht anteilig rechnet – voll.
+		$group = $this->groups->find($assignment->getGroupId());
+		return [ContributionAmount::forPeriod($assignment, $group, $effectiveFrom, $effectiveTo), $effectiveFrom, $effectiveTo];
 	}
 
 	private function periodAmountCents(Assignment $assignment, string $periodStart, string $periodEnd, bool $isFirst): int {

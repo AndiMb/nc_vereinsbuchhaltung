@@ -54,6 +54,29 @@ describe('periodAmount', () => {
 	})
 })
 
+// Gruppen mit Jahresbetrag (Issue #270): 50 €/Jahr, der Monatswert 417 ist nur der gerundete Hilfswert.
+describe('periodAmount – Jahresbetrag', () => {
+	const jahr = (over = {}) => assignment({ monthlyAmountCents: 417, annualAmountCents: 5000, ...over })
+
+	it('ein volles Jahr ist exakt der Jahresbetrag, nicht 12 × der gerundete Monatswert', () => {
+		expect(periodAmount(jahr(), Y2027)).toBe(50)
+	})
+
+	it('ein angebrochenes Jahr wird anteilig auf den Cent gerundet', () => {
+		expect(periodAmount(jahr({ validFrom: '2027-07-01' }), Y2027)).toBe(25)
+		expect(periodAmount(jahr({ validFrom: '2027-06-01' }), Y2027)).toBe(29.17)
+	})
+
+	it('ohne anteilige Berechnung bleibt es beim vollen Jahresbetrag', () => {
+		expect(periodAmount(jahr({ validFrom: '2027-06-01' }), Y2027, false)).toBe(50)
+	})
+
+	it('außerhalb des Zeitraums zählt auch ein Jahresbetrag nicht', () => {
+		expect(periodAmount(jahr(), Y2026)).toBe(0)
+		expect(periodAmount(jahr(), Y2026, false)).toBe(0)
+	})
+})
+
 describe('nextTwelveMonths', () => {
 	it('endet am letzten Tag des elften Folgemonats – genau zwölf Monate', () => {
 		expect(nextTwelveMonths('2026-10-23')).toEqual({ startDate: '2026-10-23', endDate: '2027-09-30' })
