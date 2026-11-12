@@ -221,6 +221,7 @@
 				<AccountsTab
 					v-model:statementIncludeChildren="statementIncludeChildren"
 					v-model:openingForm="openingForm"
+					v-model:reconcile="accountReconcile"
 					:isMobile="isMobile"
 					:selectedAccountId="selectedAccountId"
 					:statement="statement"
@@ -570,6 +571,7 @@ const ROUTE_META = {
 	'accounts-new': { tab: 'accounts', accountNew: true },
 	'accounts-detail': { tab: 'accounts', hasAccountId: true },
 	'accounts-edit': { tab: 'accounts', hasAccountId: true, accountEdit: true },
+	'accounts-reconcile': { tab: 'accounts', hasAccountId: true, accountReconcile: true },
 	reports: { tab: 'reports', reportView: 'summary' },
 	'reports-costcenters': { tab: 'reports', reportView: 'costcenters' },
 	'reports-allocations': { tab: 'reports', reportView: 'allocations' },
@@ -765,6 +767,8 @@ export default {
 			ccBookings: {},
 			newAccount: { number: '', name: '', type: 'income', category: '', isBank: false, countInTotal: true, parentId: null, sphere: '' },
 			accountEditId: null,
+			// Kontoabstimmung (#159) statt des Kontoblatts in der Detailansicht.
+			accountReconcile: false,
 			openingForm: {},
 			selectedAccountId: null,
 			statement: null,
@@ -1220,7 +1224,7 @@ export default {
 						: { name: 'accounts-new', query }
 				}
 				return this.selectedAccountId
-					? { name: 'accounts-detail', params: { accountId: this.selectedAccountId }, query }
+					? { name: this.accountReconcile ? 'accounts-reconcile' : 'accounts-detail', params: { accountId: this.selectedAccountId }, query }
 					: { name: 'accounts', query }
 			}
 			if (this.activeTab === 'reports') {
@@ -1547,6 +1551,8 @@ export default {
 					} else if (this.selectedAccountId !== accountId) {
 						await this.selectAccount(node)
 					}
+					// Nur Geldkonten lassen sich abstimmen; sonst bleibt es beim Kontoblatt.
+					this.accountReconcile = !!meta.accountReconcile && !!node.isBank
 				} else if (this.selectedAccountId !== null) {
 					this.closeAccountDetail()
 				}
@@ -2008,6 +2014,7 @@ export default {
 		// --- Baum: toggleExpand/expandAll/collapseAll sind jetzt Teil von
 		// AccountsTab.vue. ---
 		async selectAccount(node) {
+			this.accountReconcile = false
 			this.selectedAccountId = node.id
 			this.statementIncludeChildren = true
 			await this.loadStatement(node.id)
@@ -2755,6 +2762,7 @@ export default {
 		// statementRowNet ist jetzt Teil von AccountsTab.vue.
 		// Mobil: Konten-Drilldown zurück zur Liste
 		closeAccountDetail() {
+			this.accountReconcile = false
 			this.selectedAccountId = null
 			this.statement = null
 		},
