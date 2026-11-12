@@ -297,13 +297,15 @@ class SelfController extends Controller {
 	 */
 	#[NoAdminRequired]
 	#[NoRevisionBump]
-	public function previewAssignment(int $id, ?float $monthlyAmount = null, ?int $intervalMonths = null, ?string $paymentMethod = null): DataResponse {
+	public function previewAssignment(int $id, ?float $monthlyAmount = null, ?int $intervalMonths = null, ?string $paymentMethod = null, ?float $annualAmount = null): DataResponse {
 		try {
 			$preview = $this->contributions->preview(
 				$id,
 				$monthlyAmount !== null ? (int)round($monthlyAmount * 100) : null,
 				$intervalMonths,
 				$paymentMethod,
+				// Gruppen mit Jahresbetrag (Issue #270) schicken den Beitrag als Jahresbetrag.
+				$annualAmount !== null ? (int)round($annualAmount * 100) : null,
 			);
 			return new DataResponse($preview);
 		} catch (\InvalidArgumentException $e) {
@@ -322,13 +324,14 @@ class SelfController extends Controller {
 	 * nicht"), diese Methode kann es also technisch gar nicht anfordern.
 	 */
 	#[NoAdminRequired]
-	public function updateAssignment(int $id, ?float $monthlyAmount = null, ?int $intervalMonths = null, ?string $paymentMethod = null): DataResponse {
+	public function updateAssignment(int $id, ?float $monthlyAmount = null, ?int $intervalMonths = null, ?string $paymentMethod = null, ?float $annualAmount = null): DataResponse {
 		try {
 			$result = $this->contributions->apply(
 				$id,
 				$monthlyAmount !== null ? (int)round($monthlyAmount * 100) : null,
 				$intervalMonths,
 				$paymentMethod,
+				$annualAmount !== null ? (int)round($annualAmount * 100) : null,
 			);
 			return new DataResponse([
 				'assignment' => $this->assignmentData($result['assignment']),
@@ -486,10 +489,15 @@ class SelfController extends Controller {
 			// ist ohne diese Ableitung nur die Haelfte der Information: ohne
 			// Override kennt der Self-Service sonst gar keine Grenze.
 			$data['effectiveMinMonthlyAmount'] = $assignment->effectiveMinMonthlyAmountCents($group) / 100;
+			// Gruppen mit Jahresbetrag (Issue #270): die Untergrenze als Jahreswert und ob ein angebrochenes Jahr anteilig zählt.
+			$data['effectiveMinAnnualAmount'] = $group->isAnnual() ? $assignment->effectiveMinAmountCents($group) / 100 : null;
+			$data['prorate'] = $group->prorates();
 		} catch (DoesNotExistException) {
 			$data['groupName'] = null;
 			$data['allowedIntervals'] = [];
 			$data['effectiveMinMonthlyAmount'] = null;
+			$data['effectiveMinAnnualAmount'] = null;
+			$data['prorate'] = true;
 		}
 		return $data;
 	}

@@ -33,10 +33,10 @@
 								<small v-if="costCentersEnabled && costCentersById[g.bookingCostCenterId]" class="vbh-cgroup-cc">{{ t('Kostenstelle') }}: {{ costCentersById[g.bookingCostCenterId].code }}</small>
 							</td>
 							<td class="num">
-								{{ euro(g.minMonthlyAmountCents) }}
+								{{ amountWithUnit(euro(groupMinCents(g)), isAnnualGroup(g)) }}
 							</td>
 							<td class="num">
-								{{ euro(g.defaultMonthlyAmountCents) }}
+								{{ amountWithUnit(euro(Math.round(groupDefaultAmount(g) * 100)), isAnnualGroup(g)) }}
 							</td>
 							<td>{{ g.allowedIntervals.map(intervalLabel).join(', ') }}</td>
 							<td>
@@ -90,7 +90,7 @@
 							<th>{{ t('Mitglied') }}</th>
 							<th>{{ t('Beitragsgruppe') }}</th>
 							<th class="num">
-								{{ t('Monatsbeitrag') }}
+								{{ t('Beitrag') }}
 							</th>
 							<th>{{ t('Turnus') }}</th>
 							<th>{{ t('Gültig ab') }}</th>
@@ -104,7 +104,7 @@
 							<td>{{ memberName(a.memberId) }}</td>
 							<td>{{ groupName(a.groupId) }}</td>
 							<td class="num">
-								{{ a.monthlyAmountCents === 0 ? t('beitragsfrei') : euro(a.monthlyAmountCents) }}
+								{{ assignmentAmountCents(a) === 0 ? t('beitragsfrei') : amountWithUnit(euro(assignmentAmountCents(a)), isAnnual(a)) }}
 							</td>
 							<td>{{ intervalLabel(a.intervalMonths) }}</td>
 							<td>{{ formatDate(a.validFrom) }}</td>
@@ -147,6 +147,7 @@
 			:show="groupDialogOpen"
 			:groupEditId="groupEditId"
 			:initialForm="groupForm"
+			:basisLocked="groupBasisLocked"
 			@close="groupDialogOpen = false"
 			@update:show="groupDialogOpen = $event"
 			@save="saveGroup" />
@@ -154,6 +155,7 @@
 		<MinAmountIncreaseDialog
 			:show="minAmountDialogOpen"
 			:groupId="minAmountGroupId"
+			:annual="minAmountGroupAnnual"
 			@close="minAmountDialogOpen = false"
 			@update:show="minAmountDialogOpen = $event"
 			@applied="onMinAmountApplied" />
@@ -194,10 +196,12 @@ import { useBookingCostCenters } from '../composables/useBookingCostCenters.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { useContributionGroups } from '../composables/useContributionGroups.js'
 import { useMembers } from '../composables/useMembers.js'
+import { amountWithUnit, assignmentAmountCents, groupDefaultAmount, groupMinCents, isAnnualGroup } from '../lib/amountBasis.js'
 import { clubToday } from '../lib/clubTime.js'
 import { errMsg, formatCurrency, formatDate } from '../lib/format.js'
 import { intervalLabel } from '../lib/frequency.js'
 import { assignmentStatusLabel, assignmentStatusTone, isLiveAssignment } from '../lib/memberRow.js'
+import { isAnnual } from '../lib/prorata.js'
 
 /**
  * Reiter „Beitragsgruppen" (Issue #68): Gruppen-CRUD und Zuweisungen. Die
@@ -253,6 +257,18 @@ export default {
 		}
 	},
 
+	computed: {
+		/** Die bearbeitete Gruppe hat schon Zuweisungen: ihre Betragsangabe (pro Monat/pro Jahr) steht fest (Issue #270). */
+		groupBasisLocked() {
+			return this.groupEditId !== null && this.assignments.some((a) => a.groupId === this.groupEditId)
+		},
+
+		/** Gibt die Gruppe im Dialog „Untergrenze anheben“ ihre Beträge pro Jahr an? */
+		minAmountGroupAnnual() {
+			return isAnnualGroup(this.groups.find((g) => g.id === this.minAmountGroupId))
+		},
+	},
+
 	async mounted() {
 		await Promise.all([this.loadMembers(), this.loadContributionGroups(), this.loadAssignments()])
 	},
@@ -283,6 +299,13 @@ export default {
 
 		euro(cents) { return formatCurrency(cents / 100) },
 
+		amountWithUnit,
+		assignmentAmountCents,
+		groupDefaultAmount,
+		groupMinCents,
+		isAnnualGroup,
+		isAnnual,
+
 		memberName(memberId) {
 			const m = this.members.find((x) => x.id === memberId)
 			return m ? (m.displayName || `#${memberId}`) : `#${memberId}`
@@ -303,8 +326,10 @@ export default {
 			this.groupEditId = g.id
 			this.groupForm = {
 				name: g.name,
-				minMonthlyAmount: g.minMonthlyAmountCents / 100,
-				defaultMonthlyAmount: g.defaultMonthlyAmountCents / 100,
+				amountBasis: g.amountBasis ?? 'month',
+				prorate: g.prorate ?? true,
+				minAmount: groupMinCents(g) / 100,
+				defaultAmount: groupDefaultAmount(g),
 				allowedIntervals: [...g.allowedIntervals],
 				defaultInterval: g.defaultInterval,
 				isActive: g.isActive,

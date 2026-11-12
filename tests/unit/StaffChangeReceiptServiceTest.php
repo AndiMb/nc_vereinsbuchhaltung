@@ -235,4 +235,19 @@ class StaffChangeReceiptServiceTest extends TestCase {
 
 		$this->assertSame(StaffChangeReceiptService::FAILED, $this->service()->send($this->assignment(1500), $this->before(1000), $this->preview()));
 	}
+
+	/** Bei Gruppen mit Jahresbetrag (Issue #270) nennt die Mail den Jahresbeitrag, nicht den gerundeten Monatswert. */
+	public function testJahresbeitragStehtAlsJahresbeitragInDerMail(): void {
+		$member = $this->member();
+		$after = $this->assignment(583);
+		$after->setAnnualAmountCents(7000);
+		$this->receiptMail->expects($this->once())->method('sendReceipt')->with(
+			$member,
+			'katrin@example.org',
+			'Ihr Beitrag wurde geändert',
+			'Der Vorstand hat Ihren Jahresbeitrag von 50,00 € auf 70,00 € geändert.',
+		);
+
+		$this->assertSame(StaffChangeReceiptService::SENT, $this->service()->send($after, $this->before(5000), $this->preview()));
+	}
 }

@@ -99,11 +99,14 @@
 				<h4>{{ t('Mein Beitrag') }}</h4>
 				<div v-for="a in assignments" :key="a.id" class="vbh-selfservice-assignment">
 					<h5>{{ a.groupName || t('Beitrag') }}</h5>
-					<p v-if="a.effectiveMinMonthlyAmount !== null" class="vbh-hint">
+					<p v-if="isAnnual(a) && a.effectiveMinAnnualAmount !== null" class="vbh-hint">
+						{{ t('Untergrenze: {amount} im Jahr', { amount: formatMoney(a.effectiveMinAnnualAmount) }) }}
+					</p>
+					<p v-else-if="a.effectiveMinMonthlyAmount !== null" class="vbh-hint">
 						{{ t('Untergrenze: {amount}', { amount: formatMoney(a.effectiveMinMonthlyAmount) }) }}
 					</p>
 					<div class="vbh-form">
-						<label>{{ t('Monatsbeitrag ({currency})', { currency: currencySymbol() }) }}
+						<label>{{ amountFieldLabel(isAnnual(a), currencySymbol()) }}
 							<AmountInput v-model="a._form.monthlyAmount" class="vbh-short" />
 						</label>
 						<label>{{ t('Turnus') }}
@@ -320,11 +323,13 @@ import SelfServiceMandateAccountDialog from './SelfServiceMandateAccountDialog.v
 import SelfServiceMandateGrantDialog from './SelfServiceMandateGrantDialog.vue'
 import SelfServiceMandateRevokeDialog from './SelfServiceMandateRevokeDialog.vue'
 import api from '../api.js'
+import { amountFieldLabel, amountPayload, assignmentAmount } from '../lib/amountBasis.js'
 import { currencySymbol, isEuro } from '../lib/clubCurrency.js'
 import { countryName } from '../lib/countries.js'
 import { defaultCountry } from '../lib/countryDefault.js'
 import { errMsg, formatDate, formatMoney } from '../lib/format.js'
 import { intervalLabel } from '../lib/frequency.js'
+import { isAnnual } from '../lib/prorata.js'
 import { returnedDebitRows } from '../lib/selfReturnedDebits.js'
 
 function emptyContactForm() {
@@ -481,6 +486,8 @@ export default {
 	methods: {
 		isEuro,
 		currencySymbol,
+		amountFieldLabel,
+		isAnnual,
 		intervalLabel,
 		formatDate,
 		formatMoney,
@@ -626,7 +633,8 @@ export default {
 		withEditState(a) {
 			return {
 				...a,
-				_form: { monthlyAmount: a.monthlyAmount, intervalMonths: a.intervalMonths, paymentMethod: a.paymentMethod },
+				// `monthlyAmount` ist das Betragsfeld: bei einem Jahresbetrag (Issue #270) steht dort der Jahresbeitrag.
+				_form: { monthlyAmount: assignmentAmount(a), intervalMonths: a.intervalMonths, paymentMethod: a.paymentMethod },
 				_preview: null,
 				_previewedFor: null,
 				_loadingPreview: false,
@@ -663,7 +671,7 @@ export default {
 			a._loadingPreview = true
 			try {
 				const { data } = await api.selfPreviewAssignment(a.id, {
-					monthlyAmount: a._form.monthlyAmount,
+					...amountPayload(isAnnual(a), a._form.monthlyAmount),
 					intervalMonths: a._form.intervalMonths,
 					paymentMethod: a._form.paymentMethod,
 				})
@@ -682,7 +690,7 @@ export default {
 			if (!this.canSave(a)) { return }
 			try {
 				const { data } = await api.selfUpdateAssignment(a.id, {
-					monthlyAmount: a._form.monthlyAmount,
+					...amountPayload(isAnnual(a), a._form.monthlyAmount),
 					intervalMonths: a._form.intervalMonths,
 					paymentMethod: a._form.paymentMethod,
 				})

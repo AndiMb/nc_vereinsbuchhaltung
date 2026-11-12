@@ -329,7 +329,9 @@ export default {
 		 */
 		beitragsSumme() {
 			const zeitraum = this.selectedPeriod ?? nextTwelveMonths(clubToday())
-			return this.assignments.reduce((summe, a) => summe + periodAmount(a, zeitraum), 0)
+			// Ob ein angebrochenes Jahr anteilig zählt, steht an der Beitragsgruppe (nur bei Jahresbeträgen von Belang, Issue #270).
+			const prorate = (a) => this.groups.find((g) => g.id === a.groupId)?.prorate ?? true
+			return this.assignments.reduce((summe, a) => summe + periodAmount(a, zeitraum, prorate(a)), 0)
 		},
 
 		summaryText() {

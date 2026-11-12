@@ -102,5 +102,7 @@ OC.L10N.register("vereinsbuchhaltung", {
 	"Ihrem Antrag auf Erstattung von %1$s wurde stattgegeben: %2$s": "Deinem Antrag auf Erstattung von %1$s wurde stattgegeben: %2$s",
 	"Ihr Antrag auf Erstattung von %1$s wurde abgelehnt: %2$s": "Dein Antrag auf Erstattung von %1$s wurde abgelehnt: %2$s",
 	"Ihr Monatsbeitrag wurde von %1$s auf %2$s geändert.": "Dein Monatsbeitrag wurde von %1$s auf %2$s geändert.",
-	"Der Vorstand hat Ihren Monatsbeitrag von %1$s auf %2$s geändert.": "Der Vorstand hat deinen Monatsbeitrag von %1$s auf %2$s geändert."
+	"Der Vorstand hat Ihren Monatsbeitrag von %1$s auf %2$s geändert.": "Der Vorstand hat deinen Monatsbeitrag von %1$s auf %2$s geändert.",
+	"Ihr Jahresbeitrag wurde von %1$s auf %2$s geändert.": "Dein Jahresbeitrag wurde von %1$s auf %2$s geändert.",
+	"Der Vorstand hat Ihren Jahresbeitrag von %1$s auf %2$s geändert.": "Der Vorstand hat deinen Jahresbeitrag von %1$s auf %2$s geändert."
 }, "nplurals=2; plural=(n != 1);");

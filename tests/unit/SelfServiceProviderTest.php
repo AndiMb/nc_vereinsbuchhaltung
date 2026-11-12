@@ -69,6 +69,18 @@ class SelfServiceProviderTest extends TestCase {
 		$this->provider()->parse('de', $event);
 	}
 
+	/** Beträge einer Gruppe mit Jahresbetrag (Issue #270) sind Jahreswerte und heißen im Feed auch so. */
+	public function testFormatiertAenderungDesJahresbeitrags(): void {
+		$event = $this->event(SelfServiceProvider::SUBJECT_CONTRIBUTION_AMOUNT_CHANGED, [
+			'from' => 5000, 'to' => 7000, 'effectiveFrom' => '2027-01-01', 'basis' => 'year',
+		]);
+		$event->expects($this->once())->method('setParsedSubject')
+			->with('Jahresbeitrag geändert: 50,00 € → 70,00 € (wirkt ab 01.01.2027)')
+			->willReturnSelf();
+
+		$this->provider()->parse('de', $event);
+	}
+
 	public function testFormatiertTurnusAenderung(): void {
 		$event = $this->event(SelfServiceProvider::SUBJECT_CONTRIBUTION_INTERVAL_CHANGED, [
 			'from' => 1, 'to' => 12, 'effectiveFrom' => '2027-01-01',

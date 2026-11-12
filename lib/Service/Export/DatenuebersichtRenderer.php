@@ -205,13 +205,15 @@ class DatenuebersichtRenderer {
 			return $h . '<p>' . $this->l10n->t('Keine Beitragszuweisung vorhanden.') . '</p></section>';
 		}
 		$h .= '<table><tr><th>' . $this->l10n->t('Beitragsgruppe') . '</th><th>' . $this->l10n->t('Turnus')
-			. '</th><th class="num">' . $this->l10n->t('Monatsbetrag') . '</th><th>' . $this->l10n->t('Zahlungsart')
+			. '</th><th class="num">' . $this->l10n->t('Beitrag') . '</th><th>' . $this->l10n->t('Zahlungsart')
 			. '</th><th>' . $this->l10n->t('Gültig von') . '</th><th>' . $this->l10n->t('Gültig bis') . '</th></tr>';
 		foreach ($assignments as $assignment) {
 			$h .= '<tr>'
 				. '<td>' . PrintableReportPage::escape($this->groupName($assignment)) . '</td>'
 				. '<td>' . PrintableReportPage::escape($this->intervalName($assignment->getIntervalMonths())) . '</td>'
-				. '<td class="num">' . ReportFormat::cents($assignment->getMonthlyAmountCents(), $this->currency->symbol()) . '</td>'
+				// Betrag in der Betragsangabe der Gruppe (Issue #270): Jahresbetrag bei Jahresgruppen, sonst Monatsbetrag.
+				. '<td class="num">' . ReportFormat::cents($assignment->amountCents(), $this->currency->symbol()) . ' '
+				. PrintableReportPage::escape($assignment->isAnnual() ? $this->l10n->t('pro Jahr') : $this->l10n->t('pro Monat')) . '</td>'
 				. '<td>' . PrintableReportPage::escape(Assignment::paymentMethodName($assignment->getPaymentMethod(), $this->l10n)) . '</td>'
 				. '<td>' . ReportFormat::date($assignment->getValidFrom()) . '</td>'
 				. '<td>' . ReportFormat::date($assignment->getValidTo()) . '</td>'

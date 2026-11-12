@@ -35,6 +35,10 @@ use OCP\IL10N;
  * @method void setMonthlyAmountCents(int $monthlyAmountCents)
  * @method int|null getMinMonthlyAmountOverrideCents()
  * @method void setMinMonthlyAmountOverrideCents(?int $minMonthlyAmountOverrideCents)
+ * @method int|null getAnnualAmountCents()
+ * @method void setAnnualAmountCents(?int $annualAmountCents)
+ * @method int|null getMinAnnualOverrideCents()
+ * @method void setMinAnnualOverrideCents(?int $minAnnualOverrideCents)
  * @method string|null getOverrideReason()
  * @method void setOverrideReason(?string $overrideReason)
  * @method string getPaymentMethod()
@@ -63,6 +67,12 @@ class Assignment extends Entity implements \JsonSerializable {
 	protected $intervalMonths;
 	protected $monthlyAmountCents;
 	protected $minMonthlyAmountOverrideCents;
+	// Jahresbetrag und individuelle Jahres-Untergrenze (Issue #270): genau bei
+	// Zuweisungen zu einer Gruppe mit Jahresbetrag gefüllt. monthlyAmountCents
+	// trägt dort den gerundeten Zwölftel-Wert, gerechnet wird mit dem
+	// Jahresbetrag (siehe ContributionAmount).
+	protected $annualAmountCents;
+	protected $minAnnualOverrideCents;
 	protected $overrideReason;
 	protected $paymentMethod;
 	protected $validFrom;
@@ -88,6 +98,26 @@ class Assignment extends Entity implements \JsonSerializable {
 		$this->addType('intervalMonths', 'integer');
 		$this->addType('monthlyAmountCents', 'integer');
 		$this->addType('minMonthlyAmountOverrideCents', 'integer');
+		$this->addType('annualAmountCents', 'integer');
+		$this->addType('minAnnualOverrideCents', 'integer');
+	}
+
+	/** Trägt die Zuweisung einen Jahresbetrag (Gruppe mit Jahresbetrag, Issue #270)? */
+	public function isAnnual(): bool {
+		return $this->annualAmountCents !== null;
+	}
+
+	/** Beitrag in der Betragsangabe der Gruppe: Jahresbetrag bei Jahresgruppen, sonst Monatsbetrag. */
+	public function amountCents(): int {
+		return (int)($this->annualAmountCents ?? $this->monthlyAmountCents);
+	}
+
+	/** Die geltende Untergrenze in der Betragsangabe der Gruppe; die individuelle ersetzt die der Gruppe vollständig. */
+	public function effectiveMinAmountCents(ContributionGroup $group): int {
+		if ($group->isAnnual()) {
+			return $this->minAnnualOverrideCents ?? $group->minAmountCents();
+		}
+		return $this->effectiveMinMonthlyAmountCents($group);
 	}
 
 	/** „der Zeitraum ist der Status" – analog zu Member::isActive(). */
@@ -114,6 +144,10 @@ class Assignment extends Entity implements \JsonSerializable {
 			'monthlyAmount' => $this->monthlyAmountCents / 100,
 			'minMonthlyAmountOverrideCents' => $this->minMonthlyAmountOverrideCents,
 			'minMonthlyAmountOverride' => $this->minMonthlyAmountOverrideCents !== null ? $this->minMonthlyAmountOverrideCents / 100 : null,
+			'annualAmountCents' => $this->annualAmountCents,
+			'annualAmount' => $this->annualAmountCents !== null ? $this->annualAmountCents / 100 : null,
+			'minAnnualAmountOverrideCents' => $this->minAnnualOverrideCents,
+			'minAnnualAmountOverride' => $this->minAnnualOverrideCents !== null ? $this->minAnnualOverrideCents / 100 : null,
 			'overrideReason' => $this->overrideReason,
 			'paymentMethod' => $this->paymentMethod,
 			'validFrom' => $this->validFrom,

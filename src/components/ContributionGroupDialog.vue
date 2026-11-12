@@ -15,18 +15,45 @@
 					<input ref="nameInput" v-model="form.name" :placeholder="t('z.B. Basisbeitrag')">
 				</label>
 			</div>
+			<!-- Betragsangabe (Issue #270): pro Monat (Monatsbeitrag × Turnus) oder pro Jahr (Jahresbeitrag exakt) -->
 			<div class="vbh-form">
-				<label>{{ t('Untergrenze ({currency}/Monat)', { currency: currencySymbol() }) }}
-					<AmountInput v-model="form.minMonthlyAmount" class="vbh-short" placeholder="5,00" />
+				<label>{{ t('Beträge gelten') }}
+					<select v-model="form.amountBasis" :disabled="basisLocked">
+						<option value="month">
+							{{ t('pro Monat') }}
+						</option>
+						<option value="year">
+							{{ t('pro Jahr') }}
+						</option>
+					</select>
 				</label>
-				<label>{{ t('Standardbeitrag ({currency}/Monat)', { currency: currencySymbol() }) }}
-					<AmountInput v-model="form.defaultMonthlyAmount" class="vbh-short" placeholder="8,00" />
+				<label>{{ annual ? t('Untergrenze ({currency}/Jahr)', { currency: currencySymbol() }) : t('Untergrenze ({currency}/Monat)', { currency: currencySymbol() }) }}
+					<AmountInput v-model="form.minAmount" class="vbh-short" :placeholder="annual ? '25,00' : '5,00'" />
+				</label>
+				<label>{{ annual ? t('Standardbeitrag ({currency}/Jahr)', { currency: currencySymbol() }) : t('Standardbeitrag ({currency}/Monat)', { currency: currencySymbol() }) }}
+					<AmountInput v-model="form.defaultAmount" class="vbh-short" :placeholder="annual ? '50,00' : '8,00'" />
 				</label>
 			</div>
+			<p v-if="basisLocked" class="vbh-hint">
+				{{ t('Die Betragsangabe lässt sich nicht mehr ändern, weil die Gruppe schon Zuweisungen hat.') }}
+			</p>
+			<template v-if="annual">
+				<p class="vbh-hint">
+					{{ t('Ein volles Beitragsjahr kostet genau den Jahresbeitrag. Der Einzug ist dann nur jährlich möglich.') }}
+				</p>
+				<NcCheckboxRadioSwitch v-model="form.prorate" type="switch">
+					{{ t('Angebrochenes Beitragsjahr anteilig berechnen') }}
+				</NcCheckboxRadioSwitch>
+				<p class="vbh-hint">
+					{{ form.prorate
+						? t('Bei Ein- oder Austritt im laufenden Jahr: Jahresbeitrag × Monate ÷ 12, auf den Cent gerundet.')
+						: t('Bei Ein- oder Austritt im laufenden Jahr wird der volle Jahresbeitrag fällig.') }}
+				</p>
+			</template>
 			<p v-if="groupEditId" class="vbh-hint">
 				{{ t('Eine Erhöhung der Untergrenze läuft über die eigene Funktion „Untergrenze anheben" in der Gruppenliste – hier lässt sie sich nur absenken.') }}
 			</p>
-			<div class="vbh-form">
+			<div v-if="!annual" class="vbh-form">
 				<fieldset class="vbh-grow vbh-fieldset-reset">
 					<legend class="vbh-legend">
 						{{ t('Erlaubte Turnusse') }}
@@ -43,7 +70,7 @@
 				</fieldset>
 			</div>
 			<div class="vbh-form">
-				<label>{{ t('Standard-Turnus') }}
+				<label v-if="!annual">{{ t('Standard-Turnus') }}
 					<select v-model.number="form.defaultInterval">
 						<option v-for="n in form.allowedIntervals" :key="n" :value="n">
 							{{ intervalLabel(n) }}
@@ -96,7 +123,8 @@ import { focusOnOpen } from '../lib/modalFocus.js'
 const INTERVAL_OPTIONS = [1, 2, 3, 4, 6, 12]
 
 function emptyForm() {
-	return { name: '', minMonthlyAmount: '', defaultMonthlyAmount: '', allowedIntervals: [1, 12], defaultInterval: 12, isActive: true, bookingCostCenterId: null }
+	// minAmount/defaultAmount stehen in der Betragsangabe der Gruppe: Monats- oder Jahresbeträge (Issue #270).
+	return { name: '', amountBasis: 'month', prorate: true, minAmount: '', defaultAmount: '', allowedIntervals: [1, 12], defaultInterval: 12, isActive: true, bookingCostCenterId: null }
 }
 
 /**
@@ -112,6 +140,8 @@ export default {
 		show: { type: Boolean, default: false },
 		groupEditId: { type: [Number, String], default: null },
 		initialForm: { type: Object, required: true },
+		/** Die Gruppe hat schon Zuweisungen: ihre Betragsangabe (pro Monat/pro Jahr) steht dann fest. */
+		basisLocked: { type: Boolean, default: false },
 	},
 
 	emits: ['close', 'save', 'update:show'],
@@ -130,6 +160,11 @@ export default {
 	},
 
 	computed: {
+		/** Beträge pro Jahr (Issue #270): nur der jährliche Turnus, dafür der Schalter „anteilig“. */
+		annual() {
+			return this.form.amountBasis === 'year'
+		},
+
 		/** Aktive Kostenstellen, dazu die an der Gruppe gespeicherte inaktive. */
 		costCenterOptions() {
 			const list = [...this.activeCostCenters]
@@ -167,7 +202,11 @@ export default {
 		save() {
 			// Die Vorgabe-Kostenstelle geht nur bei eingeschaltetem Modul mit: fehlt
 			// das Feld, lässt der Server den gespeicherten Wert stehen.
-			const { bookingCostCenterId, ...rest } = this.form
+			const { bookingCostCenterId, minAmount, defaultAmount, ...fields } = this.form
+			// Die Beträge gehen unter dem Namen ihrer Betragsangabe raus; ein Jahresbetrag wird nur jährlich eingezogen.
+			const rest = this.annual
+				? { ...fields, minAnnualAmount: minAmount, defaultAnnualAmount: defaultAmount, allowedIntervals: [12], defaultInterval: 12 }
+				: { ...fields, minMonthlyAmount: minAmount, defaultMonthlyAmount: defaultAmount }
 			this.$emit('save', this.costCentersEnabled ? { ...rest, bookingCostCenterId } : rest)
 		},
 	},

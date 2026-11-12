@@ -150,7 +150,7 @@
 							</option>
 						</select>
 					</label>
-					<label>{{ t('Monatsbeitrag ({currency})', { currency: currencySymbol() }) }}
+					<label>{{ amountFieldLabel(isAnnualGroup(selectedGroup), currencySymbol()) }}
 						<AmountInput v-model="form.monthlyAmount" class="vbh-short" />
 					</label>
 					<label>{{ t('Zahlungsart') }}
@@ -479,6 +479,7 @@ import api from '../api.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { useContributionGroups } from '../composables/useContributionGroups.js'
 import { accountPayload, emptyAccount, missingAccountFields } from '../lib/accountForm.js'
+import { amountFieldLabel, amountPayload, groupDefaultAmount, isAnnualGroup } from '../lib/amountBasis.js'
 import { currencySymbol, isEuro } from '../lib/clubCurrency.js'
 import { clubToday } from '../lib/clubTime.js'
 import { defaultCountry } from '../lib/countryDefault.js'
@@ -703,13 +704,16 @@ export default {
 			if (!has) { this.form.sendWelcome = false }
 		},
 
-		selectedGroup(group) {
+		selectedGroup(group, previous) {
 			if (!group) { return }
 			if (!group.allowedIntervals.includes(this.form.intervalMonths)) {
 				this.form.intervalMonths = group.defaultInterval
 			}
-			if (this.form.monthlyAmount === '') {
-				this.form.monthlyAmount = group.defaultMonthlyAmount
+			// Wechselt die Betragsangabe (pro Monat ↔ pro Jahr, Issue #270), hätte der schon eingetragene
+			// Betrag eine andere Bedeutung: dann gilt der Standardbeitrag der neuen Gruppe.
+			const basisChanged = !!previous && isAnnualGroup(previous) !== isAnnualGroup(group)
+			if (this.form.monthlyAmount === '' || basisChanged) {
+				this.form.monthlyAmount = groupDefaultAmount(group)
 			}
 			this.assignmentPreview = null
 		},
@@ -718,6 +722,8 @@ export default {
 	methods: {
 		isEuro,
 		currencySymbol,
+		amountFieldLabel,
+		isAnnualGroup,
 		intervalLabel,
 		errMsg,
 		formatDate,
@@ -804,7 +810,8 @@ export default {
 					? {
 							groupId: this.form.groupId,
 							intervalMonths: this.form.intervalMonths,
-							monthlyAmount: Number(this.form.monthlyAmount),
+							// Unter dem Namen der Betragsangabe der Gruppe: monthlyAmount oder annualAmount (Issue #270).
+							...amountPayload(isAnnualGroup(this.selectedGroup), Number(this.form.monthlyAmount)),
 							paymentMethod: this.form.paymentMethod,
 							validFrom: this.form.validFrom,
 						}
@@ -829,7 +836,8 @@ export default {
 			try {
 				const { data } = await api.previewNewAssignment({
 					intervalMonths: this.form.intervalMonths,
-					monthlyAmount: this.form.monthlyAmount,
+					...amountPayload(isAnnualGroup(this.selectedGroup), this.form.monthlyAmount),
+					groupId: this.form.groupId,
 					validFrom: this.form.validFrom,
 				})
 				this.assignmentPreview = data

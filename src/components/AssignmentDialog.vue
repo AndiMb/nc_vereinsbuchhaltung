@@ -67,7 +67,7 @@
 						</option>
 					</select>
 				</label>
-				<label>{{ t('Monatsbeitrag ({currency})', { currency: currencySymbol() }) }}
+				<label>{{ amountFieldLabel(annual, currencySymbol()) }}
 					<AmountInput v-model="form.monthlyAmount" class="vbh-short" />
 				</label>
 				<label>{{ t('Zahlungsart') }}
@@ -92,6 +92,9 @@
 
 			<p v-if="preview && preview.amountCents === 0" class="vbh-hint">
 				{{ t('Beitragsfrei: In dieser Zuweisung entstehen keine Forderungen, und es wird nichts eingezogen.') }}
+			</p>
+			<p v-else-if="preview && annual && !selectedGroup.prorate" class="vbh-hint">
+				{{ t('Erste Periode: {from} bis {to} · Einzugsbetrag {amount} (voller Jahresbeitrag, diese Gruppe rechnet nicht anteilig)', { from: formatDate(preview.periodStart), to: formatDate(preview.periodEnd), amount: euro(preview.amountCents) }) }}
 			</p>
 			<p v-else-if="preview" class="vbh-hint">
 				{{ t('Erste Periode: {from} bis {to} ({months}) · Einzugsbetrag {amount}', { from: formatDate(preview.periodStart), to: formatDate(preview.periodEnd), months: n('%n Monat', '%n Monate', preview.months), amount: euro(preview.amountCents) }) }}
@@ -119,6 +122,7 @@ import AmountInput from './AmountInput.vue'
 import api from '../api.js'
 import { useContributionGroups } from '../composables/useContributionGroups.js'
 import { useMembers } from '../composables/useMembers.js'
+import { amountFieldLabel, amountPayload, groupDefaultAmount, isAnnualGroup } from '../lib/amountBasis.js'
 import { currencySymbol, isEuro } from '../lib/clubCurrency.js'
 import { clubToday } from '../lib/clubTime.js'
 import { errMsg, formatCurrency, formatDate } from '../lib/format.js'
@@ -182,6 +186,11 @@ export default {
 			return this.groups.find((g) => g.id === this.form.groupId) ?? null
 		},
 
+		/** Gibt die gewählte Gruppe ihre Beträge pro Jahr an (Issue #270)? Dann ist das Betragsfeld der Jahresbeitrag. */
+		annual() {
+			return isAnnualGroup(this.selectedGroup)
+		},
+
 		canPreview() {
 			return this.form.intervalMonths && this.form.monthlyAmount !== '' && this.form.validFrom
 		},
@@ -202,20 +211,25 @@ export default {
 			}
 		},
 
-		selectedGroup(group) {
+		selectedGroup(group, previous) {
 			if (!group) { return }
 			if (!group.allowedIntervals.includes(this.form.intervalMonths)) {
 				this.form.intervalMonths = group.defaultInterval
 			}
-			if (this.form.monthlyAmount === '') {
-				this.form.monthlyAmount = group.defaultMonthlyAmount
+			// Wechselt die Betragsangabe (pro Monat ↔ pro Jahr, Issue #270), hätte der schon eingetragene
+			// Betrag eine andere Bedeutung: dann gilt der Standardbeitrag der neuen Gruppe.
+			const basisChanged = !!previous && isAnnualGroup(previous) !== isAnnualGroup(group)
+			if (this.form.monthlyAmount === '' || basisChanged) {
+				this.form.monthlyAmount = groupDefaultAmount(group)
 			}
+			this.preview = null
 		},
 	},
 
 	methods: {
 		isEuro,
 		currencySymbol,
+		amountFieldLabel,
 		intervalLabel,
 		formatDate,
 		euro(cents) { return formatCurrency(cents / 100) },
@@ -233,7 +247,8 @@ export default {
 			try {
 				const { data } = await api.previewNewAssignment({
 					intervalMonths: this.form.intervalMonths,
-					monthlyAmount: this.form.monthlyAmount,
+					...amountPayload(this.annual, this.form.monthlyAmount),
+					groupId: this.form.groupId,
 					validFrom: this.form.validFrom,
 				})
 				this.preview = data
@@ -244,7 +259,9 @@ export default {
 		},
 
 		save() {
-			this.$emit('save', { ...this.form, validTo: this.form.validTo || null })
+			// Der Betrag geht unter dem Namen seiner Betragsangabe raus (monthlyAmount oder annualAmount).
+			const { monthlyAmount, ...rest } = this.form
+			this.$emit('save', { ...rest, ...amountPayload(this.annual, monthlyAmount), validTo: this.form.validTo || null })
 		},
 	},
 }
