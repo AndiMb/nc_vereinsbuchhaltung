@@ -95,6 +95,11 @@ verwenden, z. B. `**Neu:**`.
   folgenden Tag keine Forderung mehr. Der Lauf hält die beitragsfreie Periode
   jetzt wie vorgesehen fest und arbeitet weiter; ausgebliebene Forderungen
   holt der nächste Lauf von selbst nach.
+- **Doppelte Kontonummer endete in einem Serverfehler** (#327): Wer ein
+  Konto mit einer bereits vergebenen Nummer anlegte oder ein Konto auf eine
+  solche Nummer änderte, bekam „Interner Serverfehler“. Jetzt sagt die
+  App, dass die Kontonummer bereits vergeben ist, und der Dialog bleibt
+  mit den Eingaben offen.
 - **Druckseite des visuellen Gliederungsberichts** (#329): Eine Überschrift
   oder ein Konto mit Unterzeilen steht im Aufriss nicht mehr als letzte Zeile
   einer Seite, während die zugehörigen Zeilen erst auf der nächsten beginnen.
