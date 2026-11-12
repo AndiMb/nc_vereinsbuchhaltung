@@ -4572,5 +4572,12 @@ OC.L10N.register("vereinsbuchhaltung", {
 	"Die Kontonummer %s ist bereits vergeben.": "The account number %s is already in use.",
 	"Buchungsdatum": "Booking date",
 	"Datumsfilter aufheben": "Clear date filter",
-	"Auch die Buchungen aller Unterkonten dieses Kontos zeigen": "Also show the bookings of all sub-accounts of this account"
+	"Auch die Buchungen aller Unterkonten dieses Kontos zeigen": "Also show the bookings of all sub-accounts of this account",
+	"Neu: Kostenstellen (optional, unter Einstellungen einschaltbar). Ein Betrag lässt sich auf demselben Konto einer oder mehreren Kostenstellen zuordnen – beim Buchen, in Importregeln, an Rechnungen, bei Auslagen und im SEPA-Einzug.": "New: cost centres (optional, switched on under Settings). An amount can be allocated to one or more cost centres on the same account – when posting, in import rules, on invoices, for expense claims and in the SEPA collection.",
+	"Neu: Bericht und Budget je Kostenstelle. Konten können eine Kostenstelle verlangen.": "New: report and budget per cost centre. Accounts can require a cost centre.",
+	"Neu: Vereinswährung wählbar – neben Euro auch CHF, GBP, DKK, SEK, NOK, PLN und CZK. SEPA-Lastschrift und GiroCode gibt es nur in Euro.": "New: the club currency can be chosen – besides the euro also CHF, GBP, DKK, SEK, NOK, PLN and CZK. SEPA direct debit and GiroCode are available in euro only.",
+	"Neu: Der Gliederungsbericht hat eine visuelle Ansicht mit Kennzahlen, Ampeln, Verlauf und Balken. Ein Klick auf ein Konto öffnet die passenden Buchungen.": "New: the structured report has a visual view with key figures, traffic lights, trend and bars. A click on an account opens the matching postings.",
+	"Neu: Die Buchungsliste filtert nach Datum („Von“ / „Bis“) und auf Wunsch nach einem Konto samt Unterkonten.": "New: the entries list filters by date (“From” / “To”) and, if wanted, by an account including its sub-accounts.",
+	"Behoben: Eine doppelte Kontonummer führt nicht mehr zu einem Serverfehler, sondern zu einer verständlichen Meldung.": "Fixed: a duplicate account number no longer ends in a server error but in a clear message.",
+	"Behoben: Eine beitragsfreie Zuweisung hielt den täglichen Forderungslauf an. Ausgebliebene Forderungen holt der nächste Lauf nach.": "Fixed: a contribution-free assignment stopped the daily claims run. The next run catches up on the claims that were missed."
 }, "nplurals=2; plural=(n != 1);");

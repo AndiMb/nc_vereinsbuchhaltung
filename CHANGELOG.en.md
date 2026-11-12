@@ -17,6 +17,8 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 
 ## [Unreleased]
 
+## [0.53.0] – 2026-11-12
+
 **New:**
 - **Cost centres on the entry line** (#7, optional, switched off by
   default): an amount on an income or expense account can be allocated to
@@ -85,14 +87,14 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   in the breakdown or in the deviation lists jumps to the bookings list
   filtered to that account; the list's account filter is now part of the
   link (`account=`). The table, its print and its CSV stay unchanged.
-- **Date filter in the bookings list** (#328): The fields “Von” and
-  “Bis” narrow the journal to a range of booking dates, both days
+- **Date filter in the bookings list** (#328): The fields “From” and
+  “To” narrow the journal to a range of booking dates, both days
   included; each field works on its own, and the cross next to them clears
   the filter. The range is part of the link like the account filter
   (`from=`, `to=`). The jump from the visual view of the structured report
-  sets “Bis” to the last day of the chosen snapshot month, so the list adds
-  up to the figure that was clicked. With “Aktuell” it stays unfiltered.
-- **Account filter “inkl. Unterkonten” in the bookings list** (#326): when
+  sets “To” to the last day of the chosen snapshot month, so the list adds
+  up to the figure that was clicked. With “Current” it stays unfiltered.
+- **Account filter “incl. sub-accounts” in the bookings list** (#326): when
   the journal is filtered to an account that has sub-accounts, a checkbox
   next to it also shows the bookings of all sub-accounts at any depth; in
   the link this is `sub=1`. In the visual view of the structured report

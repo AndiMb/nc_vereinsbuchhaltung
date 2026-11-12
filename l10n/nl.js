@@ -4572,5 +4572,12 @@ OC.L10N.register("vereinsbuchhaltung", {
 	"Die Kontonummer %s ist bereits vergeben.": "Het rekeningnummer %s is al in gebruik.",
 	"Buchungsdatum": "Boekingsdatum",
 	"Datumsfilter aufheben": "Datumfilter wissen",
-	"Auch die Buchungen aller Unterkonten dieses Kontos zeigen": "Ook de boekingen van alle subrekeningen van deze rekening tonen"
+	"Auch die Buchungen aller Unterkonten dieses Kontos zeigen": "Ook de boekingen van alle subrekeningen van deze rekening tonen",
+	"Neu: Kostenstellen (optional, unter Einstellungen einschaltbar). Ein Betrag lässt sich auf demselben Konto einer oder mehreren Kostenstellen zuordnen – beim Buchen, in Importregeln, an Rechnungen, bei Auslagen und im SEPA-Einzug.": "Nieuw: kostenplaatsen (optioneel, in te schakelen onder Instellingen). Een bedrag kan op dezelfde rekening aan een of meer kostenplaatsen worden toegewezen – bij het boeken, in importregels, op facturen, bij declaraties en in de SEPA-incasso.",
+	"Neu: Bericht und Budget je Kostenstelle. Konten können eine Kostenstelle verlangen.": "Nieuw: rapport en budget per kostenplaats. Rekeningen kunnen een kostenplaats verplicht stellen.",
+	"Neu: Vereinswährung wählbar – neben Euro auch CHF, GBP, DKK, SEK, NOK, PLN und CZK. SEPA-Lastschrift und GiroCode gibt es nur in Euro.": "Nieuw: de verenigingsvaluta is te kiezen – naast de euro ook CHF, GBP, DKK, SEK, NOK, PLN en CZK. SEPA-incasso en GiroCode zijn er alleen in euro.",
+	"Neu: Der Gliederungsbericht hat eine visuelle Ansicht mit Kennzahlen, Ampeln, Verlauf und Balken. Ein Klick auf ein Konto öffnet die passenden Buchungen.": "Nieuw: het indelingsrapport heeft een visuele weergave met kengetallen, stoplichten, verloop en balken. Een klik op een rekening opent de bijbehorende boekingen.",
+	"Neu: Die Buchungsliste filtert nach Datum („Von“ / „Bis“) und auf Wunsch nach einem Konto samt Unterkonten.": "Nieuw: de boekingenlijst filtert op datum (“Van” / “Tot”) en desgewenst op een rekening inclusief subrekeningen.",
+	"Behoben: Eine doppelte Kontonummer führt nicht mehr zu einem Serverfehler, sondern zu einer verständlichen Meldung.": "Opgelost: een dubbel rekeningnummer leidt niet meer tot een serverfout, maar tot een duidelijke melding.",
+	"Behoben: Eine beitragsfreie Zuweisung hielt den täglichen Forderungslauf an. Ausgebliebene Forderungen holt der nächste Lauf nach.": "Opgelost: een contributievrije toewijzing hield de dagelijkse vorderingenrun tegen. De volgende run haalt de gemiste vorderingen in."
 }, "nplurals=2; plural=(n != 1);");

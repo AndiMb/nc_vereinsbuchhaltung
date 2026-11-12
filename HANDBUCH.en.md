@@ -1397,13 +1397,13 @@ The view speaks of **plan** and **actual**.
   and bar; account branches can be collapsed and expanded. A click on an
   account opens the bookings list of the period filtered to that account.
   For an account with sub-accounts – in the deviation lists as well –
-  "inkl. Unterkonten" is switched on there, because its figure includes the
+  "incl. sub-accounts" is switched on there, because its figure includes the
   sub-accounts. If a row does not count the sub-accounts (they sit in
   another section of the template), the jump filters the account alone; if
   it counts only some of them, the name is not a link.
   With a month as the snapshot the list ends on the last day of that month
-  (field "Bis" of the bookings list) and so adds up to the figure that was
-  clicked; with "Aktuell" it stays without a date filter.
+  (field "To" of the bookings list) and so adds up to the figure that was
+  clicked; with "Current" it stays without a date filter.
 
 If the sub-accounts of a parent account carry their own plan values, the
 status counts and deviation lists count the sub-accounts; entries posted
@@ -1632,11 +1632,11 @@ the auditor from having to read through this entire manual.
 - **"Only without receipt" filter** in the Bookings tab (journal): shows
   all postings without an attached receipt. Clearing these beforehand saves
   follow-up questions during the audit.
-- **Date filter "Von" / "Bis"** in the journal: narrows the list to a range
+- **Date filter "From" / "To"** in the journal: narrows the list to a range
   of booking dates, both days included – a quarter, say, or a single day.
   Each field works on its own; the cross next to them clears the filter. The
   range is part of the page's link, like the account filter.
-- **Account filter "inkl. Unterkonten"** in the journal: when the list is
+- **Account filter "incl. sub-accounts"** in the journal: when the list is
   filtered to an account that has sub-accounts, this checkbox appears next
   to it. Switched on, the list shows the bookings of the account and of all
   its sub-accounts at any depth – the way reports calculate the row of a

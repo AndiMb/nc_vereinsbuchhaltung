@@ -19,6 +19,8 @@ verwenden, z. B. `**Neu:**`.
 
 ## [Unreleased]
 
+## [0.53.0] – 2026-11-12
+
 **Neu:**
 - **Kostenstellen an der Buchungszeile** (#7, optional, ab Werk
   ausgeschaltet): Ein Betrag auf einem Einnahmen- oder Ausgabenkonto lässt

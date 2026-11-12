@@ -25,6 +25,19 @@ import { compareVersions, isNewerVersion } from '../lib/version.js'
 export function buildWhatsNewEntries() {
 	return [
 		{
+			version: '0.53.0',
+			roles: ['verwalter', 'buchhalter'],
+			items: [
+				t('Neu: Kostenstellen (optional, unter Einstellungen einschaltbar). Ein Betrag lässt sich auf demselben Konto einer oder mehreren Kostenstellen zuordnen – beim Buchen, in Importregeln, an Rechnungen, bei Auslagen und im SEPA-Einzug.'),
+				t('Neu: Bericht und Budget je Kostenstelle. Konten können eine Kostenstelle verlangen.'),
+				t('Neu: Vereinswährung wählbar – neben Euro auch CHF, GBP, DKK, SEK, NOK, PLN und CZK. SEPA-Lastschrift und GiroCode gibt es nur in Euro.'),
+				t('Neu: Der Gliederungsbericht hat eine visuelle Ansicht mit Kennzahlen, Ampeln, Verlauf und Balken. Ein Klick auf ein Konto öffnet die passenden Buchungen.'),
+				t('Neu: Die Buchungsliste filtert nach Datum („Von“ / „Bis“) und auf Wunsch nach einem Konto samt Unterkonten.'),
+				t('Behoben: Eine doppelte Kontonummer führt nicht mehr zu einem Serverfehler, sondern zu einer verständlichen Meldung.'),
+				t('Behoben: Eine beitragsfreie Zuweisung hielt den täglichen Forderungslauf an. Ausgebliebene Forderungen holt der nächste Lauf nach.'),
+			],
+		},
+		{
 			version: '0.52.0',
 			roles: ['verwalter', 'buchhalter'],
 			items: [
