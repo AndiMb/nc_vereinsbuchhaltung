@@ -324,6 +324,44 @@ class JournalMapper extends QBMapper {
 	}
 
 	/**
+	 * Buchungen eines Zeitraums, die ein Konto bewegen, mit ihrem Nettobetrag
+	 * auf diesem Konto (Soll − Haben) – für ein Geldkonto also Zugang positiv,
+	 * Abgang negativ (Kontoabstimmung, Issue #159). Buchungen, die das Konto
+	 * unterm Strich nicht bewegen, entfallen.
+	 *
+	 * @return list<array{journalId:int, date:string, description:string, bankTxId:?int, netCents:int}> nach Datum, dann ID
+	 */
+	public function findAccountMovements(string $userId, int $accountId, string $from, string $to): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('j.id', 'j.date', 'j.description', 'j.bank_tx_id', 'l.debit_cents', 'l.credit_cents')
+			->from($this->getTableName(), 'j')
+			->innerJoin('j', 'vbh_journal_line', 'l', $qb->expr()->eq('l.journal_id', 'j.id'))
+			->where($qb->expr()->eq('j.user_id', $qb->createNamedParameter($userId)))
+			->andWhere($qb->expr()->eq('l.account_id', $qb->createNamedParameter($accountId, IQueryBuilder::PARAM_INT)))
+			->andWhere($qb->expr()->gte('j.date', $qb->createNamedParameter($from)))
+			->andWhere($qb->expr()->lte('j.date', $qb->createNamedParameter($to)))
+			->orderBy('j.date', 'ASC')
+			->addOrderBy('j.id', 'ASC');
+		$res = $qb->executeQuery();
+
+		$byId = [];
+		while (($row = $res->fetch()) !== false) {
+			$id = (int)$row['id'];
+			$byId[$id] ??= [
+				'journalId' => $id,
+				'date' => substr((string)$row['date'], 0, 10),
+				'description' => (string)($row['description'] ?? ''),
+				'bankTxId' => $row['bank_tx_id'] !== null ? (int)$row['bank_tx_id'] : null,
+				'netCents' => 0,
+			];
+			$byId[$id]['netCents'] += (int)$row['debit_cents'] - (int)$row['credit_cents'];
+		}
+		$res->closeCursor();
+
+		return array_values(array_filter($byId, static fn (array $m): bool => $m['netCents'] !== 0));
+	}
+
+	/**
 	 * Datum, Betrag (absolut, Cent) und Beschreibung aller Buchungen OHNE
 	 * verknüpfte Bankbuchung (bank_tx_id IS NULL) – also XBUC-/manuell erfasste.
 	 * Dient dem CSV-Import als zusätzliche Dublettenprüfung: eine CSV-Zeile, die
