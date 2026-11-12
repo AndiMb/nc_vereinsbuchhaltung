@@ -11,6 +11,7 @@ import { clubToday } from './clubTime.js'
 import { formatDate } from './format.js'
 import { intervalLabel } from './frequency.js'
 import { t } from './l10n.js'
+import { isAnnual } from './prorata.js'
 
 // Tag des Vereins, nicht UTC (#263).
 function isoToday() {
@@ -108,9 +109,11 @@ export function assignmentStatusTone(assignment, today = isoToday()) {
  * Frequenz dasselbe bedeutet wie auf der Rechnung.
  */
 function assignmentView(assignment, today) {
-	const free = assignment.monthlyAmountCents === 0
+	// Jahresbetrag (Issue #270): er IST der Betrag je Periode – 12 × der gerundete Monatswert läge um Cents daneben.
+	const annual = isAnnual(assignment)
+	const free = (annual ? assignment.annualAmountCents : assignment.monthlyAmountCents) === 0
 	return {
-		amount: assignment.monthlyAmountCents * assignment.intervalMonths / 100,
+		amount: (annual ? assignment.annualAmountCents : assignment.monthlyAmountCents * assignment.intervalMonths) / 100,
 		// Beitragsfrei (0 €, z. B. Gruppe „Ruhend“ für Pausen): es entstehen keine Forderungen
 		// und es wird nichts eingezogen – weder Betrag noch Mandat sind hier ein Thema.
 		free,

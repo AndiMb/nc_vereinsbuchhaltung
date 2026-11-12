@@ -2137,7 +2137,7 @@ and extra columns (voice part …) are simply ignored:
 | Mandate on | `15.01.2026` | yes, as soon as there's an IBAN |
 | Mandate reference | `ALT-0001` | no, otherwise the app assigns one |
 | Contribution group | `Choir members` | yes, as soon as a fee should be created – if there is only one group, the column may be missing |
-| Amount | `8.00` | only if a fee should be created – the **monthly amount**, regardless of the interval. **`0`** means fee-free (passive, honorary, supporting members, pauses). Empty but with a start: the default fee of the contribution group |
+| Amount | `8.00` | only if a fee should be created – the **monthly amount**, regardless of the interval (for a contribution group with amounts *per year* the **annual amount**, see 13.4). **`0`** means fee-free (passive, honorary, supporting members, pauses). Empty but with a start: the default fee of the contribution group |
 | Frequency | `monthly` | no – **yearly** applies if not specified, or the default interval of the contribution group when the amount is empty; only sets the interval, not the amount |
 | Start | `01.02.2026` | yes, as soon as there's an amount above 0 – must not lie in the past. For **0 €** it may be missing: the assignment then applies from the import day |
 
@@ -2207,6 +2207,20 @@ group** (**"Contributions" tab → Contribution groups**):
   A higher lower limit is set via **"Raise lower limit"** (*Untergrenze
   anheben*): the preview names the assignments affected beforehand, and
   periods already collected are never recalculated.
+- **Amounts per year:** if your statutes define the fee as an annual amount
+  (say €50 a year), set **"Amounts apply" (*Beträge gelten*) → *per year***
+  on the group. The lower limit, the default fee and the fee of every
+  assignment are then annual amounts, and a full contribution year costs
+  exactly that amount – €50 cannot be split into twelve equal months
+  (12 × €4.17 would be €50.04). These groups are collected once a year only.
+  The switch **"Prorate a partial contribution year"** (*Angebrochenes
+  Beitragsjahr anteilig berechnen*) decides what applies when someone joins
+  or leaves during the year: switched on, annual fee × months ÷ 12, rounded
+  to the cent (€50 from June is €29.17); switched off, the full annual fee.
+  You can change the switch at any time; it affects claims created from then
+  on. The choice between *per month* and *per year* itself is fixed once the
+  group has assignments, and an assignment does not move between groups with
+  different settings – end it and create a new one.
 - The **assignment** connects a member with a group: "monthly fee"
   (*Monatsbeitrag*), "interval" (*Turnus*), "payment method"
   (*Zahlungsart*) – "direct debit" (*Lastschrift*) or *Bank transfer* – as

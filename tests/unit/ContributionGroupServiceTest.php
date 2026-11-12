@@ -293,4 +293,159 @@ class ContributionGroupServiceTest extends TestCase {
 
 		$this->assertSame(3, $group->getBookingCostCenterId());
 	}
+
+	// --- Jahresbeiträge (Issue #270) ---
+
+	private function annualGroup(int $minAnnualCents = 5000): ContributionGroup {
+		$group = new ContributionGroup();
+		$group->setId(1);
+		$group->setAmountBasis(ContributionGroup::BASIS_YEAR);
+		$group->setMinAnnualAmountCents($minAnnualCents);
+		$group->setDefaultAnnualAmountCents($minAnnualCents);
+		$group->setMinMonthlyAmountCents((int)round($minAnnualCents / 12));
+		$group->setDefaultMonthlyAmountCents((int)round($minAnnualCents / 12));
+		return $group;
+	}
+
+	public function testJahresgruppeSpeichertDenJahresbetragUndDenGerundetenMonatswert(): void {
+		$this->mapper->method('insert')->willReturnArgument(0);
+
+		$group = $this->service()->create('Förderbeitrag', 2500, 5000, [12], 12, true, false, ContributionGroup::BASIS_YEAR, false);
+
+		$this->assertTrue($group->isAnnual());
+		$this->assertFalse($group->prorates());
+		$this->assertSame(2500, $group->getMinAnnualAmountCents());
+		$this->assertSame(5000, $group->getDefaultAnnualAmountCents());
+		$this->assertSame(208, $group->getMinMonthlyAmountCents());
+		$this->assertSame(417, $group->getDefaultMonthlyAmountCents());
+	}
+
+	public function testMonatsgruppeBleibtOhneJahresbetrag(): void {
+		$this->mapper->method('insert')->willReturnArgument(0);
+
+		$group = $this->service()->create('Basisbeitrag', 500, 800, [1, 12], 12, true);
+
+		$this->assertFalse($group->isAnnual());
+		$this->assertNull($group->getMinAnnualAmountCents());
+		$this->assertSame(500, $group->getMinMonthlyAmountCents());
+	}
+
+	public function testJahresgruppeErlaubtNurDenJaehrlichenTurnus(): void {
+		$this->expectExceptionMessage('jährliche Turnus');
+		$this->service()->create('Förderbeitrag', 2500, 5000, [1, 12], 12, true, false, ContributionGroup::BASIS_YEAR);
+	}
+
+	public function testUnbekannteBetragsangabeWirdAbgelehnt(): void {
+		$this->expectException(\InvalidArgumentException::class);
+		$this->service()->create('Förderbeitrag', 2500, 5000, [12], 12, true, false, 'quarter');
+	}
+
+	public function testBetragsangabeLaesstSichMitZuweisungenNichtMehrAendern(): void {
+		$this->mapper->method('find')->willReturn($this->group(500));
+		$this->assignmentMapper->method('findByGroup')->willReturn([new Assignment()]);
+
+		$this->expectExceptionMessage('Betragsangabe');
+		$this->service()->update(1, 'Basisbeitrag', 5000, 5000, [12], 12, true, false, ContributionGroup::BASIS_YEAR);
+	}
+
+	public function testBetragsangabeLaesstSichOhneZuweisungenAendern(): void {
+		$this->mapper->method('find')->willReturn($this->group(500));
+		$this->assignmentMapper->method('findByGroup')->willReturn([]);
+		$this->mapper->method('update')->willReturnArgument(0);
+
+		// 50 €/Jahr liegt über den bisherigen 5 €/Monat: kein Fall für die Untergrenzen-Erhöhung, die Angabe wechselt.
+		$group = $this->service()->update(1, 'Basisbeitrag', 5000, 5000, [12], 12, true, false, ContributionGroup::BASIS_YEAR);
+
+		$this->assertTrue($group->isAnnual());
+		$this->assertSame(5000, $group->getMinAnnualAmountCents());
+	}
+
+	public function testWechselZurMonatsangabeLeertDieJahresbetraege(): void {
+		$this->mapper->method('find')->willReturn($this->annualGroup());
+		$this->assignmentMapper->method('findByGroup')->willReturn([]);
+		$this->mapper->method('update')->willReturnArgument(0);
+
+		$group = $this->service()->update(1, 'Basisbeitrag', 300, 500, [1, 12], 12, true);
+
+		$this->assertFalse($group->isAnnual());
+		$this->assertNull($group->getMinAnnualAmountCents());
+		$this->assertNull($group->getDefaultAnnualAmountCents());
+		$this->assertSame(300, $group->getMinMonthlyAmountCents());
+	}
+
+	public function testAnteiligLaesstSichAuchMitZuweisungenUmschalten(): void {
+		$this->mapper->method('find')->willReturn($this->annualGroup());
+		$this->assignmentMapper->method('findByGroup')->willReturn([new Assignment()]);
+		$this->mapper->method('update')->willReturnArgument(0);
+
+		$group = $this->service()->update(1, 'Förderbeitrag', 5000, 5000, [12], 12, true, false, ContributionGroup::BASIS_YEAR, false);
+
+		$this->assertFalse($group->prorates());
+	}
+
+	public function testUpdateLehntErhoehungDerJahresUntergrenzeAb(): void {
+		$this->mapper->method('find')->willReturn($this->annualGroup(5000));
+		$this->assignmentMapper->method('findByGroup')->willReturn([new Assignment()]);
+
+		$this->expectExceptionMessage('Erhöhung der Untergrenze');
+		$this->service()->update(1, 'Förderbeitrag', 6000, 6000, [12], 12, true, false, ContributionGroup::BASIS_YEAR);
+	}
+
+	public function testUntergrenzenErhoehungRechnetBeiJahresgruppenMitJahresbetraegen(): void {
+		$this->mapper->method('find')->willReturn($this->annualGroup(5000));
+
+		$below = new Assignment();
+		$below->setId(10);
+		$below->setMemberId(1);
+		$below->setMonthlyAmountCents(417);
+		$below->setAnnualAmountCents(5000);
+		$below->setValidFrom('2020-01-01');
+
+		$above = new Assignment();
+		$above->setId(11);
+		$above->setMemberId(2);
+		$above->setMonthlyAmountCents(667);
+		$above->setAnnualAmountCents(8000);
+		$above->setValidFrom('2020-01-01');
+
+		$override = new Assignment();
+		$override->setId(12);
+		$override->setMemberId(3);
+		$override->setMonthlyAmountCents(208);
+		$override->setAnnualAmountCents(2500);
+		$override->setMinAnnualOverrideCents(2500);
+		$override->setValidFrom('2020-01-01');
+
+		$this->assignmentMapper->method('findByGroup')->willReturn([$below, $above, $override]);
+		$this->memberMapper->method('displayNameOr')->willReturn('Mitglied');
+
+		$preview = $this->service()->previewMinAmountIncrease(1, 6000, true);
+
+		$this->assertSame(5000, $preview['oldMinAmountCents']);
+		$this->assertSame([10], array_column($preview['affected'], 'assignmentId'));
+		$this->assertSame(5000, $preview['affected'][0]['oldAmountCents']);
+		$this->assertSame(6000, $preview['affected'][0]['newAmountCents']);
+		$this->assertSame(2500, $preview['individualOverridesUnaffected'][0]['minAmountOverrideCents']);
+	}
+
+	/** Ein Monatswert, der als Jahreswert gelesen würde (oder umgekehrt), wäre um den Faktor 12 falsch. */
+	public function testUntergrenzenErhoehungLehntFalscheBetragsangabeAb(): void {
+		$this->mapper->method('find')->willReturn($this->annualGroup(5000));
+
+		$this->expectExceptionMessage('Betragsangabe');
+		$this->service()->previewMinAmountIncrease(1, 6000);
+	}
+
+	public function testApplyMinAmountIncreaseSetztBeiJahresgruppenJahresUndMonatswert(): void {
+		$this->mapper->method('find')->willReturn($this->annualGroup(5000));
+		$this->assignmentMapper->method('findByGroup')->willReturn([]);
+		$this->mapper->expects($this->once())->method('update')->with($this->callback(
+			static fn (ContributionGroup $g): bool => $g->getMinAnnualAmountCents() === 7000
+				&& $g->getDefaultAnnualAmountCents() === 7000
+				&& $g->getMinMonthlyAmountCents() === 583
+				&& $g->getDefaultMonthlyAmountCents() === 583,
+		));
+
+		$this->service()->applyMinAmountIncrease(1, 7000, 'kassenwart', true);
+	}
 }

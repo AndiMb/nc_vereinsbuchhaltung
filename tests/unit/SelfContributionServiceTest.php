@@ -334,4 +334,46 @@ class SelfContributionServiceTest extends TestCase {
 
 		$this->service()->apply(self::ASSIGNMENT_ID, 1500, null);
 	}
+
+	// --- Jahresbeiträge (Issue #270) ---
+
+	private function ownAnnualAssignment(int $annualCents): Assignment {
+		$a = $this->ownAssignment(amountCents: (int)round($annualCents / 12), intervalMonths: 12);
+		$a->setAnnualAmountCents($annualCents);
+		return $a;
+	}
+
+	public function testApplyReichtDenJahresbetragDurchUndQuittiertIhnAlsJahresbeitrag(): void {
+		$this->actorContext->setMemberChannel(self::OWN_MEMBER_ID);
+		$this->assignments->method('find')->willReturn($this->ownAnnualAssignment(5000));
+		$this->assignments->expects($this->once())->method('previewChange')
+			->with(self::ASSIGNMENT_ID, null, null, null, null, 7000)
+			->willReturn($this->fixedPreview());
+		$this->assignments->expects($this->once())->method('update')
+			->with(self::ASSIGNMENT_ID, null, null, null, ActorContextService::TYPE_MEMBER, $this->anything(), null, null, 7000)
+			->willReturn($this->ownAnnualAssignment(7000));
+		$this->members->method('find')->willReturn($this->member());
+
+		$this->activity->expects($this->once())->method('publish')
+			->with('katrin.b', SelfServiceProvider::SUBJECT_CONTRIBUTION_AMOUNT_CHANGED, ['from' => 5000, 'to' => 7000, 'effectiveFrom' => '2026-07-01', 'basis' => 'year'], 'assignment', self::ASSIGNMENT_ID);
+		$this->receiptMail->expects($this->once())->method('sendReceipt')
+			->with(
+				$this->isInstanceOf(Member::class),
+				'katrin@example.org',
+				$this->anything(),
+				$this->stringContains('Ihr Jahresbeitrag wurde von 50,00 € auf 70,00 € geändert.'),
+			);
+
+		$this->service()->apply(self::ASSIGNMENT_ID, null, null, null, 7000);
+	}
+
+	public function testPreviewReichtDenJahresbetragDurch(): void {
+		$this->actorContext->setMemberChannel(self::OWN_MEMBER_ID);
+		$this->assignments->method('find')->willReturn($this->ownAnnualAssignment(5000));
+		$this->assignments->expects($this->once())->method('previewChange')
+			->with(self::ASSIGNMENT_ID, null, null, null, null, 7000)
+			->willReturn($this->fixedPreview());
+
+		$this->service()->preview(self::ASSIGNMENT_ID, null, null, null, 7000);
+	}
 }
