@@ -200,6 +200,52 @@ class GliederungsberichtVisuellExportTest extends TestCase {
 		$this->assertStringContainsString('</tr></thead><tbody>', $html);
 	}
 
+	/**
+	 * Druck (Issue #329): eine Überschrift oder ein Oberkonto darf nicht als
+	 * letzte Zeile einer Seite stehen, während die zugehörigen Zeilen erst auf
+	 * der nächsten beginnen.
+	 */
+	public function testUeberschriftUndOberkontoBleibenBeiIhrenZeilen(): void {
+		$html = $this->renderer()->render(self::visual(), 'year');
+
+		$this->assertStringContainsString('section.breakdown tr.heading, section.breakdown tr.group { break-after: avoid; page-break-after: avoid; }', $html);
+		$this->assertStringContainsString('<tr class="heading top">', self::tableRow($html, 'Ideeller Bereich</td>'));
+		// 420 Hallenmiete hat die Unterzeile 420 01 Nebenkosten.
+		$this->assertStringContainsString('<tr class="group">', self::tableRow($html, 'Hallenmiete</td>'));
+		// Ein Konto ohne Unterzeilen darf am Seitenende stehen – auch das letzte Unterkonto.
+		$this->assertStringNotContainsString('class="group"', self::tableRow($html, '111 Mitgliedsbeiträge &lt;b&gt;neu&lt;/b&gt;</td>'));
+		$this->assertStringNotContainsString('class="group"', self::tableRow($html, 'Nebenkosten</td>'));
+	}
+
+	/**
+	 * Maßgeblich ist, was die Tabelle zeigt: ein Oberkonto, dessen Unterkonten
+	 * die Vorlage nicht einzeln aufführt, hat keine Zeilen, bei denen es
+	 * bleiben müsste – und eine lange Kette solcher Zeilen ließe sich sonst
+	 * nirgends umbrechen.
+	 */
+	public function testOberkontoOhneGezeigteUnterkontenIstKeineGruppe(): void {
+		$visual = self::visual();
+		$visual['rows'][4]['flags'] = ['parent'];
+
+		$html = $this->renderer()->render($visual, 'year');
+
+		$this->assertStringNotContainsString('class="group"', self::tableRow($html, 'Sonstiges'));
+	}
+
+	/**
+	 * Druck (Issue #329): die Kopfzeile bleibt einzeilig. Damit die Tabelle
+	 * dabei nicht über A4 hinauswächst, darf dafür der lange Hinweis „im
+	 * Oberkonto geplant“ umbrechen – die Ampel mit Symbol bleibt in einer Zeile.
+	 */
+	public function testKopfzeileBrichtNichtUmDerHinweisDarf(): void {
+		$html = $this->renderer()->render(self::visual(), 'year');
+
+		$this->assertStringContainsString('section.breakdown th { white-space: nowrap; }', $html);
+		$this->assertStringContainsString('.status.note { white-space: normal; }', $html);
+		$this->assertStringContainsString('<span class="status note">im Oberkonto geplant</span>', self::tableRow($html, 'Nebenkosten'));
+		$this->assertStringNotContainsString('status note', self::tableRow($html, 'Hallenmiete</td>'));
+	}
+
 	public function testBasisZeitanteiligZeigtDenZeitanteilStatus(): void {
 		$html = $this->renderer()->render(self::visual(), 'time');
 

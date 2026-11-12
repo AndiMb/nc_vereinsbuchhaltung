@@ -95,6 +95,11 @@ verwenden, z. B. `**Neu:**`.
   folgenden Tag keine Forderung mehr. Der Lauf hält die beitragsfreie Periode
   jetzt wie vorgesehen fest und arbeitet weiter; ausgebliebene Forderungen
   holt der nächste Lauf von selbst nach.
+- **Druckseite des visuellen Gliederungsberichts** (#329): Eine Überschrift
+  oder ein Konto mit Unterzeilen steht im Aufriss nicht mehr als letzte Zeile
+  einer Seite, während die zugehörigen Zeilen erst auf der nächsten beginnen.
+  Die Kopfzeile der Tabelle bleibt einzeilig („Ist zu Plan“ brach bei
+  großen Beträgen um).
 
 ## [0.52.0] – 2026-11-09
 

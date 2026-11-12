@@ -64,12 +64,15 @@ class GliederungsberichtVisuellRenderer {
 		section.breakdown { page-break-inside: auto; }
 		section.breakdown tr { page-break-inside: avoid; }
 		thead { display: table-header-group; }
+		section.breakdown tr.heading, section.breakdown tr.group { break-after: avoid; page-break-after: avoid; }
+		section.breakdown th { white-space: nowrap; }
 		h2 { page-break-after: avoid; }
 		tr.heading td { font-weight: 600; border-bottom: none; padding-top: 10px; }
 		tr.heading.top td { font-size: 12pt; border-bottom: 1px solid #999; }
 		tr.structural td { color: #555; }
 		td.bar-cell { width: 28mm; vertical-align: middle; }
 		.status { white-space: nowrap; }
+		.status.note { white-space: normal; }
 		.status .sym { display: inline-block; width: 1.1em; text-align: center; font-weight: 700; }
 		.tone-good .sym { color: #2d7d46; }
 		.tone-warn .sym { color: #c77700; }
@@ -342,7 +345,10 @@ class GliederungsberichtVisuellRenderer {
 	private function breakdown(array $rows, string $basis, ?float $factor): string {
 		// Der Aufriss darf über Seiten laufen (die gemeinsame Regel hält jede
 		// section zusammen und schöbe ihn ganz auf die nächste Seite); der
-		// Tabellenkopf wiederholt sich, Zeilen bleiben ganz.
+		// Tabellenkopf wiederholt sich, Zeilen bleiben ganz. Überschriften und
+		// Konten mit Unterzeilen bleiben bei der Zeile darunter (Issue #329), und die
+		// Kopfzeile bleibt einzeilig – dafür darf der Hinweis „im Oberkonto
+		// geplant“ umbrechen, sonst wüchse die Tabelle über die Seitenbreite.
 		$h = '<section class="breakdown"><h2>' . PrintableReportPage::escape($this->l10n->t('Aufriss nach Vorlage')) . '</h2>'
 			. '<table><thead><tr><th>' . PrintableReportPage::escape($this->l10n->t('Bezeichnung')) . '</th>'
 			. '<th>' . PrintableReportPage::escape($this->l10n->t('Ampel')) . '</th>'
@@ -350,8 +356,8 @@ class GliederungsberichtVisuellRenderer {
 			. '<th class="num">' . PrintableReportPage::escape($this->l10n->t('Ist')) . '</th>'
 			. '<th class="num">' . PrintableReportPage::escape($this->l10n->t('Plan')) . '</th>'
 			. '<th class="num">' . PrintableReportPage::escape($this->l10n->t('Ausschöpfung')) . '</th></tr></thead><tbody>';
-		foreach ($rows as $row) {
-			$h .= $this->row($row, $basis, $factor);
+		foreach ($rows as $i => $row) {
+			$h .= $this->row($row, $basis, $factor, self::hasRowsBelow($rows, $i));
 		}
 		$h .= '</tbody></table>';
 
@@ -368,8 +374,25 @@ class GliederungsberichtVisuellRenderer {
 		return $h . '</section>';
 	}
 
-	/** @param array<string, mixed> $row */
-	private function row(array $row, string $basis, ?float $factor): string {
+	/**
+	 * Folgen auf die Kontozeile tiefer eingerückte Kontozeilen? Gefragt ist,
+	 * was die Tabelle zeigt, nicht ob das Konto Unterkonten hat: eine Vorlage
+	 * kann sie im Oberkonto zusammenfassen.
+	 *
+	 * @param list<array<string, mixed>> $rows
+	 */
+	private static function hasRowsBelow(array $rows, int $index): bool {
+		$row = $rows[$index];
+		$next = $rows[$index + 1] ?? null;
+		return ($row['kind'] ?? '') === 'account' && $next !== null
+			&& ($next['kind'] ?? '') === 'account' && (int)$next['depth'] > (int)$row['depth'];
+	}
+
+	/**
+	 * @param array<string, mixed> $row
+	 * @param bool $group Kontozeile mit Unterzeilen: bleibt im Druck bei der Zeile darunter
+	 */
+	private function row(array $row, string $basis, ?float $factor, bool $group = false): string {
 		$kind = (string)$row['kind'];
 		$indent = ' style="padding-left:' . (6 + min((int)$row['depth'], 8) * 14) . 'px"';
 		$label = PrintableReportPage::escape((string)$row['label']);
@@ -393,11 +416,14 @@ class GliederungsberichtVisuellRenderer {
 		$class = match ($kind) {
 			'footer' => ' class="sum"',
 			'total' => ' class="result"',
-			default => in_array(StructuredReportBuilder::FLAG_STRUCTURAL, $flags, true) ? ' class="structural"' : '',
+			default => self::classAttribute([
+				in_array(StructuredReportBuilder::FLAG_STRUCTURAL, $flags, true) ? 'structural' : '',
+				$group ? 'group' : '',
+			]),
 		};
 
 		$statusCell = $covered
-			? '<span class="status">' . PrintableReportPage::escape($this->l10n->t('im Oberkonto geplant')) . '</span>'
+			? '<span class="status note">' . PrintableReportPage::escape($this->l10n->t('im Oberkonto geplant')) . '</span>'
 			: $this->badge($level, $nature);
 		$isResult = $nature === 'result';
 		// Gedeckte Unterkonten haben keinen eigenen Plan und deshalb keinen
@@ -411,6 +437,12 @@ class GliederungsberichtVisuellRenderer {
 			. '<td class="num">' . $this->money((int)$row['actual']) . '</td>'
 			. '<td class="num">' . $this->money((int)$row['plan']) . '</td>'
 			. '<td class="num">' . $ratio . '</td></tr>';
+	}
+
+	/** @param list<string> $classes leere Einträge fallen weg */
+	private static function classAttribute(array $classes): string {
+		$classes = array_filter($classes);
+		return $classes === [] ? '' : ' class="' . implode(' ', $classes) . '"';
 	}
 
 	/** @param list<array<string, mixed>> $rows */

@@ -93,6 +93,10 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   that day or on any following day. The run now records the contribution-free
   period as intended and carries on; the next run catches up on the claims
   that were missed.
+- **Print page of the visual structured report** (#329): In the breakdown, a
+  heading or an account with rows below it is no longer the last line of a
+  page while its rows start on the next one. The header row of the table
+  stays on one line (“Ist zu Plan” used to wrap with large amounts).
 
 ## [0.52.0] – 2026-11-09
 
