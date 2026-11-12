@@ -119,6 +119,7 @@ class ControllerRoleDeclarationTest extends TestCase {
 	 */
 	private const CORE_CONTROLLERS = [
 		'AccountController',
+		'AccountReconciliationController',
 		'AttachmentController',
 		'AuditController',
 		'BookingCostCenterController',
