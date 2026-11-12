@@ -42,7 +42,10 @@ class BackupContainerTest extends TestCase {
 		$path = tempnam(sys_get_temp_dir(), 'vbhtest');
 		$this->files[] = $path;
 		if ($content === null) {
-			unlink($path);
+			// Ein Name, den es noch nicht gibt. Die Platzhalterdatei bleibt stehen,
+			// sonst vergäbe tempnam() denselben Namen gleich noch einmal.
+			$path .= '.out';
+			$this->files[] = $path;
 		} else {
 			file_put_contents($path, $content);
 		}

@@ -8,12 +8,17 @@ use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
 use OCA\Vereinsbuchhaltung\Service\Backup\BackupConfigStore;
 use OCA\Vereinsbuchhaltung\Service\Backup\BackupContainer;
 use OCA\Vereinsbuchhaltung\Service\Backup\BackupExportService;
+use OCA\Vereinsbuchhaltung\Service\Backup\BackupImportService;
+use OCA\Vereinsbuchhaltung\Service\Backup\BackupWipeService;
 use OCA\Vereinsbuchhaltung\Service\FieldCipher;
+use OCA\Vereinsbuchhaltung\Service\RevisionService;
 use OCP\App\IAppManager;
 use OCP\IAppConfig;
 use OCP\IConfig;
+use OCP\IGroupManager;
 use OCP\IL10N;
 use OCP\ITempManager;
+use OCP\IUserManager;
 
 /**
  * Gemeinsames Gerüst der Sicherungs-Tests: eine „Instanz“ aus Tabellen,
@@ -143,7 +148,7 @@ trait BackupTestKit {
 	}
 
 	/**
-	 * @return array{tables: InMemoryBackupTables, config: IAppConfig, files: FakeBackupFiles, cipher: FieldCipher, export: BackupExportService, container: BackupContainer, runner: TransactionRunner, configStore: BackupConfigStore}
+	 * @return array{tables: InMemoryBackupTables, config: IAppConfig, files: FakeBackupFiles, cipher: FieldCipher, export: BackupExportService, container: BackupContainer, runner: TransactionRunner, configStore: BackupConfigStore, sink: FakeBackupSink, wipe: BackupWipeService, import: BackupImportService}
 	 */
 	protected function instance(string $secret, bool $filled, string $version = '0.53.0'): array {
 		$cipher = $this->cipher($secret);
@@ -154,7 +159,16 @@ trait BackupTestKit {
 		$runner = new TransactionRunner($tables->connection);
 		$configStore = new BackupConfigStore($config);
 		$export = new BackupExportService($container, $tables, $configStore, $files, $cipher, $runner, $this->appManager($version), $this->tempManager(), $this->l10n());
-		return compact('tables', 'config', 'files', 'cipher', 'export', 'container', 'runner', 'configStore');
+
+		$sink = new FakeBackupSink();
+		$revision = new RevisionService($config);
+		$wipe = new BackupWipeService($tables, $configStore, $sink, $runner, $revision);
+		$users = $this->createMock(IUserManager::class);
+		$users->method('userExists')->willReturnCallback(static fn (string $uid): bool => in_array($uid, ['alice', 'erika', 'importer'], true));
+		$groups = $this->createMock(IGroupManager::class);
+		$groups->method('groupExists')->willReturnCallback(static fn (string $gid): bool => $gid === 'vorstand');
+		$import = new BackupImportService($container, $tables, $configStore, $sink, $cipher, $runner, $wipe, $revision, $this->appManager($version), $this->tempManager(), $users, $groups, $this->l10n());
+		return compact('tables', 'config', 'files', 'cipher', 'export', 'container', 'runner', 'configStore', 'sink', 'wipe', 'import');
 	}
 
 	/** Entschlüsselt eine Sicherung und öffnet das ZIP darin. */
