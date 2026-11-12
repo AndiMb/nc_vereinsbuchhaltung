@@ -88,6 +88,14 @@ verwenden, z. B. `**Neu:**`.
   gefiltert auf dieses Konto; der Kontofilter der Liste steht jetzt im Link
   (`account=`). Tabelle, Druck und CSV der Tabelle bleiben unverändert.
 
+**Behoben:**
+- **Beitragsfreie Zuweisung hielt den täglichen Forderungslauf an:** Gab es
+  eine Zuweisung mit Monatsbeitrag 0 € (etwa eine Gruppe „Ruhend“), brach der
+  Lauf an ihr ab – alle Zuweisungen danach bekamen an diesem und jedem
+  folgenden Tag keine Forderung mehr. Der Lauf hält die beitragsfreie Periode
+  jetzt wie vorgesehen fest und arbeitet weiter; ausgebliebene Forderungen
+  holt der nächste Lauf von selbst nach.
+
 ## [0.52.0] – 2026-11-09
 
 **Neu:**

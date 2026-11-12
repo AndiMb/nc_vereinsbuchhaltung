@@ -136,6 +136,9 @@ class OpenItem extends Entity implements \JsonSerializable {
 	public const TYPES = [self::TYPE_CONTRIBUTION, self::TYPE_FEE];
 
 	public function __construct() {
+		// Pflichtspalte ohne Datenbank-Vorgabe: auch der Vorgabewert muss im INSERT stehen
+		// (der Setter merkt nur geänderte Werte vor, siehe EntityDefaultValueInsertTest).
+		$this->markFieldUpdated('amountCents');
 		$this->addType('amountCents', 'integer');
 		$this->addType('accountId', 'integer');
 		$this->addType('paidJournalId', 'integer');

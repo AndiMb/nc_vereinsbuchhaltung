@@ -8,6 +8,7 @@ import { api, openApp, switchTab, USERS, visibleSection } from './fixtures/nextc
 // Perioden im Hintergrund fest, damit eine spätere Betragserhöhung sie nicht rückwirkend nachfordert.
 
 const GROUP_NAME = 'Ruhend E2E'
+const PAYING_GROUP_NAME = 'Zahlend E2E'
 const today = () => new Date().toISOString().slice(0, 10)
 const suffix = () => `${Date.now() % 100000}`
 
@@ -69,6 +70,28 @@ test.describe('Beitragsfreie Zuweisung (0 €)', () => {
 
 		const tasks = await api.getJson(request, '/tasks', { user: USERS.buchhalter })
 		expect(tasks.filter((t) => String(t.message).includes(member.displayName))).toEqual([])
+	})
+
+	// Der Lauf geht die Zuweisungen der Reihe nach durch. Scheiterte er an der beitragsfreien
+	// (der Betrag 0 fehlte im INSERT), bekäme danach niemand mehr eine Forderung - und von außen
+	// sähe das genauso aus wie „keine Forderung für das beitragsfreie Mitglied“.
+	test('der Tageslauf legt für ein zahlendes Mitglied nach dem beitragsfreien die Forderung an', async ({ request }) => {
+		test.setTimeout(60000)
+		const groups = await api.getJson(request, '/contribution-groups')
+		const paying = groups.find((g) => g.name === PAYING_GROUP_NAME) ?? await (await api.raw(request, 'POST', '/contribution-groups', {
+			expectOk: true,
+			data: { name: PAYING_GROUP_NAME, minMonthlyAmount: 1, defaultMonthlyAmount: 5, allowedIntervals: [12], defaultInterval: 12, isActive: true },
+		})).json()
+		const payer = await api.createMember(request, { firstName: 'Zahlt', lastName: `Weiter-${suffix()}`, email: `zahlt.weiter-${suffix()}@example.org` })
+		await api.raw(request, 'POST', '/assignments', {
+			expectOk: true,
+			data: { memberId: payer.id, groupId: paying.id, intervalMonths: 12, monthlyAmount: 5, paymentMethod: 'ueberweisung', validFrom: today() },
+		})
+
+		await runDailyJob()
+
+		expect(await claimsOf(request, payer)).toHaveLength(1)
+		expect(await claimsOf(request, member)).toEqual([])
 	})
 
 	test('die Mitgliederliste zeigt „beitragsfrei“ und keine Auffälligkeit, obwohl ein Mandat fehlt', async ({ page }) => {

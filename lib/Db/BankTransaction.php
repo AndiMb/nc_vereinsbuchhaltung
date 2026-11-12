@@ -59,6 +59,9 @@ class BankTransaction extends Entity implements \JsonSerializable {
 	protected $journalId;
 
 	public function __construct() {
+		// Pflichtspalte ohne Datenbank-Vorgabe: auch der Vorgabewert muss im INSERT stehen
+		// (der Setter merkt nur geänderte Werte vor, siehe EntityDefaultValueInsertTest).
+		$this->markFieldUpdated('amountCents');
 		$this->addType('importId', 'integer');
 		$this->addType('amountCents', 'integer');
 		$this->addType('contraAccountId', 'integer');

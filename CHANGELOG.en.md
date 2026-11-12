@@ -86,6 +86,14 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   filtered to that account; the list's account filter is now part of the
   link (`account=`). The table, its print and its CSV stay unchanged.
 
+**Fixed:**
+- **A contribution-free assignment stopped the daily claim run:** With an
+  assignment at a monthly contribution of 0 € (for example a group
+  “Dormant”), the run aborted there – every assignment after it got no claim
+  that day or on any following day. The run now records the contribution-free
+  period as intended and carries on; the next run catches up on the claims
+  that were missed.
+
 ## [0.52.0] – 2026-11-09
 
 **New:**
