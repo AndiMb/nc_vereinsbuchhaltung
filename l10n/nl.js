@@ -4568,5 +4568,7 @@ OC.L10N.register("vereinsbuchhaltung", {
 	"Fertig": "Klaar",
 	"Die Planwerte konnten nicht geladen werden.": "De geplande waarden konden niet worden geladen.",
 	"Der Planwert konnte nicht gespeichert werden.": "De geplande waarde kon niet worden opgeslagen.",
-	"Budget planen": "Budget plannen"
+	"Budget planen": "Budget plannen",
+	"Buchungsdatum": "Boekingsdatum",
+	"Datumsfilter aufheben": "Datumfilter wissen"
 }, "nplurals=2; plural=(n != 1);");

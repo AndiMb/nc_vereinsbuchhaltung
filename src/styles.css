@@ -305,6 +305,14 @@ span.vbh-attachment-name.vbh-attachment-name { font-size: 0.9em; color: var(--co
 
 .vbh-filter-select { min-width: 200px; max-width: 280px; }
 
+/* Datumsfilter des Journals: „Von“ und „Bis“ samt Aufheben-Knopf als eine Gruppe,
+   die in der Filterzeile nicht auseinanderbricht. */
+.vbh-filter-dates { display: flex; align-items: center; gap: 8px; min-width: 0; }
+
+.vbh-filter-date { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; font-size: 0.95em; min-width: 0; }
+
+.vbh-filter-date input { height: 34px; margin: 0; min-width: 0; }
+
 /* Kategorie-Zeilen im Kontofilter: wählbare Gruppenüberschrift („Einnahmen (alle)“).
    Flex, weil NcEllipsisedOption selbst ein Flex-Block ist und der Hinweis sonst umbricht. */
 .vbh-select-group { display: flex; align-items: baseline; gap: 4px; min-width: 0; font-weight: bold; }
@@ -2146,6 +2154,11 @@ button.vbh-dirtree-label.vbh-dirtree-label.is-selected { background-color: var(-
 	.vbh-filterbar .vbh-search { flex: 1 1 0; width: auto; height: 44px; }
 	.vbh-filterbar .vbh-inv-search { flex-basis: 100%; }
 	.vbh-filterbar .vbh-filter-select { flex: 1 1 100%; }
+	/* Datumsfilter über die volle Breite, die beiden Felder teilen sie sich;
+	   die Beschriftung steht darüber, nebeneinander reichte der Platz nicht. */
+	.vbh-filterbar .vbh-filter-dates { flex: 1 1 100%; align-items: flex-end; }
+	.vbh-filter-dates .vbh-filter-date { flex: 1 1 0; flex-direction: column; align-items: stretch; gap: 2px; }
+	.vbh-filter-dates .vbh-filter-date input { width: 100%; height: 44px; box-sizing: border-box; }
 	.vbh-filter-toggle { flex: 0 0 auto; }
 	/* Rechnungen: Jahr und Projekt nebeneinander (doppelte Klasse schlägt die
 	   scoped-Regel aus InvoicesTab.vue). */

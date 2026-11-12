@@ -1398,8 +1398,9 @@ The view speaks of **plan** and **actual**.
   account without sub-accounts opens the bookings list of the period filtered
   to that account. Accounts with sub-accounts are not links – in the
   deviation lists neither – because their figures include the sub-accounts.
-  The bookings list has no date filter: with a month as the snapshot it
-  therefore also shows later entries of that account.
+  With a month as the snapshot the list ends on the last day of that month
+  (field "Bis" of the bookings list) and so adds up to the figure that was
+  clicked; with "Aktuell" it stays without a date filter.
 
 If the sub-accounts of a parent account carry their own plan values, the
 status counts and deviation lists count the sub-accounts; entries posted
@@ -1628,6 +1629,10 @@ the auditor from having to read through this entire manual.
 - **"Only without receipt" filter** in the Bookings tab (journal): shows
   all postings without an attached receipt. Clearing these beforehand saves
   follow-up questions during the audit.
+- **Date filter "Von" / "Bis"** in the journal: narrows the list to a range
+  of booking dates, both days included – a quarter, say, or a single day.
+  Each field works on its own; the cross next to them clears the filter. The
+  range is part of the page's link, like the account filter.
 - **Gap check:** a warning automatically appears above the journal if
   posting numbers are missing or duplicated. The treasurer's report shows
   the same as a completeness line. In an open fiscal year, the app itself
