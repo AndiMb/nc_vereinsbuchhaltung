@@ -4568,5 +4568,6 @@ OC.L10N.register("vereinsbuchhaltung", {
 	"Fertig": "Done",
 	"Die Planwerte konnten nicht geladen werden.": "The planned values could not be loaded.",
 	"Der Planwert konnte nicht gespeichert werden.": "The planned value could not be saved.",
-	"Budget planen": "Plan budget"
+	"Budget planen": "Plan budget",
+	"Die Kontonummer %s ist bereits vergeben.": "The account number %s is already in use."
 }, "nplurals=2; plural=(n != 1);");
