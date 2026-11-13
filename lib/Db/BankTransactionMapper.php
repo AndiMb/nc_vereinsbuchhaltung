@@ -214,6 +214,28 @@ class BankTransactionMapper extends EncryptingMapper {
 	}
 
 	/**
+	 * Noch nicht zugeordnete Umsätze nach Buchungstag der Bank, älteste
+	 * zuerst (Kontoabstimmung, Issue #159). Ohne Grenzen alle.
+	 *
+	 * @return list<BankTransaction>
+	 */
+	public function findUnassignedInRange(string $userId, ?string $from, ?string $to): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('*')
+			->from($this->getTableName())
+			->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)))
+			->andWhere($qb->expr()->eq('status', $qb->createNamedParameter('unassigned')));
+		if ($from !== null) {
+			$qb->andWhere($qb->expr()->gte('booking_date', $qb->createNamedParameter($from)));
+		}
+		if ($to !== null) {
+			$qb->andWhere($qb->expr()->lte('booking_date', $qb->createNamedParameter($to)));
+		}
+		$qb->orderBy('booking_date', 'ASC')->addOrderBy('id', 'ASC');
+		return array_values($this->findEntities($qb));
+	}
+
+	/**
 	 * @return BankTransaction[]
 	 */
 	public function findFiltered(string $userId, ?string $status = null, int $limit = 500, int $offset = 0): array {

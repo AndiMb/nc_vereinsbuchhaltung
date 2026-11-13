@@ -22,7 +22,7 @@ use OCP\IL10N;
  * der geplanten zweiten Stufe – für die Antwort des FinTS-Umsatzabrufs, der
  * genau dieses Format liefert.
  */
-class Mt940Parser implements StatementParser {
+class Mt940Parser implements StatementParser, StatementBalanceReader {
 
 	/**
 	 * $l10n ist bewusst optional: der Parser bleibt dadurch ohne laufende
@@ -96,6 +96,65 @@ class Mt940Parser implements StatementParser {
 			throw new UserFacingException($this->msg('Die MT940-Datei enthält keine lesbaren Buchungen (:61:).'));
 		}
 		return $out;
+	}
+
+	/**
+	 * Anfangs- und Endsaldo je Konto aus :60F: und :62F: (Kontoabstimmung,
+	 * Issue #159). Zwischensalden (:60M:/:62M:) trennen nur die Seiten eines
+	 * Auszugs und zählen nicht. Mehrere Auszüge desselben Kontos werden nach
+	 * ihrem Anfangsdatum aneinandergereiht; schließt einer nicht an den
+	 * vorigen an, ist das eine Bruchstelle.
+	 *
+	 * @return list<StatementBalance>
+	 */
+	public function balances(string $content): array {
+		$lines = preg_split('/\r\n|\r|\n/', $content) ?: [];
+		$statements = [];
+		$account = null;
+		$opening = null;
+		foreach ($lines as $line) {
+			if (preg_match('/^:25:(.*)$/', $line, $m)) {
+				$account = $this->normalizer->normalizeOwnAccount($this->ownAccount($m[1]));
+				$opening = null;
+				continue;
+			}
+			if (!preg_match('/^:(60F|62F):([CD])(\d{6})[A-Z]{3}([\d,.]+)/', $line, $m)) {
+				continue;
+			}
+			$cents = $this->toCents($m[4]);
+			$date = $this->dateFromYymmdd($m[3]);
+			if ($cents === null || $date === null) {
+				continue;
+			}
+			$balance = ['cents' => $m[2] === 'D' ? -$cents : $cents, 'date' => $date];
+			if ($m[1] === '60F') {
+				$opening = $balance;
+			} elseif ($opening !== null) {
+				$statements[$account ?? ''][] = ['opening' => $opening, 'closing' => $balance];
+				$opening = null;
+			}
+		}
+
+		$result = [];
+		foreach ($statements as $key => $list) {
+			usort($list, static fn (array $a, array $b): int => [$a['opening']['date'], $a['closing']['date']] <=> [$b['opening']['date'], $b['closing']['date']]);
+			$gaps = [];
+			for ($i = 1; $i < count($list); $i++) {
+				if ($list[$i]['opening']['cents'] !== $list[$i - 1]['closing']['cents']) {
+					$gaps[] = ['date' => $list[$i]['opening']['date'], 'expectedCents' => $list[$i - 1]['closing']['cents'], 'actualCents' => $list[$i]['opening']['cents']];
+				}
+			}
+			$last = $list[count($list) - 1];
+			$result[] = new StatementBalance(
+				$key === '' ? null : (string)$key,
+				$list[0]['opening']['cents'],
+				$list[0]['opening']['date'],
+				$last['closing']['cents'],
+				$last['closing']['date'],
+				$gaps,
+			);
+		}
+		return $result;
 	}
 
 	/**

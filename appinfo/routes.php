@@ -16,6 +16,8 @@ return [
 		['name' => 'account#seedDefaults', 'url' => '/api/accounts/seed', 'verb' => 'POST'],
 		['name' => 'account#setOpening', 'url' => '/api/accounts/{id}/opening', 'verb' => 'POST'],
 		['name' => 'account#bulkSphere', 'url' => '/api/accounts/sphere-bulk', 'verb' => 'POST'],
+		// Kontoabstimmung (#159): POST wegen des Datei-Uploads, liest nur.
+		['name' => 'accountReconciliation#run', 'url' => '/api/accounts/{id}/reconciliation', 'verb' => 'POST'],
 		['name' => 'journal#byAccount', 'url' => '/api/accounts/{id}/journal', 'verb' => 'GET'],
 
 		// Bank transactions
