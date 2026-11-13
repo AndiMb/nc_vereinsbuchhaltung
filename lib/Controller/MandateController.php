@@ -431,11 +431,11 @@ class MandateController extends Controller {
 		} catch (DoesNotExistException) {
 			return new DataResponse(['message' => $this->l10n->t('Mandat nicht gefunden')], Http::STATUS_NOT_FOUND);
 		}
-		$node = $this->documents->nodeOrNull($mandate);
-		if ($node === null) {
+		$document = $this->documents->documentOrNull($mandate);
+		if ($document === null) {
 			return new DataResponse(['message' => $this->l10n->t('Kein Nachweis-Dokument hinterlegt')], Http::STATUS_NOT_FOUND);
 		}
-		$response = new DataDownloadResponse($node->getContent(), $node->getName(), $node->getMimeType());
+		$response = new DataDownloadResponse($document['content'], $document['name'], $document['mimeType']);
 		// PDFs/Bilder koennen aktiven Inhalt enthalten - dieselbe Vorsichtsmassnahme
 		// wie AttachmentController::inline().
 		$response->setContentSecurityPolicy(new EmptyContentSecurityPolicy());

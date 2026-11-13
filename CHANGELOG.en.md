@@ -18,6 +18,19 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 ## [Unreleased]
 
 **New:**
+- **Backup and migration** (#111): under *gear icon → Backup and migration*,
+  administrators save the entire data set – bookkeeping, members, mandates,
+  contributions, invoices, expenses, roles, change log and settings,
+  optionally including receipts and documents – into a single file and
+  restore it on the same or a different Nextcloud. The file is encrypted with
+  a password of your choice (AES-256); without the password it cannot be
+  opened. Restoring only works in an empty data set and only with the same
+  app version; for that there is *Clear data set completely*, which – unlike
+  *Delete all data* – also removes members, mandates and settings. Large
+  backups can be picked from your own Nextcloud files instead of being
+  uploaded. After restoring, a report lists missing files and users or groups
+  that do not exist in the target; receipt storage, watch folder and the
+  other folders have to be configured again in the target (handbook 12.3).
 - **Annual fees** (#270): a contribution group can now state its amounts
   *per year* instead of *per month* (*Contributions → Contribution groups →
   Amounts apply*). A full contribution year then costs exactly the annual

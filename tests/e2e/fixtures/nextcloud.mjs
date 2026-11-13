@@ -702,6 +702,24 @@ export const api = {
 		return call(request, 'POST', '/demo/seed', { user })
 	},
 
+	/** Stand von „Sicherung und Umzug“ (Issue #111): leer?, Vereinsname, Zählung. */
+	async backupStatus(request, { user = 'admin' } = {}) {
+		return (await call(request, 'GET', '/backup/status', { user })).json()
+	},
+
+	/**
+	 * Bestand vollständig leeren – anders als resetBook() auch Mitglieder,
+	 * Mandate und die Einstellungen des Vereins. Die Bestätigung (Vereinsname
+	 * oder das feste Wort) holt sich der Helfer selbst.
+	 */
+	async backupWipe(request, { user = 'admin', expectOk = true } = {}) {
+		let confirmation = 'LÖSCHEN'
+		if (expectOk) {
+			confirmation = String((await api.backupStatus(request)).clubName || '').trim() || 'LÖSCHEN'
+		}
+		return call(request, 'POST', '/backup/wipe', { user, expectOk, data: { confirmation } })
+	},
+
 	async createRule(request, { matchField = 'description', matchValue, contraAccountId, user = 'admin' }) {
 		return call(request, 'POST', '/rules', { user, data: { matchField, matchValue, contraAccountId } })
 	},

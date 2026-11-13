@@ -24,6 +24,7 @@ A lightweight accounting app for nonprofit clubs, integrated directly into Nextc
 - **Welcome notice for auditors** on first login with that role, including a printable audit guide
 
 ### Import
+- **Backup and migration**: the entire data set including members, mandates, settings and – optionally – receipts in one password-encrypted file; can be restored into an empty Vereinsbuchhaltung of the same version, also on a different Nextcloud
 - **xbuc import** (zero Buchhaltung): takes over the account tree and all postings from a `.xbuc` file
   - **Merge mode** (default): only missing accounts are created, postings already present are skipped via fingerprint – several yearly files can be imported one after another
   - **Fiscal year check**: year taken from the file or chosen manually; postings outside the fiscal year are reported and can be dated automatically to 01/01 or 12/31

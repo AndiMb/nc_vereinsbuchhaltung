@@ -864,9 +864,14 @@ class MandateService {
 	/** Nachweis-Upload; setzt `document_file_id` (Spec §3.2). */
 	public function uploadDocument(int $id, string $fileName, string $content): Mandate {
 		$mandate = $this->mapper->find($id);
+		$replacesAppData = $mandate->getDocumentFileId() === MandateDocumentService::APPDATA_FILE_ID;
 		$fileId = $this->documents->store($mandate, $fileName, $content);
 		$mandate->setDocumentFileId($fileId);
 		$mandate = $this->mapper->update($mandate);
+		if ($replacesAppData) {
+			// Der neue Nachweis liegt im Nutzerordner; der app-interne aus einer Sicherung ist damit ersetzt.
+			$this->documents->deleteFromAppData($mandate->getId());
+		}
 		$this->logEvent($mandate, $this->l10n->t('Nachweis-Dokument hinterlegt'), MandateEvent::ACTOR_STAFF);
 		return $mandate;
 	}

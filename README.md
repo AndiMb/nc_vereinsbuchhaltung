@@ -24,6 +24,7 @@ Eine schlanke Buchhaltungs-App für Vereine, direkt in Nextcloud integriert. Kon
 - **Willkommenshinweis für Revisoren** beim ersten Login mit der Rolle, inkl. Prüfleitfaden zum Ausdrucken
 
 ### Import
+- **Sicherung und Umzug**: der gesamte Bestand samt Mitgliedern, Mandaten, Einstellungen und – auf Wunsch – Belegen in einer passwortverschlüsselten Datei; einspielbar in eine leere Vereinsbuchhaltung derselben Version, auch auf einer anderen Nextcloud
 - **xbuc-Import** (zero Buchhaltung): übernimmt Kontenbaum und alle Buchungen aus einer `.xbuc`-Datei
   - **Merge-Modus** (Standard): nur fehlende Konten werden angelegt, bereits vorhandene Buchungen werden per Fingerprint übersprungen – mehrere Jahres-Dateien lassen sich nacheinander importieren
   - **Geschäftsjahr-Prüfung**: Jahr aus der Datei oder manuell wählbar; Buchungen außerhalb des Geschäftsjahres werden gemeldet und können automatisch auf den 01.01./31.12. datiert werden

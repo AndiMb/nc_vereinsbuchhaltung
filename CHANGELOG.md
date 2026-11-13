@@ -20,6 +20,20 @@ verwenden, z. B. `**Neu:**`.
 ## [Unreleased]
 
 **Neu:**
+- **Sicherung und Umzug** (#111): Verwalter sichern unter *Zahnrad →
+  Sicherung und Umzug* den gesamten Bestand – Buchhaltung, Mitglieder,
+  Mandate, Beiträge, Rechnungen, Auslagen, Rollen, Änderungsprotokoll und
+  Einstellungen, auf Wunsch samt Belegen und Dokumenten – in eine einzige
+  Datei und spielen sie auf derselben oder einer anderen Nextcloud wieder
+  ein. Die Datei ist mit einem selbst vergebenen Passwort verschlüsselt
+  (AES-256); ohne das Passwort lässt sie sich nicht öffnen. Einspielen geht
+  nur in einen leeren Bestand und nur mit derselben App-Version; dafür gibt
+  es *Bestand vollständig leeren*, das anders als *Alle Daten löschen* auch
+  Mitglieder, Mandate und Einstellungen entfernt. Große Sicherungen lassen
+  sich aus den eigenen Nextcloud-Dateien wählen statt hochzuladen. Nach dem
+  Einspielen nennt ein Bericht fehlende Dateien und Benutzer oder Gruppen,
+  die es im Ziel nicht gibt; Belegablage, Wächter-Ordner und die übrigen
+  Ordner sind im Ziel neu einzustellen (Handbuch 12.3).
 - **Jahresbeiträge** (#270): Eine Beitragsgruppe kann ihre Beträge jetzt *pro
   Jahr* statt *pro Monat* angeben (*Beiträge → Beitragsgruppen → Beträge
   gelten*). Ein volles Beitragsjahr kostet dann genau den Jahresbeitrag –

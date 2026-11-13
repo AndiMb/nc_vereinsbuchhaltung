@@ -82,6 +82,15 @@ export default {
 	// Löscht vorher alle Daten – nur nach withPasswordConfirmation() aufrufen (#260).
 	commitXbucWithReset: (formData) => axios.post(url('/import/xbuc/reset'), formData),
 	reset: () => axios.post(url('/reset')),
+
+	// Sicherung und Umzug (Issue #111). Alle schreibenden Aufrufe nur nach withPasswordConfirmation().
+	backupStatus: () => axios.get(url('/backup/status')),
+	backupExport: (password, withFiles) => axios.post(url('/backup/export'), { password, withFiles }),
+	/** Adresse, unter der der Browser die eben erstellte Sicherung einmalig herunterlädt. */
+	backupDownloadUrl: (token) => url('/backup/download/' + encodeURIComponent(token)),
+	backupInspect: (formData) => axios.post(url('/backup/inspect'), formData),
+	backupImport: (formData) => axios.post(url('/backup/import'), formData),
+	backupWipe: (confirmation) => axios.post(url('/backup/wipe'), { confirmation }),
 	seedDemo: () => axios.post(url('/demo/seed')),
 
 	// Journal / Buchungssätze
