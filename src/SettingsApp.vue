@@ -106,6 +106,14 @@
 			</NcSettingsSection>
 		</div>
 
+		<div id="settings-section_sicherung">
+			<NcSettingsSection :name="t('Sicherung und Umzug')">
+				<!-- Leeren und Einspielen ersetzen den ganzen Bestand samt
+				     Geschäftsjahren – die Tabelle unter „Geschäftsjahr" muss davon erfahren. -->
+				<SettingsBackup v-model:busy="busy" @changed="reloadPeriods" />
+			</NcSettingsSection>
+		</div>
+
 		<div id="settings-section_daten">
 			<NcSettingsSection :name="t('Daten')">
 				<!-- Der Import legt Zeiträume an und löscht sie mit „Vorher alle
@@ -144,6 +152,7 @@ import NcButton from '@nextcloud/vue/components/NcButton'
 import NcDialog from '@nextcloud/vue/components/NcDialog'
 import NcSettingsSection from '@nextcloud/vue/components/NcSettingsSection'
 import SettingsAttachments from './components/SettingsAttachments.vue'
+import SettingsBackup from './components/SettingsBackup.vue'
 import SettingsBudgetStatus from './components/SettingsBudgetStatus.vue'
 import SettingsClub from './components/SettingsClub.vue'
 import SettingsCostCenters from './components/SettingsCostCenters.vue'
@@ -189,6 +198,7 @@ export default {
 		NcDialog,
 		NcSettingsSection,
 		SettingsAttachments,
+		SettingsBackup,
 		SettingsBudgetStatus,
 		SettingsClub,
 		SettingsCostCenters,
