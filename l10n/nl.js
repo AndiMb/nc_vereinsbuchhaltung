@@ -4749,5 +4749,17 @@ OC.L10N.register("vereinsbuchhaltung", {
 	"und {n} weitere": "en nog {n}",
 	"Die Verbindung ist abgebrochen, bevor der Server geantwortet hat. Das Einspielen läuft womöglich noch: Laden Sie die Seite in einigen Minuten neu und prüfen Sie den Bestand, bevor Sie es erneut versuchen.": "De verbinding is verbroken voordat de server antwoordde. Het terugzetten loopt mogelijk nog: laad de pagina over enkele minuten opnieuw en controleer het bestand voordat u het opnieuw probeert.",
 	"Der Datensatz %2$s der Tabelle %1$s lässt sich in dieser Datenbank nicht speichern.": "Record %2$s van tabel %1$s kan in deze database niet worden opgeslagen.",
-	"Die Datei ist nicht angekommen – vermutlich ist sie größer, als dieser Server für einen Upload annimmt. Legen Sie sie in Ihre Nextcloud-Dateien und wählen Sie sie von dort.": "Het bestand is niet aangekomen – waarschijnlijk is het groter dan deze server voor een upload accepteert. Zet het in uw Nextcloud-bestanden en kies het daar."
+	"Die Datei ist nicht angekommen – vermutlich ist sie größer, als dieser Server für einen Upload annimmt. Legen Sie sie in Ihre Nextcloud-Dateien und wählen Sie sie von dort.": "Het bestand is niet aangekomen – waarschijnlijk is het groter dan deze server voor een upload accepteert. Zet het in uw Nextcloud-bestanden en kies het daar.",
+	"Restkonto": "Restrekening",
+	"Feste Anteile (optional)": "Vaste aandelen (optioneel)",
+	"Was nach den festen Anteilen übrig bleibt, geht auf das Restkonto. Ist der Umsatz kleiner als die Anteile zusammen, bleibt er unzugeordnet.": "Wat na de vaste aandelen overblijft, gaat naar de restrekening. Is de transactie kleiner dan de aandelen samen, dan blijft ze ongekoppeld.",
+	"Konto Anteil {n}": "Rekening aandeel {n}",
+	"Betrag Anteil {n}": "Bedrag aandeel {n}",
+	"Kostenstelle Anteil {n}": "Kostenplaats aandeel {n}",
+	"Anteil {n} entfernen": "Aandeel {n} verwijderen",
+	"+ Anteil hinzufügen": "+ Aandeel toevoegen",
+	"Rest → {account}": "Rest → {account}",
+	"Jedem Anteil fehlt noch Konto oder Betrag.": "Elk aandeel heeft nog een rekening en een bedrag nodig.",
+	"Ungültiger Anteil (Konto oder Betrag fehlt).": "Ongeldig aandeel (rekening of bedrag ontbreekt).",
+	"Aufteilung: {accounts}": "Verdeling: {accounts}"
 }, "nplurals=2; plural=(n != 1);");

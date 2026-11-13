@@ -283,7 +283,7 @@ export default {
 			if (!rule.parts || !rule.parts.length) { return this.accountLabel(rule.contraAccountId) }
 			const number = (id) => this.accountsById[id]?.number ?? `#${id}`
 			const parts = rule.parts.map((p) => `${formatMoney(p.amount)} → ${number(p.accountId)}`)
-			return [...parts, this.t('Rest → {account}', { account: number(rule.contraAccountId) })].join(' · ')
+			return [...parts, this.tRaw('Rest → {account}', { account: number(rule.contraAccountId) })].join(' · ')
 		},
 
 		costCenterCode(id) {

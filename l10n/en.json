@@ -4761,7 +4761,8 @@
         "+ Anteil hinzufügen": "+ Add share",
         "Rest → {account}": "Remainder → {account}",
         "Jedem Anteil fehlt noch Konto oder Betrag.": "Each share still needs an account and an amount.",
-        "Ungültiger Anteil (Konto oder Betrag fehlt).": "Invalid share (account or amount missing)."
+        "Ungültiger Anteil (Konto oder Betrag fehlt).": "Invalid share (account or amount missing).",
+        "Aufteilung: {accounts}": "Split: {accounts}"
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }
