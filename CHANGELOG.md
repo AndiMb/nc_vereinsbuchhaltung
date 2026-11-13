@@ -51,6 +51,11 @@ verwenden, z. B. `**Neu:**`.
   erklärt bei Auszügen mit Salden die Differenz zum Kontostand. Es wird
   nur verglichen – nichts wird importiert oder gespeichert. Für alle ab
   Revisor; Handbuch Kapitel 5.9.
+- **Vorherigen Zeitraum anlegen** (#349): Unter *Einstellungen →
+  Geschäftsjahr* lässt sich jetzt auch ein Zeitraum *vor* dem bisher ersten
+  anlegen. Die Liste beginnt mit dem Geschäftsjahr, in dem die App zum
+  ersten Mal geöffnet wurde; wer ein früheres Jahr nachbuchen will, musste
+  bisher wissen, dass es mit der ersten Buchung darin von allein entsteht.
 
 ## [0.53.0] – 2026-11-12
 

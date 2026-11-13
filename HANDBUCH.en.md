@@ -1591,6 +1591,11 @@ the actions.
 - **"Create next period"** (button above the list) appends one more period
   at the end according to the current rule. This is rarely needed – the app
   creates a period by itself as soon as a posting falls into it.
+- **"Create previous period"** (next to it) prepends a period at the
+  front. The list starts with the fiscal year in which the app was first
+  opened; if you want to post or plan for an earlier year, create it here.
+  This also happens by itself as soon as a posting with an earlier date is
+  entered – the button merely makes the period selectable beforehand.
 - **"Remove"** is offered only for an empty period at the beginning or the
   end of the chain (no postings and no plan figures). In the middle it
   would leave a hole that no posting could belong to.

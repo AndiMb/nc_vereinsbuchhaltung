@@ -127,15 +127,27 @@ class PeriodController extends Controller {
 		}
 	}
 
-	/** Legt den Zeitraum nach dem bisher letzten an. */
+	/**
+	 * Legt einen Zeitraum am Rand der Kette an: nach dem bisher letzten
+	 * (Vorgabe) oder mit `position=before` vor dem bisher ersten (Issue #349).
+	 */
 	#[NoAdminRequired]
 	#[RequiresRole(PermissionService::ROLE_ADMIN)]
-	public function create(): DataResponse {
+	public function create(string $position = 'after'): DataResponse {
 		$denied = $this->denyIfNotAdmin();
 		if ($denied !== null) {
 			return $denied;
 		}
-		return new DataResponse($this->periods->appendNext($this->userId())->jsonSerialize(), Http::STATUS_CREATED);
+		try {
+			$period = match ($position) {
+				'after' => $this->periods->appendNext($this->userId()),
+				'before' => $this->periods->prependPrevious($this->userId()),
+				default => throw new \InvalidArgumentException($this->l10n->t('Ungültige Position.')),
+			};
+			return new DataResponse($period->jsonSerialize(), Http::STATUS_CREATED);
+		} catch (\InvalidArgumentException $e) {
+			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
+		}
 	}
 
 	/** Entfernt einen leeren Zeitraum am Rand der Kette. */

@@ -40,7 +40,8 @@ export default {
 	periods: (config) => axios.get(url('/periods'), config),
 	periodRule: () => axios.get(url('/periods/rule')),
 	savePeriodRule: (rule, dryRun = false) => axios.put(url('/periods/rule'), { ...rule, dryRun: dryRun ? 1 : 0 }),
-	createPeriod: () => axios.post(url('/periods')),
+	// position: 'after' hängt hinten an (Vorgabe), 'before' stellt vorne voran.
+	createPeriod: (position = 'after') => axios.post(url('/periods'), { position }),
 	updatePeriod: (id, data) => axios.put(url(`/periods/${id}`), data),
 	deletePeriod: (id) => axios.delete(url(`/periods/${id}`)),
 	closePeriod: (id) => axios.post(url(`/periods/${id}/close`)),
