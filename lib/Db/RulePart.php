@@ -44,7 +44,7 @@ class RulePart extends Entity implements \JsonSerializable {
 	public function jsonSerialize(): array {
 		return [
 			'accountId' => (int)$this->accountId,
-			'amount' => ((int)$this->amountCents) / 100,
+			'amount' => ((int)$this->amountCents) / 100.0,
 			'costCenterId' => $this->costCenterId === null ? null : (int)$this->costCenterId,
 		];
 	}

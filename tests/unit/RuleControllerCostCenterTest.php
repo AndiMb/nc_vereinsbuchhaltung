@@ -5,10 +5,13 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Tests\Unit;
 
 use OCA\Vereinsbuchhaltung\Controller\RuleController;
+use OCA\Vereinsbuchhaltung\Db\AccountMapper;
 use OCA\Vereinsbuchhaltung\Db\BookingCostCenter;
 use OCA\Vereinsbuchhaltung\Db\BookingCostCenterMapper;
 use OCA\Vereinsbuchhaltung\Db\Rule;
 use OCA\Vereinsbuchhaltung\Db\RuleMapper;
+use OCA\Vereinsbuchhaltung\Db\RulePartMapper;
+use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
 use OCA\Vereinsbuchhaltung\Service\CostCenterSettings;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http;
@@ -60,7 +63,9 @@ class RuleControllerCostCenterTest extends TestCase {
 		$settings->method('isEnabled')->willReturnCallback(fn (): bool => $this->enabled);
 		$l10n = $this->createMock(IL10N::class);
 		$l10n->method('t')->willReturnArgument(0);
-		return new RuleController($request, $mapper, $l10n, $costCenters, $settings);
+		$transaction = $this->createMock(TransactionRunner::class);
+		$transaction->method('run')->willReturnCallback(static fn (callable $work) => $work());
+		return new RuleController($request, $mapper, $l10n, $costCenters, $settings, $this->createMock(RulePartMapper::class), $this->createMock(AccountMapper::class), $transaction);
 	}
 
 	/** Die Regel aus der Antwort – bei einem Fehler stünde dort eine Meldung. */
