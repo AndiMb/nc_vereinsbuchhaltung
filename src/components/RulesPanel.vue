@@ -21,7 +21,7 @@
 						:placeholder="t('z. B. Stadtwerke')"
 						@keyup.enter="saveRule">
 				</label>
-				<label class="vbh-grow">{{ t('Gegenkonto') }}
+				<label class="vbh-grow">{{ ruleForm.parts.length ? t('Restkonto') : t('Gegenkonto') }}
 					<NcSelect
 						v-model="ruleFormContraOption"
 						:options="accountOptionsList"
@@ -51,6 +51,59 @@
 					{{ t('Abbrechen') }}
 				</NcButton>
 			</div>
+
+			<!-- Feste Anteile (Issue #163): der Rest geht aufs Restkonto -->
+			<div class="vbh-split vbh-rule-parts">
+				<div class="vbh-split-head">
+					<span class="vbh-split-title">{{ t('Feste Anteile (optional)') }}</span>
+				</div>
+				<p v-if="ruleForm.parts.length" class="vbh-hint">
+					{{ t('Was nach den festen Anteilen übrig bleibt, geht auf das Restkonto. Ist der Umsatz kleiner als die Anteile zusammen, bleibt er unzugeordnet.') }}
+				</p>
+				<ul v-if="ruleForm.parts.length" class="vbh-split-list">
+					<li v-for="(part, i) in ruleForm.parts" :key="part.uid" class="vbh-split-row">
+						<NcSelect
+							:modelValue="partOption(part)"
+							:options="accountOptionsList"
+							:filterBy="accountFilterBy"
+							:selectable="isSelectableOption"
+							class="vbh-split-acc"
+							label="label"
+							:ariaLabelCombobox="t('Konto Anteil {n}', { n: i + 1 })"
+							:placeholder="t('– Konto wählen –')"
+							@update:modelValue="part.accountId = $event ? $event.id : null" />
+						<AmountInput
+							v-model="part.amount"
+							:emptyValue="null"
+							class="vbh-num vbh-split-amount"
+							:aria-label="t('Betrag Anteil {n}', { n: i + 1 })" />
+						<select
+							v-if="costCentersEnabled"
+							v-model="part.costCenterId"
+							:aria-label="t('Kostenstelle Anteil {n}', { n: i + 1 })">
+							<option :value="null">
+								{{ t('– keine –') }}
+							</option>
+							<option v-for="cc in costCenterOptionsFor(part.costCenterId)" :key="cc.id" :value="cc.id">
+								{{ cc.code }} · {{ cc.name }}{{ cc.active ? '' : ' (' + t('inaktiv') + ')' }}
+							</option>
+						</select>
+						<NcButton
+							variant="tertiary"
+							:aria-label="t('Anteil {n} entfernen', { n: i + 1 })"
+							@click="ruleForm.parts.splice(i, 1)">
+							<template #icon>
+								<NcIconSvgWrapper :path="mdiDelete" :size="14" />
+							</template>
+						</NcButton>
+					</li>
+				</ul>
+				<div class="vbh-split-actions">
+					<NcButton variant="tertiary" @click="addPart">
+						{{ t('+ Anteil hinzufügen') }}
+					</NcButton>
+				</div>
+			</div>
 		</div>
 
 		<div v-if="rules.length" class="vbh-tablecard">
@@ -68,7 +121,7 @@
 					<tr v-for="rule in rules" :key="rule.id" :class="{ 'vbh-row-editing': ruleEditId === rule.id }">
 						<td>{{ matchFieldLabel(rule.matchField) }}</td>
 						<td>{{ rule.matchValue }}</td>
-						<td>{{ accountLabel(rule.contraAccountId) }}</td>
+						<td>{{ ruleTarget(rule) }}</td>
 						<td v-if="costCentersEnabled">
 							{{ costCenterCode(rule.costCenterId) }}
 						</td>
@@ -113,13 +166,15 @@ import NcButton from '@nextcloud/vue/components/NcButton'
 import NcEmptyContent from '@nextcloud/vue/components/NcEmptyContent'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import NcSelect from '@nextcloud/vue/components/NcSelect'
+import AmountInput from './AmountInput.vue'
 import api from '../api.js'
 import { buildAccountOptions, useAccounts } from '../composables/useAccounts.js'
 import { useBookingCostCenters } from '../composables/useBookingCostCenters.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { useRules } from '../composables/useRules.js'
 import { accountFilterBy, accountLabel } from '../lib/accountLabel.js'
-import { errMsg } from '../lib/format.js'
+import { errMsg, formatMoney } from '../lib/format.js'
+import { newUid } from '../lib/rowKeys.js'
 import { isSelectableOption } from '../lib/selectOptions.js'
 
 /**
@@ -132,7 +187,7 @@ import { isSelectableOption } from '../lib/selectOptions.js'
  */
 export default {
 	name: 'RulesPanel',
-	components: { NcButton, NcSelect, NcEmptyContent, NcIconSvgWrapper },
+	components: { AmountInput, NcButton, NcSelect, NcEmptyContent, NcIconSvgWrapper },
 	setup() {
 		const accounts = useAccounts()
 		const rulesC = useRules()
@@ -153,7 +208,7 @@ export default {
 		return {
 			mdiPencil,
 			mdiDelete,
-			ruleForm: { matchField: 'counterparty', matchValue: '', contraAccountId: null, priority: 0, costCenterId: null },
+			ruleForm: { matchField: 'counterparty', matchValue: '', contraAccountId: null, priority: 0, costCenterId: null, parts: [] },
 			ruleEditId: null,
 		}
 	},
@@ -161,7 +216,11 @@ export default {
 	computed: {
 		accountUsageCounts() {
 			const counts = {}
-			for (const r of this.rules) { counts[r.contraAccountId] = (counts[r.contraAccountId] || 0) + 1 }
+			for (const r of this.rules) {
+				for (const id of [r.contraAccountId, ...(r.parts || []).map((p) => p.accountId)]) {
+					counts[id] = (counts[id] || 0) + 1
+				}
+			}
 			return counts
 		},
 
@@ -171,10 +230,7 @@ export default {
 
 		/** Aktive Kostenstellen, dazu die an der bearbeiteten Regel gespeicherte inaktive. */
 		costCenterOptions() {
-			const list = [...this.activeCostCenters]
-			const current = this.costCentersById[this.ruleForm.costCenterId]
-			if (current && !list.some((cc) => cc.id === current.id)) { list.push(current) }
-			return list
+			return this.costCenterOptionsFor(this.ruleForm.costCenterId)
 		},
 
 		ruleFormContraOption: {
@@ -203,6 +259,33 @@ export default {
 
 		accountFilterBy,
 
+		/** Aktive Kostenstellen, dazu die gespeicherte, falls sie inzwischen inaktiv ist. */
+		costCenterOptionsFor(currentId) {
+			const list = [...this.activeCostCenters]
+			const current = this.costCentersById[currentId]
+			if (current && !list.some((cc) => cc.id === current.id)) { list.push(current) }
+			return list
+		},
+
+		partOption(part) {
+			return this.accountOptionsList.find((o) => o.id === part.accountId) ?? null
+		},
+
+		addPart() {
+			this.ruleForm.parts.push({ uid: newUid(), accountId: null, amount: null, costCenterId: null })
+		},
+
+		/**
+		 * Ziel der Regel für die Tabelle: das Gegenkonto, bei festen Anteilen
+		 * (Issue #163) die ganze Aufteilung, z. B. „10,00 € → 4711 · Rest → 4000".
+		 */
+		ruleTarget(rule) {
+			if (!rule.parts || !rule.parts.length) { return this.accountLabel(rule.contraAccountId) }
+			const number = (id) => this.accountsById[id]?.number ?? `#${id}`
+			const parts = rule.parts.map((p) => `${formatMoney(p.amount)} → ${number(p.accountId)}`)
+			return [...parts, this.t('Rest → {account}', { account: number(rule.contraAccountId) })].join(' · ')
+		},
+
 		costCenterCode(id) {
 			if (!id) { return '' }
 			return this.costCentersById[id]?.code ?? `#${id}`
@@ -214,7 +297,7 @@ export default {
 
 		resetRuleForm() {
 			this.ruleEditId = null
-			this.ruleForm = { matchField: 'counterparty', matchValue: '', contraAccountId: null, priority: 0, costCenterId: null }
+			this.ruleForm = { matchField: 'counterparty', matchValue: '', contraAccountId: null, priority: 0, costCenterId: null, parts: [] }
 		},
 
 		editRule(rule) {
@@ -225,6 +308,7 @@ export default {
 				contraAccountId: rule.contraAccountId,
 				priority: rule.priority || 0,
 				costCenterId: rule.costCenterId ?? null,
+				parts: (rule.parts || []).map((p) => ({ uid: newUid(), accountId: p.accountId, amount: p.amount, costCenterId: p.costCenterId ?? null })),
 			}
 		},
 
@@ -237,9 +321,18 @@ export default {
 				// Nur bei eingeschaltetem Modul mitschicken: fehlt das Feld, laesst der
 				// Server eine gespeicherte Vorgabe stehen.
 				...(this.costCentersEnabled ? { costCenterId: this.ruleForm.costCenterId ?? null } : {}),
+				// Feste Anteile (Issue #163) immer mitschicken: eine leere Liste entfernt sie.
+				parts: this.ruleForm.parts.map((p) => ({
+					accountId: p.accountId,
+					amount: Number(p.amount),
+					// Ohne Modul kein Feld (der Server lehnte einen Wert ab); eine
+					// gespeicherte Kostenstelle des Anteils entfaellt dann beim Speichern.
+					...(this.costCentersEnabled ? { costCenterId: p.costCenterId ?? null } : {}),
+				})),
 			}
 			if (!payload.matchValue) { showError(this.t('Bitte einen Suchtext eingeben.')); return }
 			if (!payload.contraAccountId) { showError(this.t('Bitte ein Gegenkonto wählen.')); return }
+			if (payload.parts.some((p) => !p.accountId || !(p.amount > 0))) { showError(this.t('Jedem Anteil fehlt noch Konto oder Betrag.')); return }
 			try {
 				if (this.ruleEditId) {
 					await api.updateRule(this.ruleEditId, payload)

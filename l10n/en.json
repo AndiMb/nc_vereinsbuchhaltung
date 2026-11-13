@@ -4750,7 +4750,18 @@
         "und {n} weitere": "and {n} more",
         "Die Verbindung ist abgebrochen, bevor der Server geantwortet hat. Das Einspielen läuft womöglich noch: Laden Sie die Seite in einigen Minuten neu und prüfen Sie den Bestand, bevor Sie es erneut versuchen.": "The connection was lost before the server replied. The restore may still be running: reload the page in a few minutes and check the data set before trying again.",
         "Der Datensatz %2$s der Tabelle %1$s lässt sich in dieser Datenbank nicht speichern.": "Record %2$s of table %1$s cannot be stored in this database.",
-        "Die Datei ist nicht angekommen – vermutlich ist sie größer, als dieser Server für einen Upload annimmt. Legen Sie sie in Ihre Nextcloud-Dateien und wählen Sie sie von dort.": "The file did not arrive – it is probably larger than this server accepts for an upload. Put it into your Nextcloud files and choose it from there."
+        "Die Datei ist nicht angekommen – vermutlich ist sie größer, als dieser Server für einen Upload annimmt. Legen Sie sie in Ihre Nextcloud-Dateien und wählen Sie sie von dort.": "The file did not arrive – it is probably larger than this server accepts for an upload. Put it into your Nextcloud files and choose it from there.",
+        "Restkonto": "Remainder account",
+        "Feste Anteile (optional)": "Fixed shares (optional)",
+        "Was nach den festen Anteilen übrig bleibt, geht auf das Restkonto. Ist der Umsatz kleiner als die Anteile zusammen, bleibt er unzugeordnet.": "Whatever is left after the fixed shares goes to the remainder account. If the transaction is smaller than the shares combined, it stays unassigned.",
+        "Konto Anteil {n}": "Account of share {n}",
+        "Betrag Anteil {n}": "Amount of share {n}",
+        "Kostenstelle Anteil {n}": "Cost centre of share {n}",
+        "Anteil {n} entfernen": "Remove share {n}",
+        "+ Anteil hinzufügen": "+ Add share",
+        "Rest → {account}": "Remainder → {account}",
+        "Jedem Anteil fehlt noch Konto oder Betrag.": "Each share still needs an account and an amount.",
+        "Ungültiger Anteil (Konto oder Betrag fehlt).": "Invalid share (account or amount missing)."
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }
