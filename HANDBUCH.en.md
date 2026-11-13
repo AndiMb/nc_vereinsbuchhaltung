@@ -436,6 +436,21 @@ posting is created automatically from the assignment:
   bookkeepers only). During import, rules can be applied automatically
   (checkbox "apply auto-assignment rules"); via the watch folder
   (chapter 3.3) this always happens.
+- **Splitting a transaction by rule:** Below the rule form you can add
+  **fixed shares** – each with an account, an amount and, if cost centres
+  are switched on, optionally a cost centre. When the rule applies, these
+  amounts go to their accounts and whatever is left goes to the
+  **remainder account** (the "contra account" field is then labelled that
+  way). Example: of a membership fee, €10 go to the youth department and
+  €5 to the tennis department, the rest stays with the main club. Shares
+  apply to incoming and outgoing payments alike. If a transaction is
+  **smaller** than the shares combined (a reduced fee, say), the rule does
+  not apply: the transaction stays under *To assign*, and the watch folder
+  reports it as unassigned – so a wrong amount is never posted silently. In
+  the assignment list, "✓ apply suggestion" for such a rule opens the
+  *Split transaction* dialog with the parts already calculated; nothing is
+  posted until you confirm there. Deleting an account that is used in a
+  share removes the whole rule.
 - **Search by text or amount:** The search field above the list finds
   payment partner and purpose – and with a number such as `12,50`, `1.250`
   or `18,75 €` also transactions of exactly that amount. A dot separates

@@ -268,6 +268,8 @@ export default {
 		},
 
 		partOption(part) {
+			// Ohne Konto keine Auswahl - sonst traefe null die Gruppenueberschrift (id null).
+			if (!part.accountId) { return null }
 			return this.accountOptionsList.find((o) => o.id === part.accountId) ?? null
 		},
 

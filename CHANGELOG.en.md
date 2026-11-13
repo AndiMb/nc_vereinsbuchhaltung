@@ -52,6 +52,15 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   fiscal year in which the app was first opened; to post into an earlier
   year you previously had to know that it comes into being by itself with
   the first posting in it.
+- **Import rules split transactions** (#163): besides the contra account, a
+  rule can carry any number of **fixed shares** (account, amount, optionally
+  a cost centre). On import these amounts go to their accounts and the rest
+  to the contra account, then called the *remainder account* – say €10 of a
+  membership fee to the youth department, €5 to the tennis department, the
+  rest to the main club. If a transaction is smaller than the shares
+  combined, it stays unassigned and is reported instead of being posted
+  wrongly. For such rules, the suggestion under *To assign* opens the
+  *Split transaction* dialog already filled in. Manual chapter 4.1.
 
 ## [0.53.0] – 2026-11-12
 

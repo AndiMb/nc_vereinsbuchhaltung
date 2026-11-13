@@ -18,9 +18,10 @@ use OCA\Vereinsbuchhaltung\Db\Rule;
 final class RuleSplit {
 
 	/**
+	 * Die Buchungsteile, oder null, wenn der Umsatz kleiner ist als die Anteile zusammen.
+	 *
 	 * @param int $amountCents Umsatzbetrag; das Vorzeichen zählt nicht
 	 * @return list<array{accountId:int, amountCents:int, costCenterId:int|null}>|null
-	 *                                                                               null, wenn der Umsatz kleiner ist als die Anteile zusammen
 	 */
 	public static function parts(Rule $rule, int $amountCents): ?array {
 		$total = abs($amountCents);
