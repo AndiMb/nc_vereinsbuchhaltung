@@ -126,27 +126,20 @@
 			</form>
 
 			<div v-if="inspection" class="vbh-preview" data-test="backup-inspection">
-				<dl class="vbh-backup-facts">
-					<dt>{{ t('Verein') }}</dt>
-					<dd>{{ inspection.clubName || t('(kein Name eingetragen)') }}</dd>
-					<dt>{{ t('Stand') }}</dt>
-					<dd>{{ formatDateTime(inspection.createdAt) }}</dd>
-					<dt>{{ t('Version') }}</dt>
-					<dd>{{ inspection.appVersion }}</dd>
-					<dt>{{ t('Inhalt') }}</dt>
-					<dd>
-						{{ t('{rows} Datensätze, darunter {accounts} Konten, {bookings} Buchungen, {members} Mitglieder', { rows: inspection.rows, accounts: inspection.counts.vbh_accounts || 0, bookings: inspection.counts.vbh_journal || 0, members: inspection.counts.vbh_members || 0 }) }}
-					</dd>
-					<dt>{{ t('Belege und Dokumente') }}</dt>
-					<dd v-if="inspection.withFiles">
-						{{ t('{n} Dateien', { n: inspection.files }) }}<template v-if="inspection.missingFiles > 0">
-							{{ t('({n} fehlten schon beim Erstellen)', { n: inspection.missingFiles }) }}
-						</template>
-					</dd>
-					<dd v-else>
-						{{ t('nicht enthalten – die Sicherung wurde ohne Belege erstellt') }}
-					</dd>
-				</dl>
+				<!-- Kein <dl>: die Einstellungsseite von Nextcloud gestaltet dt/dd selbst. -->
+				<div class="vbh-backup-facts">
+					<span class="vbh-backup-fact">{{ t('Verein') }}</span>
+					<span>{{ inspection.clubName || t('(kein Name eingetragen)') }}</span>
+					<span class="vbh-backup-fact">{{ t('Stand') }}</span>
+					<span>{{ formatDateTime(inspection.createdAt) }}</span>
+					<span class="vbh-backup-fact">{{ t('Version') }}</span>
+					<span>{{ inspection.appVersion }}</span>
+					<span class="vbh-backup-fact">{{ t('Inhalt') }}</span>
+					<span>{{ t('{rows} Datensätze, darunter {accounts} Konten, {bookings} Buchungen, {members} Mitglieder', { rows: inspection.rows, accounts: inspection.counts.vbh_accounts || 0, bookings: inspection.counts.vbh_journal || 0, members: inspection.counts.vbh_members || 0 }) }}</span>
+					<span class="vbh-backup-fact">{{ t('Belege und Dokumente') }}</span>
+					<span v-if="inspection.withFiles">{{ t('{n} Dateien', { n: inspection.files }) }}<span v-if="inspection.missingFiles > 0"> – {{ t('beim Erstellen fehlten bereits: {n}', { n: inspection.missingFiles }) }}</span></span>
+					<span v-else>{{ t('nicht enthalten – die Sicherung wurde ohne Belege erstellt') }}</span>
+				</div>
 				<p v-if="blocker === 'version'" class="vbh-hint vbh-hint--error" data-test="backup-blocker">
 					{{ t('Diese Sicherung stammt aus Version {backup}, installiert ist {installed}. Bringen Sie beide Instanzen auf denselben Stand und erstellen Sie die Sicherung dann neu.', { backup: inspection.appVersion, installed: inspection.installedVersion }) }}
 				</p>
@@ -371,10 +364,10 @@ export default {
 
 		kindLabel(kind, count) {
 			return {
-				attachments: this.t('{n} Buchungsbelege', { n: count }),
-				reimbursements: this.t('{n} Belege zu Auslagenanträgen', { n: count }),
-				invoices: this.t('{n} Rechnungsdokumente', { n: count }),
-				mandates: this.t('{n} Mandatsnachweise', { n: count }),
+				attachments: this.t('Buchungsbelege: {n}', { n: count }),
+				reimbursements: this.t('Belege zu Auslagenanträgen: {n}', { n: count }),
+				invoices: this.t('Rechnungsdokumente: {n}', { n: count }),
+				mandates: this.t('Mandatsnachweise: {n}', { n: count }),
 			}[kind] || String(count)
 		},
 
@@ -538,11 +531,7 @@ export default {
 	margin: 8px 0 12px;
 }
 
-.vbh-backup-facts dt {
+.vbh-backup-fact {
 	font-weight: 600;
-}
-
-.vbh-backup-facts dd {
-	margin: 0;
 }
 </style>

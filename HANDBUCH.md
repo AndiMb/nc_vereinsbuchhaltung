@@ -1788,7 +1788,9 @@ und die Zeiträume samt ihrer Festschreibung. **Das Änderungsprotokoll bleibt e
 Mandate, Beitragsgruppen und Zuweisungen (Kapitel 13) gehören nicht zum
 Buchungsbestand und bleiben unberührt (der Einzug wird mitgeräumt, siehe unten).
 Gleiches gilt für den Reset-Modus beim xbuc-Import. Beides ist
-unwiderruflich – also nur nach Rücksprache und nie aus Versehen.
+unwiderruflich – also nur nach Rücksprache und nie aus Versehen. Wer wirklich
+alles entfernen will, auch Mitglieder, Mandate und Einstellungen – etwa um
+eine Sicherung einzuspielen –, nimmt *Bestand vollständig leeren* (12.3).
 
 **Beiträge und SEPA (Kapitel 13):** Der Reset nimmt auch den Einzug mit – die
 **Lastschrift-Läufe** samt ihren Posten (mit den IBANs im Klartext), die
@@ -1824,14 +1826,79 @@ oder löschen und neu anlegen. Bei Konflikten mit einer anderen Person: neu
 öffnen und erneut speichern. Ein abgeschlossener Zeitraum lässt sich nur
 nach Wiedereröffnung (Verwalter, Kapitel 8.4) korrigieren.
 
-### 12.3 Datenbank-Backup vor Updates
+### 12.3 Sicherung und Umzug
 
-Vor jedem Update, das eine Datenbank-Migration enthält, sollte ein
-Datenbank-Backup (mysqldump) gemacht werden – das App-Deployment
+Zahnrad → *Sicherung und Umzug* (nur Verwalter) sichert den **gesamten
+Bestand** in eine einzige, verschlüsselte Datei (`.vbhbackup`) und spielt eine
+solche Datei wieder ein – auf derselben Nextcloud oder auf einer anderen. Das
+ist der Weg für den Umzug auf einen neuen Server und für eine Sicherung, die
+ohne Zugriff auf Datenbank und `config.php` auskommt.
+
+**Was in der Sicherung steckt:** Konten, Buchungen, Geschäftsjahre samt
+Festschreibung, Bankumsätze und Regeln, offene Posten, Rechnungen,
+Auslagenanträge, Kostenstellen, Finanzplan und Berichtsvorlagen, Mitglieder,
+Mandate samt Verlauf, Beitragsgruppen, Zuweisungen, Lastschrift-Läufe, die
+Rollen, das Änderungsprotokoll und die Einstellungen des Vereins samt Logo.
+Mit dem Schalter *Belege und Dokumente mitsichern* (Vorgabe: an) kommen die
+Dateien dazu: Buchungsbelege, Rechnungs-PDF und E-Rechnungen, Belege der
+Auslagenanträge und Mandatsnachweise. Ohne den Schalter ist die Datei klein,
+im Ziel fehlen dann aber alle Dateien.
+
+**Was nicht mitkommt:** alles, was an der jeweiligen Nextcloud hängt – die
+Belegablage und der Wächter-Ordner (Kapitel 5), die Ordner für
+Mandatsnachweise, Rechnungen und SEPA-Dateien sowie offene Aktivierungslinks
+für Mandate. Diese Einstellungen richten Sie im Ziel neu ein. Die
+eingespielten Dateien liegen dort zunächst in der app-internen Ablage und
+lassen sich wie gewohnt öffnen und herunterladen.
+
+**Sicherung erstellen:** Passwort vergeben (mindestens zehn Zeichen, zweimal
+eingeben), *Sicherung erstellen* – der Download startet von selbst. Die Datei
+ist mit diesem Passwort verschlüsselt (AES-256). **Das Passwort wird nirgends
+gespeichert: Ohne es lässt sich die Sicherung nicht mehr öffnen**, auch nicht
+vom Entwickler der App. Bewahren Sie es getrennt von der Datei auf. Fehlt beim
+Sichern eine Datei in der Ablage (in der Dateien-App gelöscht oder
+verschoben), bricht die Sicherung nicht ab, sondern nennt, wie viele Dateien
+je Art fehlen.
+
+**Sicherung einspielen:** geht nur in einen **leeren Bestand** und nur mit
+**derselben Version** der App, mit der die Sicherung erstellt wurde – bringen
+Sie im Zweifel erst beide Seiten auf denselben Stand und sichern Sie dann neu.
+Datei hochladen oder, bei großen Sicherungen, in die eigenen
+Nextcloud-Dateien legen und über *Aus Nextcloud-Dateien wählen* auswählen (so
+umgehen Sie die Upload-Grenze des Servers). Nach *Sicherung prüfen* zeigt die
+App, von welchem Verein, welchem Stand und welcher Version die Datei stammt und
+was sie enthält; erst *Jetzt einspielen* schreibt. Geht dabei etwas schief,
+bleibt der Bestand unverändert leer. Am Ende steht ein Bericht: wie viele
+Datensätze und Dateien übernommen wurden, welche Dateien fehlen und welche
+Benutzer oder Gruppen aus den Rollen es auf dieser Nextcloud nicht gibt. Die
+Rollen und das Änderungsprotokoll kommen aus der Sicherung; **wer einspielt,
+bleibt in jedem Fall Verwalter**. Rollen für Konten, die es im Ziel nicht gibt,
+vergeben Sie unter *Berechtigungen* neu oder legen die Konten mit demselben
+Namen an. Die IBANs der Mitglieder werden im Ziel mit dessen eigenem Schlüssel
+neu verschlüsselt – die `config.php` der alten Nextcloud braucht es dafür
+nicht.
+
+**Bestand vollständig leeren:** bereitet das Einspielen vor und geht weiter
+als *Alle Daten löschen* (12.1): Es entfernt auch Mitglieder, Mandate,
+Beitragsgruppen und die Einstellungen des Vereins samt der von der App
+abgelegten Belege und Dokumente. Zur Bestätigung ist der Vereinsname
+einzutippen. Bestehen bleiben die Rollen, das Änderungsprotokoll, die
+Einstellungen zur Ablage und alles, was in Ihren eigenen Nextcloud-Ordnern
+liegt (Wächter-Ordner, Mandatsnachweise, SEPA-Dateien). Unwiderruflich – vorher
+sichern und die Sicherung prüfen.
+
+**Umzug in Kurzform:** alte und neue Nextcloud auf dieselbe App-Version
+bringen → in der alten *Sicherung erstellen* (mit Belegen) → in der neuen die
+App installieren, Datei einspielen → Ablage und Ordner neu einstellen, Rollen
+prüfen → stichprobenartig Salden, einen Beleg und ein Mandat ansehen.
+
+**Datenbank-Backup vor Updates:** Die Sicherung der App ersetzt nicht das
+Backup des Servers. Vor jedem Update, das eine Datenbank-Migration enthält,
+sollte ein Datenbank-Backup (mysqldump) gemacht werden – das App-Deployment
 stellt nur den Programmcode, nicht das Datenbankschema wieder her. Im
 Zweifel die verwaltende Person fragen.
 
-Zu einer vollständigen Sicherung gehört neben der Datenbank die `config.php`
+Zu einem vollständigen Datenbank-Backup gehört neben der Datenbank die `config.php`
 der Nextcloud. Die IBANs der Mitglieder liegen verschlüsselt in der Datenbank,
 der Schlüssel hängt am `secret` in der `config.php` (13.13). Eine Datenbank
 ohne die passende `config.php` lässt sich zwar einspielen, die
@@ -2859,8 +2926,9 @@ nicht. In der App ändert sich nichts: Wer die IBAN sehen darf, sieht sie wie
 bisher. Der Schlüssel wird aus dem `secret` in der `config.php` der Nextcloud
 abgeleitet. Daraus folgt zweierlei: Wer den Server selbst unter Kontrolle hat,
 liest die IBANs weiterhin – die Verschlüsselung ersetzt keine Absicherung des
-Servers. Und ein Backup ist nur mit der zugehörigen `config.php` vollständig
-(12.3). Die IBANs des Vereins selbst (Geldkonten, Gläubiger-IBAN) bleiben
+Servers. Und ein Datenbank-Backup ist nur mit der zugehörigen `config.php` vollständig
+(12.3) – die Sicherung der App (*Sicherung und Umzug*, 12.3) enthält die IBANs
+dagegen unter ihrem eigenen Passwort und braucht die `config.php` nicht. Die IBANs des Vereins selbst (Geldkonten, Gläubiger-IBAN) bleiben
 unverschlüsselt; sie stehen ohnehin auf jedem Mandatsformular.
 
 ---

@@ -1747,7 +1747,9 @@ again) and the year-end closing markers.
 assignments (chapter 13) are not part of the posting records and stay untouched
 (the collection is cleared with it, see below). The same applies to
 reset mode during the xbuc import. Both are irreversible – so only after
-checking with others, and never by accident.
+checking with others, and never by accident. If you really want to remove
+everything, including members, mandates and settings – for instance to restore
+a backup –, use *Clear data set completely* (12.3).
 
 **Fees and SEPA (chapter 13):** The reset takes the collection with it – the
 **direct-debit runs** with their items (including the IBANs in plain text), the
@@ -1783,13 +1785,75 @@ delete it and create a new one. On conflicts with another person: reopen
 and save again. A closed year can only be corrected after reopening
 (administrators, chapter 8.4).
 
-### 12.3 Database backup before updates
+### 12.3 Backup and migration
 
-Before every update that includes a database migration, a database backup
-(mysqldump) should be made – the app deployment only restores the program
-code, not the database schema. When in doubt, ask your administrator.
+Gear icon → *Backup and migration* (administrators only) saves the **entire
+data set** into a single encrypted file (`.vbhbackup`) and restores such a
+file – on the same Nextcloud or on a different one. This is the way to move to
+a new server, and a backup that works without access to the database and
+`config.php`.
 
-A complete backup includes Nextcloud's `config.php` as well as the database.
+**What the backup contains:** accounts, postings, fiscal years including
+their locking, bank transactions and rules, open items, invoices, expense
+claims, cost centres, financial plan and report templates, members, mandates
+with their history, contribution groups, assignments, direct debit runs, the
+roles, the change log and the club settings including the logo. With the
+switch *Include receipts and documents* (default: on) the files are added:
+posting receipts, invoice PDFs and e-invoices, receipts of expense claims and
+mandate proofs. Without the switch the file is small, but the target then
+lacks all files.
+
+**What is not included:** everything tied to the respective Nextcloud – the
+receipt storage and the watch folder (chapter 5), the folders for mandate
+proofs, invoices and SEPA files, and open activation links for mandates. You
+configure these settings again in the target. The restored files are kept in
+the app-internal storage there at first and can be opened and downloaded as
+usual.
+
+**Creating a backup:** set a password (at least ten characters, entered
+twice), *Create backup* – the download starts automatically. The file is
+encrypted with this password (AES-256). **The password is not stored
+anywhere: without it the backup can no longer be opened**, not even by the
+developer of the app. Keep it separate from the file. If a file is missing
+from the storage during the backup (deleted or moved in the Files app), the
+backup does not abort but states how many files of each kind are missing.
+
+**Restoring a backup:** only works in an **empty data set** and only with the
+**same version** of the app the backup was created with – when in doubt,
+bring both sides to the same version first and then create the backup again.
+Upload the file or, for large backups, put it into your own Nextcloud files
+and pick it via *Choose from Nextcloud files* (this avoids the server's upload
+limit). After *Check backup* the app shows which club, snapshot and version the
+file comes from and what it contains; only *Restore now* writes. If anything
+goes wrong, the data set stays empty and unchanged. At the end there is a
+report: how many records and files were imported, which files are missing and
+which users or groups from the roles do not exist on this Nextcloud. Roles and
+the change log come from the backup; **whoever restores remains administrator
+in any case**. Assign roles for accounts that do not exist in the target again
+under *Permissions*, or create the accounts with the same name. Members' IBANs
+are re-encrypted in the target with its own key – the old Nextcloud's
+`config.php` is not needed for that.
+
+**Clear data set completely:** prepares a restore and goes further than
+*Delete all data* (12.1): it also removes members, mandates, contribution
+groups and the club settings, together with the receipts and documents stored
+by the app. To confirm, the club name has to be typed in. Roles, the change
+log, the storage settings and everything in your own Nextcloud folders (watch
+folder, mandate proofs, SEPA files) are kept. Irrevocable – create a backup
+and check it first.
+
+**Migration in short:** bring the old and the new Nextcloud to the same app
+version → *Create backup* (with receipts) in the old one → install the app in
+the new one, restore the file → configure storage and folders again, check the
+roles → spot-check balances, one receipt and one mandate.
+
+**Database backup before updates:** the app's backup does not replace the
+server backup. Before every update that includes a database migration, a
+database backup (mysqldump) should be made – the app deployment only restores
+the program code, not the database schema. When in doubt, ask your
+administrator.
+
+A complete database backup includes Nextcloud's `config.php` as well as the database.
 Members' IBANs are stored encrypted in the database, and the key depends on the
 `secret` in `config.php` (13.13). A database restored without the matching
 `config.php` loads fine, but the bank details can no longer be read. So back
@@ -2828,8 +2892,10 @@ wrong hands without the Nextcloud configuration doesn't reveal them. Nothing
 changes in the app: whoever may see an IBAN sees it as before. The key is
 derived from the `secret` in Nextcloud's `config.php`. Two things follow from
 that: whoever controls the server itself can still read the IBANs – encryption
-is no substitute for securing the server. And a backup is only complete with
-the matching `config.php` (12.3). The club's own IBANs (money accounts,
+is no substitute for securing the server. And a database backup is only complete with
+the matching `config.php` (12.3) – the app's own backup (*Backup and
+migration*, 12.3), by contrast, holds the IBANs under its own password and
+does not need `config.php`. The club's own IBANs (money accounts,
 creditor IBAN) stay unencrypted; they are printed on every mandate form anyway.
 
 ---
