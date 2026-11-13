@@ -47,6 +47,11 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   for statements with balances it explains the difference to the account
   balance. It only compares – nothing is imported or stored. For everyone
   from the auditor role upwards; manual chapter 5.9.
+- **Create previous period** (#349): under *Settings → Fiscal year* you can
+  now also create a period *before* the first one. The list starts with the
+  fiscal year in which the app was first opened; to post into an earlier
+  year you previously had to know that it comes into being by itself with
+  the first posting in it.
 
 ## [0.53.0] – 2026-11-12
 

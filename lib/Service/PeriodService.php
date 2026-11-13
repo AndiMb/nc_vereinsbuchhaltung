@@ -424,6 +424,24 @@ class PeriodService {
 	}
 
 	/**
+	 * Legt den Zeitraum vor dem bisher ersten an (Knopf „Vorherigen Zeitraum
+	 * anlegen", Issue #349).
+	 *
+	 * Die Kette beginnt mit dem Zeitraum, in dem die App zum ersten Mal
+	 * geöffnet wurde. Wer mitten im Jahr einsteigt und das Vorjahr nachbuchen
+	 * will, bekam den früheren Zeitraum bisher nur als Nebenwirkung der ersten
+	 * Buchung darin – in der Zeitraumauswahl stand er vorher nicht, und nichts
+	 * deutete darauf hin, dass es ihn geben kann.
+	 */
+	public function prependPrevious(string $userId): Period {
+		$first = $this->mapper->findFirst($userId);
+		if ($first === null) {
+			return $this->current($userId);
+		}
+		return $this->forDateOrCreate($userId, PeriodRule::previousDay($first->getStartDate()));
+	}
+
+	/**
 	 * Entfernt einen leeren Zeitraum am Rand der Kette.
 	 *
 	 * Nur am Rand, weil eine Lücke in der Mitte die Zusicherung bräche, dass

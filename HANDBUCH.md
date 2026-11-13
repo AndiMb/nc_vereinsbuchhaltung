@@ -1621,6 +1621,12 @@ Zeitraum neu (nach Datum, lückenlos ab 1). Der Vorgang steht im
 - **„Nächsten Zeitraum anlegen"** (Knopf über der Liste) hängt hinten einen
   weiteren Zeitraum nach der geltenden Regel an. Nötig ist das selten – die
   App legt einen Zeitraum von allein an, sobald eine Buchung hineinfällt.
+- **„Vorherigen Zeitraum anlegen"** (daneben) stellt vorne einen Zeitraum
+  voran. Die Liste beginnt mit dem Geschäftsjahr, in dem die App zum ersten
+  Mal geöffnet wurde; wer ein früheres Jahr nachbuchen oder dafür planen
+  will, legt es hier an. Auch das geht von allein, sobald eine Buchung mit
+  einem früheren Datum erfasst wird – der Knopf zeigt den Zeitraum nur schon
+  vorher in der Auswahl.
 - **„Entfernen"** gibt es nur für einen leeren Zeitraum am Anfang oder am
   Ende der Kette (weder Buchungen noch Planwerte). In der Mitte entstünde
   sonst ein Loch, in das keine Buchung mehr gehört.

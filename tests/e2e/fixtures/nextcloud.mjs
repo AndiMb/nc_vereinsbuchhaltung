@@ -650,6 +650,16 @@ export const api = {
 		return (await call(request, 'GET', '/periods', { user })).json()
 	},
 
+	/** Zeitraum am Rand der Kette anlegen: 'after' hinter dem letzten, 'before' vor dem ersten (ab Verwalter). */
+	async createPeriod(request, position, { user = 'admin', expectOk = true } = {}) {
+		return call(request, 'POST', '/periods', { user, expectOk, data: { position } })
+	},
+
+	/** Leeren Zeitraum am Rand der Kette entfernen (ab Verwalter). */
+	async deletePeriod(request, periodId, { user = 'admin', expectOk = true } = {}) {
+		return call(request, 'DELETE', `/periods/${periodId}`, { user, expectOk })
+	},
+
 	/**
 	 * Die ID des Zeitraums, in den ein Datum fällt. Die Tests kennen ihre
 	 * Buchungsdaten, aber nicht die IDs – und bei abweichendem Geschäftsjahr

@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { api, BANK_ACCOUNT, INCOME_ACCOUNT, openApp, USERS } from './fixtures/nextcloud.mjs'
+import { api, BANK_ACCOUNT, INCOME_ACCOUNT, openApp, openSettingsPage, USERS } from './fixtures/nextcloud.mjs'
 
 // Geschäftsjahre (Issue #8): ein Geschäftsjahr muss nicht dem Kalenderjahr
 // entsprechen. Geprüft wird beides – die Festschreibung, die es schon vorher
@@ -175,6 +175,59 @@ test.describe('Geschäftsjahr', () => {
 		await api.updatePeriod(request, p2030, { endDate: '2030-12-31' })
 		await api.deleteBooking(request, (await februar.json()).id)
 		expect(await nummern(p2031)).toEqual([1])
+	})
+
+	// Issue #349: Die Kette beginnt mit dem Zeitraum, in dem die App zum ersten
+	// Mal geöffnet wurde. Wer das Geschäftsjahr davor nachbuchen will, legt es
+	// in den Einstellungen an, statt auf die Nebenwirkung der ersten Buchung
+	// zu warten.
+	test('vorherigen Zeitraum anlegen: die Kette wächst lückenlos nach hinten', async ({ page, request }) => {
+		const erster = (periods) => periods.reduce((a, b) => (a.startDate < b.startDate ? a : b))
+		const vorher = await api.listPeriods(request)
+		const bisherErster = erster(vorher)
+
+		await openSettingsPage(page, USERS.admin)
+		const section = page.locator('#settings-section_geschaeftsjahr')
+		await section.getByRole('button', { name: 'Vorherigen Zeitraum anlegen' }).click()
+
+		// Kalenderjahr-Regel (siehe Test davor): das Jahr vor dem bisher ersten.
+		const jahr = String(Number(bisherErster.startDate.slice(0, 4)) - 1)
+		await expect(section.locator('tbody tr').last()).toContainText(jahr)
+
+		const nachher = await api.listPeriods(request)
+		expect(nachher).toHaveLength(vorher.length + 1)
+		const neu = erster(nachher)
+		expect([neu.startDate, neu.endDate]).toEqual([`${jahr}-01-01`, `${jahr}-12-31`])
+		expect(neu.label).toBe(jahr)
+		expect(neu.closedAt).toBeFalsy()
+
+		// Eine Buchung darin landet im neuen Zeitraum und legt keinen weiteren an.
+		const gebucht = await api.createBooking(request, {
+			date: `${jahr}-06-15`,
+			description: 'Nachgebucht im Vorjahr',
+			debitAccountId: bank.id,
+			creditAccountId: income.id,
+			amount: 12,
+		})
+		expect(await api.periodIdForDate(request, `${jahr}-06-15`)).toBe(neu.id)
+		expect(await api.listPeriods(request)).toHaveLength(vorher.length + 1)
+
+		// Wieder wegräumen, damit die Kette für spätere Specs unverändert ist.
+		await api.deleteBooking(request, (await gebucht.json()).id)
+		await api.deletePeriod(request, neu.id)
+		expect(await api.listPeriods(request)).toHaveLength(vorher.length)
+	})
+
+	test('Zeitraum anlegen: unbekannte Position wird abgewiesen, Buchhalter dürfen nicht', async ({ request }) => {
+		const anzahl = (await api.listPeriods(request)).length
+
+		const unbekannt = await api.createPeriod(request, 'sideways', { expectOk: false })
+		expect(unbekannt.status()).toBe(400)
+
+		const buchhalter = await api.createPeriod(request, 'before', { user: USERS.buchhalter, expectOk: false })
+		expect(buchhalter.status()).toBe(403)
+
+		expect(await api.listPeriods(request)).toHaveLength(anzahl)
 	})
 
 	test('nur Verwalter dürfen abschließen und umstellen', async ({ request }) => {
