@@ -9,6 +9,7 @@ use OCA\Vereinsbuchhaltung\Db\Mandate;
 use OCA\Vereinsbuchhaltung\Db\MandateMapper;
 use OCA\Vereinsbuchhaltung\Db\Rule;
 use OCA\Vereinsbuchhaltung\Db\RuleMapper;
+use OCA\Vereinsbuchhaltung\Db\RulePartMapper;
 use OCA\Vereinsbuchhaltung\Service\FieldCipher;
 use OCP\DB\IResult;
 use OCP\DB\QueryBuilder\IExpressionBuilder;
@@ -160,7 +161,7 @@ class EncryptingMapperTest extends TestCase {
 	}
 
 	public function testRegelSuchwerteWerdenVerschluesselt(): void {
-		$mapper = new RuleMapper($this->db, $this->cipher);
+		$mapper = new RuleMapper($this->db, $this->cipher, $this->createMock(RulePartMapper::class));
 		$byName = new Rule();
 		$byName->setMatchField('counterparty');
 		$byName->setMatchValue('Stadtwerke');
@@ -178,7 +179,7 @@ class EncryptingMapperTest extends TestCase {
 	/** Wird eine Namensregel zur IBAN-Regel, liegt ihr Suchwert schon verschlüsselt – nichts muss nachgeschrieben werden. */
 	public function testRegelWechseltDasSuchfeld(): void {
 		$this->rows = [['id' => 4, 'match_field' => 'purpose', 'match_value' => $this->cipher->encrypt(self::IBAN)]];
-		$mapper = new RuleMapper($this->db, $this->cipher);
+		$mapper = new RuleMapper($this->db, $this->cipher, $this->createMock(RulePartMapper::class));
 		$rule = $mapper->find(4, 'admin');
 		$this->assertSame(self::IBAN, $rule->getMatchValue());
 

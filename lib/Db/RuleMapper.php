@@ -12,8 +12,27 @@ use OCP\IDBConnection;
  * @extends EncryptingMapper<Rule>
  */
 class RuleMapper extends EncryptingMapper {
-	public function __construct(IDBConnection $db, FieldCipher $cipher) {
+	public function __construct(
+		IDBConnection $db,
+		FieldCipher $cipher,
+		private RulePartMapper $parts,
+	) {
 		parent::__construct($db, 'vbh_rules', Rule::class, $cipher);
+	}
+
+	/**
+	 * Hängt jeder Regel ihre festen Anteile an (Issue #163).
+	 *
+	 * @param Rule[] $rules
+	 * @return Rule[]
+	 */
+	private function withParts(string $userId, array $rules): array {
+		$ids = array_map(static fn (Rule $r): int => (int)$r->getId(), $rules);
+		$byRule = $this->parts->findByRules($userId, array_values($ids));
+		foreach ($rules as $rule) {
+			$rule->setPartsList($byRule[(int)$rule->getId()] ?? []);
+		}
+		return $rules;
 	}
 
 	/**
@@ -31,10 +50,11 @@ class RuleMapper extends EncryptingMapper {
 			->from($this->getTableName())
 			->where($qb->expr()->eq('id', $qb->createNamedParameter($id, IQueryBuilder::PARAM_INT)))
 			->andWhere($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)));
-		return $this->findEntity($qb);
+		return $this->withParts($userId, [$this->findEntity($qb)])[0];
 	}
 
 	public function deleteAllForUser(string $userId): void {
+		$this->parts->deleteAllForUser($userId);
 		$qb = $this->db->getQueryBuilder();
 		$qb->delete($this->getTableName())
 			->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)));
@@ -76,6 +96,6 @@ class RuleMapper extends EncryptingMapper {
 			->where($qb->expr()->eq('user_id', $qb->createNamedParameter($userId)))
 			->orderBy('priority', 'DESC')
 			->addOrderBy('id', 'ASC');
-		return $this->findEntities($qb);
+		return $this->withParts($userId, $this->findEntities($qb));
 	}
 }
