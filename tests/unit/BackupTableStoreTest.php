@@ -133,4 +133,22 @@ class BackupTableStoreTest extends TestCase {
 		$this->expectException(\InvalidArgumentException::class);
 		$this->store(IDBConnection::PLATFORM_POSTGRES)->sequenceStatements("x'); DROP TABLE y; --", 1);
 	}
+
+	/**
+	 * Was SQLite durchließ, lehnt eine andere Datenbank womöglich ab (Text zu
+	 * lang für die Spalte, Zeichen außerhalb des Zeichensatzes). Die Meldung
+	 * nennt dann Tabelle und Datensatz – ohne den Wert.
+	 */
+	public function testDatenbankfehlerBeimEinfuegenNenntTabelleUndDatensatz(): void {
+		$store = $this->store(IDBConnection::PLATFORM_MYSQL);
+		$store->failInsert = new \RuntimeException("SQLSTATE[22001]: Data too long for column 'name' — DE89370400440532013000");
+
+		try {
+			$store->insert('vbh_members', [['id' => 7, 'name' => 'A'], ['id' => 8, 'name' => 'B']]);
+			$this->fail('Das Einfügen hätte scheitern müssen.');
+		} catch (UserFacingException $e) {
+			$this->assertSame('Der Datensatz 7 der Tabelle vbh_members lässt sich in dieser Datenbank nicht speichern.', $e->getMessage());
+			$this->assertInstanceOf(\RuntimeException::class, $e->getPrevious());
+		}
+	}
 }

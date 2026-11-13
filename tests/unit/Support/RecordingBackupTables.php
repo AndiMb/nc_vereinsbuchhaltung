@@ -20,6 +20,8 @@ class RecordingBackupTables extends BackupTableStore {
 	/** @var list<array{after: int, limit: int}> */
 	public array $queries = [];
 	public int $booleanLookups = 0;
+	/** Was die Datenbank beim Einfügen wirft (z. B. „Wert zu lang“). */
+	public ?\Throwable $failInsert = null;
 
 	/**
 	 * @param list<array<string, mixed>> $table Zeilen, die `rows()` liefert
@@ -41,6 +43,9 @@ class RecordingBackupTables extends BackupTableStore {
 	}
 
 	protected function insertRow(string $table, array $values, array $types): void {
+		if ($this->failInsert !== null) {
+			throw $this->failInsert;
+		}
 		$this->inserted[] = ['table' => $table, 'values' => $values, 'types' => $types];
 	}
 

@@ -49,11 +49,11 @@ class BackupExportService {
 	}
 
 	/**
-	 * @return array{path: string, fileName: string, rows: int, files: int, missingFiles: list<array{kind: string, id: int}>}
-	 *                                                                                                                        `path` ist eine temporäre Datei
+	 * @return array{path: string, fileName: string, rows: int, files: int, missingFiles: list<array{kind: string, id: int, label: string}>}
+	 *                                                                                                                                       `path` ist eine temporäre Datei
 	 * @throws UserFacingException zu kurzes Passwort, nicht lesbarer verschlüsselter Wert
 	 */
-	public function export(string $password, bool $withFiles): array {
+	public function export(#[\SensitiveParameter] string $password, bool $withFiles): array {
 		$this->container->assertPassword($password);
 		if (!class_exists(\ZipArchive::class)) {
 			throw new UserFacingException($this->l10n->t('Auf diesem Server fehlt die PHP-Erweiterung zip.'));
@@ -69,7 +69,9 @@ class BackupExportService {
 		try {
 			$settings = $this->config->all();
 
-			// Alle Tabellen in einer Transaktion: ein Stand, auch wenn nebenher gebucht wird.
+			// Alle Tabellen in einer Transaktion. Einen gemeinsamen Stand garantiert das nicht auf jeder
+			// Datenbank (READ COMMITTED liest je Abfrage neu) – die Oberfläche bittet deshalb darum,
+			// während des Sicherns nicht zu arbeiten.
 			$tableInfo = $this->tx->run(function () use ($zip, &$tempFiles): array {
 				$info = [];
 				foreach (BackupSchema::tables() as $table => $def) {
@@ -89,7 +91,7 @@ class BackupExportService {
 				foreach ($this->files->files() as $file) {
 					$content = ($file['read'])();
 					if ($content === null) {
-						$missing[] = ['kind' => $file['kind'], 'id' => $file['id']];
+						$missing[] = ['kind' => $file['kind'], 'id' => $file['id'], 'label' => mb_substr($file['label'], 0, 200)];
 						continue;
 					}
 					$name = 'files/' . $file['kind'] . '/' . $file['id'];

@@ -14,17 +14,19 @@ class FakeBackupFiles extends BackupFileSource {
 
 	/**
 	 * @param array<string, array<int, ?string>> $files Art → Datensatz-ID → Inhalt (null = Datei fehlt)
+	 * @param array<string, array<int, string>> $labels Art → Datensatz-ID → Name, unter dem ein Mensch die Datei kennt
 	 */
 	public function __construct(
 		public array $files = [],
 		public ?string $logo = null,
+		public array $labels = [],
 	) {
 	}
 
 	public function files(): \Generator {
 		foreach ($this->files as $kind => $byId) {
 			foreach ($byId as $id => $content) {
-				yield ['kind' => $kind, 'id' => $id, 'read' => static fn (): ?string => $content];
+				yield ['kind' => $kind, 'id' => $id, 'label' => $this->labels[$kind][$id] ?? '', 'read' => static fn (): ?string => $content];
 			}
 		}
 	}

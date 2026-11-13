@@ -17,11 +17,16 @@ class FakeBackupSink extends BackupFileSink {
 	public ?string $logo = null;
 	/** @var list<string> Reihenfolge der Aufrufe */
 	public array $calls = [];
+	/** Wird vor jedem Ablegen gerufen – zeigt, in welchem Zustand das Ziel dann ist. */
+	public ?\Closure $onStore = null;
 
 	public function __construct() {
 	}
 
 	public function store(string $kind, int $id, string $content): void {
+		if ($this->onStore !== null) {
+			($this->onStore)();
+		}
 		$this->stored[$kind][$id] = $content;
 	}
 

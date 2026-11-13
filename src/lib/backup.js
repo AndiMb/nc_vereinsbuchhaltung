@@ -10,6 +10,9 @@ export const WIPE_WORD = 'LÖSCHEN'
 /** Reihenfolge, in der fehlende Dateien genannt werden. */
 const FILE_KINDS = ['attachments', 'reimbursements', 'invoices', 'mandates']
 
+/** So viele fehlende Dateien je Art werden beim Namen genannt. */
+const MAX_LABELS = 10
+
 /**
  * Was am Passwort einer neuen Sicherung noch nicht stimmt.
  *
@@ -54,14 +57,35 @@ export function wipeWord(clubName) {
 }
 
 /**
- * Fehlende Dateien je Art gezählt.
+ * Fehlende Dateien je Art: gezählt und – soweit die Sicherung den Namen
+ * kennt – beim Namen genannt.
  *
- * @param {Array<{kind: string, id: number}>|undefined} missing Liste vom Server
- * @return {Array<{kind: string, count: number}>}
+ * @param {Array<{kind: string, id: number, label?: string}>|undefined} missing Liste vom Server
+ * @return {Array<{kind: string, count: number, labels: string[], more: number}>} `more`: wie viele über `labels` hinaus fehlen
  */
 export function missingByKind(missing) {
 	const list = Array.isArray(missing) ? missing : []
 	return FILE_KINDS
-		.map((kind) => ({ kind, count: list.filter((m) => m.kind === kind).length }))
+		.map((kind) => {
+			const ofKind = list.filter((m) => m.kind === kind)
+			const labels = ofKind
+				.map((m) => String(m.label ?? '').trim())
+				.filter((label) => label !== '')
+				.slice(0, MAX_LABELS)
+			return { kind, count: ofKind.length, labels, more: ofKind.length - labels.length }
+		})
 		.filter((entry) => entry.count > 0)
+}
+
+/**
+ * Ist offen, ob der Server die Anfrage zu Ende gebracht hat? Dann nämlich,
+ * wenn gar keine Antwort der App kam: Verbindung abgebrochen oder ein
+ * vorgeschalteter Proxy hat aufgegeben, während der Server weiterarbeitet.
+ *
+ * @param {object|null} error Fehler von axios
+ * @return {boolean}
+ */
+export function outcomeUnknown(error) {
+	const status = error?.response?.status
+	return status === undefined || [502, 503, 504].includes(status)
 }

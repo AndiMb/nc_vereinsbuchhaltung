@@ -112,10 +112,10 @@ class BackupExportServiceTest extends TestCase {
 		$result = $source['export']->export(self::PASSWORD, true);
 		$zip = $this->openBackup($result['path']);
 
-		$this->assertSame([['kind' => 'attachments', 'id' => 6]], $result['missingFiles']);
+		$this->assertSame([['kind' => 'attachments', 'id' => 6, 'label' => 'quittung-baumarkt.pdf']], $result['missingFiles']);
 		$this->assertFalse($zip->locateName('files/attachments/6'));
 		$manifest = json_decode((string)$zip->getFromName('manifest.json'), true, 512, JSON_THROW_ON_ERROR);
-		$this->assertSame([['kind' => 'attachments', 'id' => 6]], $manifest['missingFiles']);
+		$this->assertSame([['kind' => 'attachments', 'id' => 6, 'label' => 'quittung-baumarkt.pdf']], $manifest['missingFiles']);
 	}
 
 	public function testOhneBelegeNurLogo(): void {

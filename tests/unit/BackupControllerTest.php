@@ -285,7 +285,7 @@ class BackupControllerTest extends TestCase {
 			throw new NotFoundException();
 		});
 
-		foreach (['Ordner', 'gibtsnicht.vbhbackup', '../bob/files/x.vbhbackup', 'a/../../x', ''] as $path) {
+		foreach (['Ordner', 'gibtsnicht.vbhbackup', '../bob/files/x.vbhbackup', 'a/../../x'] as $path) {
 			$this->params = ['password' => self::PASSWORD, 'path' => $path];
 			foreach (['inspect', 'import'] as $action) {
 				$response = $this->controller()->$action();
@@ -363,5 +363,32 @@ class BackupControllerTest extends TestCase {
 
 		$this->assertSame(Http::STATUS_INTERNAL_SERVER_ERROR, $response->getStatus());
 		$this->assertSame(['message' => 'Das Leeren ist fehlgeschlagen.'], $response->getData());
+	}
+
+	/**
+	 * Eine Sicherung über der Upload-Grenze kommt gar nicht erst an: PHP
+	 * meldet einen Fehlercode oder – über post_max_size – eine völlig leere
+	 * Anfrage. Die Meldung nennt dann den Ausweg statt „nicht gefunden“.
+	 */
+	public function testZuGrosserUploadNenntDenAusweg(): void {
+		$this->import->expects($this->never())->method('inspect');
+		$this->import->expects($this->never())->method('import');
+		$expected = ['message' => 'Die Datei ist nicht angekommen – vermutlich ist sie größer, als dieser Server für einen Upload annimmt. Legen Sie sie in Ihre Nextcloud-Dateien und wählen Sie sie von dort.'];
+
+		$cases = [
+			'upload_max_filesize' => [['tmp_name' => '', 'name' => 'x.vbhbackup', 'error' => UPLOAD_ERR_INI_SIZE], ['password' => self::PASSWORD]],
+			'Formulargrenze' => [['tmp_name' => '', 'name' => 'x.vbhbackup', 'error' => UPLOAD_ERR_FORM_SIZE], ['password' => self::PASSWORD]],
+			'abgebrochen' => [['tmp_name' => '', 'name' => 'x.vbhbackup', 'error' => UPLOAD_ERR_PARTIAL], ['password' => self::PASSWORD]],
+			'post_max_size: leere Anfrage' => [null, []],
+		];
+		foreach ($cases as $name => [$upload, $params]) {
+			$this->upload = $upload;
+			$this->params = $params;
+			foreach (['inspect', 'import'] as $action) {
+				$response = $this->controller()->$action();
+				$this->assertSame(Http::STATUS_BAD_REQUEST, $response->getStatus(), $action . ' ' . $name);
+				$this->assertSame($expected, $response->getData(), $action . ' ' . $name);
+			}
+		}
 	}
 }

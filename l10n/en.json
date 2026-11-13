@@ -4690,7 +4690,12 @@
         "Prüfkette der Auslagenanträge": "verification chain of the expense claims",
         "Die Sicherung ist beschädigt (Tabelle %s).": "The backup is damaged (table %s).",
         "Die Sicherung ist in sich nicht stimmig (%s).": "The backup is not consistent in itself (%s).",
-        "Die Sicherung passt nicht zu dieser App-Version (Tabelle %1$s, Spalte %2$s).": "The backup does not match this app version (table %1$s, column %2$s)."
+        "Die Sicherung passt nicht zu dieser App-Version (Tabelle %1$s, Spalte %2$s).": "The backup does not match this app version (table %1$s, column %2$s).",
+        "Solange eine Sicherung erstellt oder eingespielt wird, sollte niemand in der Buchhaltung arbeiten – sonst hält die Sicherung womöglich einen Zwischenstand fest.": "While a backup is being created or restored, nobody should be working in the bookkeeping – otherwise the backup may capture an intermediate state.",
+        "und {n} weitere": "and {n} more",
+        "Die Verbindung ist abgebrochen, bevor der Server geantwortet hat. Das Einspielen läuft womöglich noch: Laden Sie die Seite in einigen Minuten neu und prüfen Sie den Bestand, bevor Sie es erneut versuchen.": "The connection was lost before the server replied. The restore may still be running: reload the page in a few minutes and check the data set before trying again.",
+        "Der Datensatz %2$s der Tabelle %1$s lässt sich in dieser Datenbank nicht speichern.": "Record %2$s of table %1$s cannot be stored in this database.",
+        "Die Datei ist nicht angekommen – vermutlich ist sie größer, als dieser Server für einen Upload annimmt. Legen Sie sie in Ihre Nextcloud-Dateien und wählen Sie sie von dort.": "The file did not arrive – it is probably larger than this server accepts for an upload. Put it into your Nextcloud files and choose it from there."
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

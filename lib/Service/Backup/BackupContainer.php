@@ -50,7 +50,7 @@ class BackupContainer {
 	/**
 	 * @throws UserFacingException wenn das Passwort zu kurz ist
 	 */
-	public function assertPassword(string $password): void {
+	public function assertPassword(#[\SensitiveParameter] string $password): void {
 		if (mb_strlen($password) < self::MIN_PASSWORD_LENGTH) {
 			throw new UserFacingException($this->l10n->t('Das Passwort braucht mindestens %s Zeichen.', [self::MIN_PASSWORD_LENGTH]));
 		}
@@ -61,7 +61,7 @@ class BackupContainer {
 	 *
 	 * @throws UserFacingException bei zu kurzem Passwort
 	 */
-	public function encrypt(string $plainPath, string $targetPath, string $password): void {
+	public function encrypt(string $plainPath, string $targetPath, #[\SensitiveParameter] string $password): void {
 		$this->assertPassword($password);
 		$salt = random_bytes(self::SALT_LENGTH);
 		$key = hash_pbkdf2('sha256', $password, $salt, self::ITERATIONS, 32, true);
@@ -108,7 +108,7 @@ class BackupContainer {
 	 *
 	 * @throws UserFacingException keine Sicherungsdatei, falsches Passwort, beschädigt oder unvollständig
 	 */
-	public function decrypt(string $sourcePath, string $plainPath, string $password): void {
+	public function decrypt(string $sourcePath, string $plainPath, #[\SensitiveParameter] string $password): void {
 		$in = $this->open($sourcePath, 'rb');
 		$out = null;
 		try {

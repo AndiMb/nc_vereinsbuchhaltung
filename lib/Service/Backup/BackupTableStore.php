@@ -113,7 +113,15 @@ class BackupTableStore {
 			if ($values === []) {
 				continue;
 			}
-			$this->insertRow($table, $values, $types);
+			try {
+				$this->insertRow($table, $values, $types);
+			} catch (UserFacingException $e) {
+				throw $e;
+			} catch (\Throwable $e) {
+				// Was die Quelldatenbank durchließ, kann das Ziel ablehnen (Text zu lang für die
+				// Spalte, Zeichen außerhalb des Zeichensatzes). Tabelle und Datensatz nennen – nie den Wert.
+				throw new UserFacingException($this->l10n->t('Der Datensatz %2$s der Tabelle %1$s lässt sich in dieser Datenbank nicht speichern.', [$table, (string)($values[BackupSchema::PK] ?? '?')]), 0, $e);
+			}
 			$count++;
 		}
 		return $count;

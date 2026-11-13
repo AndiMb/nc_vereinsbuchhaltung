@@ -36,12 +36,13 @@ class BackupFileSource {
 	}
 
 	/**
-	 * @return \Generator<int, array{kind: string, id: int, read: callable(): ?string}>
-	 *                                                                                  `read` liefert null, wenn die Datei fehlt oder nicht lesbar ist
+	 * @return \Generator<int, array{kind: string, id: int, label: string, read: callable(): ?string}>
+	 *                                                                                                 `label` ist der Name, unter dem ein Mensch die Datei kennt (Dateiname, Mandatsreferenz);
+	 *                                                                                                 `read` liefert null, wenn die Datei fehlt oder nicht lesbar ist
 	 */
 	public function files(): \Generator {
 		foreach ($this->attachments->findAllForUser(Application::BOOK) as $attachment) {
-			yield ['kind' => 'attachments', 'id' => $attachment->getId(), 'read' => fn (): ?string => $this->quiet(fn (): string => $this->attachmentStorage->contentOf($attachment))];
+			yield ['kind' => 'attachments', 'id' => $attachment->getId(), 'label' => (string)$attachment->getFileName(), 'read' => fn (): ?string => $this->quiet(fn (): string => $this->attachmentStorage->contentOf($attachment))];
 		}
 		foreach ($this->reimbursementFiles->findAll() as $file) {
 			$content = fn (): ?string => $this->quiet(fn (): string => $this->attachmentStorage->reimbursementContent($file));
@@ -53,16 +54,16 @@ class BackupFileSource {
 				}
 				$content = static fn (): string => $probe;
 			}
-			yield ['kind' => 'reimbursements', 'id' => $file->getId(), 'read' => $content];
+			yield ['kind' => 'reimbursements', 'id' => $file->getId(), 'label' => (string)$file->getFileName(), 'read' => $content];
 		}
 		foreach ($this->invoiceDocuments->all() as $document) {
-			yield ['kind' => 'invoices', 'id' => $document->getId(), 'read' => fn (): ?string => $this->invoiceDocuments->readOrNull($document)];
+			yield ['kind' => 'invoices', 'id' => $document->getId(), 'label' => (string)$document->getFileName(), 'read' => fn (): ?string => $this->invoiceDocuments->readOrNull($document)];
 		}
 		foreach ($this->mandates->findAll() as $mandate) {
 			if ($mandate->getDocumentFileId() === null) {
 				continue;
 			}
-			yield ['kind' => 'mandates', 'id' => $mandate->getId(), 'read' => fn (): ?string => $this->mandateDocuments->contentOrNull($mandate)];
+			yield ['kind' => 'mandates', 'id' => $mandate->getId(), 'label' => (string)$mandate->getMandateReference(), 'read' => fn (): ?string => $this->mandateDocuments->contentOrNull($mandate)];
 		}
 	}
 

@@ -222,7 +222,12 @@ class BackupController extends Controller {
 		$notFound = new UserFacingException($this->l10n->t('Die Sicherungsdatei wurde nicht gefunden.'));
 		$path = $this->request->getParam('path');
 		$path = is_string($path) ? trim(str_replace('\\', '/', $path), '/') : '';
-		if ($path === '' || in_array('..', explode('/', $path), true)) {
+		if ($path === '') {
+			// Weder Upload noch Pfad: Über upload_max_filesize meldet PHP einen Fehlercode,
+			// über post_max_size kommt die Anfrage völlig leer an.
+			throw new UserFacingException($this->l10n->t('Die Datei ist nicht angekommen – vermutlich ist sie größer, als dieser Server für einen Upload annimmt. Legen Sie sie in Ihre Nextcloud-Dateien und wählen Sie sie von dort.'));
+		}
+		if (in_array('..', explode('/', $path), true)) {
 			throw $notFound;
 		}
 		try {

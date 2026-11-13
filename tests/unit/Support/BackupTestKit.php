@@ -33,6 +33,8 @@ trait BackupTestKit {
 
 	/** @var list<string> */
 	private array $tempFiles = [];
+	/** Für den Fall „Einstellungen lassen sich im Ziel nicht schreiben“. */
+	protected bool $configReplaceFails = false;
 
 	protected function tearDown(): void {
 		foreach ($this->tempFiles as $file) {
@@ -154,10 +156,10 @@ trait BackupTestKit {
 		$cipher = $this->cipher($secret);
 		$tables = InMemoryBackupTables::create($this, $filled ? $this->sampleRows($cipher) : []);
 		$config = AppConfigStub::create($this, $filled ? $this->sampleConfig() : ['installed_version' => $version, 'enabled' => 'yes', 'storage_user' => 'bob']);
-		$files = new FakeBackupFiles($filled ? $this->sampleFiles() : [], $filled ? 'PNG logo' : null);
+		$files = new FakeBackupFiles($filled ? $this->sampleFiles() : [], $filled ? 'PNG logo' : null, ['attachments' => [6 => 'quittung-baumarkt.pdf']]);
 		$container = new BackupContainer($this->l10n());
 		$runner = new TransactionRunner($tables->connection);
-		$configStore = new BackupConfigStore($config);
+		$configStore = $this->configReplaceFails ? new FailingBackupConfigStore($config) : new BackupConfigStore($config);
 		$export = new BackupExportService($container, $tables, $configStore, $files, $cipher, $runner, $this->appManager($version), $this->tempManager(), $this->l10n());
 
 		$sink = new FakeBackupSink();

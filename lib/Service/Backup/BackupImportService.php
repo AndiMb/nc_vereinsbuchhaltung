@@ -25,12 +25,16 @@ use OCP\IUserManager;
  * Tabellenschema muss übereinstimmen) und ein leerer Bestand (die
  * Datensätze behalten ihre IDs, {@see BackupSchema}).
  *
- * Ablauf: entschlüsseln → Prüfsummen aller Tabellen prüfen → in **einer**
- * Transaktion alle Tabellen leeren und füllen, dabei verschlüsselte Spalten
- * mit dem Schlüssel dieser Instanz neu verschlüsseln und instanzgebundene
- * Verweise zurücksetzen → Stimmigkeit prüfen. Scheitert irgendetwas davon,
- * bleibt das Ziel, wie es war. Erst nach dem Commit folgen Einstellungen
- * und Dateien.
+ * Ablauf: entschlüsseln → Prüfsummen aller Tabellen prüfen → Dateien in der
+ * app-internen Ablage ablegen → in **einer** Transaktion alle Tabellen leeren
+ * und füllen (verschlüsselte Spalten mit dem Schlüssel dieser Instanz neu
+ * verschlüsseln, instanzgebundene Verweise zurücksetzen), Stimmigkeit prüfen
+ * und die Einstellungen ersetzen.
+ *
+ * Die Dateien kommen zuerst, weil ihr Ablegen am längsten dauert: Bricht die
+ * Anfrage dabei ab (Zeitgrenze, Speicher), ist noch keine Tabelle angefasst
+ * und das Ziel weiterhin leer – die verwaisten Dateien räumt der nächste
+ * Versuch weg. Scheitert die Transaktion, werden sie sofort wieder entfernt.
  */
 class BackupImportService {
 
@@ -58,7 +62,7 @@ class BackupImportService {
 	 * @return array{clubName: string, createdAt: string, appVersion: string, installedVersion: string, withFiles: bool, compatible: bool, targetEmpty: bool, rows: int, counts: array<string, int>, files: int, missingFiles: int}
 	 * @throws UserFacingException keine Sicherungsdatei, falsches Passwort, beschädigt
 	 */
-	public function inspect(string $path, string $password): array {
+	public function inspect(string $path, #[\SensitiveParameter] string $password): array {
 		return $this->withBackup($path, $password, function (\ZipArchive $zip, array $manifest): array {
 			$installed = $this->installedVersion();
 			$counts = [];
@@ -83,10 +87,10 @@ class BackupImportService {
 
 	/**
 	 * @param string $importerUid wer einspielt – ist danach in jedem Fall Verwalter
-	 * @return array{rows: int, tables: int, files: int, missingFiles: list<array{kind: string, id: int}>, unknownUsers: list<string>, unknownGroups: list<string>}
+	 * @return array{rows: int, tables: int, files: int, missingFiles: list<array{kind: string, id: int, label: string}>, unknownUsers: list<string>, unknownGroups: list<string>}
 	 * @throws UserFacingException wenn die Sicherung nicht eingespielt werden kann; das Ziel ist dann unverändert
 	 */
-	public function import(string $path, string $password, string $importerUid): array {
+	public function import(string $path, #[\SensitiveParameter] string $password, string $importerUid): array {
 		return $this->withBackup($path, $password, function (\ZipArchive $zip, array $manifest) use ($importerUid): array {
 			$installed = $this->installedVersion();
 			if ($manifest['appVersion'] !== $installed) {
@@ -97,12 +101,23 @@ class BackupImportService {
 			}
 			$this->verifyTables($zip, $manifest);
 
-			$db = $this->tx->run(fn (): array => $this->fillTables($zip, $manifest, $importerUid));
-
-			// Ab hier ist der Bestand eingespielt; was jetzt noch schiefgeht, darf ihn nicht mehr als gescheitert melden.
-			$settings = json_decode((string)$zip->getFromName('config.json'), true);
-			$this->config->replace(is_array($settings) ? $settings : []);
 			$files = $this->storeFiles($zip);
+			try {
+				$db = $this->tx->run(function () use ($zip, $manifest, $importerUid): array {
+					$db = $this->fillTables($zip, $manifest, $importerUid);
+					// Die Einstellungen liegen in derselben Datenbank und rollen mit zurück.
+					$settings = json_decode((string)$zip->getFromName('config.json'), true);
+					$this->config->replace(is_array($settings) ? $settings : []);
+					return $db;
+				});
+			} catch (\Throwable $e) {
+				try {
+					$this->sink->clearAppData();
+				} catch (\Throwable) {
+					// Der eigentliche Fehler zählt; verwaiste Dateien räumt der nächste Versuch weg.
+				}
+				throw $e;
+			}
 			$this->revision->bump();
 
 			return [
@@ -124,7 +139,7 @@ class BackupImportService {
 	 * @param callable(\ZipArchive, array<string, mixed>): T $fn
 	 * @return T
 	 */
-	private function withBackup(string $path, string $password, callable $fn) {
+	private function withBackup(string $path, #[\SensitiveParameter] string $password, callable $fn) {
 		if (!class_exists(\ZipArchive::class)) {
 			throw new UserFacingException($this->l10n->t('Auf diesem Server fehlt die PHP-Erweiterung zip.'));
 		}
@@ -331,7 +346,7 @@ class BackupImportService {
 	/**
 	 * Legt die Dateien der Sicherung in der app-internen Ablage ab.
 	 *
-	 * @return array{stored: int, failed: list<array{kind: string, id: int}>}
+	 * @return array{stored: int, failed: list<array{kind: string, id: int, label: string}>}
 	 */
 	private function storeFiles(\ZipArchive $zip): array {
 		$this->sink->clearAppData();
@@ -350,7 +365,7 @@ class BackupImportService {
 				$this->sink->store($m[1], (int)$m[2], $content);
 				$stored++;
 			} catch (\Throwable) {
-				$failed[] = ['kind' => $m[1], 'id' => (int)$m[2]];
+				$failed[] = ['kind' => $m[1], 'id' => (int)$m[2], 'label' => ''];
 			}
 		}
 		$logo = $zip->getFromName('files/logo');
@@ -368,13 +383,14 @@ class BackupImportService {
 	 * Dateien, die schon beim Erstellen der Sicherung fehlten.
 	 *
 	 * @param array<string, mixed> $manifest
-	 * @return list<array{kind: string, id: int}>
+	 * @return list<array{kind: string, id: int, label: string}> `label` ist der Name, unter dem die Quelle die Datei kannte ('' in Sicherungen ohne diese Angabe)
 	 */
 	private function missingFiles(array $manifest): array {
 		$missing = [];
 		foreach (is_array($manifest['missingFiles'] ?? null) ? $manifest['missingFiles'] : [] as $entry) {
 			if (is_array($entry) && in_array($entry['kind'] ?? null, BackupSchema::FILE_KINDS, true) && is_int($entry['id'] ?? null)) {
-				$missing[] = ['kind' => $entry['kind'], 'id' => $entry['id']];
+				$label = is_string($entry['label'] ?? null) ? $entry['label'] : '';
+				$missing[] = ['kind' => $entry['kind'], 'id' => $entry['id'], 'label' => mb_substr($label, 0, 200)];
 			}
 		}
 		return $missing;

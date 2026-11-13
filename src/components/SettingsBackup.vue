@@ -3,6 +3,9 @@
 		<p class="vbh-hint">
 			{{ t('Eine Sicherung enthält den gesamten Bestand: Konten, Buchungen, Bankumsätze, Mitglieder, Mandate, Beiträge, Rechnungen, Auslagen, Rollen, Änderungsprotokoll und Einstellungen – auf Wunsch samt Belegen. Sie lässt sich in eine leere Vereinsbuchhaltung derselben Version einspielen, auch auf einer anderen Nextcloud.') }}
 		</p>
+		<p class="vbh-hint">
+			{{ t('Solange eine Sicherung erstellt oder eingespielt wird, sollte niemand in der Buchhaltung arbeiten – sonst hält die Sicherung womöglich einen Zwischenstand fest.') }}
+		</p>
 		<p v-if="status && !status.zipAvailable" class="vbh-hint vbh-hint--error">
 			{{ t('Auf diesem Server fehlt die PHP-Erweiterung zip. Ohne sie lassen sich Sicherungen weder erstellen noch einspielen.') }}
 		</p>
@@ -63,7 +66,7 @@
 					<p>{{ t('Diese Dateien waren in der Ablage nicht mehr zu finden und fehlen in der Sicherung:') }}</p>
 					<ul class="vbh-backup-list">
 						<li v-for="m in exportMissing" :key="m.kind">
-							{{ kindLabel(m.kind, m.count) }}
+							{{ kindLabel(m.kind, m.count) }}<span v-if="m.labels.length"> – {{ m.labels.join(', ') }}<template v-if="m.more > 0"> {{ t('und {n} weitere', { n: m.more }) }}</template></span>
 						</li>
 					</ul>
 				</template>
@@ -173,7 +176,7 @@
 					<p>{{ t('Diese Dateien fehlen – die Datensätze sind da, die Dateien dazu nicht:') }}</p>
 					<ul class="vbh-backup-list">
 						<li v-for="m in importMissing" :key="m.kind">
-							{{ kindLabel(m.kind, m.count) }}
+							{{ kindLabel(m.kind, m.count) }}<span v-if="m.labels.length"> – {{ m.labels.join(', ') }}<template v-if="m.more > 0"> {{ t('und {n} weitere', { n: m.more }) }}</template></span>
 						</li>
 					</ul>
 				</template>
@@ -271,7 +274,7 @@ import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import NcModal from '@nextcloud/vue/components/NcModal'
 import api from '../api.js'
-import { importBlocker, missingByKind, passwordProblem, wipeWord } from '../lib/backup.js'
+import { importBlocker, missingByKind, outcomeUnknown, passwordProblem, wipeWord } from '../lib/backup.js'
 import { errMsg, formatDateTime, formatFileSize } from '../lib/format.js'
 import { withPasswordConfirmation } from '../lib/passwordGate.js'
 
@@ -471,7 +474,12 @@ export default {
 				this.$emit('changed')
 				await this.loadStatus()
 			} catch (e) {
-				showError(errMsg(e, this.t('Das Einspielen ist fehlgeschlagen. Der Bestand wurde nicht verändert.')))
+				if (outcomeUnknown(e)) {
+					// Keine Antwort der App: Der Server arbeitet womöglich noch – „nicht verändert" wäre geraten.
+					showError(this.t('Die Verbindung ist abgebrochen, bevor der Server geantwortet hat. Das Einspielen läuft womöglich noch: Laden Sie die Seite in einigen Minuten neu und prüfen Sie den Bestand, bevor Sie es erneut versuchen.'), { timeout: -1 })
+				} else {
+					showError(errMsg(e, this.t('Das Einspielen ist fehlgeschlagen. Der Bestand wurde nicht verändert.')))
+				}
 				await this.loadStatus()
 			} finally {
 				this.importing = false

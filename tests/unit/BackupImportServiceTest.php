@@ -130,7 +130,7 @@ class BackupImportServiceTest extends TestCase {
 
 		$result = $target['import']->import($path, self::PASSWORD, 'alice');
 
-		$this->assertSame([['kind' => 'attachments', 'id' => 6]], $result['missingFiles']);
+		$this->assertSame([['kind' => 'attachments', 'id' => 6, 'label' => 'quittung-baumarkt.pdf']], $result['missingFiles']);
 		$this->assertCount(2, $target['tables']->all('vbh_attachments'), 'Der Datensatz bleibt, nur die Datei fehlt.');
 	}
 
@@ -393,5 +393,60 @@ class BackupImportServiceTest extends TestCase {
 		$this->expectException(UserFacingException::class);
 		$this->expectExceptionMessage('Das Passwort passt nicht oder die Datei ist beschädigt.');
 		$target['import']->inspect($path, 'Ein-anderes-Passwort');
+	}
+
+	/**
+	 * Das Ablegen der Dateien ist der längste Schritt. Er läuft, bevor die
+	 * Tabellen gefüllt werden: Bricht er ab (Zeitgrenze, Speicher), ist das
+	 * Ziel weiterhin leer und nicht halb eingespielt.
+	 */
+	public function testDateienWerdenAbgelegtBevorDieTabellenGefuelltSind(): void {
+		[, $target, $path] = $this->exported();
+		$accountsAtStore = [];
+		$target['sink']->onStore = static function () use (&$accountsAtStore, $target): void {
+			$accountsAtStore[] = count($target['tables']->all('vbh_accounts'));
+		};
+
+		$target['import']->import($path, self::PASSWORD, 'alice');
+
+		$this->assertSame([0, 0, 0, 0], $accountsAtStore);
+		$this->assertNotSame([], $target['tables']->all('vbh_accounts'));
+	}
+
+	/** Lassen sich die Einstellungen nicht schreiben, ist nichts eingespielt – auch keine Tabelle und keine Datei. */
+	public function testScheiternDerEinstellungenLaesstDasZielLeer(): void {
+		$source = $this->instance('quelle', true);
+		$path = $source['export']->export(self::PASSWORD, true)['path'];
+		$this->configReplaceFails = true;
+		$target = $this->instance('ziel', false);
+		$before = $target['tables']->data;
+
+		try {
+			$target['import']->import($path, self::PASSWORD, 'alice');
+			$this->fail('Das Einspielen hätte scheitern müssen.');
+		} catch (\RuntimeException $e) {
+			$this->assertSame('Einstellungen lassen sich nicht schreiben', $e->getMessage());
+		}
+
+		$this->assertSame($before, $target['tables']->data, 'Die Tabellen müssen zurückgerollt sein.');
+		$this->assertSame([], $target['sink']->stored, 'Schon abgelegte Dateien müssen wieder weg sein.');
+		$this->assertNull($target['sink']->logo);
+	}
+
+	/** Dateien, die erst beim Ablegen im Ziel scheitern, haben keinen Namen aus der Quelle. */
+	public function testFehlendeDateienAusAelterenSicherungenOhneNamen(): void {
+		[, $target, $path] = $this->exported();
+		$path = $this->tamper($path, static function (\ZipArchive $zip): void {
+			$manifest = json_decode((string)$zip->getFromName('manifest.json'), true, 512, JSON_THROW_ON_ERROR);
+			$manifest['missingFiles'] = [['kind' => 'attachments', 'id' => 6], ['kind' => 'mandates', 'id' => 3, 'label' => str_repeat('x', 500)], ['kind' => 'fremd', 'id' => 1, 'label' => 'y']];
+			$zip->addFromString('manifest.json', json_encode($manifest, JSON_THROW_ON_ERROR));
+		});
+
+		$result = $target['import']->import($path, self::PASSWORD, 'alice');
+
+		$this->assertSame([
+			['kind' => 'attachments', 'id' => 6, 'label' => ''],
+			['kind' => 'mandates', 'id' => 3, 'label' => str_repeat('x', 200)],
+		], $result['missingFiles']);
 	}
 }

@@ -4690,7 +4690,12 @@
         "Prüfkette der Auslagenanträge": "controleketen van de onkostendeclaraties",
         "Die Sicherung ist beschädigt (Tabelle %s).": "De back-up is beschadigd (tabel %s).",
         "Die Sicherung ist in sich nicht stimmig (%s).": "De back-up is intern niet consistent (%s).",
-        "Die Sicherung passt nicht zu dieser App-Version (Tabelle %1$s, Spalte %2$s).": "De back-up past niet bij deze app-versie (tabel %1$s, kolom %2$s)."
+        "Die Sicherung passt nicht zu dieser App-Version (Tabelle %1$s, Spalte %2$s).": "De back-up past niet bij deze app-versie (tabel %1$s, kolom %2$s).",
+        "Solange eine Sicherung erstellt oder eingespielt wird, sollte niemand in der Buchhaltung arbeiten – sonst hält die Sicherung womöglich einen Zwischenstand fest.": "Zolang een back-up wordt gemaakt of teruggezet, mag niemand in de boekhouding werken – anders legt de back-up mogelijk een tussenstand vast.",
+        "und {n} weitere": "en nog {n}",
+        "Die Verbindung ist abgebrochen, bevor der Server geantwortet hat. Das Einspielen läuft womöglich noch: Laden Sie die Seite in einigen Minuten neu und prüfen Sie den Bestand, bevor Sie es erneut versuchen.": "De verbinding is verbroken voordat de server antwoordde. Het terugzetten loopt mogelijk nog: laad de pagina over enkele minuten opnieuw en controleer het bestand voordat u het opnieuw probeert.",
+        "Der Datensatz %2$s der Tabelle %1$s lässt sich in dieser Datenbank nicht speichern.": "Record %2$s van tabel %1$s kan in deze database niet worden opgeslagen.",
+        "Die Datei ist nicht angekommen – vermutlich ist sie größer, als dieser Server für einen Upload annimmt. Legen Sie sie in Ihre Nextcloud-Dateien und wählen Sie sie von dort.": "Het bestand is niet aangekomen – waarschijnlijk is het groter dan deze server voor een upload accepteert. Zet het in uw Nextcloud-bestanden en kies het daar."
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

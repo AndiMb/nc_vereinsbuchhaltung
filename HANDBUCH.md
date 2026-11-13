@@ -1857,8 +1857,10 @@ ist mit diesem Passwort verschlüsselt (AES-256). **Das Passwort wird nirgends
 gespeichert: Ohne es lässt sich die Sicherung nicht mehr öffnen**, auch nicht
 vom Entwickler der App. Bewahren Sie es getrennt von der Datei auf. Fehlt beim
 Sichern eine Datei in der Ablage (in der Dateien-App gelöscht oder
-verschoben), bricht die Sicherung nicht ab, sondern nennt, wie viele Dateien
-je Art fehlen.
+verschoben), bricht die Sicherung nicht ab, sondern nennt die fehlenden
+Dateien je Art beim Namen. Solange eine Sicherung erstellt oder eingespielt
+wird, sollte niemand in der Buchhaltung arbeiten – sonst hält die Sicherung
+womöglich einen Zwischenstand fest.
 
 **Sicherung einspielen:** geht nur in einen **leeren Bestand** und nur mit
 **derselben Version** der App, mit der die Sicherung erstellt wurde – bringen
@@ -1867,8 +1869,13 @@ Datei hochladen oder, bei großen Sicherungen, in die eigenen
 Nextcloud-Dateien legen und über *Aus Nextcloud-Dateien wählen* auswählen (so
 umgehen Sie die Upload-Grenze des Servers). Nach *Sicherung prüfen* zeigt die
 App, von welchem Verein, welchem Stand und welcher Version die Datei stammt und
-was sie enthält; erst *Jetzt einspielen* schreibt. Geht dabei etwas schief,
-bleibt der Bestand unverändert leer. Am Ende steht ein Bericht: wie viele
+was sie enthält; erst *Jetzt einspielen* schreibt. Meldet die App dabei einen
+Fehler, ist der Bestand unverändert leer. Bricht dagegen nur die Verbindung ab
+(etwa weil ein vorgeschalteter Proxy bei einer sehr großen Sicherung die
+Geduld verliert), arbeitet der Server womöglich weiter: Seite nach einigen
+Minuten neu laden und den Bestand prüfen, bevor Sie es erneut versuchen. Lässt
+sich ein Datensatz in der Datenbank des Ziels nicht speichern, nennt die
+Meldung Tabelle und Datensatz. Am Ende steht ein Bericht: wie viele
 Datensätze und Dateien übernommen wurden, welche Dateien fehlen und welche
 Benutzer oder Gruppen aus den Rollen es auf dieser Nextcloud nicht gibt. Die
 Rollen und das Änderungsprotokoll kommen aus der Sicherung; **wer einspielt,

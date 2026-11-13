@@ -1816,7 +1816,9 @@ encrypted with this password (AES-256). **The password is not stored
 anywhere: without it the backup can no longer be opened**, not even by the
 developer of the app. Keep it separate from the file. If a file is missing
 from the storage during the backup (deleted or moved in the Files app), the
-backup does not abort but states how many files of each kind are missing.
+backup does not abort but lists the missing files of each kind by name. While
+a backup is being created or restored, nobody should be working in the
+bookkeeping – otherwise the backup may capture an intermediate state.
 
 **Restoring a backup:** only works in an **empty data set** and only with the
 **same version** of the app the backup was created with – when in doubt,
@@ -1824,8 +1826,12 @@ bring both sides to the same version first and then create the backup again.
 Upload the file or, for large backups, put it into your own Nextcloud files
 and pick it via *Choose from Nextcloud files* (this avoids the server's upload
 limit). After *Check backup* the app shows which club, snapshot and version the
-file comes from and what it contains; only *Restore now* writes. If anything
-goes wrong, the data set stays empty and unchanged. At the end there is a
+file comes from and what it contains; only *Restore now* writes. If the app
+reports an error, the data set is still empty and unchanged. If, however, only
+the connection is lost (for instance because a reverse proxy gives up on a
+very large backup), the server may keep working: reload the page after a few
+minutes and check the data set before trying again. If a record cannot be
+stored in the target's database, the message names the table and the record. At the end there is a
 report: how many records and files were imported, which files are missing and
 which users or groups from the roles do not exist on this Nextcloud. Roles and
 the change log come from the backup; **whoever restores remains administrator
