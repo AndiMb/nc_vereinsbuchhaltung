@@ -524,7 +524,7 @@ import { linkFilesToBookings } from './lib/receiptBatch.js'
 import { bookingsContext, txContext } from './lib/receiptPreview.js'
 import { reimbursementBookingPrefill } from './lib/reimbursements.js'
 import { newUid } from './lib/rowKeys.js'
-import { ruleSplitParts } from './lib/ruleSplit.js'
+import { ruleSplitSuggestion } from './lib/ruleSplit.js'
 import { splitBalanced, splitRemainder, splitSideOf } from './lib/split.js'
 
 // Selten gebrauchte Reiter und Dialoge sind eigene Webpack-Chunks und werden erst
@@ -2370,13 +2370,19 @@ export default {
 		 * dann sucht computeSuggestion() weiter, wie bei einem inaktiven Konto.
 		 */
 		splitSuggestion(rule, tx) {
-			const parts = ruleSplitParts(rule, tx.amountCents || 0)
-			if (!parts || parts.some((p) => !this.accountsById[p.accountId]?.active)) { return null }
-			const numbers = parts.map((p) => this.accountsById[p.accountId].number)
+			const s = ruleSplitSuggestion(rule, tx.amountCents || 0)
+			if (!s) { return null }
+			const ids = s.splitParts ? s.splitParts.map((p) => p.accountId) : [s.accountId]
+			if (ids.some((id) => !this.accountsById[id]?.active)) { return null }
+			// Ein einziger Teil (Umsatz = Anteil) ist ein gewoehnlicher Vorschlag.
+			if (!s.splitParts) {
+				return { accountId: s.accountId, label: accountLabel(this.accountsById[s.accountId]), costCenterId: s.costCenterId }
+			}
+			const numbers = ids.map((id) => this.accountsById[id].number)
 			return {
-				accountId: rule.contraAccountId,
+				accountId: s.accountId,
 				label: this.tRaw('Aufteilung: {accounts}', { accounts: numbers.join(' · ') }),
-				splitParts: parts,
+				splitParts: s.splitParts,
 			}
 		},
 

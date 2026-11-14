@@ -4762,7 +4762,9 @@
         "Rest → {account}": "Rest → {account}",
         "Jedem Anteil fehlt noch Konto oder Betrag.": "Elk aandeel heeft nog een rekening en een bedrag nodig.",
         "Ungültiger Anteil (Konto oder Betrag fehlt).": "Ongeldig aandeel (rekening of bedrag ontbreekt).",
-        "Aufteilung: {accounts}": "Verdeling: {accounts}"
+        "Aufteilung: {accounts}": "Verdeling: {accounts}",
+        "Jedes Konto darf in einer Regel nur einmal vorkommen.": "Elke rekening mag maar één keer in een regel voorkomen.",
+        "Eine Regel kann höchstens %d feste Anteile haben.": "Een regel kan hoogstens %d vaste aandelen hebben."
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

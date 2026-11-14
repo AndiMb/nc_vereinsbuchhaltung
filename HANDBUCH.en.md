@@ -450,7 +450,8 @@ posting is created automatically from the assignment:
   the assignment list, "✓ apply suggestion" for such a rule opens the
   *Split transaction* dialog with the parts already calculated; nothing is
   posted until you confirm there. Deleting an account that is used in a
-  share removes the whole rule.
+  share removes the whole rule. Each account may appear only once in a rule –
+  not even as a share and as the remainder account at the same time.
 - **Search by text or amount:** The search field above the list finds
   payment partner and purpose – and with a number such as `12,50`, `1.250`
   or `18,75 €` also transactions of exactly that amount. A dot separates

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ruleSplitParts } from './ruleSplit.js'
+import { ruleSplitParts, ruleSplitSuggestion } from './ruleSplit.js'
 
 // Gegenstueck zu tests/unit/RuleSplitTest.php (Issue #163): beide Seiten
 // muessen gleich aufteilen, sonst schlaegt der Vorschlag etwas anderes vor,
@@ -50,5 +50,23 @@ describe('ruleSplitParts', () => {
 			{ accountId: 10, amountCents: 10, costCenterId: null },
 			{ accountId: 11, amountCents: 20, costCenterId: null },
 		])
+	})
+})
+
+describe('ruleSplitSuggestion', () => {
+	it('mehrere Teile werden als Aufteilung vorgeschlagen', () => {
+		const s = ruleSplitSuggestion(fixed(), 6000)
+		expect(s.splitParts).toHaveLength(4)
+	})
+
+	// Umsatz = einziger Anteil: der Import bucht ein Konto - der Vorschlag darf
+	// dann keinen Aufteilen-Dialog mit nur einer Zeile oeffnen (der lehnt das ab).
+	it('ein einziger Teil wird als gewoehnlicher Vorschlag geliefert', () => {
+		const s = ruleSplitSuggestion(rule([{ accountId: 10, amount: 10, costCenterId: 7 }]), -1000)
+		expect(s).toEqual({ accountId: 10, costCenterId: 7, splitParts: null })
+	})
+
+	it('zu kleiner Umsatz liefert keinen Vorschlag', () => {
+		expect(ruleSplitSuggestion(fixed(), 1200)).toBeNull()
 	})
 })

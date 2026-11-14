@@ -35,6 +35,8 @@ class RuleControllerPartsTest extends TestCase {
 	private bool $enabled = true;
 	/** @var list<list<array{0:int, 1:int, 2:?int, 3:int}>> jeder replaceForRule()-Aufruf: [Konto, Cent, Kostenstelle, Reihenfolge] je Anteil */
 	private array $replaced = [];
+	/** @var list<RulePart> gespeicherte Anteile der Regel 8 */
+	private array $storedParts = [];
 
 	/** @param array<string, mixed> $params Rohparameter des Requests */
 	private function controller(array $params): RuleController {
@@ -45,6 +47,7 @@ class RuleControllerPartsTest extends TestCase {
 		$stored->setMatchField('purpose');
 		$stored->setMatchValue('Beitrag');
 		$stored->setContraAccountId(5);
+		$stored->setPartsList($this->storedParts);
 		$mapper = $this->createMock(RuleMapper::class);
 		$mapper->method('insert')->willReturnCallback(static function (Rule $r): Rule {
 			$r->setId(9);
@@ -72,7 +75,7 @@ class RuleControllerPartsTest extends TestCase {
 		});
 		$accounts = $this->createMock(AccountMapper::class);
 		$accounts->method('find')->willReturnCallback(static function (int $id): Account {
-			if (!in_array($id, [5, 10, 11], true)) {
+			if (!in_array($id, [5, 10, 11], true) && $id < 1000) {
 				throw new DoesNotExistException('kein Konto');
 			}
 			return new Account();
@@ -145,6 +148,49 @@ class RuleControllerPartsTest extends TestCase {
 		$this->assertSame(Http::STATUS_BAD_REQUEST, $response->getStatus());
 		$this->assertSame('Kostenstellen sind in den Einstellungen ausgeschaltet.', $this->json($response)['message']);
 		$this->assertSame([], $this->replaced);
+	}
+
+	/** @return array<string, array{0: list<array<string, mixed>>}> */
+	public static function doppelteKonten(): array {
+		return [
+			'zwei Anteile auf einem Konto' => [[['accountId' => 10, 'amount' => 1], ['accountId' => 10, 'amount' => 2]]],
+			'Anteil auf dem Restkonto' => [[['accountId' => 5, 'amount' => 1]]],
+		];
+	}
+
+	/**
+	 * Die Buchung lehnt ein Konto zweimal ab (BookingService::validateParts) –
+	 * eine solche Regel könnte nie buchen und wird schon beim Speichern abgelehnt.
+	 *
+	 * @dataProvider doppelteKonten
+	 * @param list<array<string, mixed>> $parts
+	 */
+	public function testKontoDoppeltWirdAbgelehnt(array $parts): void {
+		$response = $this->controller(['parts' => $parts])->create('purpose', 'Beitrag', 5, 0, null, $parts);
+
+		$this->assertSame(Http::STATUS_BAD_REQUEST, $response->getStatus());
+		$this->assertSame('Jedes Konto darf in einer Regel nur einmal vorkommen.', $this->json($response)['message']);
+		$this->assertSame([], $this->replaced);
+	}
+
+	public function testZuVieleAnteileWerdenAbgelehnt(): void {
+		$parts = array_map(static fn (int $i): array => ['accountId' => 1000 + $i, 'amount' => 1], range(1, 49));
+		$response = $this->controller(['parts' => $parts])->create('purpose', 'Beitrag', 5, 0, null, $parts);
+
+		$this->assertSame(Http::STATUS_BAD_REQUEST, $response->getStatus());
+		$this->assertSame([], $this->replaced);
+	}
+
+	/** Alter Client ohne `parts` setzt das Restkonto auf das Konto eines gespeicherten Anteils. */
+	public function testRestkontoGleichGespeichertemAnteilWirdAbgelehnt(): void {
+		$part = new RulePart();
+		$part->setAccountId(10);
+		$part->setAmountCents(100);
+		$this->storedParts = [$part];
+		$response = $this->controller([])->update(8, 'purpose', 'Beitrag', 10);
+
+		$this->assertSame(Http::STATUS_BAD_REQUEST, $response->getStatus());
+		$this->assertSame('Jedes Konto darf in einer Regel nur einmal vorkommen.', $this->json($response)['message']);
 	}
 
 	public function testUnbekanntesKontoImTeil(): void {

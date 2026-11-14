@@ -457,7 +457,8 @@ der Zuordnung entsteht automatisch der Buchungssatz:
   Zuordnungsliste öffnet „✓ Vorschlag übernehmen" bei einer solchen Regel
   den Dialog *Umsatz aufteilen* mit den fertig berechneten Teilen; gebucht
   wird erst, wenn Sie dort bestätigen. Wird ein Konto gelöscht, das in einem
-  Anteil vorkommt, entfällt die ganze Regel.
+  Anteil vorkommt, entfällt die ganze Regel. Jedes Konto darf in einer Regel
+  nur einmal vorkommen – auch nicht zugleich als Anteil und als Restkonto.
 - **Suche nach Text oder Betrag:** Das Suchfeld über der Liste findet
   Zahlungspartner und Verwendungszweck – und mit einer Zahl wie `12,50`,
   `1.250` oder `18,75 €` auch Umsätze über genau diesen Betrag. Ein Punkt

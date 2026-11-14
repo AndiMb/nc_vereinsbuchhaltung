@@ -27,3 +27,22 @@ export function ruleSplitParts(rule, amountCents) {
 	}
 	return parts
 }
+
+/**
+ * Vorschlag aus einer Regel mit festen Anteilen: mehrere Teile oeffnen den
+ * Aufteilen-Dialog (splitParts), ein einziger Teil (Umsatz = Anteil) ist ein
+ * gewoehnlicher Vorschlag auf dieses Konto - der Dialog verlangt mindestens
+ * zwei Zeilen, der Import bucht diesen Fall auf ein Konto.
+ *
+ * @param {object} rule Regel wie von GET /rules
+ * @param {number} amountCents Umsatzbetrag in Cent
+ * @return {{accountId: number, costCenterId: number|null, splitParts: Array|null}|null}
+ */
+export function ruleSplitSuggestion(rule, amountCents) {
+	const parts = ruleSplitParts(rule, amountCents)
+	if (!parts) { return null }
+	if (parts.length === 1) {
+		return { accountId: parts[0].accountId, costCenterId: parts[0].costCenterId, splitParts: null }
+	}
+	return { accountId: rule.contraAccountId, costCenterId: null, splitParts: parts }
+}

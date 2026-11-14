@@ -335,6 +335,9 @@ export default {
 			if (!payload.matchValue) { showError(this.t('Bitte einen Suchtext eingeben.')); return }
 			if (!payload.contraAccountId) { showError(this.t('Bitte ein Gegenkonto wählen.')); return }
 			if (payload.parts.some((p) => !p.accountId || !(p.amount > 0))) { showError(this.t('Jedem Anteil fehlt noch Konto oder Betrag.')); return }
+			// Die Buchung nimmt jedes Konto nur einmal an - eine solche Regel koennte nie buchen.
+			const ids = [payload.contraAccountId, ...payload.parts.map((p) => p.accountId)]
+			if (new Set(ids).size !== ids.length) { showError(this.t('Jedes Konto darf in einer Regel nur einmal vorkommen.')); return }
 			try {
 				if (this.ruleEditId) {
 					await api.updateRule(this.ruleEditId, payload)

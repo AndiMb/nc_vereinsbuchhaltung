@@ -4761,5 +4761,7 @@ OC.L10N.register("vereinsbuchhaltung", {
 	"Rest → {account}": "Remainder → {account}",
 	"Jedem Anteil fehlt noch Konto oder Betrag.": "Each share still needs an account and an amount.",
 	"Ungültiger Anteil (Konto oder Betrag fehlt).": "Invalid share (account or amount missing).",
-	"Aufteilung: {accounts}": "Split: {accounts}"
+	"Aufteilung: {accounts}": "Split: {accounts}",
+	"Jedes Konto darf in einer Regel nur einmal vorkommen.": "Each account may appear only once in a rule.",
+	"Eine Regel kann höchstens %d feste Anteile haben.": "A rule can have at most %d fixed shares."
 }, "nplurals=2; plural=(n != 1);");

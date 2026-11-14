@@ -13,6 +13,7 @@ use OCA\Vereinsbuchhaltung\Db\RulePart;
 use OCA\Vereinsbuchhaltung\Db\RulePartMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
 use OCA\Vereinsbuchhaltung\Service\CostCenterSettings;
+use OCA\Vereinsbuchhaltung\Service\JournalService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http;
@@ -24,6 +25,9 @@ use OCP\IRequest;
 class RuleController extends Controller {
 
 	use BookContext;
+
+	/** Feste Anteile je Regel: dazu kommt noch der Restteil (Issue #163). */
+	public const MAX_PARTS = JournalService::MAX_LINES - 2;
 
 	public function __construct(
 		IRequest $request,
@@ -52,6 +56,7 @@ class RuleController extends Controller {
 		$rule = new Rule();
 		$error = $this->applyCostCenter($rule, $costCenterId);
 		$newParts = $this->parseParts($parts, $error);
+		$error ??= $this->accountConflict($contraAccountId, $newParts ?? $rule->getPartsList());
 		if ($error !== null) {
 			return new DataResponse(['message' => $error], Http::STATUS_BAD_REQUEST);
 		}
@@ -76,6 +81,7 @@ class RuleController extends Controller {
 		}
 		$error = $this->applyCostCenter($rule, $costCenterId);
 		$newParts = $this->parseParts($parts, $error);
+		$error ??= $this->accountConflict($contraAccountId, $newParts ?? $rule->getPartsList());
 		if ($error !== null) {
 			return new DataResponse(['message' => $error], Http::STATUS_BAD_REQUEST);
 		}
@@ -113,6 +119,11 @@ class RuleController extends Controller {
 	 */
 	private function parseParts(?array $raw, ?string &$error): ?array {
 		if ($error !== null || !array_key_exists('parts', $this->request->getParams())) {
+			return null;
+		}
+		// Anteile + Restteil passen in eine Aufteilung (BookingService::validateParts).
+		if (count($raw ?? []) > self::MAX_PARTS) {
+			$error = $this->l10n->t('Eine Regel kann höchstens %d feste Anteile haben.', [self::MAX_PARTS]);
 			return null;
 		}
 		$parts = [];
@@ -169,6 +180,22 @@ class RuleController extends Controller {
 			$rule->setCostCenterId($costCenterId);
 		}
 		return $error;
+	}
+
+	/**
+	 * Jedes Konto höchstens einmal – unter den Anteilen und neben dem
+	 * Restkonto. Die Buchung lehnt eine Aufteilung mit doppeltem Konto ab
+	 * (BookingService::validateParts); eine solche Regel könnte nie buchen.
+	 *
+	 * @param list<RulePart> $parts
+	 */
+	private function accountConflict(int $contraAccountId, array $parts): ?string {
+		$ids = array_map(static fn (RulePart $p): int => (int)$p->getAccountId(), $parts);
+		$ids[] = $contraAccountId;
+		if (count($ids) !== count(array_unique($ids))) {
+			return $this->l10n->t('Jedes Konto darf in einer Regel nur einmal vorkommen.');
+		}
+		return null;
 	}
 
 	/** Darf diese Kostenstelle vorgegeben werden? null = ja, sonst die Meldung. */
