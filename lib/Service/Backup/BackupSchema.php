@@ -60,6 +60,7 @@ final class BackupSchema {
 			'vbh_journal_line' => $plain,
 			'vbh_line_alloc' => $plain,
 			'vbh_rules' => ['encrypted' => ['match_value'], 'replace' => []],
+			'vbh_rule_parts' => $plain,
 			'vbh_attachments' => ['encrypted' => [], 'replace' => ['file_id' => null, 'file_owner' => null]],
 			'vbh_budgets' => $plain,
 			'vbh_cc_budgets' => $plain,

@@ -443,6 +443,22 @@ der Zuordnung entsteht automatisch der Buchungssatz:
   nur Verwalter/Buchhalter). Beim Import
   können Regeln automatisch angewendet werden (Häkchen „Auto-Zuordnungsregeln
   anwenden"); über den Wachordner (Kapitel 3.3) geschieht das immer.
+- **Umsatz per Regel aufteilen:** Unter dem Regelformular lassen sich
+  **feste Anteile** hinzufügen – je Anteil ein Konto, ein Betrag und, bei
+  eingeschalteten Kostenstellen, wahlweise eine Kostenstelle. Greift die
+  Regel, gehen diese Beträge auf ihre Konten, und was übrig bleibt, landet
+  auf dem **Restkonto** (das Feld „Gegenkonto" heißt dann so). Beispiel:
+  Vom Mitgliedsbeitrag gehen 10 € an die Jugendabteilung und 5 € an die
+  Tennisabteilung, der Rest bleibt beim Hauptverein. Die Anteile gelten für
+  Ein- und Ausgänge gleich. Ist ein Umsatz **kleiner** als die Anteile
+  zusammen (etwa ein ermäßigter Beitrag), greift die Regel nicht: Der Umsatz
+  bleibt unter *Zuzuordnen* liegen, und der Wachordner meldet ihn als nicht
+  zugeordnet – so wird nie still ein falscher Betrag gebucht. In der
+  Zuordnungsliste öffnet „✓ Vorschlag übernehmen" bei einer solchen Regel
+  den Dialog *Umsatz aufteilen* mit den fertig berechneten Teilen; gebucht
+  wird erst, wenn Sie dort bestätigen. Wird ein Konto gelöscht, das in einem
+  Anteil vorkommt, entfällt die ganze Regel. Jedes Konto darf in einer Regel
+  nur einmal vorkommen – auch nicht zugleich als Anteil und als Restkonto.
 - **Suche nach Text oder Betrag:** Das Suchfeld über der Liste findet
   Zahlungspartner und Verwendungszweck – und mit einer Zahl wie `12,50`,
   `1.250` oder `18,75 €` auch Umsätze über genau diesen Betrag. Ein Punkt

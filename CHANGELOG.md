@@ -56,6 +56,15 @@ verwenden, z. B. `**Neu:**`.
   anlegen. Die Liste beginnt mit dem Geschäftsjahr, in dem die App zum
   ersten Mal geöffnet wurde; wer ein früheres Jahr nachbuchen will, musste
   bisher wissen, dass es mit der ersten Buchung darin von allein entsteht.
+- **Importregeln teilen Umsätze auf** (#163): Eine Regel kann neben dem
+  Gegenkonto beliebig viele **feste Anteile** tragen (Konto, Betrag,
+  wahlweise Kostenstelle). Beim Import gehen diese Beträge auf ihre Konten,
+  der Rest auf das Gegenkonto, das dann *Restkonto* heißt – etwa 10 € eines
+  Mitgliedsbeitrags an die Jugendabteilung, 5 € an die Tennisabteilung, der
+  Rest an den Hauptverein. Ist ein Umsatz kleiner als die Anteile zusammen,
+  bleibt er unzugeordnet und wird gemeldet, statt falsch gebucht zu werden.
+  Der Vorschlag in *Zuzuordnen* öffnet bei solchen Regeln den Dialog
+  *Umsatz aufteilen* fertig vorbelegt. Handbuch Kapitel 4.1.
 
 ## [0.53.0] – 2026-11-12
 
