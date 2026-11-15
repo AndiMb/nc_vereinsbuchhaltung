@@ -212,6 +212,44 @@ export async function createContext(tab, { lang, sceneId, framesDir, clock = mak
 			if (manifest) addShot(manifest, { id, t: clock.now(), source });
 		},
 
+		/**
+		 * Zeitspannen, deren Bilder buildClip verwirft (Clipsekunden). Der
+		 * concat-Demuxer haelt dann das letzte Bild davor - die Aufnahme friert
+		 * waehrend eines Seitenwechsels ein, statt Ladebilder zu zeigen, und die
+		 * Zeitachse bleibt zur Sprachspur synchron.
+		 */
+		gaps: [],
+
+		/**
+		 * Unsichtbarer Uebergang: fn() laeuft (Navigation, Dialoge auf-/zumachen),
+		 * die Bilder dabei fallen weg, danach beginnt Einstellung `shotId`.
+		 */
+		async behindCut(shotId, fn) {
+			const start = clock.now();
+			await fn();
+			await sleep(250);
+			// Ein frisches Bild erzwingen, damit der Schnitt nicht auf dem
+			// eingefrorenen Bild stehen bleibt (Screencast liefert nur bei Aenderung).
+			await evaluate('(() => { const o = window.__vbhOverlay; if (o && o.cursor) { o.cursor.style.outline = o.cursor.style.outline ? "" : "0 solid transparent"; } return true; })()').catch(() => {});
+			await sleep(120);
+			const end = clock.now();
+			ctx.gaps.push({ start, end });
+			if (shotId) ctx.shot(shotId);
+		},
+
+		/** Seitenwechsel hinter einem Schnitt; App-Pfad oder Nextcloud-Pfad. */
+		async goto(path, shotId, { ready = 'document.readyState === "complete"', settle = 600 } = {}) {
+			await ctx.behindCut(shotId, async () => {
+				const base = await evaluate('location.origin');
+				await cdp.send(tab, 'Page.navigate', { url: base + path });
+				await sleep(300);
+				await cdp.waitFor(tab, 'document.readyState === "complete"', 30000);
+				await cdp.waitFor(tab, ready, 30000);
+				await cdp.evaluate(tab, OVERLAY_SETUP);
+				await sleep(settle);
+			});
+		},
+
 		/** Zoomziel: Rechteck des sichtbaren Elements zur aktuellen Szenenzeit. */
 		async mark(name, selector) {
 			const rect = await evaluate(`(() => {
@@ -229,6 +267,8 @@ export async function createContext(tab, { lang, sceneId, framesDir, clock = mak
 		async startRecording() {
 			mkdirSync(framesDir, { recursive: true });
 			if (ownsClock) clock.reset();
+			// Seitenwechsel aus prepare() liegen vor der Aufnahme, sie zaehlen nicht.
+			ctx.gaps.length = 0;
 			capturing = true;
 			// Der Handler wird gemerkt, damit stopRecording ihn wieder abmelden kann.
 			// Bricht eine Szene ab und wird wiederholt, schriebe ein liegengebliebener
@@ -542,22 +582,28 @@ export async function createContext(tab, { lang, sceneId, framesDir, clock = mak
 		},
 
 		/** Weiches Scrollen: Dauer statt Sprung, damit das Auge mitkommt. */
-		async scrollTo(target, { duration = 1400 } = {}) {
+		async scrollTo(target, { duration = 1400, offset = 160 } = {}) {
+			// Gescrollt wird der naechste scrollbare Vorfahr des Ziels - die
+			// Nextcloud-Einstellungen scrollen in #app-content, nicht im Fenster.
 			await evaluate(`(() => {
-				const ziel = ${typeof target === 'number' ? String(target) : `(() => {
-					const el = ${selectorExpression(target)};
-					if (!el) return 0;
-					const r = el.getBoundingClientRect();
-					return window.scrollY + r.top - 160;
-				})()`};
-				const start = window.scrollY;
+				const el = ${typeof target === 'number' ? 'null' : selectorExpression(target)};
+				let box = el ? el.parentElement : null;
+				while (box && box !== document.body) {
+					const o = getComputedStyle(box).overflowY;
+					if ((o === 'auto' || o === 'scroll') && box.scrollHeight > box.clientHeight + 4) break;
+					box = box.parentElement;
+				}
+				const scroller = box && box !== document.body ? box : document.scrollingElement;
+				const top0 = scroller === document.scrollingElement ? 0 : scroller.getBoundingClientRect().top;
+				const ziel = ${typeof target === 'number' ? String(target) : `el ? scroller.scrollTop + el.getBoundingClientRect().top - top0 - ${offset} : scroller.scrollTop`};
+				const start = scroller.scrollTop;
 				const distanz = ziel - start;
 				const t0 = performance.now();
 				const dauer = ${duration};
 				function schritt(now) {
 					const p = Math.min(1, (now - t0) / dauer);
 					const eased = p < .5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
-					window.scrollTo(0, start + distanz * eased);
+					scroller.scrollTop = start + distanz * eased;
 					if (p < 1) requestAnimationFrame(schritt);
 				}
 				requestAnimationFrame(schritt);

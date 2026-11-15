@@ -79,8 +79,19 @@ function ffmpegBildgroesse(datei) {
  * aber jeweils einen Zeitstempel. Der concat-Demuxer haelt jedes Bild genau so
  * lange, wie es galt; `fps` legt daraus ein gleichmaessiges Raster.
  */
-export function buildClip({ frames, clockStart, outFile, duration, framesDir, scale = 1 }) {
-	if (frames.length === 0) throw new Error('Keine Bilder aufgenommen');
+export function keepOutsideGaps(frames, clockStart, gaps = []) {
+	if (gaps.length === 0) return frames;
+	const kept = frames.filter((f) => {
+		const t = f.timestamp - clockStart;
+		return !gaps.some((g) => t >= g.start && t < g.end);
+	});
+	// Das allererste Bild bleibt immer - sonst fehlt der Anfang.
+	return kept.length ? kept : frames.slice(0, 1);
+}
+
+export function buildClip({ frames: alleBilder, clockStart, outFile, duration, framesDir, scale = 1, gaps = [] }) {
+	if (alleBilder.length === 0) throw new Error('Keine Bilder aufgenommen');
+	const frames = keepOutsideGaps(alleBilder, clockStart, gaps);
 	const breite = 1920 * scale;
 	const hoehe = 1080 * scale;
 
@@ -213,12 +224,13 @@ async function recordScene({ tab, scene, module_, lang, content, clipsDir, keepF
 
 	const clockStart = clock.epoch();
 	const outFile = join(clipsDir, `${scene.id}.mp4`);
-	const roh = buildClip({ frames, clockStart, outFile, duration, framesDir, scale: SCALE });
+	const roh = buildClip({ frames, clockStart, outFile, duration, framesDir, scale: SCALE, gaps: ctx.gaps });
 	addClip(manifest, { source: 'board', file: `${scene.id}.mp4` });
 	if (member) {
-		buildClip({ frames: memberFrames, clockStart, outFile: join(clipsDir, `${scene.id}.member.mp4`), duration, framesDir: member.framesDir, scale: SCALE });
+		buildClip({ frames: memberFrames, clockStart, outFile: join(clipsDir, `${scene.id}.member.mp4`), duration, framesDir: member.framesDir, scale: SCALE, gaps: member.gaps });
 		addClip(manifest, { source: 'member', file: `${scene.id}.member.mp4` });
 	}
+	manifest.gaps = [...ctx.gaps.map((g) => ({ ...g, source: 'board' })), ...(member ? member.gaps.map((g) => ({ ...g, source: 'member' })) : [])];
 	writeManifest(join(clipsDir, `${scene.id}.json`), manifest);
 	if (!keepFrames) {
 		rmSync(framesDir, { recursive: true, force: true });

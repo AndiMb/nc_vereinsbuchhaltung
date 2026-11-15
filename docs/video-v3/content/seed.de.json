@@ -819,5 +819,9 @@
 			"income": 1500,
 			"expense": 2000
 		}
-	]
+	],
+	"mandateScan": {
+		"title": "SEPA-Lastschriftmandat",
+		"signed": "Unterschrieben am"
+	}
 }

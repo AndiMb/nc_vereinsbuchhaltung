@@ -16,7 +16,7 @@ import { dirname, join } from 'node:path';
 import { buildDataset, iso } from './dataset.mjs';
 import { demoPass, login } from './session.mjs';
 import { createClient, runJob, mailpitLatest } from './ncapi.mjs';
-import { wipe, exportBackup, backupFile, summaryFile, WATCH_PATH, watchDir } from './snapshot.mjs';
+import { wipe, clearAppFolders, exportBackup, backupFile, summaryFile, WATCH_PATH, watchDir } from './snapshot.mjs';
 import { logoPng } from './png.mjs';
 import { collectionStatement } from './camt.mjs';
 import { ensureChrome, DEFAULT_PORT } from './chrome.mjs';
@@ -136,6 +136,7 @@ async function main() {
 
 	step('Bestand leeren');
 	log((await wipe(admin)) ? 'geleert' : 'war leer');
+	await clearAppFolders(admin);
 
 	step('Verein, Module, Logo, Belegordner');
 	await admin.api('POST', '/settings', {
@@ -239,7 +240,19 @@ async function main() {
 	if (fehlend.length) {
 		throw new Error(`${fehlend.length} Mitglieder fehlen nach dem Import (${fehlend[0].memberNumber}). Vorschau: ${JSON.stringify(preview).slice(0, 400)} Import: ${JSON.stringify(imported).slice(0, 400)}`);
 	}
-	log(`${data.members.length} Mitglieder in ${data.contributionGroups.length} Gruppen, ${data.mandates.length} Mandate per Import`);
+	// Papiermandate mit Scan als Nachweis - sonst meldet das Aufgaben-Klemmbrett
+	// jedes einzelne als "Mandat ohne Nachweis".
+	const memberByNumber = Object.fromEntries(data.members.map((m) => [m.memberNumber, m]));
+	const numberById = Object.fromEntries(Object.entries(memberId).map(([nr, id]) => [id, nr]));
+	let scans = 0;
+	for (const mandate of asList(await admin.api('GET', '/mandates'))) {
+		const m = memberByNumber[numberById[mandate.memberId]];
+		if (!m || !m.signedDate) continue;
+		const pdf = textPdf([content.mandateScan.title, content.club.name, `${m.firstName} ${m.lastName}`, `IBAN ${m.iban.slice(0, 4)} **** **** **** ${m.iban.slice(-4)}`, `${content.mandateScan.signed} ${m.signedDate}`]);
+		await admin.form(`/mandates/${mandate.id}/document`, {}, [{ field: 'file', name: `Mandat-${m.memberNumber}.pdf`, buffer: pdf, type: 'application/pdf' }]);
+		scans++;
+	}
+	log(`${data.members.length} Mitglieder in ${data.contributionGroups.length} Gruppen, ${data.mandates.length} Mandate per Import, ${scans} Scans`);
 
 	step(`Mitgliedskonto ${data.memberLogin.uid}: Verknuepfung, Mandat online`);
 	const login = data.memberLogin;

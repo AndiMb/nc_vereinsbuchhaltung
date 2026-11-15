@@ -155,10 +155,13 @@ function costCenterIndex(content) {
 	return map;
 }
 
-/** Erster Monatserster, der mindestens drei Wochen nach dem Stichtag liegt - der Faelligkeitstag des Einzugs. */
+/**
+ * Faelligkeit des kommenden Einzugs: 17 Tage nach dem Stichtag. Das liegt hinter
+ * der Vorankuendigungsfrist (14 Tage) und im Freigabefenster - das
+ * Aufgaben-Klemmbrett zeigt dann "Freigabe faellig".
+ */
 export function feeDueDate(today) {
-	const d = parseIso(addDays(today, 20));
-	return iso(new Date(d.getFullYear(), d.getMonth() + 1, 1));
+	return addDays(today, 17);
 }
 
 /** Beitragsgruppen aus den Stufen: Jahresbeitrag (#270) oder Monatsbetrag. */
@@ -214,7 +217,9 @@ function buildMembers(content, today, groups) {
 			label: `${first} ${last}`,
 			email: `${slug(first)}.${slug(last)}@example.org`,
 			iban: noMandate ? null : buildIban(TEST_BANK_CODE, 1370000 + i * 37),
-			signedDate: noMandate ? null : `${year - 2 + (i % 2)}-${pad(1 + (i % 11))}-${pad(4 + (i % 20))}`,
+			// Unterschrieben im Vorjahr: aeltere, nie genutzte Mandate stuenden sonst
+			// als "verfaellt bald" im Aufgaben-Klemmbrett (36-Monats-Frist).
+			signedDate: noMandate ? null : `${year - 1}-${pad(1 + (i % 11))}-${pad(4 + (i % 20))}`,
 			joinedAt: `${year - 1 - (i % 9)}-${pad(1 + ((i * 5) % 12))}-01`,
 			group: group.key,
 			validFrom: due,
@@ -347,7 +352,8 @@ export function buildDataset(content, todayIso) {
 	const claims = members.map((m) => ({
 		memberNumber: m.memberNumber,
 		amount: groupOf(m).claimAmount,
-		label: fill(content.members.claimLabel, { jahr: due.slice(0, 4) }),
+		// Beitragsjahr: das Jahr, in das der Einzug hineinfuehrt (Dezember-Einzug -> Folgejahr).
+		label: fill(content.members.claimLabel, { jahr: addDays(due, 45).slice(0, 4) }),
 		dueDate: due,
 	}));
 

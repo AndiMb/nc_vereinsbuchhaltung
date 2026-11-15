@@ -63,10 +63,24 @@ async function resetWatchFolder(client, lang) {
 	return { cleared: del !== null, files: names.length };
 }
 
+/**
+ * Ablageordner der App im Home des Verwalters. "Leeren" laesst sie bewusst
+ * stehen, das Einspielen legt Mandatsnachweise und Rechnungs-PDFs neu ab - ohne
+ * Aufraeumen stuende nach jeder Wiederherstellung "Mandat-M-001 (2).pdf" daneben.
+ */
+export const APP_FOLDERS = ['SEPA-Mandate', 'Vereinsbuchhaltung'];
+
+export async function clearAppFolders(client) {
+	for (const path of APP_FOLDERS) {
+		await client.dav('DELETE', path).catch((err) => (err.status === 404 ? null : Promise.reject(err)));
+	}
+}
+
 export async function restore(client, lang, { container } = {}) {
 	const file = backupFile(lang);
 	if (!existsSync(file)) throw new Error(`Keine Sicherung: ${file}. Erst node lib/seed.mjs laufen lassen.`);
 	await wipe(client);
+	await clearAppFolders(client);
 	await resetWatchFolder(client, lang);
 	const res = await client.form('/backup/import', { password: BACKUP_PASSWORD }, [
 		{ field: 'file', name: 'seed.vbhbackup', buffer: readFileSync(file) },
