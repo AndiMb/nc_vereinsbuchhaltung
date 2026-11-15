@@ -1,22 +1,26 @@
-// Baut den Demodatenbestand fuer die Videoaufnahme in einer laufenden Nextcloud
-// auf - Kontenrahmen, drei Geschaeftsjahre, Regeln, Finanzplan, Mitglieder mit
-// SEPA-Mandaten, ein abgerechneter Sammeleinzug und faellige Beitraege.
+// Baut den Demobestand fuer die Videoaufnahme in der laufenden Aufnahme-Instanz
+// auf und legt danach eine Sicherung ab, die snapshot.mjs vor jeder Aufnahme
+// wieder einspielt.
 //
 //   node lib/seed.mjs --lang de
-//   node lib/seed.mjs --lang en --url http://localhost:8082
+//   node lib/seed.mjs --lang de --check   # Bestand gegen seed-summary.json pruefen
 //
-// Warum ueber den Browser und nicht per curl: die App-Endpunkte haengen an einer
-// Nextcloud-Sitzung samt CSRF-Token. Aus einer eingeloggten Seite heraus ist
-// beides da (OC.requestToken), von aussen muesste man beides nachbauen.
+// Alles laeuft ueber die App-API (ncapi.mjs, Basic Auth wie die E2E-Fixtures),
+// nichts ueber die Datenbank. Ausnahme ist occ fuer Hintergrundjobs
+// (Belegindex) - die liefen sonst erst nach zehn Minuten von selbst.
 
 import { createRequire } from 'node:module';
-import { spawn, spawnSync } from 'node:child_process';
-import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, rmSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { buildDataset, iso } from './dataset.mjs';
-import { demoPass } from './session.mjs';
+import { demoPass, login } from './session.mjs';
+import { createClient, runJob, mailpitLatest } from './ncapi.mjs';
+import { wipe, exportBackup, backupFile, summaryFile, WATCH_PATH, watchDir } from './snapshot.mjs';
+import { logoPng } from './png.mjs';
+import { collectionStatement } from './camt.mjs';
+import { ensureChrome, DEFAULT_PORT } from './chrome.mjs';
+import { textPdf } from '../../../tests/e2e/fixtures/textPdf.mjs';
 
 const require = createRequire(import.meta.url);
 const cdp = require('./cdp.cjs');
@@ -32,377 +36,336 @@ const flag = (name) => process.argv.includes(`--${name}`);
 
 const LANG = arg('lang', 'de');
 const URL_BASE = arg('url', 'http://localhost:8082').replace(/\/$/, '');
-const USER = arg('user', 'andrea');
 const PASS = demoPass(arg('pass'));
-const PORT = Number(arg('port', '9444'));
 const TODAY = arg('today', iso(new Date()));
 const CONTAINER = arg('container', 'vbh-demo');
+const outDir = join(root, 'build', LANG);
 
+const admin = createClient({ url: URL_BASE, user: 'andrea', pass: PASS });
 const log = (msg) => console.log(`  ${msg}`);
 const step = (msg) => console.log(`\n▶ ${msg}`);
+const asList = (x) => (Array.isArray(x) ? x : (x && Array.isArray(x.items) ? x.items : (x && Array.isArray(x.periods) ? x.periods : [])));
+const idOf = (x) => x?.id ?? x?.journal?.id ?? x?.batch?.id ?? x?.member?.id;
+const euroDe = (v) => v.toFixed(2).replace('.', ',');
 
-/**
- * Beitragsdaten direkt in der Datenbank leeren.
- *
- * Ueber die API geht das nicht vollstaendig: ein *abgerechneter* Sammeleinzug
- * laesst sich nicht loeschen (SepaBatchService lehnt das bewusst ab), und
- * solange er existiert, bleiben auch seine Mandate stehen. Nach jeder Aufnahme
- * von Szene 04 waeren das zwoelf Mitglieder mehr - nach drei Laeufen zeigte die
- * Liste 111 statt 87 Eintraege, mit Dubletten.
- *
- * Die Aufnahme-Instanz ist eine Wegwerfinstanz, deshalb ist der direkte Griff
- * in die Tabellen hier vertretbar. Schlaegt er fehl (kein Docker, anderer
- * Container), geht es mit der API-Reinigung weiter.
- */
-function hartReinigen() {
-	const tabellen = ['oc_vbh_sepa_batch_items', 'oc_vbh_sepa_batches', 'oc_vbh_membership_fees', 'oc_vbh_sepa_mandates'];
-	const php = `$db = new PDO("sqlite:/var/www/html/data/nextcloud.db");`
-		+ tabellen.map((t) => `$db->exec("DELETE FROM ${t}");`).join('')
-		+ `echo "ok";`;
+/** Kennzahlen, die nach jedem Wiederherstellen gleich sein muessen. */
+async function counts() {
+	const [members, invoices, reimbursements, batches, status] = await Promise.all([
+		admin.api('GET', '/members'),
+		admin.api('GET', '/invoices'),
+		admin.api('GET', '/reimbursements'),
+		admin.api('GET', '/debit-batches'),
+		admin.api('GET', '/backup/status'),
+	]);
+	return {
+		members: asList(members).length,
+		invoices: asList(invoices).length,
+		reimbursements: asList(reimbursements).length,
+		debitBatches: asList(batches).length,
+		rows: status.counts,
+	};
+}
+
+async function check() {
+	const summary = JSON.parse(readFileSync(summaryFile(LANG), 'utf8'));
+	const now = await counts();
+	const soll = JSON.stringify(summary.counts);
+	const ist = JSON.stringify(now);
+	if (soll !== ist) {
+		console.error(`Bestand weicht ab.\n  Soll: ${soll}\n  Ist:  ${ist}`);
+		process.exit(1);
+	}
+	console.log(`Bestand stimmt mit seed-summary.json ueberein: ${ist}`);
+}
+
+async function ensurePeriods(years) {
+	let periods = asList(await admin.api('GET', '/periods'));
+	const has = (y) => periods.some((p) => p.startDate.startsWith(String(y)));
+	for (let guard = 0; !has(years[0]) && guard < 5; guard++) {
+		await admin.api('POST', '/periods', { position: 'before' });
+		periods = asList(await admin.api('GET', '/periods'));
+	}
+	const byYear = Object.fromEntries(years.map((y) => [y, periods.find((p) => p.startDate.startsWith(String(y)))?.id]));
+	for (const y of years) if (!byYear[y]) throw new Error(`Kein Geschaeftsjahr ${y}: ${JSON.stringify(periods)}`);
+	return byYear;
+}
+
+async function linkAndConfirm(memberId, uid, email) {
+	await admin.api('POST', `/members/${memberId}/link`, { ncUserId: uid });
+	let mail = null;
+	for (let i = 0; i < 20 && !mail; i++) {
+		mail = mailpitLatest(CONTAINER, email);
+		if (!mail) await new Promise((r) => setTimeout(r, 500));
+	}
+	if (!mail) throw new Error(`Keine Verknuepfungsmail an ${email} in Mailpit`);
+	const token = (`${mail.Text}\n${mail.HTML}`.match(/link-account\/([A-Za-z0-9]+)/) ?? [])[1];
+	if (!token) throw new Error('Kein Bestaetigungslink in der Verknuepfungsmail');
+	const user = createClient({ url: URL_BASE, user: uid, pass: PASS });
+	await user.page('GET', `/link-account/${token}`);
+	const res = await user.page('POST', `/link-account/${token}`);
+	if (res.status >= 400) throw new Error(`Bestaetigung als ${uid}: HTTP ${res.status}`);
+	return user;
+}
+
+async function screenshot() {
+	const port = Number(arg('port', String(DEFAULT_PORT)));
+	await ensureChrome({ port });
+	const tab = await cdp.openTab(`${URL_BASE}/login`, port);
 	try {
-		const res = spawnSync('docker', ['exec', '-u', 'www-data', CONTAINER, 'php', '-r', php], { encoding: 'utf8' });
-		if (res.status === 0 && res.stdout.includes('ok')) {
-			log('Beitragstabellen direkt geleert (abgerechnete Einzuege lassen sich nicht per API loeschen)');
-			return true;
-		}
-		const meldung = (res.stderr || '').trim().split(/\r?\n/)[0] || `Exit ${res.status}`;
-		log(`Warnung: direktes Leeren fehlgeschlagen (${meldung})`);
+		await login(tab, { url: URL_BASE, user: 'andrea', pass: PASS });
+		await cdp.send(tab, 'Page.navigate', { url: `${URL_BASE}/apps/vereinsbuchhaltung/` });
+		await cdp.waitFor(tab, 'document.querySelector(".vbh") !== null', 30000);
+		await new Promise((r) => setTimeout(r, 3000));
+		const shot = join(outDir, 'seed-dashboard.png');
+		await cdp.screenshot(tab, shot);
+		log(`Kontrollbild ${shot}`);
 	} catch (err) {
-		log(`Warnung: direktes Leeren nicht moeglich (${err.message})`);
+		log(`Kontrollbild uebersprungen (${err.message})`);
+	} finally {
+		await cdp.closeTab(tab);
 	}
-	return false;
-}
-
-/** Chromium aus dem Playwright-Cache - kein npm-Paket noetig. */
-function findChrome() {
-	const cache = join(process.env.LOCALAPPDATA || join(process.env.HOME || '', 'AppData', 'Local'), 'ms-playwright');
-	if (!existsSync(cache)) throw new Error(`Kein Chromium gefunden: ${cache} fehlt (npx playwright install chromium)`);
-	for (const dir of readdirSync(cache).filter((d) => d.startsWith('chromium-')).sort().reverse()) {
-		const exe = join(cache, dir, 'chrome-win64', 'chrome.exe');
-		if (existsSync(exe)) return exe;
-	}
-	throw new Error('Kein chrome.exe im ms-playwright-Cache gefunden');
-}
-
-async function chromeAlive(port) {
-	try {
-		await new Promise((resolve, reject) => {
-			require('node:http').get({ host: '127.0.0.1', port, path: '/json/version' }, (res) => {
-				res.resume();
-				res.statusCode === 200 ? resolve() : reject(new Error(String(res.statusCode)));
-			}).on('error', reject);
-		});
-		return true;
-	} catch {
-		return false;
-	}
-}
-
-async function ensureChrome() {
-	if (await chromeAlive(PORT)) { log(`Chromium auf Port ${PORT} laeuft bereits`); return; }
-	const exe = findChrome();
-	// Bewusst ausserhalb des Repos: ein Chrome-Profil im Projektbaum bringt
-	// hunderte Dateien mitgelieferter Erweiterungen mit, darunter deren eigene
-	// *.test.js - vitest sammelt die ohne Konfiguration einfach mit ein und
-	// meldet 22 fehlgeschlagene "Testdateien", die niemandem gehoeren.
-	const profile = join(tmpdir(), 'vbh-video-chrome-profile');
-	mkdirSync(profile, { recursive: true });
-	spawn(exe, [
-		'--headless=new', '--disable-gpu', '--no-sandbox', '--hide-scrollbars',
-		`--remote-debugging-port=${PORT}`, '--remote-debugging-address=127.0.0.1',
-		`--user-data-dir=${profile}`, '--window-size=1600,1000', 'about:blank',
-	], { detached: true, stdio: 'ignore' }).unref();
-
-	for (let i = 0; i < 40; i++) {
-		if (await chromeAlive(PORT)) { log(`Chromium gestartet (Port ${PORT})`); return; }
-		await new Promise((r) => setTimeout(r, 500));
-	}
-	throw new Error(`Chromium antwortet nicht auf Port ${PORT}`);
-}
-
-async function login(tab) {
-	await cdp.navigate(tab, `${URL_BASE}/login`);
-	const loggedIn = await cdp.evaluate(tab, 'document.querySelector("#user") === null');
-	if (loggedIn) { log(`bereits angemeldet`); return; }
-	await cdp.typeInto(tab, '#user', USER);
-	await cdp.typeInto(tab, '#password', PASS);
-	await cdp.click(tab, 'button[type=submit]');
-	await cdp.waitFor(tab, 'document.querySelector("#user") === null', 20000);
-	log(`angemeldet als ${USER}`);
-}
-
-/**
- * Fuehrt eine Liste von API-Aufrufen in der Seite aus. Gebuendelt statt einzeln:
- * ein Runtime.evaluate je Aufruf waere bei ueber 600 Aufrufen die Haelfte der
- * Laufzeit.
- */
-async function apiMany(tab, requests, chunkSize = 40) {
-	const results = [];
-	for (let i = 0; i < requests.length; i += chunkSize) {
-		const chunk = requests.slice(i, i + chunkSize);
-		const expression = `(async () => {
-			const base = OC.generateUrl('/apps/vereinsbuchhaltung/api');
-			const out = [];
-			for (const r of ${JSON.stringify(chunk)}) {
-				const res = await fetch(base + r.path, {
-					method: r.method,
-					headers: { 'Content-Type': 'application/json', requesttoken: OC.requestToken },
-					body: r.body === undefined || r.body === null ? undefined : JSON.stringify(r.body),
-				});
-				const text = await res.text();
-				let data = null;
-				try { data = JSON.parse(text); } catch { data = text.slice(0, 200); }
-				out.push({ status: res.status, data });
-			}
-			return out;
-		})()`;
-		results.push(...await cdp.evaluate(tab, expression));
-	}
-	return results;
-}
-
-const one = async (tab, method, path, body) => (await apiMany(tab, [{ method, path, body }]))[0];
-
-function assertOk(results, what) {
-	const bad = results.filter((r) => r.status >= 400);
-	if (bad.length) {
-		throw new Error(`${what}: ${bad.length} von ${results.length} Aufrufen fehlgeschlagen, erster Fehler: `
-			+ `${bad[0].status} ${JSON.stringify(bad[0].data).slice(0, 300)}`);
-	}
-	return results;
 }
 
 async function main() {
+	if (flag('check')) return check();
+
 	const content = JSON.parse(readFileSync(join(root, 'content', `seed.${LANG}.json`), 'utf8'));
 	const data = buildDataset(content, TODAY);
-	const outDir = join(root, 'build', LANG);
 	mkdirSync(outDir, { recursive: true });
+	console.log(`Demobestand "${content.club.name}" (${LANG}) -> ${URL_BASE}, Stichtag ${TODAY}`);
 
-	console.log(`Demodaten "${content.club.name}" (${LANG}) -> ${URL_BASE}`);
-	console.log(`Stichtag ${data.today}, Geschaeftsjahre ${data.years.join(', ')}`);
+	step('Bestand leeren');
+	log((await wipe(admin)) ? 'geleert' : 'war leer');
 
-	await ensureChrome();
-	const tab = await cdp.openTab(`${URL_BASE}/login`, PORT);
+	step('Verein, Module, Logo, Belegordner');
+	await admin.api('POST', '/settings', {
+		club_name: content.club.name,
+		brand_color: content.club.brandColor,
+		club_street: content.club.street,
+		club_postal_code: content.club.postalCode,
+		club_city: content.club.city,
+		club_tax_number: content.club.taxNumber,
+		membership_enabled: '1',
+		self_service_enabled: '1',
+		cost_centers_enabled: '1',
+	});
+	await admin.form('/settings/logo', {}, [{ field: 'file', name: 'logo.png', buffer: logoPng(256, content.club.brandColor), type: 'image/png' }]);
+	await admin.dav('MKCOL', 'Belege');
+	await admin.dav('DELETE', WATCH_PATH).catch((err) => { if (err.status !== 404) throw err; });
+	await admin.dav('MKCOL', WATCH_PATH);
+	await admin.api('POST', '/settings', { storage_mode: 'watch', storage_user: 'andrea', storage_path: WATCH_PATH });
+	log('Einstellungen, Logo und Belegordner Belege/Verein');
 
-	try {
-		await login(tab);
-		await cdp.navigate(tab, `${URL_BASE}/apps/vereinsbuchhaltung/`);
-		await cdp.waitFor(tab, 'typeof OC !== "undefined" && !!OC.requestToken', 20000);
-		await cdp.waitFor(tab, 'document.querySelector(".vbh") !== null', 20000);
-
-		// --- Aufraeumen ---------------------------------------------------
-		// /api/reset raeumt Konten, Journal, Bankumsaetze, Regeln, Kostenstellen,
-		// Finanzplan und offene Posten ab - Mandate, Beitraege und Einzuege
-		// jedoch nicht. Die muessen einzeln weg, sonst wachsen sie mit jedem Lauf.
-		step('Bestand zuruecksetzen');
-		hartReinigen();
-		const batches = (await one(tab, 'GET', '/sepa/export/batches')).data;
-		const fees = (await one(tab, 'GET', '/sepa/fees')).data;
-		const mandates = (await one(tab, 'GET', '/sepa/mandates')).data;
-		const asList = (x) => (Array.isArray(x) ? x : (x && Array.isArray(x.items) ? x.items : []));
-		await apiMany(tab, asList(batches).map((b) => ({ method: 'DELETE', path: `/sepa/export/batches/${b.id}` })));
-		await apiMany(tab, asList(fees).map((f) => ({ method: 'DELETE', path: `/sepa/fees/${f.id}` })));
-		await apiMany(tab, asList(mandates).map((m) => ({ method: 'DELETE', path: `/sepa/mandates/${m.id}` })));
-		assertOk([await one(tab, 'POST', '/reset')], 'Reset');
-		log(`entfernt: ${asList(batches).length} Einzuege, ${asList(fees).length} Beitraege, ${asList(mandates).length} Mandate, alles Uebrige per /reset`);
-
-		// --- Kontenrahmen ---------------------------------------------------
-		step('Kontenrahmen anlegen');
-		const accountId = {};
-		for (const acc of data.accounts) {
-			const res = await one(tab, 'POST', '/accounts', {
-				number: acc.number, name: acc.name, type: acc.type, category: acc.category,
-				isBank: !!acc.isBank, sphere: acc.sphere ?? null, iban: acc.iban ?? null,
-				parentId: acc.parent ? accountId[acc.parent] : null,
-			});
-			if (res.status >= 400) throw new Error(`Konto ${acc.number}: ${JSON.stringify(res.data)}`);
-			accountId[acc.number] = res.data.id;
-		}
-		log(`${Object.keys(accountId).length} Konten`);
-
-		const openings = data.accounts.filter((a) => a.opening);
-		assertOk(await apiMany(tab, openings.map((a) => ({
-			method: 'POST', path: `/accounts/${accountId[a.number]}/opening`,
-			body: { amount: a.opening, date: `${data.years[0]}-01-01` },
-		}))), 'Eroeffnungsbestaende');
-		log(`${openings.length} Eroeffnungsbestaende`);
-
-		// --- Kostenstellen ---------------------------------------------------
-		step('Kostenstellen, Regeln, Finanzplan');
-		assertOk([await one(tab, 'POST', '/settings', { cost_center_mode: 'manual' })], 'Kostenstellen-Modus');
-		for (const cc of data.costCenters) {
-			const res = await one(tab, 'POST', '/costcenters', { code: cc.code, name: cc.name });
-			if (res.status >= 400) throw new Error(`Kostenstelle ${cc.code}: ${JSON.stringify(res.data)}`);
-			assertOk([await one(tab, 'POST', '/costcenters/assign', {
-				accountIds: cc.accounts.map((n) => accountId[n]), costCenterId: res.data.id,
-			})], `Kostenstelle ${cc.code} zuordnen`);
-		}
-		log(`${data.costCenters.length} Kostenstellen`);
-
-		assertOk(await apiMany(tab, data.rules.map((r) => ({
-			method: 'POST', path: '/rules',
-			body: { matchField: r.field, matchValue: r.value, contraAccountId: accountId[r.account], priority: r.priority },
-		}))), 'Regeln');
-		log(`${data.rules.length} Zuordnungsregeln`);
-
-		const currentYear = data.years[data.years.length - 1];
-		assertOk(await apiMany(tab, data.budget.map((b) => ({
-			method: 'POST', path: '/budget',
-			body: { accountId: accountId[b.account], year: currentYear, amount: b.amount, note: b.note },
-		}))), 'Finanzplan');
-		log(`${data.budget.length} Planwerte fuer ${currentYear}`);
-
-		// --- Buchungen ---------------------------------------------------
-		step('Buchungen dreier Geschaeftsjahre');
-		assertOk(await apiMany(tab, data.bookings.map((b) => ({
-			method: 'POST', path: '/journal',
-			body: {
-				date: b.date, description: b.description, amount: b.amount,
-				debitAccountId: accountId[b.debit], creditAccountId: accountId[b.credit],
-			},
-		})), 60), 'Buchungen');
-		log(`${data.bookings.length} Buchungen`);
-
-		// --- Grundeinstellungen ---------------------------------------------------
-		step('Verein und SEPA-Grundeinstellungen');
-		assertOk([await one(tab, 'POST', '/settings', {
-			club_name: content.club.name,
-			brand_color: content.club.brandColor,
-			membership_enabled: '1',
-			sepa_creditor_id: content.sepa.creditorId,
-			sepa_debtor_account_id: accountId[content.sepa.bankAccount],
-			default_fee_amount: String(content.sepa.defaultFeeEuro),
-			default_fee_frequency: content.sepa.defaultFrequency,
-		})], 'Einstellungen');
-		log(`${content.club.name}, Glaeubiger-ID ${content.sepa.creditorId}, Standardbeitrag ${content.sepa.defaultFeeEuro} EUR`);
-
-		// --- Mitglieder ---------------------------------------------------
-		step('Mitglieder, Mandate und Beitraege');
-		const withMandate = data.members.filter((m) => m.iban);
-		const mandateResults = assertOk(await apiMany(tab, withMandate.map((m) => ({
-			method: 'POST', path: '/sepa/mandates',
-			body: {
-				memberUid: null, memberLabel: m.label, iban: m.iban, bic: m.bic,
-				mandateType: 'RCUR', signedDate: m.signedDate, email: m.email,
-			},
-		})), 30), 'Mandate');
-		const mandateFor = new Map(withMandate.map((m, i) => [m.label, mandateResults[i].data.id]));
-		log(`${withMandate.length} SEPA-Mandate`);
-
-		const feeResults = assertOk(await apiMany(tab, data.members.map((m) => ({
-			method: 'POST', path: '/sepa/fees',
-			body: {
-				memberUid: null, memberLabel: m.label, amount: m.amount, frequency: m.frequency,
-				startDate: m.startDate, accountId: accountId['4000'], mandateId: mandateFor.get(m.label) ?? null,
-			},
-		})), 30), 'Beitraege');
-		log(`${data.members.length} Beitraege (${data.members.filter((m) => m.group === 'open').length} davon gerade faellig)`);
-
-		assertOk(await apiMany(tab, feeResults.map((r) => ({
-			method: 'POST', path: `/sepa/fees/${r.data.id}/catch-up`,
-		})), 30), 'Faelligkeiten nachholen');
-		log('Faelligkeiten erzeugt');
-
-		// --- Beitraege des Jahresanfangs abhaken ---------------------------------------------------
-		// Kein rueckdatierter Sammeleinzug: die App laesst ein Faelligkeitsdatum in
-		// der Vergangenheit bewusst nicht zu (SepaBatchService). Die Januar-Beitraege
-		// werden deshalb direkt als bezahlt markiert - was sie im echten Verein Ende
-		// Januar auch waeren. Offen bleiben nur die frisch faelligen Beitraege, und
-		// genau die traegt der Sammeleinzug, den Szene 04 live erzeugt.
-		step('Beitraege des Jahresanfangs als bezahlt markieren');
-		const openItems = (await one(tab, 'GET', '/open-items')).data;
-		const openLabels = new Set(data.members.filter((m) => m.group === 'open').map((m) => m.label));
-		const toPay = asList(openItems).filter((i) => i.status === 'open' && !openLabels.has(i.debtor));
-		assertOk(await apiMany(tab, toPay.map((i) => ({ method: 'POST', path: `/open-items/${i.id}/pay` })), 30), 'Beitraege abhaken');
-		log(`${toPay.length} Beitraege abgehakt, ${asList(openItems).length - toPay.length} bleiben faellig`);
-
-		assertOk(await apiMany(tab, data.openItems.map((i) => ({
-			method: 'POST', path: '/open-items',
-			body: { debtor: i.debtor, description: i.description, amount: i.amount, dueDate: i.dueDate, accountId: accountId[i.account] },
-		}))), 'Offene Posten');
-		log(`${data.openItems.length} weitere offene Posten`);
-
-		// --- Rollen ---------------------------------------------------
-		// Auch fuer die Optik: ohne vergebene Berechtigung bleibt die
-		// "Erste Schritte"-Liste auf dem Dashboard stehen und stoert im Bild.
-		step('Rollen vergeben');
-		const roleUsers = (content.nextcloudUsers ?? []).filter((u) => u.role);
-		const roleResults = await apiMany(tab, roleUsers.map((u) => ({
-			method: 'POST', path: '/permissions', body: { principalType: 'user', principalId: u.uid, role: u.role },
-		})));
-		roleResults.forEach((r, i) => {
-			if (r.status >= 400) log(`  Warnung: Rolle fuer ${roleUsers[i].uid} nicht gesetzt (${JSON.stringify(r.data).slice(0, 120)})`);
+	step('Geschaeftsjahre und Konten');
+	const periodOf = await ensurePeriods(data.years);
+	const accountId = {};
+	const accountType = {};
+	for (const acc of data.accounts) {
+		const iban = acc.number === content.sepa.bankAccount ? content.statement.accountIban : (acc.iban ?? null);
+		const res = await admin.api('POST', '/accounts', {
+			number: acc.number, name: acc.name, type: acc.type, category: acc.category,
+			isBank: !!acc.isBank, sphere: acc.sphere ?? null, iban,
+			parentId: acc.parent ? accountId[acc.parent] : null,
 		});
-		log(`${roleResults.filter((r) => r.status < 400).length} von ${roleUsers.length} Rollen vergeben`);
-
-		// Der "Was ist neu"-Splash darf in der Aufnahme nicht aufpoppen. markSeen
-		// speichert nur, wenn eine Versionsnummer mitkommt - die aktuelle liefert
-		// der Endpunkt selbst, damit hier keine Version doppelt gepflegt wird.
-		const whatsNew = (await one(tab, 'GET', '/whatsnew')).data;
-		if (whatsNew && whatsNew.currentVersion) {
-			await one(tab, 'POST', '/whatsnew/seen', { version: whatsNew.currentVersion });
-			log(`"Was ist neu" auf ${whatsNew.currentVersion} quittiert`);
-		}
-
-		// --- Vor-Kontoauszug importieren ---------------------------------------------------
-		// Damit der Import in Szene 03 Dubletten melden kann, muessen diese drei
-		// Umsaetze vorher schon einmal eingelesen worden sein.
-		step('Kontoauszug des Vormonats importieren');
-		const imported = await one(tab, 'POST', '/import/commit', {
-			content: data.csv.statementKnown, filename: 'kontoauszug-vormonat.csv', applyRules: true,
-		});
-		if (imported.status >= 400) throw new Error(`Import: ${JSON.stringify(imported.data)}`);
-		log(`${imported.data.new} neu, ${imported.data.duplicate} Dubletten, ${imported.data.autoAssigned} per Regel zugeordnet`);
-
-		// --- Dateien fuer die Aufnahme ---------------------------------------------------
-		step('Dateien fuer die Aufnahme schreiben');
-		const files = {
-			'kontoauszug.csv': data.csv.statementFull,
-			'kontoauszug-vormonat.csv': data.csv.statementKnown,
-			'mitglieder-neu.csv': data.csv.membersNew,
-		};
-		for (const [name, body] of Object.entries(files)) {
-			writeFileSync(join(outDir, name), body, 'utf8');
-			log(`${join('build', LANG, name)} (${body.split(/\r?\n/).length - 2} Zeilen)`);
-		}
-
-		// --- Kontrolle ---------------------------------------------------
-		step('Kontrolle');
-		const [accounts, journal, openNow, feeList, batchList, txOpen] = await apiMany(tab, [
-			{ method: 'GET', path: '/accounts' },
-			{ method: 'GET', path: `/journal?year=${currentYear}` },
-			{ method: 'GET', path: '/open-items' },
-			{ method: 'GET', path: '/sepa/fees' },
-			{ method: 'GET', path: '/sepa/export/batches' },
-			{ method: 'GET', path: '/transactions?status=open' },
-		]);
-		const summary = {
-			konten: asList(accounts.data).length,
-			buchungenLaufendesJahr: asList(journal.data).length,
-			offenePosten: asList(openNow.data).filter((i) => i.status === 'open').length,
-			beitraege: asList(feeList.data).length,
-			einzuege: asList(batchList.data).length,
-			offeneBankumsaetze: asList(txOpen.data).length,
-		};
-		console.log(JSON.stringify(summary, null, 2));
-
-		// Kontrollbild. Bewusst ohne cdp.navigate(): dessen 10-Sekunden-Wartezeit
-		// auf readyState reicht der frisch gefuellten App nicht immer, und ein
-		// fehlendes Screenshot darf einen fertigen Seed nicht als Fehler enden lassen.
-		try {
-			await cdp.send(tab, 'Page.navigate', { url: `${URL_BASE}/apps/vereinsbuchhaltung/` });
-			await cdp.waitFor(tab, 'document.querySelector(".vbh") !== null', 30000);
-			await new Promise((r) => setTimeout(r, 3000));
-			const shot = join(outDir, 'seed-dashboard.png');
-			await cdp.screenshot(tab, shot);
-			log(`Screenshot ${shot}`);
-		} catch (err) {
-			log(`Screenshot uebersprungen (${err.message})`);
-		}
-		console.log('\nFertig.');
-	} finally {
-		if (!flag('keep-tab')) await cdp.closeTab(tab);
+		accountId[acc.number] = res.id;
+		accountType[acc.number] = acc.type;
 	}
+	for (const acc of data.accounts.filter((a) => a.opening)) {
+		await admin.api('POST', `/accounts/${accountId[acc.number]}/opening`, { amount: acc.opening, date: `${data.years[0]}-01-01` });
+	}
+	log(`${data.accounts.length} Konten, Geschaeftsjahre ${data.years.join(', ')}`);
+
+	step('Kostenstellen, Buchungen, Belege');
+	const ccId = {};
+	for (const cc of data.costCenters) {
+		ccId[cc.code] = (await admin.api('POST', '/booking-cost-centers', cc)).id;
+	}
+	let belege = 0;
+	for (const b of data.bookings) {
+		let body;
+		if (b.costCenter) {
+			const line = (number, debit, credit) => ({
+				accountId: accountId[number], debit, credit,
+				...(['income', 'expense'].includes(accountType[number]) ? { allocations: [{ costCenterId: ccId[b.costCenter], amount: b.amount }] } : {}),
+			});
+			body = { date: b.date, description: b.description, lines: [line(b.debit, b.amount, 0), line(b.credit, 0, b.amount)] };
+		} else {
+			body = { date: b.date, description: b.description, amount: b.amount, debitAccountId: accountId[b.debit], creditAccountId: accountId[b.credit] };
+		}
+		const res = await admin.api('POST', '/journal', body);
+		if (b.receipt) {
+			const pdf = textPdf([`${content.receiptWord} ${b.date}`, b.description, `${euroDe(b.amount)} EUR`]);
+			await admin.form(`/journal/${idOf(res)}/attachments`, {}, [{ field: 'file', name: `${content.receiptWord}-${b.date}.pdf`, buffer: pdf, type: 'application/pdf' }]);
+			belege++;
+		}
+	}
+	log(`${data.costCenters.length} Kostenstellen, ${data.bookings.length} Buchungen, ${belege} Belege`);
+
+	step('Regeln und Finanzplan');
+	for (const r of data.rules) {
+		await admin.api('POST', '/rules', {
+			matchField: r.field, matchValue: r.value, contraAccountId: accountId[r.account], priority: r.priority,
+			...(r.costCenter ? { costCenterId: ccId[r.costCenter] } : {}),
+			...(r.parts ? { parts: r.parts.map((p) => ({ accountId: accountId[p.account], amount: p.amount })) } : {}),
+		});
+	}
+	const current = periodOf[data.years[data.years.length - 1]];
+	for (const b of data.budget) {
+		await admin.api('POST', '/budget', { accountId: accountId[b.account], period: current, amount: b.amount, note: b.note });
+	}
+	for (const b of data.costCenterBudgets) {
+		await admin.api('PUT', '/cost-center-budgets', { period: current, costCenterId: ccId[b.code], income: b.income, expense: b.expense });
+	}
+	log(`${data.rules.length} Regeln (eine mit Aufteilung), ${data.budget.length} Planwerte, ${data.costCenterBudgets.length} Kostenstellen-Plaene`);
+
+	step('SEPA, Beitragsgruppen, Mitglieder');
+	await admin.api('POST', '/settings', {
+		sepa_creditor_id: content.sepa.creditorId,
+		sepa_debtor_account_id: accountId[content.sepa.bankAccount],
+	});
+	await admin.api('POST', '/sepa-import/settings', {
+		returnFeeAccountId: accountId['5400'], returnFeeRechargeEnabled: '1', contributionDefaultAccountId: accountId['4000'],
+	});
+	for (const g of data.contributionGroups) {
+		await admin.api('POST', '/contribution-groups', g.amountBasis === 'year'
+			? { name: g.name, allowedIntervals: [12], defaultInterval: 12, amountBasis: 'year', minAnnualAmount: g.annualAmount, defaultAnnualAmount: g.annualAmount, isActive: true }
+			: { name: g.name, allowedIntervals: [1, 3, 12], defaultInterval: 12, minMonthlyAmount: g.monthlyAmount, defaultMonthlyAmount: g.monthlyAmount, isActive: true });
+	}
+	const preview = await admin.api('POST', '/sepa/members/import/preview', { csv: data.memberCsv });
+	const imported = await admin.api('POST', '/sepa/members/import', { csv: data.memberCsv, mandatesConfirmed: true });
+	const memberId = {};
+	for (const m of asList(await admin.api('GET', '/members'))) memberId[m.memberNumber] = m.id;
+	const fehlend = data.members.filter((m) => !memberId[m.memberNumber]);
+	if (fehlend.length) {
+		throw new Error(`${fehlend.length} Mitglieder fehlen nach dem Import (${fehlend[0].memberNumber}). Vorschau: ${JSON.stringify(preview).slice(0, 400)} Import: ${JSON.stringify(imported).slice(0, 400)}`);
+	}
+	log(`${data.members.length} Mitglieder in ${data.contributionGroups.length} Gruppen, ${data.mandates.length} Mandate per Import`);
+
+	step(`Mitgliedskonto ${data.memberLogin.uid}: Verknuepfung, Mandat online`);
+	const login = data.memberLogin;
+	const member = await linkAndConfirm(memberId[login.memberNumber], login.uid, login.email);
+	await member.api('POST', '/self/mandate', { iban: login.iban, accountHolder: `${login.firstName} ${login.lastName}` });
+	log(`${login.uid} verknuepft und bestaetigt, Mandat elektronisch erteilt`);
+
+	step('Eingereichter Einzug mit spaeterer Ruecklastschrift');
+	for (const c of data.returnBatch.claims) {
+		await admin.api('POST', '/claims', {
+			memberId: memberId[c.memberNumber], type: c.type, amount: c.amount, label: c.label,
+			dueDate: data.returnBatch.dueDate, accountId: accountId['4900'],
+		});
+	}
+	const batch = await admin.api('POST', '/debit-batches', { dueDate: data.returnBatch.dueDate });
+	const batchId = idOf(batch);
+	await admin.api('POST', `/debit-batches/${batchId}/submit`, { acknowledgeNonCollectible: true });
+	const items = asList((await admin.api('GET', `/debit-batches/${batchId}`)).items);
+	const returnedLabel = data.members.find((m) => m.memberNumber === data.returnBatch.returnedMemberNumber).label;
+	const item = items.find((i) => i.memberDisplayName === returnedLabel) ?? items[0];
+	const statementCsv = data.statementCsv.replace('{E2E}', item.endToEndId).replace('{MANDATSREF}', item.mandateReference);
+	// Sammelgutschrift am Faelligkeitstag: camt.053 mit einer Zeile je Posten,
+	// danach im Bankabgleich verbuchen - sonst stehen die Gebuehren als
+	// ueberfaellig auf dem Dashboard.
+	const camt = collectionStatement({
+		iban: content.statement.accountIban, bookingDate: data.returnBatch.dueDate,
+		batchReference: batch.msgId ?? `BATCH-${batchId}`, bookingText: content.returnBatch.creditText, items,
+	});
+	const camtImport = await admin.api('POST', '/import/commit', { content: camt, filename: 'sammelgutschrift.xml', applyRules: true });
+	const recon = asList((await admin.api('GET', '/bank-reconciliation')).items);
+	const credit = recon.find((r) => r.bankTx?.amountCents === items.reduce((sum, i) => sum + i.amountCents, 0) && r.bankTx.amountCents > 0);
+	if (!credit) throw new Error(`Sammelgutschrift nicht im Bankabgleich (Import ${JSON.stringify(camtImport)})`);
+	for (const d of credit.details ?? []) {
+		if (!d.debitItemId && !d.matchedItemId) {
+			const match = items.find((i) => i.endToEndId === d.endToEndId);
+			if (match) await admin.api('POST', `/sepa-import/details/${d.id}/assign`, { debitItemId: match.id });
+		}
+	}
+	await admin.api('POST', `/sepa-import/${credit.bankTx.id}/settle`);
+	log(`Einzug ${batchId} mit ${items.length} Posten eingereicht und gutgeschrieben; Ruecklastschrift folgt fuer ${item.memberDisplayName}`);
+
+	step('Forderungen fuer den kommenden Einzug');
+	for (const c of data.claims) {
+		await admin.api('POST', '/claims', {
+			memberId: memberId[c.memberNumber], type: 'beitrag', amount: c.amount, label: c.label,
+			dueDate: c.dueDate, accountId: accountId['4000'],
+		});
+	}
+	log(`${data.claims.length} Forderungen, faellig ${data.claims[0].dueDate}`);
+
+	step('Rollen');
+	for (const u of content.nextcloudUsers.filter((x) => x.role)) {
+		await admin.api('POST', '/permissions', { principalType: 'user', principalId: u.uid, role: u.role });
+		log(`${u.uid}: ${u.role}`);
+	}
+
+	step('Rechnungen');
+	await admin.api('POST', '/settings', {
+		invoice_module_active: '1', invoice_account_id: accountId[content.sepa.bankAccount], invoice_tax_mode: 'kleinunternehmer',
+	});
+	const invoiceIds = {};
+	for (const [key, inv] of Object.entries(data.invoices)) {
+		const debtor = await admin.api('POST', '/debtors', inv.debtor);
+		const draft = await admin.api('POST', '/invoices', {
+			debtorId: idOf(debtor), issueDate: inv.issueDate, deliveryDate: inv.deliveryDate, dueDate: inv.dueDate,
+			lines: [{ name: inv.line.name, quantity: 1, unitCode: 'LS', unitPrice: inv.line.amount, accountId: accountId[inv.line.account] }],
+		});
+		invoiceIds[key] = idOf(draft);
+		await admin.api('POST', `/invoices/${invoiceIds[key]}/issue`, { issueDate: inv.issueDate });
+		if (inv.dunning) {
+			await admin.api('POST', `/invoices/${invoiceIds[key]}/dunning`, { to: inv.debtor.email, subject: inv.dunning.subject, body: inv.dunning.body, level: 1, copyBoard: false });
+		}
+	}
+	log('eine laufende Rechnung, eine ueberfaellige mit erster Mahnung');
+
+	step('Auslagen');
+	await admin.api('POST', '/settings', { reimbursement_enabled: '1', reimbursement_required_approvals: '1' });
+	for (const r of data.reimbursements) {
+		await member.form('/self/reimbursements', {
+			amount: euroDe(r.amount), expenseDate: r.expenseDate, purpose: r.purpose, iban: login.iban,
+			declaration: '1', invoiceNumber: r.invoiceNumber, supplier: r.supplier,
+		}, [{ field: 'files[]', name: `${r.invoiceNumber}.pdf`, buffer: textPdf(r.receipt), type: 'application/pdf' }]);
+	}
+	log(`${data.reimbursements.length} Auslage von ${login.uid} eingereicht`);
+
+	step('Kontoauszug des Vormonats');
+	const imp = await admin.api('POST', '/import/commit', { content: data.statementPrevCsv, filename: 'kontoauszug-vormonat.csv', applyRules: true });
+	log(`${imp.new} neu, ${imp.duplicate} Dubletten, ${imp.autoAssigned} per Regel zugeordnet`);
+
+	step('Beleg im Belegordner, Index');
+	rmSync(watchDir(LANG), { recursive: true, force: true });
+	mkdirSync(watchDir(LANG), { recursive: true });
+	for (const f of data.watchFolderFiles) {
+		const pdf = textPdf(f.lines);
+		writeFileSync(join(watchDir(LANG), f.name), pdf);
+		await admin.dav('PUT', `${WATCH_PATH}/${f.name}`, pdf, 'application/pdf');
+	}
+	log(`${data.watchFolderFiles.length} Beleg(e) abgelegt, Belegindex: ${runJob(CONTAINER, 'ReceiptIndexJob')} Job(s) ausgefuehrt`);
+
+	step('Abschluss');
+	try {
+		await admin.api('POST', `/periods/${periodOf[data.years[0]]}/close`);
+		log(`Geschaeftsjahr ${data.years[0]} abgeschlossen`);
+	} catch (err) {
+		log(`Warnung: Jahr ${data.years[0]} nicht abgeschlossen (${err.message.slice(0, 160)})`);
+	}
+	const whatsNew = await admin.api('GET', '/whatsnew');
+	if (whatsNew?.currentVersion) await admin.api('POST', '/whatsnew/seen', { version: whatsNew.currentVersion });
+
+	const files = {
+		'kontoauszug.csv': statementCsv,
+		'kontoauszug-vormonat.csv': data.statementPrevCsv,
+		'mitglieder.csv': data.memberCsv,
+		[`${data.reimbursements[0].invoiceNumber}.pdf`]: textPdf(data.reimbursements[0].receipt),
+	};
+	for (const [name, body] of Object.entries(files)) writeFileSync(join(outDir, name), body);
+
+	step('Sicherung');
+	const exp = await exportBackup(admin, backupFile(LANG));
+	const summary = { lang: LANG, today: TODAY, counts: await counts() };
+	writeFileSync(summaryFile(LANG), JSON.stringify(summary, null, '\t') + '\n', 'utf8');
+	log(`${backupFile(LANG)} (${Math.round(exp.size / 1024)} KB, ${exp.files} Dateien${exp.missingFiles?.length ? `, ${exp.missingFiles.length} fehlen` : ""})`);
+	console.log(JSON.stringify(summary.counts));
+
+	if (!flag('no-screenshot')) await screenshot();
+	console.log('\nFertig.');
 }
 
 main().catch((err) => {

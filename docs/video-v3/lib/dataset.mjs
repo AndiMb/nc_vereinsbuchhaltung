@@ -88,10 +88,19 @@ function bookingsForYear(content, year, cutoff, feeTotal, random) {
 	const t = content.bookingTexts;
 	const months = MONTH_NAMES[content.lang] ?? MONTH_NAMES.de;
 	const out = [];
+	const ccOf = costCenterIndex(content);
+	const recurring = new Set([t.rent, t.conductor, t.bankFee].map((x) => x.split(' {')[0]));
 	const at = (month, day, description, debit, credit, amount) => {
 		const date = `${year}-${pad(month)}-${pad(day)}`;
 		if (date > cutoff) return;
-		out.push({ date, description, debit, credit, amount: Math.round(amount * 100) / 100 });
+		const booking = { date, description, debit, credit, amount: Math.round(amount * 100) / 100 };
+		const costCenter = ccOf.get(debit) ?? ccOf.get(credit);
+		if (costCenter) booking.costCenter = costCenter;
+		// Belege fuer das Pruefer-ZIP: jede Ausgabe ausser den Dauerauftraegen.
+		if (debit.startsWith('5') && ![...recurring].some((r) => description.startsWith(r))) {
+			booking.receipt = true;
+		}
+		out.push(booking);
 	};
 
 	for (let m = 1; m <= 12; m++) {
@@ -130,92 +139,107 @@ function bookingsForYear(content, year, cutoff, feeTotal, random) {
 	at(12, 15, t.christmasCost, '5220', '1200', 690 + Math.round(random() * 120));
 	at(12, 19, t.misc, '5900', '1200', 45.8);
 
+	// Sommerfest: der wirtschaftliche Geschaeftsbetrieb, dessen Einnahmen die
+	// Freigrenze-Warnung (70 % von 45.000 EUR) ausloesen.
+	const fair = content.summerFair;
+	fair.cost.forEach((amount, i) => at(6, 26 + i, fill(t.summerFairCost, { jahr, lieferant: fair.suppliers[i] }), '5600', '1200', amount));
+	fair.income.forEach((amount, i) => at(7, 6 + i, fill(t.summerFairIncome, { jahr, stand: fair.stands[i] }), '1200', '4500', amount));
+
 	return out;
 }
 
-/** 75 Mitglieder aus den Namenslisten, mit Beitragsstufe, Mandat und IBAN. */
-function buildMembers(content, today) {
+/** Kontonummer -> Kostenstellen-Code (Buchungszeilen tragen ihn als Zuordnung). */
+function costCenterIndex(content) {
+	const map = new Map();
+	for (const cc of content.costCenters) for (const account of cc.accounts) map.set(account, cc.code);
+	return map;
+}
+
+/** Erster Monatserster, der mindestens drei Wochen nach dem Stichtag liegt - der Faelligkeitstag des Einzugs. */
+export function feeDueDate(today) {
+	const d = parseIso(addDays(today, 20));
+	return iso(new Date(d.getFullYear(), d.getMonth() + 1, 1));
+}
+
+/** Beitragsgruppen aus den Stufen: Jahresbeitrag (#270) oder Monatsbetrag. */
+function buildGroups(content) {
+	return content.members.tiers.map((tier) => ({
+		key: tier.key,
+		name: tier.label,
+		amountBasis: tier.amountBasis,
+		annualAmount: tier.amountBasis === 'year' ? tier.amount : null,
+		monthlyAmount: tier.amountBasis === 'year' ? null : tier.monthlyAmount,
+		claimAmount: tier.amountBasis === 'year' ? tier.amount : tier.monthlyAmount * 12,
+	}));
+}
+
+/** 75 Mitglieder aus den Namenslisten, dazu das Mitglied mit Nextcloud-Konto (mia). */
+function buildMembers(content, today, groups) {
 	const cfg = content.members;
 	const random = rng(20260823);
 	const year = Number(today.slice(0, 4));
+	const due = feeDueDate(today);
 
-	// Beitragsstufen mischen statt blockweise vergeben: sonst zahlen ausgerechnet
-	// die zuletzt eingetragenen Mitglieder alle denselben Satz, und der
-	// Sammeleinzug in Szene 04 bestuende aus sechs gleichen Jugendbeitraegen.
-	const tiers = [];
+	// Gruppen mischen statt blockweise vergeben: sonst zahlen ausgerechnet die
+	// zuletzt eingetragenen Mitglieder alle denselben Satz.
+	const slots = [];
 	for (const tier of cfg.tiers) {
-		for (let i = 0; i < tier.share; i++) tiers.push(tier);
+		for (let i = 0; i < tier.share; i++) slots.push(tier.key);
 	}
 	const shuffle = rng(4711);
-	for (let i = tiers.length - 1; i > 0; i--) {
+	for (let i = slots.length - 1; i > 0; i--) {
 		const j = Math.floor(shuffle() * (i + 1));
-		[tiers[i], tiers[j]] = [tiers[j], tiers[i]];
+		[slots[i], slots[j]] = [slots[j], slots[i]];
 	}
 
 	const members = [];
 	const usedNames = new Set();
 	for (let i = 0; i < cfg.seedCount; i++) {
-		let first = cfg.first[i % cfg.first.length];
+		const first = cfg.first[i % cfg.first.length];
 		let last = cfg.last[(i * 7 + Math.floor(i / cfg.last.length)) % cfg.last.length];
-		let label = `${first} ${last}`;
 		let attempt = 0;
-		while (usedNames.has(label)) {
+		while (usedNames.has(`${first} ${last}`)) {
 			attempt++;
 			last = cfg.last[(i * 7 + attempt) % cfg.last.length];
-			label = `${first} ${last}`;
 		}
-		usedNames.add(label);
+		usedNames.add(`${first} ${last}`);
 
-		const tier = tiers[i % tiers.length];
-		// Die letzten Zeilen ohne Mandat: sie ueberweisen selbst. Die davor
-		// liegenden "openNow" sind frisch eingetreten - ihr erster Beitrag ist
-		// gerade faellig und traegt damit den Sammeleinzug in Szene 04.
+		const group = groups.find((g) => g.key === slots[i % slots.length]);
+		// Die letzten Zeilen ohne Mandat: sie ueberweisen selbst.
 		const noMandate = i >= cfg.seedCount - cfg.withoutMandate;
-		const openNow = !noMandate && i >= cfg.seedCount - cfg.withoutMandate - cfg.openNow;
-
 		members.push({
-			label,
+			memberNumber: `M-${pad(i + 1, 3)}`,
+			firstName: first,
+			lastName: last,
+			label: `${first} ${last}`,
 			email: `${slug(first)}.${slug(last)}@example.org`,
 			iban: noMandate ? null : buildIban(TEST_BANK_CODE, 1370000 + i * 37),
-			bic: noMandate ? null : TEST_BIC,
-			signedDate: openNow ? addDays(today, -(14 + Math.floor(random() * 10))) : `${year - 2}-11-${pad(4 + (i % 20))}`,
-			amount: tier.amount,
-			frequency: tier.frequency,
-			tier: tier.key,
-			startDate: openNow ? addDays(today, -(8 + (i % 5))) : `${year}-01-15`,
-			group: noMandate ? 'transfer' : (openNow ? 'open' : 'settled'),
+			signedDate: noMandate ? null : `${year - 2 + (i % 2)}-${pad(1 + (i % 11))}-${pad(4 + (i % 20))}`,
+			joinedAt: `${year - 1 - (i % 9)}-${pad(1 + ((i * 5) % 12))}-01`,
+			group: group.key,
+			validFrom: due,
+			paymentMethod: noMandate ? 'ueberweisung' : 'direct_debit',
 		});
+		random();
 	}
-	return members;
-}
 
-/** Die zwoelf Neuzugaenge, die im Video per CSV eingelesen werden. */
-function buildNewMembers(content, today, seeded) {
-	const cfg = content.members;
-	const taken = new Set(seeded.map((m) => m.label));
-	const out = [];
-	for (let i = 0; cfg.newInVideo > out.length; i++) {
-		const first = cfg.first[(i * 3 + 11) % cfg.first.length];
-		const last = cfg.last[(i * 5 + 17) % cfg.last.length];
-		const label = `${first} ${last}`;
-		if (taken.has(label)) continue;
-		taken.add(label);
-		// Zehn zahlen den Regelsatz (leeres Betragsfeld -> Standardbeitrag aus
-		// den Einstellungen), zwei den Jugendbeitrag. Genau der Fall, den die
-		// Voreinstellung im Video sichtbar macht.
-		const youth = out.length >= cfg.newInVideo - 2;
-		out.push({
-			label,
-			email: `${slug(first)}.${slug(last)}@example.org`,
-			iban: buildIban(TEST_BANK_CODE, 4820000 + out.length * 53),
-			bic: TEST_BIC,
-			signedDate: addDays(today, -(3 + out.length)),
-			amount: youth ? 30 : null,
-			frequency: youth ? 'yearly' : null,
-			startDate: addDays(today, 7),
-		});
-	}
-	return out;
+	const login = content.memberLogin;
+	members.push({
+		memberNumber: `M-${pad(cfg.seedCount + 1, 3)}`,
+		firstName: login.firstName,
+		lastName: login.lastName,
+		label: `${login.firstName} ${login.lastName}`,
+		email: login.email,
+		// Ohne IBAN: mia erteilt ihr Mandat im Video-Bestand selbst online.
+		iban: null,
+		signedDate: null,
+		joinedAt: `${year - 1}-09-01`,
+		group: 'regular',
+		validFrom: due,
+		paymentMethod: 'direct_debit',
+		ncUser: login.uid,
+	});
+	return members;
 }
 
 /** Stabile Zahl aus einem Text - gleicher Zahlungspartner, gleiche IBAN. */
@@ -228,56 +252,70 @@ function hashCode(text) {
 }
 
 // Die Gegen-IBAN haengt am Namen des Zahlungspartners, nicht an der Zeilennummer:
-// die drei bereits gebuchten Umsaetze muessen in beiden Dateien Zeichen fuer
-// Zeichen gleich sein, sonst erkennt der Import sie nicht als Dublette.
+// die bereits gebuchten Umsaetze muessen in beiden Dateien Zeichen fuer Zeichen
+// gleich sein, sonst erkennt der Import sie nicht als Dublette.
 function csvRow(content, row) {
 	const date = de(row.date);
-	const counterIban = buildIban(TEST_BANK_CODE, 9100000 + (hashCode(row.party) % 800000));
+	const counterIban = row.iban ?? buildIban(TEST_BANK_CODE, 9100000 + (hashCode(row.party) % 800000));
 	return [
 		content.statement.accountIban, date, date, row.kind, row.purpose,
-		'', '', '', '', '', '',
+		row.creditorId ?? '', row.mandateRef ?? '', row.e2e ?? '', '',
+		row.original === undefined ? '' : euroDe(row.original),
+		row.fee === undefined ? '' : euroDe(row.fee),
 		row.party, counterIban, TEST_BIC,
 		euroDe(row.amount), 'EUR', '',
 	].join(';');
 }
 
-function buildStatements(content, today) {
+/**
+ * Vormonat (beim Seed eingelesen) und aktueller Auszug (im Video eingelesen).
+ * Im aktuellen Auszug steckt die Ruecklastschrift eines Einzugs; dessen
+ * End-to-End-ID und Mandatsreferenz kennt erst der Seed, darum Platzhalter
+ * {E2E} und {MANDATSREF}.
+ */
+function buildStatements(content, today, returned) {
 	const known = content.statement.known.map((r) => ({ ...r, date: addDays(today, -r.daysAgo) }));
 	const fresh = content.statement.new.map((r) => ({ ...r, date: addDays(today, -r.daysAgo) }));
+	const r = content.statement.returned;
+	fresh.push({
+		date: addDays(today, -r.daysAgo), kind: r.kind, purpose: r.purpose,
+		party: returned.member.label, iban: returned.member.iban,
+		creditorId: content.sepa.creditorId, mandateRef: '{MANDATSREF}', e2e: '{E2E}',
+		original: returned.amount, fee: r.fee, amount: -(returned.amount + r.fee),
+	});
 	const all = [...known, ...fresh].sort((a, b) => a.date.localeCompare(b.date));
-
 	const head = content.statement.header;
 	return {
-		known: [head, ...known.map((r) => csvRow(content, r))].join('\r\n') + '\r\n',
-		full: [head, ...all.map((r) => csvRow(content, r))].join('\r\n') + '\r\n',
-		knownRows: known,
-		newRows: fresh,
+		prev: [head, ...known.map((x) => csvRow(content, x))].join('\r\n') + '\r\n',
+		full: [head, ...all.map((x) => csvRow(content, x))].join('\r\n') + '\r\n',
+		rows: all.length,
 	};
 }
 
 /**
- * Die Mitgliederliste, die im Video eingelesen wird - in der Schreibweise, die
- * ein Verein in dieser Sprache tatsaechlich exportieren wuerde: deutsche
- * Tabellen mit 15.01.2026 und 42,50, englische mit 2026-01-15 und 42.50. Beide
- * Varianten versteht MemberCsvParser seit 0.28.0.
+ * Mitgliederliste fuer den Import: deutsche Tabellen mit 15.01.2026 und 42,50,
+ * englische mit 2026-01-15. Betrag bleibt leer - dann gilt der Betrag der
+ * Beitragsgruppe.
  */
-function buildMemberCsv(content, members) {
+function buildMemberCsv(content, members, groups) {
 	const isoDates = content.dateFormat === 'iso';
-	const datum = (value) => (isoDates ? value : de(value));
-	const betrag = (value) => (isoDates ? value.toFixed(2) : euroDe(value));
-
+	const datum = (value) => (value ? (isoDates ? value : de(value)) : '');
 	const header = content.memberCsvHeader.join(';');
 	const lines = members.map((m) => [
-		m.label,
-		m.email,
-		m.iban ?? '',
-		m.bic ?? '',
-		m.signedDate ? datum(m.signedDate) : '',
-		m.amount === null || m.amount === undefined ? '' : betrag(m.amount),
-		m.frequency ? (content.lang === 'de' ? 'jährlich' : 'yearly') : '',
-		m.startDate ? datum(m.startDate) : '',
+		m.firstName, m.lastName, m.memberNumber, m.email,
+		m.iban ?? '', datum(m.signedDate),
+		groups.find((g) => g.key === m.group).name, '',
+		content.members.yearly, datum(m.validFrom), datum(m.joinedAt),
 	].join(';'));
 	return [header, ...lines].join('\r\n') + '\r\n';
+}
+
+/** Rechnung im Belegordner; Datum im Text, sonst fehlt dem Belegvorschlag das Datumssignal. */
+function watchReceipt(content, today) {
+	const r = content.watchReceipt;
+	const date = addDays(today, -r.daysAgo);
+	const datum = content.dateFormat === 'iso' ? date : de(date);
+	return { name: r.file, lines: [r.lines[0], fill(r.dateLine, { datum }), ...r.lines.slice(1)] };
 }
 
 export function buildDataset(content, todayIso) {
@@ -286,18 +324,16 @@ export function buildDataset(content, todayIso) {
 	const years = [year - 2, year - 1, year];
 	const random = rng(19700101);
 
-	const members = buildMembers(content, today);
-	const newMembers = buildNewMembers(content, today, members);
+	const groups = buildGroups(content);
+	const members = buildMembers(content, today, groups);
+	const withMandate = members.filter((m) => m.iban);
+	const groupOf = (m) => groups.find((g) => g.key === m.group);
 
-	// Summe des Januar-Sammeleinzugs: genau die Mitglieder, die im Januar
-	// faellig waren und ein Mandat haben. Damit stimmt die Buchung im Journal
-	// mit dem Einzug ueberein, den die Beitraege-Ansicht zeigt.
-	const settledTotal = members
-		.filter((m) => m.group === 'settled')
-		.reduce((sum, m) => sum + m.amount, 0);
+	// Januar-Einzug der Vorjahre: Summe der Jahresbeitraege aller Mandatszahler.
+	const settledTotal = withMandate.reduce((sum, m) => sum + groupOf(m).claimAmount, 0);
 
 	const bookings = [];
-	// Sechs Wochen Luecke am Ende: die deckt der Kontoauszug aus Szene 03 ab.
+	// Sechs Wochen Luecke am Ende: die deckt der Kontoauszug aus Block 02 ab.
 	const cutoffCurrent = addDays(today, -40);
 	for (const y of years) {
 		const cutoff = y === year ? cutoffCurrent : `${y}-12-31`;
@@ -306,32 +342,61 @@ export function buildDataset(content, todayIso) {
 	}
 	bookings.sort((a, b) => a.date.localeCompare(b.date));
 
-	const statements = buildStatements(content, today);
+	// Der kommende Jahreseinzug: eine Forderung je Mitglied, faellig am Monatsersten.
+	const due = feeDueDate(today);
+	const claims = members.map((m) => ({
+		memberNumber: m.memberNumber,
+		amount: groupOf(m).claimAmount,
+		label: fill(content.members.claimLabel, { jahr: due.slice(0, 4) }),
+		dueDate: due,
+	}));
+
+	// Ein schon eingereichter Einzug der Aufnahmegebuehren - einer davon platzt.
+	const rb = content.returnBatch;
+	const rbMembers = withMandate.slice(-rb.members);
+	const returnBatch = {
+		dueDate: addDays(today, -rb.daysAgo),
+		claims: rbMembers.map((m) => ({ memberNumber: m.memberNumber, amount: rb.amount, label: rb.label, type: 'gebuehr' })),
+		returnedMemberNumber: rbMembers[0].memberNumber,
+	};
+	const statements = buildStatements(content, today, { member: rbMembers[0], amount: rb.amount });
+
+	const resolveInvoice = (inv) => ({
+		...inv,
+		issueDate: addDays(today, -inv.issueDaysAgo),
+		deliveryDate: addDays(today, -inv.issueDaysAgo),
+		dueDate: addDays(today, inv.dueInDays),
+	});
 
 	return {
 		today,
 		years,
 		accounts: content.accounts,
-		costCenters: content.costCenters,
+		costCenters: content.costCenters.map(({ code, name }) => ({ code, name })),
+		costCenterBudgets: content.costCenterBudgets,
+		bookings,
 		rules: content.rules,
 		budget: content.budget,
-		bookings,
+		contributionGroups: groups,
 		members,
-		newMembers,
-		settledTotal,
-		batchExecutionDate: `${year}-01-25`,
-		openItems: content.openItems.map((item) => ({ ...item, dueDate: addDays(today, -item.dueDaysAgo) })),
-		csv: {
-			statementKnown: statements.known,
-			statementFull: statements.full,
-			membersNew: buildMemberCsv(content, newMembers),
-		},
+		mandates: withMandate.map((m) => ({ memberNumber: m.memberNumber, iban: m.iban, signedAt: m.signedDate })),
+		assignments: members.map((m) => ({ memberNumber: m.memberNumber, group: m.group, validFrom: m.validFrom, paymentMethod: m.paymentMethod })),
+		claims,
+		returnBatch,
+		invoices: { current: resolveInvoice(content.invoices.current), overdue: resolveInvoice(content.invoices.overdue) },
+		reimbursements: [{ ...content.reimbursement, expenseDate: addDays(today, -content.reimbursement.daysAgo) }],
+		statementCsv: statements.full,
+		statementPrevCsv: statements.prev,
+		memberCsv: buildMemberCsv(content, members, groups),
+		watchFolderFiles: [watchReceipt(content, today)],
+		memberLogin: { ...content.memberLogin, iban: buildIban(TEST_BANK_CODE, 5550001), memberNumber: members[members.length - 1].memberNumber },
 		counts: {
 			bookings: bookings.length,
 			members: members.length,
-			newMembers: newMembers.length,
-			statementRows: statements.knownRows.length + statements.newRows.length,
-			statementKnown: statements.knownRows.length,
+			mandates: withMandate.length,
+			claims: claims.length,
+			statementRows: statements.rows,
+			statementKnown: content.statement.alreadyBooked,
 		},
 	};
 }
@@ -348,13 +413,13 @@ if (import.meta.url === new URL(`file://${process.argv[1]}`).href.replace(/%3A/g
 	const data = buildDataset(content, todayArg);
 	console.log(JSON.stringify({
 		lang, today: data.today, years: data.years, counts: data.counts,
-		settledTotal: data.settledTotal,
+		einzug: data.claims[0].dueDate,
+		ruecklastschrift: data.returnBatch,
 		beispielBuchungen: data.bookings.slice(0, 3),
 		beispielMitglieder: data.members.slice(0, 2),
-		gruppen: data.members.reduce((acc, m) => ({ ...acc, [m.group]: (acc[m.group] ?? 0) + 1 }), {}),
 	}, null, 2));
 	if (process.argv.includes('--dump')) {
-		console.log('\n--- kontoauszug.csv (Ausschnitt) ---\n' + data.csv.statementFull.split('\r\n').slice(0, 4).join('\n'));
-		console.log('\n--- mitglieder-neu.csv (Ausschnitt) ---\n' + data.csv.membersNew.split('\r\n').slice(0, 4).join('\n'));
+		console.log('\n--- kontoauszug.csv ---\n' + data.statementCsv);
+		console.log('\n--- mitglieder.csv (Ausschnitt) ---\n' + data.memberCsv.split('\r\n').slice(0, 4).join('\n'));
 	}
 }

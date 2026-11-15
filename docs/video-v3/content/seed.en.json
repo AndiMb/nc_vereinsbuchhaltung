@@ -4,7 +4,11 @@
 	"club": {
 		"name": "Riverside Community Choir",
 		"brandColor": "#0082c9",
-		"treasurer": "Andrea Falk"
+		"treasurer": "Andrea Falk",
+		"street": "4 Church Lane",
+		"postalCode": "79199",
+		"city": "Riverside",
+		"taxNumber": "06/123/45678"
 	},
 	"sepa": {
 		"creditorId": "DE98ZZZ09999999999",
@@ -180,6 +184,27 @@
 			"type": "expense",
 			"category": "Expenses",
 			"sphere": "ideell"
+		},
+		{
+			"number": "4210",
+			"name": "Youth funding",
+			"type": "income",
+			"category": "Grants",
+			"sphere": "ideell"
+		},
+		{
+			"number": "4500",
+			"name": "Summer fair catering",
+			"type": "income",
+			"category": "Trading activities",
+			"sphere": "wirtschaftlich"
+		},
+		{
+			"number": "5600",
+			"name": "Summer fair supplies",
+			"type": "expense",
+			"category": "Trading activities",
+			"sphere": "wirtschaftlich"
 		}
 	],
 	"costCenters": [
@@ -203,6 +228,7 @@
 			"code": "K30",
 			"name": "Youth choir",
 			"accounts": [
+				"4210",
 				"5230"
 			]
 		},
@@ -251,6 +277,19 @@
 			"value": "Membership fee",
 			"account": "4000",
 			"priority": 40
+		},
+		{
+			"field": "purpose",
+			"value": "Choral association grant",
+			"account": "4210",
+			"costCenter": "K30",
+			"priority": 5,
+			"parts": [
+				{
+					"account": "4200",
+					"amount": 300
+				}
+			]
 		}
 	],
 	"budget": [
@@ -313,6 +352,16 @@
 			"account": "5400",
 			"amount": 60,
 			"note": "€5 account maintenance per month"
+		},
+		{
+			"account": "4500",
+			"amount": 30000,
+			"note": "Summer fair as last year"
+		},
+		{
+			"account": "5600",
+			"amount": 17000,
+			"note": "Summer fair supplies"
 		}
 	],
 	"bookingTexts": {
@@ -337,7 +386,9 @@
 		"tripIncome": "Choir trip contributions {jahr}",
 		"tripCost": "Choir trip {jahr}: coach and accommodation",
 		"cashConcert": "Cash takings, cake stall",
-		"misc": "Reimbursement of expenses"
+		"misc": "Reimbursement of expenses",
+		"summerFairIncome": "Summer fair {jahr}: takings, {stand}",
+		"summerFairCost": "Summer fair {jahr}: supplies from {lieferant}"
 	},
 	"sheetMusicTitles": [
 		"Mozart: Ave verum",
@@ -434,34 +485,44 @@
 				"label": "Standard fee",
 				"amount": 60,
 				"frequency": "yearly",
-				"share": 52
+				"share": 52,
+				"amountBasis": "year",
+				"monthlyAmount": null
 			},
 			{
 				"key": "family",
 				"label": "Family fee",
 				"amount": 90,
 				"frequency": "yearly",
-				"share": 8
+				"share": 8,
+				"amountBasis": "year",
+				"monthlyAmount": null
 			},
 			{
 				"key": "youth",
 				"label": "Youth fee",
 				"amount": 30,
 				"frequency": "yearly",
-				"share": 9
+				"share": 9,
+				"amountBasis": "year",
+				"monthlyAmount": null
 			},
 			{
 				"key": "supporter",
 				"label": "Supporting member",
 				"amount": 25,
 				"frequency": "yearly",
-				"share": 6
+				"share": 6,
+				"amountBasis": "month",
+				"monthlyAmount": 2
 			}
 		],
 		"seedCount": 75,
 		"withoutMandate": 7,
 		"openNow": 6,
-		"newInVideo": 12
+		"newInVideo": 12,
+		"claimLabel": "Annual fee {jahr}",
+		"yearly": "yearly"
 	},
 	"statement": {
 		"accountIban": "DE02500105170137075030",
@@ -472,21 +533,21 @@
 				"kind": "Transfer",
 				"purpose": "Director's fee",
 				"party": "Martin Kreusch",
-				"amount": -300.0
+				"amount": -300
 			},
 			{
 				"daysAgo": 33,
 				"kind": "Standing order",
 				"purpose": "Rehearsal room rent",
 				"party": "Riverside Parish Council",
-				"amount": -120.0
+				"amount": -120
 			},
 			{
 				"daysAgo": 31,
 				"kind": "Fee statement",
 				"purpose": "Account maintenance",
 				"party": "Riverside Savings Bank",
-				"amount": -5.0
+				"amount": -5
 			}
 		],
 		"new": [
@@ -495,7 +556,7 @@
 				"kind": "Credit",
 				"purpose": "Donation, summer concert",
 				"party": "Reinhardt Motors",
-				"amount": 250.0
+				"amount": 250
 			},
 			{
 				"daysAgo": 24,
@@ -516,98 +577,99 @@
 				"kind": "Credit",
 				"purpose": "Choral association grant",
 				"party": "Northern Choral Association",
-				"amount": 450.0
+				"amount": 450
 			},
 			{
 				"daysAgo": 18,
 				"kind": "Transfer",
 				"purpose": "Director's fee",
 				"party": "Martin Kreusch",
-				"amount": -300.0
+				"amount": -300
 			},
 			{
 				"daysAgo": 17,
 				"kind": "Standing order",
 				"purpose": "Rehearsal room rent",
 				"party": "Riverside Parish Council",
-				"amount": -120.0
+				"amount": -120
 			},
 			{
 				"daysAgo": 15,
 				"kind": "Credit",
 				"purpose": "Membership fee 2026",
 				"party": "Isabel Ingles",
-				"amount": 60.0
+				"amount": 60
 			},
 			{
 				"daysAgo": 14,
 				"kind": "Credit",
 				"purpose": "Membership fee 2026",
 				"party": "Victor Vance",
-				"amount": 60.0
+				"amount": 60
 			},
 			{
 				"daysAgo": 12,
 				"kind": "Transfer",
 				"purpose": "Church hire, Christmas concert (deposit)",
 				"party": "St Mary's Riverside",
-				"amount": -150.0
+				"amount": -150
 			},
 			{
 				"daysAgo": 10,
 				"kind": "Credit",
 				"purpose": "Ticket sales, summer serenade",
 				"party": "Lay's Bookshop box office",
-				"amount": 612.0
+				"amount": 612
 			},
 			{
 				"daysAgo": 8,
 				"kind": "Direct debit",
 				"purpose": "Public liability, annual premium",
 				"party": "Concordia Insurance",
-				"amount": -168.0
+				"amount": -168
 			},
 			{
 				"daysAgo": 6,
 				"kind": "Transfer",
 				"purpose": "Coach deposit, choir trip",
 				"party": "Kalthoff Coaches",
-				"amount": -400.0
+				"amount": -400
 			},
 			{
 				"daysAgo": 4,
 				"kind": "Credit",
 				"purpose": "Donation, youth choir",
 				"party": "Kern's Bakery",
-				"amount": 120.0
+				"amount": 120
 			},
 			{
 				"daysAgo": 2,
 				"kind": "Fee statement",
 				"purpose": "Account maintenance",
 				"party": "Riverside Savings Bank",
-				"amount": -5.0
+				"amount": -5
 			}
-		]
-	},
-	"openItems": [
-		{
-			"debtor": "Hoffmann Music Publishing",
-			"description": "Invoice 2026-114, choral scores",
-			"amount": 238.5,
-			"dueDaysAgo": 9,
-			"account": "5110"
+		],
+		"alreadyBooked": 3,
+		"returned": {
+			"daysAgo": 9,
+			"kind": "Return",
+			"purpose": "RETURNED DIRECT DEBIT AM04 Admission fee",
+			"fee": 3
 		}
-	],
+	},
 	"memberCsvHeader": [
-		"Name",
+		"First name",
+		"Last name",
+		"Member number",
 		"Email",
 		"IBAN",
-		"BIC",
 		"Mandate",
+		"Group",
 		"Amount",
 		"Frequency",
-		"Start date"
+		"Start date",
+		"Joined"
 	],
 	"nextcloudUsers": [
 		{
@@ -624,7 +686,138 @@
 			"uid": "karla",
 			"displayName": "Carla Reed",
 			"role": "revisor"
+		},
+		{
+			"uid": "mia",
+			"displayName": "Mia Brant",
+			"role": null
 		}
 	],
-	"dateFormat": "iso"
+	"dateFormat": "iso",
+	"summerFair": {
+		"stands": [
+			"wine stall",
+			"beer cart",
+			"food",
+			"cake stall"
+		],
+		"suppliers": [
+			"Hollerbach Vineyard",
+			"Seitz Drinks",
+			"Brenner Butchers"
+		],
+		"income": [
+			12400,
+			9800,
+			8600,
+			3100
+		],
+		"cost": [
+			8200,
+			6100,
+			4300
+		]
+	},
+	"returnBatch": {
+		"label": "Admission fee",
+		"amount": 20,
+		"daysAgo": 21,
+		"members": 4,
+		"creditText": "SEPA batch credit, admission fees"
+	},
+	"memberLogin": {
+		"uid": "mia",
+		"firstName": "Mia",
+		"lastName": "Brant",
+		"email": "mia.brant@example.org",
+		"iban": null
+	},
+	"invoices": {
+		"current": {
+			"debtor": {
+				"kind": "organisation",
+				"name": "Reinhardt Motors Ltd",
+				"street": "12 Industrial Road",
+				"postalCode": "79199",
+				"city": "Riverside",
+				"email": "accounts@reinhardt-motors.example"
+			},
+			"issueDaysAgo": 3,
+			"dueInDays": 11,
+			"line": {
+				"name": "Choir performance, company anniversary",
+				"amount": 450,
+				"account": "4300"
+			}
+		},
+		"overdue": {
+			"debtor": {
+				"kind": "organisation",
+				"name": "Riverside Town Marketing",
+				"street": "1 Market Square",
+				"postalCode": "79199",
+				"city": "Riverside",
+				"email": "info@riverside-marketing.example"
+			},
+			"issueDaysAgo": 48,
+			"dueInDays": -34,
+			"line": {
+				"name": "Performance at the town festival",
+				"amount": 280,
+				"account": "4300"
+			},
+			"dunning": {
+				"subject": "Payment reminder",
+				"body": "Dear Sir or Madam,\n\nour invoice is still outstanding. Please settle it at your earliest convenience.\n\nKind regards\nRiverside Community Choir"
+			}
+		}
+	},
+	"reimbursement": {
+		"amount": 23.8,
+		"daysAgo": 5,
+		"purpose": "Copies of sheet music for the rehearsal weekend",
+		"supplier": "Mayer Copy Shop",
+		"invoiceNumber": "CM-2026-0815",
+		"receipt": [
+			"Mayer Copy Shop",
+			"22 High Street, Riverside",
+			"Receipt no. CM-2026-0815",
+			"140 copies A4 b/w",
+			"Total EUR 23.80"
+		]
+	},
+	"watchReceipt": {
+		"file": "Invoice_Hoffmann_Music_Publishing.pdf",
+		"lines": [
+			"Hoffmann Music Publishing",
+			"Invoice no. MH-2026-0412",
+			"Rheinberger: Abendlied, 24 choral scores",
+			"Total EUR 94.80"
+		],
+		"daysAgo": 25,
+		"dateLine": "Invoice date {datum}"
+	},
+	"receiptWord": "Receipt",
+	"costCenterBudgets": [
+		{
+			"code": "K10",
+			"income": 1400,
+			"expense": 700
+		},
+		{
+			"code": "K20",
+			"income": 1900,
+			"expense": 900
+		},
+		{
+			"code": "K30",
+			"income": 150,
+			"expense": 300
+		},
+		{
+			"code": "K40",
+			"income": 1500,
+			"expense": 2000
+		}
+	]
 }
