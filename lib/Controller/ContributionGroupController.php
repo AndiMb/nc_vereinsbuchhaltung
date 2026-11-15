@@ -7,6 +7,7 @@ namespace OCA\Vereinsbuchhaltung\Controller;
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
 use OCA\Vereinsbuchhaltung\Service\ContributionGroupService;
+use OCA\Vereinsbuchhaltung\Service\MonthlyAmount;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Db\DoesNotExistException;
@@ -52,7 +53,7 @@ class ContributionGroupController extends Controller {
 		bool $isActive = true,
 	): DataResponse {
 		try {
-			$group = $this->service->create($name, (int)round($minMonthlyAmount * 100), (int)round($defaultMonthlyAmount * 100), $allowedIntervals, $defaultInterval, $isActive);
+			$group = $this->service->create($name, MonthlyAmount::centsFromEuro($minMonthlyAmount), MonthlyAmount::centsFromEuro($defaultMonthlyAmount), $allowedIntervals, $defaultInterval, $isActive);
 			return new DataResponse($group->jsonSerialize(), Http::STATUS_CREATED);
 		} catch (\InvalidArgumentException $e) {
 			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
@@ -71,7 +72,7 @@ class ContributionGroupController extends Controller {
 		bool $isActive,
 	): DataResponse {
 		try {
-			$group = $this->service->update($id, $name, (int)round($minMonthlyAmount * 100), (int)round($defaultMonthlyAmount * 100), $allowedIntervals, $defaultInterval, $isActive);
+			$group = $this->service->update($id, $name, MonthlyAmount::centsFromEuro($minMonthlyAmount), MonthlyAmount::centsFromEuro($defaultMonthlyAmount), $allowedIntervals, $defaultInterval, $isActive);
 			return new DataResponse($group->jsonSerialize());
 		} catch (\InvalidArgumentException $e) {
 			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
@@ -98,7 +99,7 @@ class ContributionGroupController extends Controller {
 	#[RequiresRole(PermissionService::ROLE_WRITE)]
 	public function minAmountPreview(int $id, float $newMinMonthlyAmount): DataResponse {
 		try {
-			return new DataResponse($this->service->previewMinAmountIncrease($id, (int)round($newMinMonthlyAmount * 100)));
+			return new DataResponse($this->service->previewMinAmountIncrease($id, MonthlyAmount::centsFromEuro($newMinMonthlyAmount)));
 		} catch (\InvalidArgumentException $e) {
 			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
 		} catch (DoesNotExistException) {
@@ -111,7 +112,7 @@ class ContributionGroupController extends Controller {
 	public function applyMinAmountIncrease(int $id, float $newMinMonthlyAmount): DataResponse {
 		try {
 			$actorUid = $this->userSession->getUser()?->getUID() ?? 'unknown';
-			return new DataResponse($this->service->applyMinAmountIncrease($id, (int)round($newMinMonthlyAmount * 100), $actorUid));
+			return new DataResponse($this->service->applyMinAmountIncrease($id, MonthlyAmount::centsFromEuro($newMinMonthlyAmount), $actorUid));
 		} catch (\InvalidArgumentException $e) {
 			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
 		} catch (DoesNotExistException) {

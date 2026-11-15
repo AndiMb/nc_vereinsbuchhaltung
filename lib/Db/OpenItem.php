@@ -34,7 +34,6 @@ use OCP\AppFramework\Db\Entity;
  * @method string|null getDescription()
  * @method void setDescription(?string $description)
  * @method int getAmountCents()
- * @method void setAmountCents(int $amountCents)
  * @method string|null getDueDate()
  * @method void setDueDate(?string $dueDate)
  * @method string getStatus()
@@ -145,6 +144,18 @@ class OpenItem extends Entity implements \JsonSerializable {
 		$this->addType('invoiceId', 'integer');
 		$this->addType('settledCents', 'integer');
 		$this->addType('reimbursementId', 'integer');
+	}
+
+	/**
+	 * Eigener Setter statt des magischen: der von Nextcloud merkt sich ein Feld
+	 * nur als geändert, wenn der neue Wert vom bisherigen abweicht. Bei einem
+	 * neuen Posten ist das für den Betrag 0 nicht der Fall (Vorgabe 0), die
+	 * Spalte fehlte dann im INSERT, und die Datenbank lehnte ihn ab (NOT NULL
+	 * ohne Vorgabe). So scheiterte jede beitragsfreie Periode.
+	 */
+	public function setAmountCents(int $amountCents): void {
+		$this->amountCents = $amountCents;
+		$this->markFieldUpdated('amountCents');
 	}
 
 	/**

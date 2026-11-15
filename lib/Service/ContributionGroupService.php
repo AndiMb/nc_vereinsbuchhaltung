@@ -103,6 +103,8 @@ class ContributionGroupService {
 		if ($newMinAmountCents <= $group->getMinMonthlyAmountCents()) {
 			throw new \InvalidArgumentException($this->l10n->t('Das ist keine Erhöhung der bisherigen Untergrenze.'));
 		}
+		// Die neue Untergrenze wird zum Monatsbeitrag aller Zuweisungen darunter.
+		MonthlyAmount::assertValid($newMinAmountCents, $this->l10n);
 
 		$affected = [];
 		$unaffected = [];
@@ -187,9 +189,8 @@ class ContributionGroupService {
 		if ($name === '') {
 			throw new \InvalidArgumentException($this->l10n->t('Name ist Pflicht.'));
 		}
-		if ($minMonthlyAmountCents < 0 || $defaultMonthlyAmountCents < 0) {
-			throw new \InvalidArgumentException($this->l10n->t('Beträge dürfen nicht negativ sein.'));
-		}
+		MonthlyAmount::assertValid($minMonthlyAmountCents, $this->l10n);
+		MonthlyAmount::assertValid($defaultMonthlyAmountCents, $this->l10n);
 		if ($defaultMonthlyAmountCents < $minMonthlyAmountCents) {
 			throw new \InvalidArgumentException($this->l10n->t('Der Standard-Monatsbeitrag darf die Untergrenze nicht unterschreiten.'));
 		}

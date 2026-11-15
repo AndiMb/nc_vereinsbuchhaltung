@@ -83,6 +83,14 @@ class AssignmentService {
 	): Assignment {
 		$group = $this->groupMapper->find($groupId);
 		$this->assertValidInterval($group, $intervalMonths);
+		MonthlyAmount::assertValid($monthlyAmountCents, $this->l10n);
+		if ($minMonthlyAmountOverrideCents !== null) {
+			MonthlyAmount::assertValid($minMonthlyAmountOverrideCents, $this->l10n);
+		}
+		$this->assertIsoDate($validFrom);
+		if ($validTo !== null) {
+			$this->assertIsoDate($validTo);
+		}
 		$this->assertNotInPast($validFrom);
 		if ($validTo !== null && $validTo < $validFrom) {
 			throw new \InvalidArgumentException($this->l10n->t('Ende der Zuweisung darf nicht vor ihrem Beginn liegen.'));
@@ -136,6 +144,9 @@ class AssignmentService {
 		?string $paymentMethod = null,
 	): Assignment {
 		$assignment = $this->mapper->find($id);
+		if ($monthlyAmountCents !== null) {
+			MonthlyAmount::assertValid($monthlyAmountCents, $this->l10n);
+		}
 		$group = $this->groupMapper->find($groupId ?? $assignment->getGroupId());
 		$effectiveFrom = $this->effectiveFromFor($assignment);
 		if ($paymentMethod !== null) {
@@ -156,6 +167,7 @@ class AssignmentService {
 
 		if ($intervalMonths !== null && $intervalMonths !== $assignment->getIntervalMonths()) {
 			$this->assertValidInterval($group, $intervalMonths);
+			$this->assertIntervalChangeLeavesNoGap($assignment, $intervalMonths);
 			// Turnuswechsel-Sonderfall (Spec §3.4): eigene Wirksamkeitsberechnung
 			// statt der generischen $effectiveFrom von oben - siehe
 			// effectiveFromFor()/EffectivityRuleService::firstUnlockedDay().
@@ -209,6 +221,9 @@ class AssignmentService {
 		?string $onBehalfNote = null,
 	): Assignment {
 		$assignment = $this->mapper->find($id);
+		if ($overrideCents !== null) {
+			MonthlyAmount::assertValid($overrideCents, $this->l10n);
+		}
 		$this->logEvent($id, AssignmentEvent::TYPE_MIN_AMOUNT_OVERRIDE_SET, $actorType, $actorUid, $onBehalfNote, [
 			'from' => $assignment->getMinMonthlyAmountOverrideCents(), 'to' => $overrideCents,
 		]);
@@ -233,6 +248,7 @@ class AssignmentService {
 	 */
 	public function end(int $id, string $validTo, string $actorType, ?string $actorUid, ?string $onBehalfNote = null): Assignment {
 		$assignment = $this->mapper->find($id);
+		$this->assertIsoDate($validTo);
 		if ($validTo < $assignment->getValidFrom()) {
 			if ($assignment->getValidFrom() <= $this->today()) {
 				throw new \InvalidArgumentException($this->l10n->t('Ende der Zuweisung darf nicht vor ihrem Beginn liegen.'));
@@ -392,6 +408,10 @@ class AssignmentService {
 	 */
 	public function previewChange(int $id, ?int $monthlyAmountCents, ?int $intervalMonths, ?int $groupId = null, ?string $paymentMethod = null): array {
 		$assignment = $this->mapper->find($id);
+		if ($monthlyAmountCents !== null) {
+			// Vor der Berechnung: ein zu hoher Betrag liefe sonst in der Vorschau über.
+			MonthlyAmount::assertValid($monthlyAmountCents, $this->l10n);
+		}
 		if ($paymentMethod !== null) {
 			// Nur die Gültigkeit – die Zahlungsart ändert weder Periode noch Betrag, die Vorschau soll aber
 			// dieselbe Ablehnung liefern wie update() gleich.
@@ -414,6 +434,7 @@ class AssignmentService {
 		$intervalChanged = $intervalMonths !== null && $intervalMonths !== $assignment->getIntervalMonths();
 		$amountChanged = $monthlyAmountCents !== null && $monthlyAmountCents !== $assignment->getMonthlyAmountCents();
 		if ($intervalChanged) {
+			$this->assertIntervalChangeLeavesNoGap($assignment, $intervalMonths);
 			$effectiveFrom = $this->effectiveFromFor($assignment, $intervalMonths);
 		} elseif ($amountChanged || $groupChanged) {
 			$effectiveFrom = $this->effectiveFromFor($assignment);
@@ -461,6 +482,54 @@ class AssignmentService {
 	}
 
 	/** „valid_from (nie in der Vergangenheit)" – Spec §2.2/§3.1. */
+	/**
+	 * Ein Turnuswechsel darf keine Zeit ohne Beitrag hinterlassen.
+	 *
+	 * Die Forderungserzeugung setzt nach der zuletzt berechneten Periode im
+	 * Raster des NEUEN Turnus fort und nimmt die erste Periode, die vollständig
+	 * dahinter liegt. Endet die Berechnung nicht an einer Grenze dieses
+	 * Rasters, bliebe die Zeit bis dorthin ohne Forderung: wer im Februar von
+	 * monatlich auf jährlich wechselte, zahlte für März bis Dezember nichts.
+	 * Solange noch nichts berechnet ist, gibt es keine Lücke – die erste
+	 * Periode rechnet anteilig ab Beginn der Zuweisung.
+	 *
+	 * @throws \InvalidArgumentException wenn der Wechsel eine Lücke ließe
+	 */
+	private function assertIntervalChangeLeavesNoGap(Assignment $assignment, int $newIntervalMonths): void {
+		$billedUntil = null;
+		foreach ($this->openItemMapper->findByAssignment((int)$assignment->getId()) as $item) {
+			if ($item->getPeriodEnd() !== null && ($billedUntil === null || $item->getPeriodEnd() > $billedUntil)) {
+				$billedUntil = $item->getPeriodEnd();
+			}
+		}
+		if ($billedUntil === null || ($assignment->getValidTo() !== null && $billedUntil >= $assignment->getValidTo())) {
+			return;
+		}
+		$next = PeriodRule::nextDay($billedUntil);
+		[$periodStart, $periodEnd] = $this->contributionYear->periodContaining($newIntervalMonths, $next);
+		if ($periodStart === $next) {
+			return;
+		}
+		throw new \InvalidArgumentException($this->l10n->t(
+			'Dieser Turnuswechsel ist im Moment nicht möglich: Der Beitrag ist bis %1$s berechnet, die nächste volle Periode im neuen Turnus beginnt erst am %2$s. Die Zeit dazwischen bliebe ohne Beitrag. Der Wechsel geht, sobald die Berechnung an einer Periodengrenze des neuen Turnus endet – spätestens zum Ende des Beitragsjahres.',
+			[GermanDate::format($billedUntil), GermanDate::format(PeriodRule::nextDay($periodEnd))],
+		));
+	}
+
+	/**
+	 * Beginn und Ende werden als Text verglichen und gespeichert; etwas
+	 * anderes als ein Kalenderdatum ließe später die Forderungserzeugung
+	 * abbrechen und landete ungeprüft in Ausdrucken.
+	 *
+	 * @throws \InvalidArgumentException
+	 */
+	private function assertIsoDate(string $date): void {
+		$parsed = \DateTimeImmutable::createFromFormat('!Y-m-d', $date);
+		if ($parsed === false || $parsed->format('Y-m-d') !== $date) {
+			throw new \InvalidArgumentException($this->l10n->t('Bitte ein gültiges Datum angeben (JJJJ-MM-TT).'));
+		}
+	}
+
 	private function assertNotInPast(string $validFrom): void {
 		if ($validFrom < $this->today()) {
 			throw new \InvalidArgumentException($this->l10n->t('Der Beginn einer Zuweisung darf nicht in der Vergangenheit liegen.'));

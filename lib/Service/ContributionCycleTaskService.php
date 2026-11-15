@@ -10,6 +10,7 @@ use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Db\OpenItem;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
 use OCA\Vereinsbuchhaltung\Db\Task;
+use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\IL10N;
 
@@ -80,6 +81,7 @@ class ContributionCycleTaskService {
 	public function findTasks(?string $today = null, bool $skipExplainedMissingMandates = false): array {
 		$today ??= $this->today();
 		return [
+			...$this->findFailedGenerationTasks(),
 			...$this->findMissingMandateTasks($today, $skipExplainedMissingMandates),
 			...$this->findBrokenLeadTimeTasks($today),
 			...$this->findOverdueTransferTask($today),
@@ -207,6 +209,32 @@ class ContributionCycleTaskService {
 			'objectType' => null,
 			'objectId' => null,
 		]];
+	}
+
+	/**
+	 * Zuweisungen, für die der letzte Tageslauf keine Forderung erzeugen
+	 * konnte. Der Lauf selbst geht für alle anderen weiter; ohne diese Aufgabe
+	 * stünde der Fehler nur im Log des Servers.
+	 *
+	 * @return list<array{severity:string,message:string,objectType:string,objectId:int}>
+	 */
+	private function findFailedGenerationTasks(): array {
+		$tasks = [];
+		foreach ($this->settings->failedAssignmentIds() as $assignmentId) {
+			try {
+				$assignment = $this->assignments->find($assignmentId);
+			} catch (DoesNotExistException) {
+				continue;
+			}
+			$name = $this->members->displayNameOr($assignment->getMemberId(), $this->l10n->t('unbekanntes Mitglied'));
+			$tasks[] = [
+				'severity' => Task::SEVERITY_ACTION_REQUIRED,
+				'message' => $this->l10n->t('Für %s konnte der Tageslauf keine Forderung erzeugen. Bitte die Zuweisung prüfen (Betrag, Beginn, Ende).', [$name]),
+				'objectType' => 'assignment',
+				'objectId' => $assignmentId,
+			];
+		}
+		return $tasks;
 	}
 
 	/** @return list<array{severity:string,message:string,objectType:null,objectId:null}> */

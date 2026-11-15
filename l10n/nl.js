@@ -4382,5 +4382,8 @@ OC.L10N.register("vereinsbuchhaltung", {
 		"%n post van de run heeft geen inbare machtiging meer. Laad de weergave opnieuw en controleer de run: verwerpen en opnieuw vrijgeven haalt de post eruit.",
 		"%n posten van de run hebben geen inbare machtiging meer. Laad de weergave opnieuw en controleer de run: verwerpen en opnieuw vrijgeven haalt de posten eruit."
 	],
-	"Der Text enthält ungültige Zeichen.": "De tekst bevat ongeldige tekens."
+	"Der Text enthält ungültige Zeichen.": "De tekst bevat ongeldige tekens.",
+	"Der Monatsbeitrag darf höchstens %s € betragen.": "De maandcontributie mag hoogstens %s € bedragen.",
+	"Für %s konnte der Tageslauf keine Forderung erzeugen. Bitte die Zuweisung prüfen (Betrag, Beginn, Ende).": "De dagelijkse run kon voor %s geen vordering aanmaken. Controleer de toewijzing (bedrag, begin, einde).",
+	"Dieser Turnuswechsel ist im Moment nicht möglich: Der Beitrag ist bis %1$s berechnet, die nächste volle Periode im neuen Turnus beginnt erst am %2$s. Die Zeit dazwischen bliebe ohne Beitrag. Der Wechsel geht, sobald die Berechnung an einer Periodengrenze des neuen Turnus endet – spätestens zum Ende des Beitragsjahres.": "Deze wijziging van de betaaltermijn is op dit moment niet mogelijk: de contributie is berekend tot en met %1$s, en de volgende volledige periode in de nieuwe termijn begint pas op %2$s. De tijd daartussen zou zonder contributie blijven. De wijziging is mogelijk zodra de berekening eindigt op een periodegrens van de nieuwe termijn – uiterlijk aan het einde van het contributiejaar."
 }, "nplurals=2; plural=(n != 1);");

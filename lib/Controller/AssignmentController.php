@@ -9,6 +9,7 @@ use OCA\Vereinsbuchhaltung\Db\Assignment;
 use OCA\Vereinsbuchhaltung\Middleware\NoRevisionBump;
 use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
 use OCA\Vereinsbuchhaltung\Service\AssignmentService;
+use OCA\Vereinsbuchhaltung\Service\MonthlyAmount;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
 use OCA\Vereinsbuchhaltung\Service\StaffChangeReceiptService;
 use OCP\AppFramework\Controller;
@@ -76,11 +77,11 @@ class AssignmentController extends Controller {
 				$memberId,
 				$groupId,
 				$intervalMonths,
-				(int)round($monthlyAmount * 100),
+				MonthlyAmount::centsFromEuro($monthlyAmount),
 				$paymentMethod,
 				$validFrom,
 				$validTo,
-				$minMonthlyAmountOverride !== null ? (int)round($minMonthlyAmountOverride * 100) : null,
+				$minMonthlyAmountOverride !== null ? MonthlyAmount::centsFromEuro($minMonthlyAmountOverride) : null,
 				$overrideReason,
 				'staff',
 				$this->actorUid(),
@@ -100,7 +101,7 @@ class AssignmentController extends Controller {
 	public function previewNew(int $intervalMonths, float $monthlyAmount, string $validFrom): DataResponse {
 		$transient = new Assignment();
 		$transient->setIntervalMonths($intervalMonths);
-		$transient->setMonthlyAmountCents((int)round($monthlyAmount * 100));
+		$transient->setMonthlyAmountCents(MonthlyAmount::centsFromEuro($monthlyAmount));
 		$transient->setValidFrom($validFrom);
 		try {
 			return new DataResponse($this->service->previewFirstPeriod($transient));
@@ -120,7 +121,7 @@ class AssignmentController extends Controller {
 		try {
 			return new DataResponse($this->service->previewChange(
 				$id,
-				$monthlyAmount !== null ? (int)round($monthlyAmount * 100) : null,
+				$monthlyAmount !== null ? MonthlyAmount::centsFromEuro($monthlyAmount) : null,
 				$intervalMonths,
 				$groupId,
 				$paymentMethod,
@@ -143,7 +144,7 @@ class AssignmentController extends Controller {
 	#[RequiresRole(PermissionService::ROLE_WRITE)]
 	public function update(int $id, ?float $monthlyAmount = null, ?int $intervalMonths = null, ?int $groupId = null, ?string $paymentMethod = null): DataResponse {
 		try {
-			$monthlyAmountCents = $monthlyAmount !== null ? (int)round($monthlyAmount * 100) : null;
+			$monthlyAmountCents = $monthlyAmount !== null ? MonthlyAmount::centsFromEuro($monthlyAmount) : null;
 			$current = $this->service->find($id);
 			$before = [
 				'amountCents' => $current->getMonthlyAmountCents(),
@@ -177,7 +178,7 @@ class AssignmentController extends Controller {
 		try {
 			$assignment = $this->service->setMinAmountOverride(
 				$id,
-				$minMonthlyAmountOverride !== null ? (int)round($minMonthlyAmountOverride * 100) : null,
+				$minMonthlyAmountOverride !== null ? MonthlyAmount::centsFromEuro($minMonthlyAmountOverride) : null,
 				$overrideReason,
 				'staff',
 				$this->actorUid(),

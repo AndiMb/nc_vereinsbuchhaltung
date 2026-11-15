@@ -211,8 +211,8 @@ class DatenuebersichtRenderer {
 				. '<td>' . PrintableReportPage::escape($this->intervalName($assignment->getIntervalMonths())) . '</td>'
 				. '<td class="num">' . ReportFormat::cents($assignment->getMonthlyAmountCents()) . '</td>'
 				. '<td>' . PrintableReportPage::escape(Assignment::paymentMethodName($assignment->getPaymentMethod(), $this->l10n)) . '</td>'
-				. '<td>' . ReportFormat::date($assignment->getValidFrom()) . '</td>'
-				. '<td>' . ReportFormat::date($assignment->getValidTo()) . '</td>'
+				. '<td>' . PrintableReportPage::escape(ReportFormat::date($assignment->getValidFrom())) . '</td>'
+				. '<td>' . PrintableReportPage::escape(ReportFormat::date($assignment->getValidTo())) . '</td>'
 				. '</tr>';
 		}
 		return $h . '</table></section>';

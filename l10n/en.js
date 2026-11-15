@@ -4382,5 +4382,8 @@ OC.L10N.register("vereinsbuchhaltung", {
 		"%n item of the run no longer has a collectible mandate. Reload the view and check the run: discarding and releasing again removes the item.",
 		"%n items of the run no longer have a collectible mandate. Reload the view and check the run: discarding and releasing again removes the items."
 	],
-	"Der Text enthält ungültige Zeichen.": "The text contains invalid characters."
+	"Der Text enthält ungültige Zeichen.": "The text contains invalid characters.",
+	"Der Monatsbeitrag darf höchstens %s € betragen.": "The monthly fee may be at most %s €.",
+	"Für %s konnte der Tageslauf keine Forderung erzeugen. Bitte die Zuweisung prüfen (Betrag, Beginn, Ende).": "The daily run could not create a claim for %s. Please check the assignment (amount, start, end).",
+	"Dieser Turnuswechsel ist im Moment nicht möglich: Der Beitrag ist bis %1$s berechnet, die nächste volle Periode im neuen Turnus beginnt erst am %2$s. Die Zeit dazwischen bliebe ohne Beitrag. Der Wechsel geht, sobald die Berechnung an einer Periodengrenze des neuen Turnus endet – spätestens zum Ende des Beitragsjahres.": "This change of payment interval is not possible at the moment: the contribution has been calculated up to %1$s, and the next full period in the new interval does not start until %2$s. The time in between would remain without a contribution. The change becomes possible once the calculation ends at a period boundary of the new interval – at the latest at the end of the contribution year."
 }, "nplurals=2; plural=(n != 1);");

@@ -18,6 +18,7 @@ use OCA\Vereinsbuchhaltung\Service\Export\DatenuebersichtRenderer;
 use OCA\Vereinsbuchhaltung\Service\Export\PrintableReportPage;
 use OCA\Vereinsbuchhaltung\Service\MandateActivationService;
 use OCA\Vereinsbuchhaltung\Service\MandateService;
+use OCA\Vereinsbuchhaltung\Service\MonthlyAmount;
 use OCA\Vereinsbuchhaltung\Service\SelfContactService;
 use OCA\Vereinsbuchhaltung\Service\SelfContributionService;
 use OCA\Vereinsbuchhaltung\Service\SelfReturnedDebitService;
@@ -301,7 +302,7 @@ class SelfController extends Controller {
 		try {
 			$preview = $this->contributions->preview(
 				$id,
-				$monthlyAmount !== null ? (int)round($monthlyAmount * 100) : null,
+				$monthlyAmount !== null ? MonthlyAmount::centsFromEuro($monthlyAmount) : null,
 				$intervalMonths,
 				$paymentMethod,
 			);
@@ -326,7 +327,7 @@ class SelfController extends Controller {
 		try {
 			$result = $this->contributions->apply(
 				$id,
-				$monthlyAmount !== null ? (int)round($monthlyAmount * 100) : null,
+				$monthlyAmount !== null ? MonthlyAmount::centsFromEuro($monthlyAmount) : null,
 				$intervalMonths,
 				$paymentMethod,
 			);

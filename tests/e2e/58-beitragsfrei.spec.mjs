@@ -8,7 +8,8 @@ import { api, openApp, switchTab, USERS, visibleSection } from './fixtures/nextc
 // Perioden im Hintergrund fest, damit eine spätere Betragserhöhung sie nicht rückwirkend nachfordert.
 
 const GROUP_NAME = 'Ruhend E2E'
-const today = () => new Date().toISOString().slice(0, 10)
+// In der Vereinszone: der Server rechnet „heute“ dort, nicht in UTC (#263).
+const today = () => new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Berlin' }).format(new Date())
 const suffix = () => `${Date.now() % 100000}`
 
 async function enableMembership(request) {

@@ -15,9 +15,11 @@ use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
 use OCA\Vereinsbuchhaltung\Service\AssignmentService;
 use OCA\Vereinsbuchhaltung\Service\ContributionYearService;
 use OCA\Vereinsbuchhaltung\Service\DueDateScheduleService;
+use OCA\Vereinsbuchhaltung\Service\MonthlyAmount;
 use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubClockStub;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\IL10N;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
@@ -123,6 +125,64 @@ class AssignmentServiceTest extends TestCase {
 		$this->mapper->method('insert')->willReturnCallback($this->stubInsertAssignsId(102));
 		$assignment = $this->service()->create(7, 1, 12, 300, Assignment::PAYMENT_METHOD_DIRECT_DEBIT, '2026-06-15', null, 200, 'Sozialermäßigung', 'staff', 'kassenwart');
 		$this->assertSame(300, $assignment->getMonthlyAmountCents());
+	}
+
+	/** Ein Betrag, der mal zwölf Monate nicht mehr in die Forderungsspalte passt, wird nie gespeichert. */
+	public function testCreateLehntBetragUeberDerObergrenzeAb(): void {
+		$this->groupMapper->method('find')->willReturn($this->group());
+		$this->mapper->expects($this->never())->method('insert');
+		$this->expectException(\InvalidArgumentException::class);
+		$this->expectExceptionMessage('höchstens');
+		$this->service()->create(7, 1, 12, MonthlyAmount::MAX_CENTS + 1, Assignment::PAYMENT_METHOD_DIRECT_DEBIT, '2026-06-15', null, null, null, 'staff', 'kassenwart');
+	}
+
+	public function testCreateLehntNegativeUntergrenzeAb(): void {
+		$this->groupMapper->method('find')->willReturn($this->group());
+		$this->expectException(\InvalidArgumentException::class);
+		$this->service()->create(7, 1, 12, -500, Assignment::PAYMENT_METHOD_DIRECT_DEBIT, '2026-06-15', null, -500, 'x', 'staff', 'kassenwart');
+	}
+
+	/** @return array<string, array{string, ?string}> */
+	public static function keinDatum(): array {
+		return [
+			'Markup als Beginn' => ['<img src=x>', null],
+			'Markup als Ende' => ['2026-06-15', '<b>2027</b>'],
+			'unmöglicher Tag' => ['2026-06-15', '2026-02-30'],
+			'Zeitstempel' => ['2026-06-15 10:00:00', null],
+		];
+	}
+
+	/** Beginn und Ende werden als Text verglichen und gespeichert, also muss es ein Kalenderdatum sein. */
+	#[DataProvider('keinDatum')]
+	public function testCreateLehntAllesAbWasKeinDatumIst(string $validFrom, ?string $validTo): void {
+		$this->groupMapper->method('find')->willReturn($this->group());
+		$this->mapper->expects($this->never())->method('insert');
+		$this->expectException(\InvalidArgumentException::class);
+		$this->service()->create(7, 1, 12, 800, Assignment::PAYMENT_METHOD_DIRECT_DEBIT, $validFrom, $validTo, null, null, 'staff', 'kassenwart');
+	}
+
+	public function testEndeLehntAllesAbWasKeinDatumIst(): void {
+		$this->mapper->method('find')->willReturn($this->assignmentInGroup1());
+		$this->mapper->expects($this->never())->method('update');
+		$this->expectException(\InvalidArgumentException::class);
+		$this->service()->end(5, '9999-99-99<script>', AssignmentEvent::ACTOR_STAFF, 'buchhalter');
+	}
+
+	/** Die Vorschau lehnt ab, bevor sie rechnet: sonst liefe der Betrag dort über. */
+	public function testPreviewChangeLehntBetragUeberDerObergrenzeAb(): void {
+		$this->mapper->method('find')->willReturn($this->assignmentInGroup1());
+		$this->groupMapper->method('find')->willReturn($this->group());
+		$this->expectException(\InvalidArgumentException::class);
+		$this->expectExceptionMessage('höchstens');
+		$this->service()->previewChange(5, PHP_INT_MAX, null);
+	}
+
+	public function testUpdateLehntBetragUeberDerObergrenzeAb(): void {
+		$this->mapper->method('find')->willReturn($this->assignmentInGroup1());
+		$this->groupMapper->method('find')->willReturn($this->group());
+		$this->mapper->expects($this->never())->method('update');
+		$this->expectException(\InvalidArgumentException::class);
+		$this->service()->update(5, MonthlyAmount::MAX_CENTS + 1, null, null, AssignmentEvent::ACTOR_MEMBER, 'anna');
 	}
 
 	public function testCreateLehntBeginnInDerVergangenheitAb(): void {
@@ -232,10 +292,11 @@ class AssignmentServiceTest extends TestCase {
 		$this->mapper->method('update')->willReturnArgument(0);
 		$this->groupMapper->method('find')->willReturn($this->group(allowedIntervals: [1, 12]));
 
+		// Bis Jahresende berechnet: der Jahresturnus schließt ohne Lücke an.
 		$locked = new OpenItem();
-		$locked->setPeriodStart('2026-01-01');
-		$locked->setPeriodEnd('2026-01-31');
-		$locked->setPrenotifiedAt('2025-12-15T00:00:00+00:00');
+		$locked->setPeriodStart('2026-12-01');
+		$locked->setPeriodEnd('2026-12-31');
+		$locked->setPrenotifiedAt('2026-11-17T00:00:00+00:00');
 		$this->openItemsByAssignment[5] = [$locked];
 
 		$this->eventMapper->expects($this->once())->method('insert')
@@ -244,7 +305,7 @@ class AssignmentServiceTest extends TestCase {
 					&& $e->getDetailsArray()['effectiveFrom'] === '2027-01-01';
 			}));
 
-		$this->service('2026-01-10')->update(5, null, 12, null, AssignmentEvent::ACTOR_MEMBER, null);
+		$this->service('2026-12-10')->update(5, null, 12, null, AssignmentEvent::ACTOR_MEMBER, null);
 	}
 
 	private function assignmentInGroup1(): Assignment {
@@ -527,17 +588,102 @@ class AssignmentServiceTest extends TestCase {
 		$this->mapper->method('find')->willReturn($assignment);
 		$this->groupMapper->method('find')->willReturn($this->group(allowedIntervals: [1, 12]));
 
+		// Bis Jahresende berechnet: der Jahresturnus schließt ohne Lücke an.
 		$locked = new OpenItem();
-		$locked->setPeriodStart('2026-01-01');
-		$locked->setPeriodEnd('2026-01-31');
-		$locked->setPrenotifiedAt('2025-12-15T00:00:00+00:00');
+		$locked->setPeriodStart('2026-12-01');
+		$locked->setPeriodEnd('2026-12-31');
+		$locked->setPrenotifiedAt('2026-11-17T00:00:00+00:00');
 		$this->openItemsByAssignment[5] = [$locked];
 
-		$preview = $this->service('2026-01-10')->previewChange(5, null, 12);
+		$preview = $this->service('2026-12-10')->previewChange(5, null, 12);
 
 		$this->assertSame('2027-01-01', $preview['effectiveFrom']);
 		$this->assertSame('2027-01-01', $preview['periodStart']);
 		$this->assertSame('2027-12-31', $preview['periodEnd']);
 		$this->assertSame(12000, $preview['amountCents']);
+	}
+	/** Eine monatliche Zuweisung mit berechneten Perioden bis zum Monatsende $billedUntil. */
+	private function monthlyBilledUntil(string $billedUntil, ?string $prenotifiedAt = null): Assignment {
+		$assignment = new Assignment();
+		$assignment->setId(5);
+		$assignment->setGroupId(1);
+		$assignment->setIntervalMonths(1);
+		$assignment->setMonthlyAmountCents(1000);
+		$assignment->setValidFrom('2026-01-01');
+		$this->mapper->method('find')->willReturn($assignment);
+		$this->groupMapper->method('find')->willReturn($this->group(allowedIntervals: [1, 3, 12]));
+
+		$item = new OpenItem();
+		$item->setPeriodStart(substr($billedUntil, 0, 8) . '01');
+		$item->setPeriodEnd($billedUntil);
+		$item->setPrenotifiedAt($prenotifiedAt);
+		$this->openItemsByAssignment[5] = [$item];
+		return $assignment;
+	}
+
+	/**
+	 * Wer im Februar von monatlich auf jährlich wechselte, bekam die nächste
+	 * Forderung erst für das Folgejahr: März bis Dezember blieben ohne Beitrag.
+	 */
+	public function testTurnuswechselDerMonateOhneBeitragLiesseWirdAbgelehnt(): void {
+		$this->monthlyBilledUntil('2026-02-28');
+		$this->mapper->expects($this->never())->method('update');
+
+		try {
+			$this->service('2026-02-10')->previewChange(5, null, 12);
+			$this->fail('Die Vorschau hätte ablehnen müssen.');
+		} catch (\InvalidArgumentException $e) {
+			$this->assertStringContainsString('bis 28.02.2026 berechnet', $e->getMessage());
+			$this->assertStringContainsString('erst am 01.01.2027', $e->getMessage());
+		}
+
+		$this->expectException(\InvalidArgumentException::class);
+		$this->service('2026-02-10')->update(5, null, 12, null, AssignmentEvent::ACTOR_MEMBER, 'anna');
+	}
+
+	/** Endet die Berechnung an einer Grenze des neuen Turnus, schließt er lückenlos an. */
+	public function testTurnuswechselAnEinerPeriodengrenzeBleibtMoeglich(): void {
+		$this->monthlyBilledUntil('2026-03-31');
+
+		$preview = $this->service('2026-03-10')->previewChange(5, null, 3);
+
+		$this->assertSame('2026-03-10', $preview['effectiveFrom']);
+	}
+
+	/** Ein kürzerer Turnus beginnt an jeder Grenze des längeren: von jährlich auf monatlich geht immer. */
+	public function testWechselAufKuerzerenTurnusBleibtMoeglich(): void {
+		$assignment = $this->monthlyBilledUntil('2026-12-31');
+		$assignment->setIntervalMonths(12);
+		$this->openItemsByAssignment[5][0]->setPeriodStart('2026-01-01');
+
+		$preview = $this->service('2026-06-15')->previewChange(5, null, 1);
+
+		$this->assertSame('2026-06-15', $preview['effectiveFrom']);
+	}
+
+	/** Solange noch nichts berechnet ist, rechnet die erste Periode anteilig: keine Lücke. */
+	public function testTurnuswechselOhneBerechnetePeriodeBleibtMoeglich(): void {
+		$this->monthlyBilledUntil('2026-02-28');
+		$this->openItemsByAssignment[5] = [];
+
+		$preview = $this->service('2026-02-10')->previewChange(5, null, 12);
+
+		$this->assertSame('2026-02-10', $preview['effectiveFrom']);
+	}
+
+	/**
+	 * Die Sperre richtet sich nach der spätesten Vorabinfo. Eine frühere Periode
+	 * ohne Vorabinfo (bezahlt, beitragsfrei, Überweiser-Zeit) hob sie bisher auf.
+	 */
+	public function testFruehereForderungOhneVorabinfoHebtDieSperreNichtAuf(): void {
+		$this->monthlyBilledUntil('2026-02-28', '2026-02-14T00:00:00+00:00');
+		$unannounced = new OpenItem();
+		$unannounced->setPeriodStart('2026-01-01');
+		$unannounced->setPeriodEnd('2026-01-31');
+		array_unshift($this->openItemsByAssignment[5], $unannounced);
+
+		$preview = $this->service('2026-02-20')->previewChange(5, 1500, null);
+
+		$this->assertSame('2026-03-01', $preview['effectiveFrom']);
 	}
 }
