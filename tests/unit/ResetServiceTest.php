@@ -36,6 +36,7 @@ use OCA\Vereinsbuchhaltung\Db\ReimbursementFileMapper;
 use OCA\Vereinsbuchhaltung\Db\ReimbursementMapper;
 use OCA\Vereinsbuchhaltung\Db\ReturnedDebitMapper;
 use OCA\Vereinsbuchhaltung\Db\RuleMapper;
+use OCA\Vereinsbuchhaltung\Db\RulePartMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
 use OCA\Vereinsbuchhaltung\Migration\Version000157Date20261004130000;
 use OCA\Vereinsbuchhaltung\Service\AttachmentStorageService;
@@ -87,6 +88,7 @@ class ResetServiceTest extends TestCase {
 		'vbh_bank_tx_sepa_details',
 		'vbh_incoming_pay_rejects',
 		'vbh_rules',
+		'vbh_rule_parts',
 		'vbh_accounts',
 		'vbh_costcenters',
 		'vbh_booking_cc',
@@ -297,7 +299,7 @@ class ResetServiceTest extends TestCase {
 			$this->journalLines(),
 			new JournalMapper($this->db),
 			new BankTransactionMapper($this->db, $this->cipher),
-			new RuleMapper($this->db, $this->cipher),
+			new RuleMapper($this->db, $this->cipher, new RulePartMapper($this->db)),
 			new AccountMapper($this->db),
 			new CostCenterMapper($this->db),
 			new BudgetMapper($this->db),

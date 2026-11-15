@@ -32,10 +32,28 @@ class Rule extends Entity implements \JsonSerializable {
 	 */
 	protected $costCenterId;
 
+	/**
+	 * Feste Anteile (Issue #163), vom Mapper angehängt. Keine Spalte: die
+	 * Anteile liegen in vbh_rule_parts.
+	 *
+	 * @var list<RulePart>
+	 */
+	private array $partsList = [];
+
 	public function __construct() {
 		$this->addType('contraAccountId', 'integer');
 		$this->addType('priority', 'integer');
 		$this->addType('costCenterId', 'integer');
+	}
+
+	/** @param list<RulePart> $parts */
+	public function setPartsList(array $parts): void {
+		$this->partsList = array_values($parts);
+	}
+
+	/** @return list<RulePart> */
+	public function getPartsList(): array {
+		return $this->partsList;
 	}
 
 	public function jsonSerialize(): array {
@@ -46,6 +64,7 @@ class Rule extends Entity implements \JsonSerializable {
 			'contraAccountId' => $this->contraAccountId,
 			'priority' => $this->priority,
 			'costCenterId' => $this->costCenterId,
+			'parts' => array_map(static fn (RulePart $p): array => $p->jsonSerialize(), $this->partsList),
 		];
 	}
 }

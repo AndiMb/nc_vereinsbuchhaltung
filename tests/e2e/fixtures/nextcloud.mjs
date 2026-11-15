@@ -730,8 +730,13 @@ export const api = {
 		return call(request, 'POST', '/backup/wipe', { user, expectOk, data: { confirmation } })
 	},
 
-	async createRule(request, { matchField = 'description', matchValue, contraAccountId, user = 'admin' }) {
-		return call(request, 'POST', '/rules', { user, data: { matchField, matchValue, contraAccountId } })
+	/** parts: feste Anteile (Issue #163), [{ accountId, amount (Euro) }]; ohne Angabe keine. */
+	async createRule(request, { matchField = 'description', matchValue, contraAccountId, parts, user = 'admin' }) {
+		return call(request, 'POST', '/rules', { user, data: { matchField, matchValue, contraAccountId, ...(parts ? { parts } : {}) } })
+	},
+
+	async listRules(request) {
+		return (await call(request, 'GET', '/rules')).json()
 	},
 
 	async createOpenItem(request, { debtor, description, amount, dueDate, user = 'admin' }) {

@@ -167,7 +167,13 @@ class ImportService {
 					continue;
 				}
 				$rule = $this->matchRule($tx, $rules);
-				if ($rule !== null) {
+				if ($rule !== null && $rule->getPartsList() !== []) {
+					if ($this->assignSplit($userId, $tx, $rule)) {
+						$autoAssigned++;
+					} else {
+						$ruleFailed++;
+					}
+				} elseif ($rule !== null) {
 					$accountId = (int)$rule->getContraAccountId();
 					// Gibt die Regel eine Kostenstelle vor, gehört ihr der ganze
 					// Betrag. Ist die Vorgabe nicht anwendbar (Modul aus,
@@ -369,6 +375,36 @@ class ImportService {
 				return false;
 			}
 			$this->invoicePayments->payFromBankTransaction($tx, $match['invoiceId']);
+			return true;
+		} catch (\Throwable) {
+			return false;
+		}
+	}
+
+	/**
+	 * Teilt einen Umsatz nach einer Regel mit festen Anteilen auf (Issue #163).
+	 *
+	 * false, wenn der Umsatz kleiner ist als die Anteile zusammen oder das
+	 * Buchen scheitert – dann bleibt er unzugeordnet und zählt als
+	 * gescheiterte Regel. Kostenstellen je Teil wie bei der einfachen Regel:
+	 * nicht anwendbar heißt ohne.
+	 */
+	private function assignSplit(string $userId, BankTransaction $tx, Rule $rule): bool {
+		$split = RuleSplit::parts($rule, (int)$tx->getAmountCents());
+		if ($split === null) {
+			return false;
+		}
+		try {
+			$parts = [];
+			foreach ($split as $p) {
+				$part = ['accountId' => $p['accountId'], 'amountCents' => $p['amountCents']];
+				$allocations = $this->costCenterDefaults?->fullAllocation($userId, $p['costCenterId'], $p['accountId'], $p['amountCents']);
+				if ($allocations !== null) {
+					$part['allocations'] = $allocations;
+				}
+				$parts[] = $part;
+			}
+			$this->bookingService->assignParts($tx, $parts);
 			return true;
 		} catch (\Throwable) {
 			return false;
