@@ -150,12 +150,12 @@
 							</option>
 						</select>
 					</label>
-					<label>{{ t('Monatsbeitrag (€)') }}
+					<label>{{ amountFieldLabel(isAnnualGroup(selectedGroup), currencySymbol()) }}
 						<AmountInput v-model="form.monthlyAmount" class="vbh-short" />
 					</label>
 					<label>{{ t('Zahlungsart') }}
 						<select v-model="form.paymentMethod" :disabled="!hasEmail">
-							<option value="direct_debit">
+							<option v-if="isEuro()" value="direct_debit">
 								{{ t('Lastschrift') }}
 							</option>
 							<option value="ueberweisung">
@@ -235,7 +235,7 @@
 					NcModal hält seinen Inhalt per v-show dauerhaft im DOM – `v-if="show"` + `:key` lässt das Panel
 					bei jedem Öffnen (und jedem anderen Mitglied) neu laden statt den Stand der letzten Akte zu zeigen. -->
 				<MandatePanel
-					v-if="show"
+					v-if="show && isEuro()"
 					ref="mandatePanel"
 					:key="member.id"
 					:member="member"
@@ -479,9 +479,11 @@ import api from '../api.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { useContributionGroups } from '../composables/useContributionGroups.js'
 import { accountPayload, emptyAccount, missingAccountFields } from '../lib/accountForm.js'
+import { amountFieldLabel, amountPayload, groupDefaultAmount, isAnnualGroup } from '../lib/amountBasis.js'
+import { currencySymbol, isEuro } from '../lib/clubCurrency.js'
 import { clubToday } from '../lib/clubTime.js'
 import { defaultCountry } from '../lib/countryDefault.js'
-import { errMsg, formatDate, formatEuro } from '../lib/format.js'
+import { errMsg, formatCurrency, formatDate } from '../lib/format.js'
 import { intervalLabel } from '../lib/frequency.js'
 import { linkConfirmText, linkedAccountText, linkMailMessage, pendingAccountText } from '../lib/memberAccount.js'
 import { focusOnOpen } from '../lib/modalFocus.js'
@@ -696,24 +698,32 @@ export default {
 		// im selben Formular stehen.
 		hasEmail(has) {
 			if (this.isEdit) { return } // die Akte kennt keinen Beitrag-Schritt
-			this.form.paymentMethod = has ? 'direct_debit' : 'ueberweisung'
+			// Lastschrift gibt es nur in Euro (#202).
+			this.form.paymentMethod = has && isEuro() ? 'direct_debit' : 'ueberweisung'
 			// Ohne Adresse geht keine Willkommens-Mail.
 			if (!has) { this.form.sendWelcome = false }
 		},
 
-		selectedGroup(group) {
+		selectedGroup(group, previous) {
 			if (!group) { return }
 			if (!group.allowedIntervals.includes(this.form.intervalMonths)) {
 				this.form.intervalMonths = group.defaultInterval
 			}
-			if (this.form.monthlyAmount === '') {
-				this.form.monthlyAmount = group.defaultMonthlyAmount
+			// Wechselt die Betragsangabe (pro Monat ↔ pro Jahr, Issue #270), hätte der schon eingetragene
+			// Betrag eine andere Bedeutung: dann gilt der Standardbeitrag der neuen Gruppe.
+			const basisChanged = !!previous && isAnnualGroup(previous) !== isAnnualGroup(group)
+			if (this.form.monthlyAmount === '' || basisChanged) {
+				this.form.monthlyAmount = groupDefaultAmount(group)
 			}
 			this.assignmentPreview = null
 		},
 	},
 
 	methods: {
+		isEuro,
+		currencySymbol,
+		amountFieldLabel,
+		isAnnualGroup,
 		intervalLabel,
 		errMsg,
 		formatDate,
@@ -737,7 +747,7 @@ export default {
 			panel.scrollIntoView({ block: 'start' })
 		},
 
-		euro(cents) { return formatEuro(cents / 100) },
+		euro(cents) { return formatCurrency(cents / 100) },
 
 		stammdaten() {
 			return {
@@ -800,7 +810,8 @@ export default {
 					? {
 							groupId: this.form.groupId,
 							intervalMonths: this.form.intervalMonths,
-							monthlyAmount: Number(this.form.monthlyAmount),
+							// Unter dem Namen der Betragsangabe der Gruppe: monthlyAmount oder annualAmount (Issue #270).
+							...amountPayload(isAnnualGroup(this.selectedGroup), Number(this.form.monthlyAmount)),
 							paymentMethod: this.form.paymentMethod,
 							validFrom: this.form.validFrom,
 						}
@@ -825,7 +836,8 @@ export default {
 			try {
 				const { data } = await api.previewNewAssignment({
 					intervalMonths: this.form.intervalMonths,
-					monthlyAmount: this.form.monthlyAmount,
+					...amountPayload(isAnnualGroup(this.selectedGroup), this.form.monthlyAmount),
+					groupId: this.form.groupId,
 					validFrom: this.form.validFrom,
 				})
 				this.assignmentPreview = data

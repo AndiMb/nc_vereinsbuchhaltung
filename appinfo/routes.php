@@ -16,6 +16,8 @@ return [
 		['name' => 'account#seedDefaults', 'url' => '/api/accounts/seed', 'verb' => 'POST'],
 		['name' => 'account#setOpening', 'url' => '/api/accounts/{id}/opening', 'verb' => 'POST'],
 		['name' => 'account#bulkSphere', 'url' => '/api/accounts/sphere-bulk', 'verb' => 'POST'],
+		// Kontoabstimmung (#159): POST wegen des Datei-Uploads, liest nur.
+		['name' => 'accountReconciliation#run', 'url' => '/api/accounts/{id}/reconciliation', 'verb' => 'POST'],
 		['name' => 'journal#byAccount', 'url' => '/api/accounts/{id}/journal', 'verb' => 'GET'],
 
 		// Bank transactions
@@ -32,6 +34,14 @@ return [
 		['name' => 'import#xbucCommit', 'url' => '/api/import/xbuc', 'verb' => 'POST'],
 		['name' => 'import#xbucCommitWithReset', 'url' => '/api/import/xbuc/reset', 'verb' => 'POST'],
 		['name' => 'import#reset', 'url' => '/api/reset', 'verb' => 'POST'],
+
+		// Sicherung und Umzug (Issue #111)
+		['name' => 'backup#status', 'url' => '/api/backup/status', 'verb' => 'GET'],
+		['name' => 'backup#export', 'url' => '/api/backup/export', 'verb' => 'POST'],
+		['name' => 'backup#download', 'url' => '/api/backup/download/{token}', 'verb' => 'GET'],
+		['name' => 'backup#inspect', 'url' => '/api/backup/inspect', 'verb' => 'POST'],
+		['name' => 'backup#import', 'url' => '/api/backup/import', 'verb' => 'POST'],
+		['name' => 'backup#wipe', 'url' => '/api/backup/wipe', 'verb' => 'POST'],
 
 		// Journal / reports
 		['name' => 'journal#index', 'url' => '/api/journal', 'verb' => 'GET'],
@@ -72,6 +82,18 @@ return [
 		['name' => 'costCenter#assign', 'url' => '/api/costcenters/assign', 'verb' => 'POST'],
 		['name' => 'costCenter#update', 'url' => '/api/costcenters/{id}', 'verb' => 'PUT'],
 		['name' => 'costCenter#destroy', 'url' => '/api/costcenters/{id}', 'verb' => 'DELETE'],
+		// Kostenstellen an der Buchungszeile (Issue #7). Die Routen darüber
+		// heißen aus historischen Gründen "costcenters", meinen aber die
+		// Auswertungsgruppen.
+		['name' => 'bookingCostCenter#index', 'url' => '/api/booking-cost-centers', 'verb' => 'GET'],
+		['name' => 'bookingCostCenter#create', 'url' => '/api/booking-cost-centers', 'verb' => 'POST'],
+		['name' => 'bookingCostCenter#update', 'url' => '/api/booking-cost-centers/{id}', 'verb' => 'PUT'],
+		['name' => 'bookingCostCenter#destroy', 'url' => '/api/booking-cost-centers/{id}', 'verb' => 'DELETE'],
+		['name' => 'costCenterBudget#index', 'url' => '/api/cost-center-budgets', 'verb' => 'GET'],
+		['name' => 'costCenterBudget#set', 'url' => '/api/cost-center-budgets', 'verb' => 'PUT'],
+		['name' => 'costCenterReport#index', 'url' => '/api/report/cost-center-allocations', 'verb' => 'GET'],
+		['name' => 'costCenterReport#print', 'url' => '/api/export/cost-center-allocations', 'verb' => 'GET'],
+		['name' => 'costCenterReport#csv', 'url' => '/api/export/cost-center-allocations-csv', 'verb' => 'GET'],
 		['name' => 'report#multiyearTrend', 'url' => '/api/report/multiyear-trend', 'verb' => 'GET'],
 		['name' => 'report#reserves', 'url' => '/api/report/reserves', 'verb' => 'GET'],
 
@@ -82,6 +104,7 @@ return [
 		['name' => 'reportTemplate#update', 'url' => '/api/report-templates/{id}', 'verb' => 'PUT'],
 		['name' => 'reportTemplate#destroy', 'url' => '/api/report-templates/{id}', 'verb' => 'DELETE'],
 		['name' => 'reportTemplate#evaluate', 'url' => '/api/report/structured', 'verb' => 'GET'],
+		['name' => 'reportTemplate#visual', 'url' => '/api/report/structured/visual', 'verb' => 'GET'],
 
 		// Finanzplan / Budget
 		['name' => 'budget#index', 'url' => '/api/budget', 'verb' => 'GET'],
@@ -386,6 +409,7 @@ return [
 		['name' => 'export#finanzplan', 'url' => '/api/export/finanzplan', 'verb' => 'GET'],
 		['name' => 'export#gliederungsbericht', 'url' => '/api/export/gliederungsbericht', 'verb' => 'GET'],
 		['name' => 'export#gliederungsberichtCsv', 'url' => '/api/export/gliederungsbericht-csv', 'verb' => 'GET'],
+		['name' => 'export#gliederungsberichtVisuell', 'url' => '/api/export/gliederungsbericht-visuell', 'verb' => 'GET'],
 		['name' => 'export#multiyear', 'url' => '/api/export/multiyear', 'verb' => 'GET'],
 		['name' => 'export#kassenbericht', 'url' => '/api/export/kassenbericht', 'verb' => 'GET'],
 		['name' => 'export#kurzbericht', 'url' => '/api/export/kurzbericht', 'verb' => 'GET'],

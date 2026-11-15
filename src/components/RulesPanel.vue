@@ -30,6 +30,17 @@
 						label="label"
 						:placeholder="t('– Konto wählen –')" />
 				</label>
+				<!-- Vorgabe-Kostenstelle (Issue #331): nur bei eingeschaltetem Modul -->
+				<label v-if="costCentersEnabled">{{ t('Kostenstelle') }}
+					<select v-model="ruleForm.costCenterId">
+						<option :value="null">
+							{{ t('– keine –') }}
+						</option>
+						<option v-for="cc in costCenterOptions" :key="cc.id" :value="cc.id">
+							{{ cc.code }} · {{ cc.name }}{{ cc.active ? '' : ' (' + t('inaktiv') + ')' }}
+						</option>
+					</select>
+				</label>
 				<label class="vbh-rule-prio">{{ t('Priorität') }}
 					<input v-model.number="ruleForm.priority" type="number" step="1">
 				</label>
@@ -46,7 +57,9 @@
 			<table class="vbh-table vbh-stack">
 				<thead>
 					<tr>
-						<th>{{ t('Feld') }}</th><th>{{ t('Suchtext') }}</th><th>{{ t('Gegenkonto') }}</th><th class="num">
+						<th>{{ t('Feld') }}</th><th>{{ t('Suchtext') }}</th><th>{{ t('Gegenkonto') }}</th><th v-if="costCentersEnabled">
+							{{ t('Kostenstelle') }}
+						</th><th class="num">
 							{{ t('Prio.') }}
 						</th><th />
 					</tr>
@@ -56,6 +69,9 @@
 						<td>{{ matchFieldLabel(rule.matchField) }}</td>
 						<td>{{ rule.matchValue }}</td>
 						<td>{{ accountLabel(rule.contraAccountId) }}</td>
+						<td v-if="costCentersEnabled">
+							{{ costCenterCode(rule.costCenterId) }}
+						</td>
 						<td class="num">
 							{{ rule.priority }}
 						</td>
@@ -92,13 +108,14 @@
 <script>
 import { mdiDelete, mdiPencil } from '@mdi/js'
 import { showError, showSuccess } from '@nextcloud/dialogs'
-import { toRefs } from 'vue'
+import { toRef, toRefs } from 'vue'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcEmptyContent from '@nextcloud/vue/components/NcEmptyContent'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import NcSelect from '@nextcloud/vue/components/NcSelect'
 import api from '../api.js'
 import { buildAccountOptions, useAccounts } from '../composables/useAccounts.js'
+import { useBookingCostCenters } from '../composables/useBookingCostCenters.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { useRules } from '../composables/useRules.js'
 import { accountFilterBy, accountLabel } from '../lib/accountLabel.js'
@@ -119,11 +136,15 @@ export default {
 	setup() {
 		const accounts = useAccounts()
 		const rulesC = useRules()
+		const costCenters = useBookingCostCenters()
 		return {
 			accountsSorted: accounts.accountsSorted,
 			accountsById: accounts.accountsById,
 			...toRefs(rulesC.state),
 			loadRules: rulesC.loadRules,
+			costCentersEnabled: toRef(costCenters.state, 'enabled'),
+			activeCostCenters: costCenters.activeBookingCostCenters,
+			costCentersById: costCenters.bookingCostCentersById,
 			askConfirm: useConfirm().askConfirm,
 		}
 	},
@@ -132,7 +153,7 @@ export default {
 		return {
 			mdiPencil,
 			mdiDelete,
-			ruleForm: { matchField: 'counterparty', matchValue: '', contraAccountId: null, priority: 0 },
+			ruleForm: { matchField: 'counterparty', matchValue: '', contraAccountId: null, priority: 0, costCenterId: null },
 			ruleEditId: null,
 		}
 	},
@@ -146,6 +167,14 @@ export default {
 
 		accountOptionsList() {
 			return buildAccountOptions(this.accountsSorted, this.accountUsageCounts, this.t)
+		},
+
+		/** Aktive Kostenstellen, dazu die an der bearbeiteten Regel gespeicherte inaktive. */
+		costCenterOptions() {
+			const list = [...this.activeCostCenters]
+			const current = this.costCentersById[this.ruleForm.costCenterId]
+			if (current && !list.some((cc) => cc.id === current.id)) { list.push(current) }
+			return list
 		},
 
 		ruleFormContraOption: {
@@ -174,13 +203,18 @@ export default {
 
 		accountFilterBy,
 
+		costCenterCode(id) {
+			if (!id) { return '' }
+			return this.costCentersById[id]?.code ?? `#${id}`
+		},
+
 		matchFieldLabel(field) {
 			return { counterparty: this.t('Zahlungspartner'), purpose: this.t('Verwendungszweck'), iban: this.t('IBAN') }[field] || field
 		},
 
 		resetRuleForm() {
 			this.ruleEditId = null
-			this.ruleForm = { matchField: 'counterparty', matchValue: '', contraAccountId: null, priority: 0 }
+			this.ruleForm = { matchField: 'counterparty', matchValue: '', contraAccountId: null, priority: 0, costCenterId: null }
 		},
 
 		editRule(rule) {
@@ -190,6 +224,7 @@ export default {
 				matchValue: rule.matchValue,
 				contraAccountId: rule.contraAccountId,
 				priority: rule.priority || 0,
+				costCenterId: rule.costCenterId ?? null,
 			}
 		},
 
@@ -199,6 +234,9 @@ export default {
 				matchValue: (this.ruleForm.matchValue || '').trim(),
 				contraAccountId: this.ruleForm.contraAccountId,
 				priority: Number(this.ruleForm.priority) || 0,
+				// Nur bei eingeschaltetem Modul mitschicken: fehlt das Feld, laesst der
+				// Server eine gespeicherte Vorgabe stehen.
+				...(this.costCentersEnabled ? { costCenterId: this.ruleForm.costCenterId ?? null } : {}),
 			}
 			if (!payload.matchValue) { showError(this.t('Bitte einen Suchtext eingeben.')); return }
 			if (!payload.contraAccountId) { showError(this.t('Bitte ein Gegenkonto wählen.')); return }

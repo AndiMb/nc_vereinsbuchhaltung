@@ -211,6 +211,18 @@ class MandateMapper extends EncryptingMapper {
 		return $count;
 	}
 
+	/** Mandate, die nicht erloschen sind (Entwurf, aktiv, ausgesetzt) – Umstellsperre der Vereinswährung (#202). */
+	public function countNotEnded(): int {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select($qb->func()->count('*', 'cnt'))
+			->from($this->getTableName())
+			->where($qb->expr()->neq('status', $qb->createNamedParameter(Mandate::STATUS_ENDED)));
+		$res = $qb->executeQuery();
+		$count = (int)$res->fetchOne();
+		$res->closeCursor();
+		return $count;
+	}
+
 	/**
 	 * Löst den Verweis aller Mandate auf eine Rücklastschrift
 	 * (`returned_debit_id`, gesetzt bei der automatischen Sperre nach einer

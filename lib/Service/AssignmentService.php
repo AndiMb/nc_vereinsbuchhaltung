@@ -44,6 +44,7 @@ class AssignmentService {
 		private DueDateScheduleService $dueDateSchedule,
 		private ITimeFactory $time,
 		private IL10N $l10n,
+		private ClubCurrency $currency,
 		?ClubClock $clock = null,
 	) {
 		$this->clock = $clock ?? new ClubClock($this->time);
@@ -64,6 +65,11 @@ class AssignmentService {
 	}
 
 	/**
+	 * Bei Gruppen mit Jahresbetrag (Issue #270) zählt `$annualAmountCents`
+	 * (Pflicht) samt `$minAnnualOverrideCents`; `$monthlyAmountCents` und
+	 * `$minMonthlyAmountOverrideCents` bleiben dort unbeachtet. Bei
+	 * Monatsgruppen ist es umgekehrt, ein Jahresbetrag wird abgelehnt.
+	 *
 	 * @throws \InvalidArgumentException bei ungültigen Werten oder Überlappung
 	 * @throws DoesNotExistException wenn es die Gruppe nicht gibt
 	 */
@@ -80,12 +86,19 @@ class AssignmentService {
 		string $actorType,
 		?string $actorUid,
 		?string $onBehalfNote = null,
+		?int $annualAmountCents = null,
+		?int $minAnnualOverrideCents = null,
 	): Assignment {
 		$group = $this->groupMapper->find($groupId);
+		$annual = $group->isAnnual();
+		$amountCents = $this->amountInBasis($group, $monthlyAmountCents, $annualAmountCents);
+		if ($amountCents === null) {
+			throw new \InvalidArgumentException($this->l10n->t('Diese Beitragsgruppe erwartet einen Jahresbetrag.'));
+		}
+		$overrideCents = $annual ? $minAnnualOverrideCents : $minMonthlyAmountOverrideCents;
 		$this->assertValidInterval($group, $intervalMonths);
-		MonthlyAmount::assertValid($monthlyAmountCents, $this->l10n);
-		if ($minMonthlyAmountOverrideCents !== null) {
-			MonthlyAmount::assertValid($minMonthlyAmountOverrideCents, $this->l10n);
+		if ($overrideCents !== null) {
+			MonthlyAmount::assertValid($overrideCents, $this->l10n, $annual);
 		}
 		$this->assertIsoDate($validFrom);
 		if ($validTo !== null) {
@@ -96,18 +109,16 @@ class AssignmentService {
 			throw new \InvalidArgumentException($this->l10n->t('Ende der Zuweisung darf nicht vor ihrem Beginn liegen.'));
 		}
 		$this->assertValidPaymentMethod($paymentMethod);
-		$effectiveMin = $minMonthlyAmountOverrideCents ?? $group->getMinMonthlyAmountCents();
-		if ($monthlyAmountCents < $effectiveMin) {
-			throw new \InvalidArgumentException($this->l10n->t('Der Monatsbeitrag darf die Untergrenze von %s € nicht unterschreiten.', [number_format($effectiveMin / 100, 2, ',', '.')]));
-		}
+		$this->assertDirectDebitAvailable($paymentMethod, null);
+		$this->assertNotBelow($annual, $amountCents, $overrideCents ?? $group->minAmountCents());
 		$this->assertNoOverlap($memberId, $groupId, $validFrom, $validTo, null);
 
 		$assignment = new Assignment();
 		$assignment->setMemberId($memberId);
 		$assignment->setGroupId($groupId);
 		$assignment->setIntervalMonths($intervalMonths);
-		$assignment->setMonthlyAmountCents($monthlyAmountCents);
-		$assignment->setMinMonthlyAmountOverrideCents($minMonthlyAmountOverrideCents);
+		$this->applyAmount($assignment, $annual, $amountCents);
+		$this->applyMinOverride($assignment, $annual, $overrideCents);
 		$assignment->setOverrideReason($overrideReason !== null && trim($overrideReason) !== '' ? trim($overrideReason) : null);
 		$assignment->setPaymentMethod($paymentMethod);
 		$assignment->setValidFrom($validFrom);
@@ -118,9 +129,9 @@ class AssignmentService {
 		$this->logEvent($assignment->getId(), AssignmentEvent::TYPE_ASSIGNMENT_STARTED, $actorType, $actorUid, $onBehalfNote, [
 			'groupId' => $groupId,
 			'intervalMonths' => $intervalMonths,
-			'monthlyAmountCents' => $monthlyAmountCents,
+			'monthlyAmountCents' => $assignment->getMonthlyAmountCents(),
 			'validFrom' => $validFrom,
-		]);
+		] + ($annual ? ['annualAmountCents' => $amountCents] : []));
 		return $assignment;
 	}
 
@@ -142,15 +153,18 @@ class AssignmentService {
 		?string $actorUid,
 		?string $onBehalfNote = null,
 		?string $paymentMethod = null,
+		?int $annualAmountCents = null,
 	): Assignment {
 		$assignment = $this->mapper->find($id);
-		if ($monthlyAmountCents !== null) {
-			MonthlyAmount::assertValid($monthlyAmountCents, $this->l10n);
-		}
 		$group = $this->groupMapper->find($groupId ?? $assignment->getGroupId());
+		$this->assertSameBasis($assignment, $group);
+		$annual = $group->isAnnual();
+		// Neuer Betrag in der Betragsangabe der Gruppe (Monats- oder Jahresbetrag), null = unverändert.
+		$amountCents = $this->amountInBasis($group, $monthlyAmountCents, $annualAmountCents);
 		$effectiveFrom = $this->effectiveFromFor($assignment);
 		if ($paymentMethod !== null) {
 			$this->assertValidPaymentMethod($paymentMethod);
+			$this->assertDirectDebitAvailable($paymentMethod, $assignment->getPaymentMethod());
 		}
 
 		if ($groupId !== null && $groupId !== $assignment->getGroupId()) {
@@ -158,7 +172,7 @@ class AssignmentService {
 			// Turnus und Betrag bleiben beim Gruppenwechsel stehen, müssen aber zur NEUEN Gruppe passen
 			// (erlaubter Turnus, Untergrenze) – sonst entstünde eine Zuweisung, die die Gruppe nie zugelassen hätte.
 			$this->assertValidInterval($group, $intervalMonths ?? $assignment->getIntervalMonths());
-			$this->assertAtLeastMinimum($assignment, $group, $monthlyAmountCents ?? $assignment->getMonthlyAmountCents());
+			$this->assertAtLeastMinimum($assignment, $group, $amountCents ?? $assignment->amountCents());
 			$this->logEvent($id, AssignmentEvent::TYPE_GROUP_CHANGED, $actorType, $actorUid, $onBehalfNote, [
 				'from' => $assignment->getGroupId(), 'to' => $groupId, 'effectiveFrom' => $effectiveFrom,
 			]);
@@ -178,12 +192,12 @@ class AssignmentService {
 			$assignment->setIntervalMonths($intervalMonths);
 		}
 
-		if ($monthlyAmountCents !== null && $monthlyAmountCents !== $assignment->getMonthlyAmountCents()) {
-			$this->assertAtLeastMinimum($assignment, $group, $monthlyAmountCents);
+		if ($amountCents !== null && $amountCents !== $assignment->amountCents()) {
+			$this->assertAtLeastMinimum($assignment, $group, $amountCents);
 			$this->logEvent($id, AssignmentEvent::TYPE_AMOUNT_CHANGED, $actorType, $actorUid, $onBehalfNote, [
-				'from' => $assignment->getMonthlyAmountCents(), 'to' => $monthlyAmountCents, 'effectiveFrom' => $effectiveFrom,
-			]);
-			$assignment->setMonthlyAmountCents($monthlyAmountCents);
+				'from' => $assignment->amountCents(), 'to' => $amountCents, 'effectiveFrom' => $effectiveFrom,
+			] + self::basisDetail($annual));
+			$this->applyAmount($assignment, $annual, $amountCents);
 		}
 
 		if ($paymentMethod !== null && $paymentMethod !== $assignment->getPaymentMethod()) {
@@ -208,7 +222,9 @@ class AssignmentService {
 	 * Gruppen-Untergrenze in beide Richtungen; unterschreitet der aktuelle
 	 * Monatsbeitrag die neue Untergrenze, wird er analog zur
 	 * Untergrenzen-Erhöhung (ContributionGroupService) automatisch mit
-	 * angehoben statt einen inkonsistenten Zustand stehen zu lassen.
+	 * angehoben statt einen inkonsistenten Zustand stehen zu lassen. Bei einer
+	 * Zuweisung mit Jahresbetrag (Issue #270) ist `$overrideCents` ein
+	 * Jahresbetrag.
 	 *
 	 * @throws DoesNotExistException wenn es die Zuweisung nicht gibt
 	 */
@@ -221,20 +237,21 @@ class AssignmentService {
 		?string $onBehalfNote = null,
 	): Assignment {
 		$assignment = $this->mapper->find($id);
+		$annual = $assignment->isAnnual();
 		if ($overrideCents !== null) {
-			MonthlyAmount::assertValid($overrideCents, $this->l10n);
+			MonthlyAmount::assertValid($overrideCents, $this->l10n, $annual);
 		}
 		$this->logEvent($id, AssignmentEvent::TYPE_MIN_AMOUNT_OVERRIDE_SET, $actorType, $actorUid, $onBehalfNote, [
-			'from' => $assignment->getMinMonthlyAmountOverrideCents(), 'to' => $overrideCents,
-		]);
-		$assignment->setMinMonthlyAmountOverrideCents($overrideCents);
+			'from' => $annual ? $assignment->getMinAnnualOverrideCents() : $assignment->getMinMonthlyAmountOverrideCents(), 'to' => $overrideCents,
+		] + self::basisDetail($annual));
+		$this->applyMinOverride($assignment, $annual, $overrideCents);
 		$assignment->setOverrideReason($reason !== null && trim($reason) !== '' ? trim($reason) : null);
 
-		if ($overrideCents !== null && $assignment->getMonthlyAmountCents() < $overrideCents) {
+		if ($overrideCents !== null && $assignment->amountCents() < $overrideCents) {
 			$this->logEvent($id, AssignmentEvent::TYPE_AMOUNT_CHANGED, $actorType, $actorUid, $onBehalfNote, [
-				'from' => $assignment->getMonthlyAmountCents(), 'to' => $overrideCents, 'reason' => 'min_amount_override',
-			]);
-			$assignment->setMonthlyAmountCents($overrideCents);
+				'from' => $assignment->amountCents(), 'to' => $overrideCents, 'reason' => 'min_amount_override',
+			] + self::basisDetail($annual));
+			$this->applyAmount($assignment, $annual, $overrideCents);
 		}
 		return $this->mapper->update($assignment);
 	}
@@ -301,12 +318,14 @@ class AssignmentService {
 	 * ContributionGroupService::previewMinAmountIncrease()).
 	 */
 	public function raiseToMinimum(Assignment $assignment, int $newMinCents, string $actorUid): void {
-		$old = $assignment->getMonthlyAmountCents();
-		$assignment->setMonthlyAmountCents($newMinCents);
+		// Bei einer Zuweisung mit Jahresbetrag (Issue #270) ist $newMinCents ein Jahresbetrag.
+		$annual = $assignment->isAnnual();
+		$old = $assignment->amountCents();
+		$this->applyAmount($assignment, $annual, $newMinCents);
 		$this->mapper->update($assignment);
 		$this->logEvent($assignment->getId(), AssignmentEvent::TYPE_AMOUNT_CHANGED, AssignmentEvent::ACTOR_STAFF, $actorUid, null, [
 			'from' => $old, 'to' => $newMinCents, 'reason' => 'min_amount_increase',
-		]);
+		] + self::basisDetail($annual));
 	}
 
 	/**
@@ -327,11 +346,13 @@ class AssignmentService {
 		[$periodStart, $periodEnd] = $this->contributionYear->periodContaining($assignment->getIntervalMonths(), $assignment->getValidFrom());
 		$from = max($periodStart, $assignment->getValidFrom());
 		$months = ProrataCalculator::monthsSpanned($from, $periodEnd);
+		// Ob ein angebrochenes Jahr anteilig zählt, steht an der Gruppe – nur beim Jahresbetrag von Belang (Issue #270).
+		$prorate = !$assignment->isAnnual() || $this->groupMapper->find($assignment->getGroupId())->prorates();
 		return [
 			'periodStart' => $periodStart,
 			'periodEnd' => $periodEnd,
 			'months' => $months,
-			'amountCents' => ProrataCalculator::amountCents($assignment->getMonthlyAmountCents(), $from, $periodEnd),
+			'amountCents' => ContributionAmount::cents((int)$assignment->getMonthlyAmountCents(), $assignment->getAnnualAmountCents(), $prorate, $from, $periodEnd),
 			'dueDate' => $this->dueDateSchedule->dueDateForPeriod($assignment->getIntervalMonths(), $from),
 		];
 	}
@@ -406,19 +427,20 @@ class AssignmentService {
 	 * @throws \InvalidArgumentException bei ungültigen Werten
 	 * @throws DoesNotExistException wenn es die Zuweisung/Gruppe nicht gibt
 	 */
-	public function previewChange(int $id, ?int $monthlyAmountCents, ?int $intervalMonths, ?int $groupId = null, ?string $paymentMethod = null): array {
+	public function previewChange(int $id, ?int $monthlyAmountCents, ?int $intervalMonths, ?int $groupId = null, ?string $paymentMethod = null, ?int $annualAmountCents = null): array {
 		$assignment = $this->mapper->find($id);
-		if ($monthlyAmountCents !== null) {
-			// Vor der Berechnung: ein zu hoher Betrag liefe sonst in der Vorschau über.
-			MonthlyAmount::assertValid($monthlyAmountCents, $this->l10n);
-		}
 		if ($paymentMethod !== null) {
 			// Nur die Gültigkeit – die Zahlungsart ändert weder Periode noch Betrag, die Vorschau soll aber
 			// dieselbe Ablehnung liefern wie update() gleich.
 			$this->assertValidPaymentMethod($paymentMethod);
+			$this->assertDirectDebitAvailable($paymentMethod, $assignment->getPaymentMethod());
 		}
 		$groupChanged = $groupId !== null && $groupId !== $assignment->getGroupId();
 		$group = $this->groupMapper->find($groupChanged ? $groupId : $assignment->getGroupId());
+		$this->assertSameBasis($assignment, $group);
+		$annual = $group->isAnnual();
+		// Neuer Betrag in der Betragsangabe der Gruppe (Monats- oder Jahresbetrag), null = unverändert.
+		$amountCents = $this->amountInBasis($group, $monthlyAmountCents, $annualAmountCents);
 
 		$effectiveIntervalMonths = $intervalMonths ?? $assignment->getIntervalMonths();
 		// Bei einem Gruppenwechsel zählt der Turnus auch dann, wenn er unverändert bleibt: die neue Gruppe muss ihn erlauben.
@@ -426,13 +448,13 @@ class AssignmentService {
 			$this->assertValidInterval($group, $effectiveIntervalMonths);
 		}
 
-		$effectiveAmountCents = $monthlyAmountCents ?? $assignment->getMonthlyAmountCents();
-		if ($monthlyAmountCents !== null || $groupChanged) {
+		$effectiveAmountCents = $amountCents ?? $assignment->amountCents();
+		if ($amountCents !== null || $groupChanged) {
 			$this->assertAtLeastMinimum($assignment, $group, $effectiveAmountCents);
 		}
 
 		$intervalChanged = $intervalMonths !== null && $intervalMonths !== $assignment->getIntervalMonths();
-		$amountChanged = $monthlyAmountCents !== null && $monthlyAmountCents !== $assignment->getMonthlyAmountCents();
+		$amountChanged = $amountCents !== null && $amountCents !== $assignment->amountCents();
 		if ($intervalChanged) {
 			$this->assertIntervalChangeLeavesNoGap($assignment, $intervalMonths);
 			$effectiveFrom = $this->effectiveFromFor($assignment, $intervalMonths);
@@ -457,21 +479,96 @@ class AssignmentService {
 			'periodStart' => $periodStart,
 			'periodEnd' => $periodEnd,
 			'firstDueDate' => $this->dueDateSchedule->dueDateForPeriod($effectiveIntervalMonths, $from),
-			'amountCents' => ProrataCalculator::amountCents($effectiveAmountCents, $from, $periodEnd),
+			'amountCents' => $annual
+				? ContributionAmount::cents(0, $effectiveAmountCents, $group->prorates(), $from, $periodEnd)
+				: ContributionAmount::cents($effectiveAmountCents, null, true, $from, $periodEnd),
 		];
 	}
 
-	/** Der Monatsbeitrag darf die wirksame Untergrenze (individuelle, sonst die der Gruppe) nicht unterschreiten. */
-	private function assertAtLeastMinimum(Assignment $assignment, ContributionGroup $group, int $monthlyAmountCents): void {
-		$effectiveMin = $assignment->effectiveMinMonthlyAmountCents($group);
-		if ($monthlyAmountCents < $effectiveMin) {
-			throw new \InvalidArgumentException($this->l10n->t('Der Monatsbeitrag darf die Untergrenze von %s € nicht unterschreiten.', [number_format($effectiveMin / 100, 2, ',', '.')]));
+	/** Der Beitrag (in der Betragsangabe der Gruppe) darf die wirksame Untergrenze (individuelle, sonst die der Gruppe) nicht unterschreiten. */
+	private function assertAtLeastMinimum(Assignment $assignment, ContributionGroup $group, int $amountCents): void {
+		$this->assertNotBelow($group->isAnnual(), $amountCents, $assignment->effectiveMinAmountCents($group));
+	}
+
+	private function assertNotBelow(bool $annual, int $amountCents, int $effectiveMin): void {
+		if ($amountCents >= $effectiveMin) {
+			return;
 		}
+		throw new \InvalidArgumentException($annual
+			? $this->l10n->t('Der Jahresbeitrag darf die Untergrenze von %s nicht unterschreiten.', [$this->currency->format($effectiveMin)])
+			: $this->l10n->t('Der Monatsbeitrag darf die Untergrenze von %s nicht unterschreiten.', [$this->currency->format($effectiveMin)]));
+	}
+
+	/**
+	 * Der übergebene Betrag in der Betragsangabe der Gruppe (Issue #270):
+	 * Jahresbetrag bei Jahresgruppen, sonst Monatsbetrag; null, wenn keiner
+	 * mitkam. Ein Betrag in der jeweils anderen Angabe wird abgelehnt – als
+	 * Monats- statt Jahreswert gelesen läge er um den Faktor 12 daneben.
+	 *
+	 * @throws \InvalidArgumentException
+	 */
+	private function amountInBasis(ContributionGroup $group, ?int $monthlyAmountCents, ?int $annualAmountCents): ?int {
+		if ($group->isAnnual()) {
+			if ($annualAmountCents === null && $monthlyAmountCents !== null && $monthlyAmountCents !== 0) {
+				throw new \InvalidArgumentException($this->l10n->t('Diese Beitragsgruppe erwartet einen Jahresbetrag.'));
+			}
+			$amountCents = $annualAmountCents;
+		} else {
+			if ($annualAmountCents !== null) {
+				throw new \InvalidArgumentException($this->l10n->t('Diese Beitragsgruppe erwartet einen Monatsbetrag.'));
+			}
+			$amountCents = $monthlyAmountCents;
+		}
+		if ($amountCents !== null) {
+			// Hier, vor jeder Rechnung: ein zu hoher Betrag liefe in Vorschau und Forderungslauf über.
+			MonthlyAmount::assertValid($amountCents, $this->l10n, $group->isAnnual());
+		}
+		return $amountCents;
+	}
+
+	/**
+	 * Eine Zuweisung bleibt bei ihrer Betragsangabe: ihr Betrag bliebe beim
+	 * Wechsel in eine Gruppe der anderen Angabe stehen, hätte dort aber eine
+	 * andere Bedeutung. Beenden und neu zuweisen ist der Weg.
+	 *
+	 * @throws \InvalidArgumentException
+	 */
+	private function assertSameBasis(Assignment $assignment, ContributionGroup $group): void {
+		if ($assignment->getId() !== null && $assignment->isAnnual() !== $group->isAnnual() && $assignment->getGroupId() !== $group->getId()) {
+			throw new \InvalidArgumentException($this->l10n->t('Ein Wechsel zwischen Gruppen mit unterschiedlicher Betragsangabe (pro Monat und pro Jahr) ist nicht möglich. Bitte die Zuweisung beenden und neu anlegen.'));
+		}
+	}
+
+	/** Betrag in der Betragsangabe setzen; bei Jahresbeträgen trägt die Monatsspalte den gerundeten Zwölftel-Wert. */
+	private function applyAmount(Assignment $assignment, bool $annual, int $amountCents): void {
+		$assignment->setAnnualAmountCents($annual ? $amountCents : null);
+		$assignment->setMonthlyAmountCents($annual ? ContributionAmount::monthlyFromAnnual($amountCents) : $amountCents);
+	}
+
+	private function applyMinOverride(Assignment $assignment, bool $annual, ?int $overrideCents): void {
+		$assignment->setMinAnnualOverrideCents($annual ? $overrideCents : null);
+		$assignment->setMinMonthlyAmountOverrideCents($annual ? null : $overrideCents);
+	}
+
+	/** Kennzeichnet Ereignis-Beträge als Jahreswerte; ohne den Schlüssel sind es Monatswerte (alle Altereignisse). */
+	private static function basisDetail(bool $annual): array {
+		return $annual ? ['basis' => ContributionGroup::BASIS_YEAR] : [];
 	}
 
 	private function assertValidInterval(ContributionGroup $group, int $intervalMonths): void {
 		if (!in_array($intervalMonths, $group->getAllowedIntervalsArray(), true)) {
 			throw new \InvalidArgumentException($this->l10n->t('Dieser Turnus ist für die gewählte Beitragsgruppe nicht erlaubt.'));
+		}
+	}
+
+	/**
+	 * Vereinswährung (#202): Lastschrift gibt es nur in Euro. Eine bestehende
+	 * Lastschrift-Zuweisung bleibt änderbar (Betrag, Turnus), solange die
+	 * Zahlungsart gleich bleibt – nur der Wechsel auf Lastschrift ist gesperrt.
+	 */
+	private function assertDirectDebitAvailable(string $paymentMethod, ?string $current): void {
+		if ($paymentMethod === Assignment::PAYMENT_METHOD_DIRECT_DEBIT && $current !== Assignment::PAYMENT_METHOD_DIRECT_DEBIT) {
+			$this->currency->assertSepaAvailable($this->l10n);
 		}
 	}
 

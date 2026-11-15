@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Service;
 
+use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\Invoice;
 use OCA\Vereinsbuchhaltung\Db\InvoiceLine;
 use OCA\Vereinsbuchhaltung\Db\InvoiceLineMapper;
@@ -12,6 +13,7 @@ use OCA\Vereinsbuchhaltung\Db\InvoicePayment;
 use OCA\Vereinsbuchhaltung\Db\InvoicePaymentMapper;
 use OCA\Vereinsbuchhaltung\Db\OpenItem;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
+use OCA\Vereinsbuchhaltung\Service\CostCenter\CostCenterDefaults;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\IL10N;
 
@@ -40,6 +42,9 @@ class InvoicePaymentLedger {
 		private InvoiceLineMapper $lines,
 		private InvoiceSettings $settings,
 		private ?IL10N $l10n = null,
+		// Kostenstellen der Rechnungszeilen (Issue #332); ohne den Helfer bleibt
+		// jede Zahlung ohne Kostenstelle, wie zuvor.
+		private ?CostCenterDefaults $costCenterDefaults = null,
 	) {
 	}
 
@@ -106,6 +111,98 @@ class InvoicePaymentLedger {
 			}
 		}
 		return $parts;
+	}
+
+	/**
+	 * Anteile der Kostenstellen an einer Zahlung, je Erlöskonto (Issue #332).
+	 *
+	 * Zweiter Schritt nach {@see allocate()}: dessen Aufteilung auf die
+	 * Erlöskonten bleibt unverändert, hier wird nur der Betrag je Konto auf die
+	 * Kostenstellen der Rechnungszeilen dieses Kontos verteilt.
+	 *
+	 * @param array<int, int> $parts Konto-ID => Cent, aus {@see allocate()}
+	 * @return array<int, list<array{costCenterId:int, amountCents:int}>> Konto-ID => Anteile; Konten ohne Kostenstelle fehlen
+	 */
+	public function costCenterShares(Invoice $invoice, array $parts): array {
+		if ($this->costCenterDefaults === null) {
+			return [];
+		}
+		$usable = $this->costCenterDefaults->usableIds(Application::BOOK);
+		if ($usable === []) {
+			return [];
+		}
+		$lines = array_map(static fn (InvoiceLine $line): array => [
+			'accountId' => $line->getAccountId(),
+			'lineNetCents' => $line->getLineNetCents(),
+			'bookingCostCenterId' => $line->getBookingCostCenterId(),
+		], $this->lines->findByInvoice((int)$invoice->getId()));
+		// Ein Erlöskonto, das inzwischen keine Kostenstelle mehr trägt (Kontotyp
+		// geändert), bleibt ohne: der Schreiber lehnte die Verteilung sonst ab,
+		// und die Zahlung scheiterte an einer Vorgabe.
+		$defaults = $this->costCenterDefaults;
+		$carrying = array_filter(
+			$parts,
+			static fn (int $accountId): bool => $defaults->carries(Application::BOOK, $accountId),
+			ARRAY_FILTER_USE_KEY,
+		);
+		return self::sharesByCostCenter($lines, $carrying, $usable);
+	}
+
+	/**
+	 * Verteilt den gezahlten Betrag je Erlöskonto anteilig auf die
+	 * Kostenstellen der Rechnungszeilen.
+	 *
+	 * Gewicht ist der Nettobetrag der Zeilen je Kostenstelle, saldiert: eine
+	 * Rabattzeile mindert den Anteil ihrer Kostenstelle, ein negativer Saldo
+	 * zählt als 0. Zeilen ohne –
+	 * oder mit nicht nutzbarer – Kostenstelle bilden eine Gruppe „ohne“, deren
+	 * Anteil keiner Kostenstelle zugeordnet wird. Verteilt wird wie bei den
+	 * Erlöskonten nach dem größten Rest: die Anteile eines Kontos ergeben
+	 * zusammen nie mehr als den gezahlten Betrag, und sind alle Zeilen einer
+	 * Kostenstelle zugeordnet, ergeben sie ihn genau. Jede Zahlung wird für
+	 * sich verteilt; über mehrere Teilzahlungen kann die Summe je Kostenstelle
+	 * deshalb um höchstens einen Cent je Zahlung vom rechnerischen Anteil
+	 * abweichen.
+	 *
+	 * @param list<array{accountId:?int, lineNetCents:int, bookingCostCenterId:?int}> $lines
+	 * @param array<int, int> $parts Konto-ID => gezahlte Cent
+	 * @param list<int> $usableIds Kostenstellen, die sich neu zuordnen lassen
+	 * @return array<int, list<array{costCenterId:int, amountCents:int}>>
+	 */
+	public static function sharesByCostCenter(array $lines, array $parts, array $usableIds): array {
+		// Je Konto: Kostenstelle (0 = ohne) => Netto, in der Reihenfolge der Zeilen.
+		$weights = [];
+		foreach ($lines as $line) {
+			$accountId = $line['accountId'];
+			$net = (int)$line['lineNetCents'];
+			if ($accountId === null || $net === 0) {
+				continue;
+			}
+			$costCenterId = $line['bookingCostCenterId'];
+			$key = $costCenterId !== null && in_array($costCenterId, $usableIds, true) ? $costCenterId : 0;
+			$weights[(int)$accountId][$key] = ($weights[(int)$accountId][$key] ?? 0) + $net;
+		}
+
+		$out = [];
+		foreach ($parts as $accountId => $paid) {
+			$byCostCenter = array_map(static fn (int $net): int => max(0, $net), $weights[(int)$accountId] ?? []);
+			$withCostCenter = $byCostCenter;
+			unset($withCostCenter[0]);
+			if ($paid <= 0 || array_sum($withCostCenter) <= 0) {
+				continue;
+			}
+			$shares = InvoiceCalculator::allocate((int)$paid, array_values($byCostCenter));
+			$allocations = [];
+			foreach (array_keys($byCostCenter) as $index => $costCenterId) {
+				if ($costCenterId !== 0 && $shares[$index] > 0) {
+					$allocations[] = ['costCenterId' => $costCenterId, 'amountCents' => $shares[$index]];
+				}
+			}
+			if ($allocations !== []) {
+				$out[(int)$accountId] = $allocations;
+			}
+		}
+		return $out;
 	}
 
 	/**

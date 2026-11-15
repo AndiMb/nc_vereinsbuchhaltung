@@ -42,6 +42,7 @@ class ControllerRoleDeclarationTest extends TestCase {
 	 */
 	private const MODULE_CONTROLLERS = [
 		'AssignmentController',
+		'BackupController',
 		'BankReconciliationController',
 		'ClaimController',
 		'ContributionGroupController',
@@ -78,7 +79,7 @@ class ControllerRoleDeclarationTest extends TestCase {
 	];
 
 	private const MIXED_CORE_METHODS = [
-		'ExportController' => ['accountStatement', 'accountStatementPrint', 'attachments', 'balances', 'budget', 'finanzplan', 'gliederungsbericht', 'gliederungsberichtCsv', 'journal', 'kassenbericht', 'kurzbericht', 'multiyear', 'report'],
+		'ExportController' => ['accountStatement', 'accountStatementPrint', 'attachments', 'balances', 'budget', 'finanzplan', 'gliederungsbericht', 'gliederungsberichtCsv', 'gliederungsberichtVisuell', 'journal', 'kassenbericht', 'kurzbericht', 'multiyear', 'report'],
 	];
 
 	/**
@@ -119,11 +120,15 @@ class ControllerRoleDeclarationTest extends TestCase {
 	 */
 	private const CORE_CONTROLLERS = [
 		'AccountController',
+		'AccountReconciliationController',
 		'AttachmentController',
 		'AuditController',
+		'BookingCostCenterController',
 		'BrandingController',
 		'BudgetController',
+		'CostCenterBudgetController',
 		'CostCenterController',
+		'CostCenterReportController',
 		'DemoController',
 		'HelpController',
 		'ImportController',

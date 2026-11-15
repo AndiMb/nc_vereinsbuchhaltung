@@ -157,6 +157,14 @@ jobs:
         # das Release hier statt erst beim Nutzer (Issue #269).
         run: php .github/scripts/check-vendor-autoload.php "$RUNNER_TEMP/stage/$APP_ID"
 
+      - name: Klassen-Cache von invoicesuite vorab erzeugen
+        # Die Bibliothek schreibt ihn sonst beim ersten Erzeugen einer
+        # E-Rechnung in ihr eigenes vendor-Verzeichnis. Die Datei steht dann
+        # nicht in signature.json, und die Integritaetspruefung meldet sie als
+        # EXTRA_FILE. Vor dem Signieren erzeugt, ist sie Teil der Signatur und
+        # wird zur Laufzeit nur noch gelesen.
+        run: php .github/scripts/warm-invoicesuite-cache.php "$RUNNER_TEMP/stage/$APP_ID"
+
       - name: Signaturschluessel bereitstellen
         id: certs
         env:

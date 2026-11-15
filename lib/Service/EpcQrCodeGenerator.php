@@ -48,6 +48,11 @@ class EpcQrCodeGenerator {
 	/** EPC069-12 Abschnitt 2.2: „The total payload is limited to 331 bytes" – Bytes in UTF-8, nicht Zeichen. */
 	private const MAX_PAYLOAD_BYTES = 331;
 
+	public function __construct(
+		private ClubCurrency $currency,
+	) {
+	}
+
 	/**
 	 * @param string $creditorName Empfängername (Verein), wird auf 70 Zeichen gekürzt
 	 * @param string $creditorIban IBAN des Vereinskontos, das die Überweisung empfängt
@@ -58,10 +63,11 @@ class EpcQrCodeGenerator {
 	 * @throws \InvalidArgumentException bei nicht-positivem Betrag oder leerer IBAN
 	 */
 	public function generatePng(string $creditorName, string $creditorIban, ?string $creditorBic, int $amountCents, string $remittanceText, ?string $creditorReference = null): string {
+		// php-qrcode liegt in vendor/, das Nextcloud nicht selbst lädt (#120, #265).
+		// Zuerst, vor jedem Zugriff auf Eigenschaften: siehe Application::loadComposerAutoloader().
+		Application::loadComposerAutoloader();
 		$payload = $this->buildPayload($creditorName, $creditorIban, $creditorBic, $amountCents, $remittanceText, $creditorReference);
 
-		// php-qrcode liegt in vendor/, das Nextcloud nicht selbst lädt (#120, #265).
-		Application::loadComposerAutoloader();
 		$options = new QROptions([
 			// In php-qrcode 5.x wählt `outputType` die Ausgabeklasse (GDIMAGE_PNG
 			// -> QRGdImagePNG); `outputInterface` gilt dort nur für den Typ CUSTOM
@@ -86,6 +92,10 @@ class EpcQrCodeGenerator {
 	 *                                       unstrukturierten Verwendungszweck, denn der Code kennt nur eines von beiden
 	 */
 	public function buildPayload(string $creditorName, string $creditorIban, ?string $creditorBic, int $amountCents, string $remittanceText, ?string $creditorReference = null): string {
+		// Vereinswährung (#202): der EPC-Code kennt nur Euro.
+		if (!$this->currency->isEuro()) {
+			throw new \InvalidArgumentException('Einen GiroCode gibt es nur in Euro.');
+		}
 		if ($amountCents <= 0) {
 			throw new \InvalidArgumentException('Der Betrag für einen GiroCode muss größer als 0 sein.');
 		}

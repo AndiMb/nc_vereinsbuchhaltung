@@ -50,6 +50,7 @@ class StaffChangeReceiptService {
 		private IFactory $l10nFactory,
 		private IL10N $l10n,
 		private LoggerInterface $logger,
+		private ClubCurrency $currency,
 		?IUserConfig $userConfig = null,
 	) {
 		$this->userConfig = $userConfig ?? Server::get(IUserConfig::class);
@@ -114,11 +115,12 @@ class StaffChangeReceiptService {
 				$this->groups->find($after->getGroupId())->getName(),
 			]);
 		}
-		if ($after->getMonthlyAmountCents() !== $before['amountCents']) {
-			$what[] = $l->t('Der Vorstand hat Ihren Monatsbeitrag von %1$s € auf %2$s € geändert.', [
-				$this->euro($before['amountCents']),
-				$this->euro($after->getMonthlyAmountCents()),
-			]);
+		// `amountCents` steht in der Betragsangabe der Gruppe: bei Jahresgruppen (Issue #270) der Jahresbeitrag.
+		if ($after->amountCents() !== $before['amountCents']) {
+			$amounts = [$this->euro($before['amountCents']), $this->euro($after->amountCents())];
+			$what[] = $after->isAnnual()
+				? $l->t('Der Vorstand hat Ihren Jahresbeitrag von %1$s auf %2$s geändert.', $amounts)
+				: $l->t('Der Vorstand hat Ihren Monatsbeitrag von %1$s auf %2$s geändert.', $amounts);
 		}
 		if ($after->getIntervalMonths() !== $before['intervalMonths']) {
 			$what[] = $l->t('Der Vorstand hat Ihren Zahlungsturnus von %1$s auf %2$s geändert.', [
@@ -160,6 +162,6 @@ class StaffChangeReceiptService {
 	}
 
 	private function euro(int $cents): string {
-		return number_format($cents / 100, 2, ',', '.');
+		return $this->currency->format($cents);
 	}
 }

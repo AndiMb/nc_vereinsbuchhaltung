@@ -15,6 +15,180 @@ Markdown headings as "[object Object]" since `marked` v18 (wrong renderer
 callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 **bold lead-in** at the start of a line instead, e.g. `**New:**`.
 
+## [Unreleased]
+
+**New:**
+- **Backup and migration** (#111): under *gear icon → Backup and migration*,
+  administrators save the entire data set – bookkeeping, members, mandates,
+  contributions, invoices, expenses, roles, change log and settings,
+  optionally including receipts and documents – into a single file and
+  restore it on the same or a different Nextcloud. The file is encrypted with
+  a password of your choice (AES-256); without the password it cannot be
+  opened. Restoring only works in an empty data set and only with the same
+  app version; for that there is *Clear data set completely*, which – unlike
+  *Delete all data* – also removes members, mandates and settings. Large
+  backups can be picked from your own Nextcloud files instead of being
+  uploaded. After restoring, a report lists missing files and users or groups
+  that do not exist in the target; receipt storage, watch folder and the
+  other folders have to be configured again in the target (handbook 12.3).
+- **Annual fees** (#270): a contribution group can now state its amounts
+  *per year* instead of *per month* (*Contributions → Contribution groups →
+  Amounts apply*). A full contribution year then costs exactly the annual
+  fee – €50 a year stays €50.00 instead of 12 × €4.17 = €50.04. Each group
+  decides whether a partial year is prorated (annual fee × months ÷ 12,
+  rounded to the cent) or the full annual fee is due. Dialogs, lists, "My
+  contribution", receipt mails and the member import show and expect the
+  annual fee for these groups; collection is once a year only. Existing
+  groups keep their amounts per month.
+- **Account reconciliation** (#159): on a cash account ("Accounts" tab) you
+  can upload a bank statement and compare it row by row with the account.
+  The app shows what is surplus in the app (entries recorded twice, for
+  example), what is missing and what was dated in a different period, and
+  for statements with balances it explains the difference to the account
+  balance. It only compares – nothing is imported or stored. For everyone
+  from the auditor role upwards; manual chapter 5.9.
+- **Create previous period** (#349): under *Settings → Fiscal year* you can
+  now also create a period *before* the first one. The list starts with the
+  fiscal year in which the app was first opened; to post into an earlier
+  year you previously had to know that it comes into being by itself with
+  the first posting in it.
+
+## [0.53.0] – 2026-11-12
+
+**New:**
+- **Cost centres on the entry line** (#7, optional, switched off by
+  default): an amount on an income or expense account can be allocated to
+  one or more cost centres – €1,000 equipment, of which €600 seniors and
+  €400 under-19s, in one entry on one account. Switch it on under
+  *Settings → Cost centres*; create cost centres under *Reports → Cost
+  centres → Manage cost centres*. The "Cost centre" field is available in
+  the entry dialog and in "Split…" for a bank transaction; entering one is
+  always optional. The new report *Reports → Cost centres* shows income,
+  expenses and result per cost centre by account, plus "Without cost centre"
+  and the reconciliation with the account balances, also as a print page and
+  CSV. With the feature on, the journal export gets a last column
+  "Kostenstellen". Reporting groups and
+  spheres are unchanged. Manual chapter 5.8.
+- **Cost centre on import rules** (#331): a rule can set a cost centre in
+  addition to the contra account. When it applies during import, or its
+  suggestion is accepted, the whole amount belongs to that cost centre. If
+  the default cannot be applied (cost centre inactive, contra account
+  carries none), the transaction is assigned without a cost centre as
+  before.
+- **Cost centre required** (#334): new switch on an income or expense
+  account. The entry dialog and the split dialog then remind you of the cost
+  centre with the amount not yet allocated – saving stays possible – and the
+  *Cost centres* report lists "Mandatory accounts with an open amount", also
+  on the print page and in the CSV.
+- **Cost centres on invoices** (#332): every invoice item can carry a cost
+  centre. When a payment is booked – by bank transaction or in cash – the
+  revenue per revenue account is distributed proportionally across the cost
+  centres of the items. Copies, cancellations and recurring invoices take
+  them over; in the batch import the "Kostenstelle" column means the real
+  cost centre when the feature is switched on.
+- **Cost centres for expense claims and SEPA collection** (#333): the
+  dialog "Umsatz einer Auslage zuordnen" asks for the cost centre. Every
+  contribution group can carry a default cost centre; bulk credits,
+  returned debits and single incoming payments are booked with it.
+- **Budget per cost centre** (#335): planned values for income and
+  expenses can be stored per cost centre and financial year (button
+  "Budget planen" in the cost-centre report). Report, print page and CSV
+  show plan, actual and variance.
+- For existing installations nothing changes unless you switch it on: no new
+  column in the journal export, no new field, no new report. If the feature
+  is switched off again, the allocations stay saved.
+- **Club currency** (#202): selectable under *Settings → Club* – euro, CHF,
+  GBP, DKK, SEK, NOK, PLN or CZK. The sign follows every amount in the
+  interface, reports, exports, invoices and emails; the number format stays
+  German (`1.234,50 CHF`). Bank statements without a currency take the club
+  currency.
+- SEPA direct debit and GiroCode exist only in euros: in other currencies
+  mandates, the direct debit run and the SEPA settings are hidden and
+  blocked. Switching away from the euro is blocked while mandates are in
+  force, a released collection is waiting to be submitted or assignments are
+  still paid by direct debit.
+- **Structured report, visual view:** next to the template there is a
+  "Table | Visual" switch. The view shows the same template as key figures,
+  traffic lights and bars: budget and actual for income, expenses and result
+  with time-proportional budget and linear forecast, the status of the
+  accounts, the largest overruns and shortfalls, a **trend** chart
+  (cumulative actual per month with a budget line) and the "Breakdown by
+  template". "As of" (a month or all entries) and "Compare against" (full plan
+  or time-proportional) are selectable. The choice between Table and Visual
+  is remembered in the browser and is part of the link (`view=visual`); the
+  browser also remembers the comparison basis. Administrators set the
+  status thresholds club-wide under *Settings → Status in the structured
+  report*. In the visual view "Print / PDF" opens a print-ready page that is
+  also readable in black and white. Clicking an account without sub-accounts
+  in the breakdown or in the deviation lists jumps to the bookings list
+  filtered to that account; the list's account filter is now part of the
+  link (`account=`). The table, its print and its CSV stay unchanged.
+- **Date filter in the bookings list** (#328): The fields “From” and
+  “To” narrow the journal to a range of booking dates, both days
+  included; each field works on its own, and the cross next to them clears
+  the filter. The range is part of the link like the account filter
+  (`from=`, `to=`). The jump from the visual view of the structured report
+  sets “To” to the last day of the chosen snapshot month, so the list adds
+  up to the figure that was clicked. With “Current” it stays unfiltered.
+- **Account filter “incl. sub-accounts” in the bookings list** (#326): when
+  the journal is filtered to an account that has sub-accounts, a checkbox
+  next to it also shows the bookings of all sub-accounts at any depth; in
+  the link this is `sub=1`. In the visual view of the structured report
+  parent accounts are therefore links too – in the breakdown and in the
+  deviation lists – and the list adds up to the figure that was clicked. If
+  a row does not count the sub-accounts because they sit in another section
+  of the template, the jump filters the account alone.
+
+**Fixed:**
+- **A contribution-free assignment stopped the daily claim run:** With an
+  assignment at a monthly contribution of 0 € (for example a group
+  “Dormant”), the run aborted there – every assignment after it got no claim
+  that day or on any following day. The run now records the contribution-free
+  period as intended and carries on; the next run catches up on the claims
+  that were missed.
+- **A duplicate account number ended in a server error** (#327): Creating
+  an account with a number that was already taken, or changing an account to
+  such a number, answered with “Internal server error”. The app now says
+  that the account number is already in use, and the dialog stays open with
+  what was entered.
+- **Print page of the visual structured report** (#329): In the breakdown, a
+  heading or an account with rows below it is no longer the last line of a
+  page while its rows start on the next one. The header row of the table
+  stays on one line (“Ist zu Plan” used to wrap with large amounts).
+
+## [0.52.0] – 2026-11-09
+
+**New:**
+- **Test sending** of invoices and reminders ([#216](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/216)): "Send test to me" sends
+  the email with "[TEST]" in the subject to your own address. The invoice stays
+  unchanged. Drafts: "Test send …" with a preview PDF.
+- **Accounts:** short name and description ([#201](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/201)). The short name appears in
+  selection lists, the journal and the account tree; reports show the full name.
+- **Long club names on invoices** ([#238](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/238)): optional "Name on invoices" and
+  "Account holder"; the PDF wraps long names cleanly.
+- **Mobile:** compact header that collapses when scrolling; the booking list
+  gets much more room.
+
+**Changed:**
+- **A member's link to a Nextcloud account** only counts once the member has
+  confirmed it via an email link; existing links stay confirmed ([#295](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/295)).
+- **Direct debit run:** items with a revoked or suspended mandate show up as a
+  deviation; submitting then requires confirmation ([#302](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/302)).
+
+**Security:**
+- Several smaller safeguards ([#295](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/295)–[#307](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/307)): roles of deleted users and
+  groups expire, closed years stay locked, anonymisation is complete, a direct
+  debit run cannot be released twice, uploads and imports are limited against
+  manipulated files.
+
+**Fixed:**
+- Nextcloud's **integrity check** reported an extra file in
+  `vendor/horstoeko/invoicesuite` after the first e-invoice; the package now
+  includes it.
+
+**Update note:** migrations run automatically (new columns for accounts and
+account links, an index for the direct debit run).
+
 ## [0.51.0] – 2026-11-06
 
 **New:**

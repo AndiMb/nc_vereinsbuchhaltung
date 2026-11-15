@@ -25,6 +25,32 @@ import { compareVersions, isNewerVersion } from '../lib/version.js'
 export function buildWhatsNewEntries() {
 	return [
 		{
+			version: '0.53.0',
+			roles: ['verwalter', 'buchhalter'],
+			items: [
+				t('Neu: Kostenstellen (optional, unter Einstellungen einschaltbar). Ein Betrag lässt sich auf demselben Konto einer oder mehreren Kostenstellen zuordnen – beim Buchen, in Importregeln, an Rechnungen, bei Auslagen und im SEPA-Einzug.'),
+				t('Neu: Bericht und Budget je Kostenstelle. Konten können eine Kostenstelle verlangen.'),
+				t('Neu: Vereinswährung wählbar – neben Euro auch CHF, GBP, DKK, SEK, NOK, PLN und CZK. SEPA-Lastschrift und GiroCode gibt es nur in Euro.'),
+				t('Neu: Der Gliederungsbericht hat eine visuelle Ansicht mit Kennzahlen, Ampeln, Verlauf und Balken. Ein Klick auf ein Konto öffnet die passenden Buchungen.'),
+				t('Neu: Die Buchungsliste filtert nach Datum („Von“ / „Bis“) und auf Wunsch nach einem Konto samt Unterkonten.'),
+				t('Behoben: Eine doppelte Kontonummer führt nicht mehr zu einem Serverfehler, sondern zu einer verständlichen Meldung.'),
+				t('Behoben: Eine beitragsfreie Zuweisung hielt den täglichen Forderungslauf an. Ausgebliebene Forderungen holt der nächste Lauf nach.'),
+			],
+		},
+		{
+			version: '0.52.0',
+			roles: ['verwalter', 'buchhalter'],
+			items: [
+				t('Neu: Testversand für Rechnungen und Mahnungen. „Test an mich senden“ schickt die Mail an Ihre eigene Adresse; an der Rechnung ändert sich nichts.'),
+				t('Neu: Konten haben einen Kurznamen und eine Beschreibung. Der Kurzname steht in Auswahllisten und im Kontenbaum.'),
+				t('Neu: Rechnungen können einen eigenen Vereinsnamen und Kontoinhaber tragen – nützlich bei langen Namen.'),
+				t('Mobil: Der Kopf ist kompakter und klappt beim Scrollen weg, die Listen bekommen mehr Platz.'),
+				t('Geändert: Die Verknüpfung eines Mitglieds mit einem Nextcloud-Konto gilt erst, wenn das Mitglied sie per Mail-Link bestätigt hat.'),
+				t('Geändert: Der Lastschriftlauf warnt vor Posten mit widerrufenem oder gesperrtem Mandat; zum Einreichen ist eine Bestätigung nötig.'),
+				t('Sicherheit: Einige kleinere Absicherungen im Hintergrund, etwa bei Berechtigungen, abgeschlossenen Jahren und Uploads.'),
+			],
+		},
+		{
 			version: '0.51.0',
 			roles: ['verwalter', 'buchhalter'],
 			items: [

@@ -93,6 +93,9 @@ class InvoicePlan extends Entity implements \JsonSerializable {
 	protected $createdBy;
 
 	public function __construct() {
+		// Pflichtspalte ohne Datenbank-Vorgabe: auch der Vorgabewert muss im INSERT stehen
+		// (der Setter merkt nur geänderte Werte vor, siehe EntityDefaultValueInsertTest).
+		$this->markFieldUpdated('lines');
 		$this->addType('debtorId', 'integer');
 		$this->addType('intervalMonths', 'integer');
 		$this->addType('dueDays', 'integer');

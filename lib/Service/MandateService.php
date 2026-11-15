@@ -74,6 +74,7 @@ class MandateService {
 		private MandateExpirySettings $expirySettings,
 		private MandateActivationTokenMapper $activationTokens,
 		private ClubClock $clock,
+		private ClubCurrency $currency,
 	) {
 	}
 
@@ -130,6 +131,8 @@ class MandateService {
 		?string $signedAt = null,
 		?string $mandateReference = null,
 	): Mandate {
+		// Vereinswährung (#202): SEPA gibt es nur in Euro.
+		$this->currency->assertSepaAvailable($this->l10n);
 		return $this->createDraft($memberId, $iban, $bic, $accountHolder, Mandate::SIGNATURE_PAPER, $signedAt, $mandateReference);
 	}
 
@@ -155,6 +158,8 @@ class MandateService {
 		?string $accountHolder,
 		?string $mandateReference = null,
 	): Mandate {
+		// Vereinswährung (#202): SEPA gibt es nur in Euro.
+		$this->currency->assertSepaAvailable($this->l10n);
 		return $this->createDraft($memberId, $iban, $bic, $accountHolder, Mandate::SIGNATURE_ELECTRONIC, null, $mandateReference);
 	}
 
@@ -218,6 +223,8 @@ class MandateService {
 		string $consentUserAgent,
 		string $consentActor,
 	): Mandate {
+		// Vereinswährung (#202): SEPA gibt es nur in Euro.
+		$this->currency->assertSepaAvailable($this->l10n);
 		$mandate = $this->mapper->find($id);
 		$this->stateMachine->assertCanActivateElectronic($mandate);
 
@@ -269,6 +276,8 @@ class MandateService {
 		string $consentUserAgent,
 		string $consentActor,
 	): Mandate {
+		// Vereinswährung (#202): SEPA gibt es nur in Euro.
+		$this->currency->assertSepaAvailable($this->l10n);
 		$mandate = $this->mapper->find($id);
 		$this->stateMachine->assertCanReconfirm($mandate);
 
@@ -303,6 +312,8 @@ class MandateService {
 	 * @throws \InvalidArgumentException wenn der Übergang nicht erlaubt ist
 	 */
 	public function activatePaper(int $id, ?string $signedAt = null): Mandate {
+		// Vereinswährung (#202): SEPA gibt es nur in Euro.
+		$this->currency->assertSepaAvailable($this->l10n);
 		$mandate = $this->mapper->find($id);
 		if ($signedAt !== null && trim($signedAt) !== '') {
 			$mandate->setSignedAt($this->normalizeDate($signedAt));
@@ -542,6 +553,8 @@ class MandateService {
 	 * @throws \InvalidArgumentException wenn der Übergang nicht erlaubt ist
 	 */
 	public function replaceMandate(int $oldId, string $iban, ?string $bic, string $newAccountHolder, ?string $signedAt = null): Mandate {
+		// Vereinswährung (#202): SEPA gibt es nur in Euro.
+		$this->currency->assertSepaAvailable($this->l10n);
 		$old = $this->mapper->find($oldId);
 		$this->stateMachine->assertCanReplace($old);
 		$newAccountHolder = trim($newAccountHolder);
@@ -609,6 +622,8 @@ class MandateService {
 		string $consentUserAgent,
 		string $consentActor,
 	): Mandate {
+		// Vereinswährung (#202): SEPA gibt es nur in Euro.
+		$this->currency->assertSepaAvailable($this->l10n);
 		return $this->transaction->run(function () use ($memberId, $iban, $bic, $accountHolder, $mandateTextVersionId, $consentIp, $consentUserAgent, $consentActor): Mandate {
 			$mandate = $this->createElectronic($memberId, $iban, $bic, $accountHolder);
 			return $this->activateElectronic((int)$mandate->getId(), $mandateTextVersionId, $this->now(), $consentIp, $consentUserAgent, $consentActor);
@@ -638,6 +653,8 @@ class MandateService {
 		string $consentUserAgent,
 		string $consentActor,
 	): Mandate {
+		// Vereinswährung (#202): SEPA gibt es nur in Euro.
+		$this->currency->assertSepaAvailable($this->l10n);
 		$old = $this->mapper->find($oldId);
 		$this->stateMachine->assertCanReplace($old);
 		$newAccountHolder = trim($newAccountHolder);
@@ -848,9 +865,14 @@ class MandateService {
 	/** Nachweis-Upload; setzt `document_file_id` (Spec §3.2). */
 	public function uploadDocument(int $id, string $fileName, string $content): Mandate {
 		$mandate = $this->mapper->find($id);
+		$replacesAppData = $mandate->getDocumentFileId() === MandateDocumentService::APPDATA_FILE_ID;
 		$fileId = $this->documents->store($mandate, $fileName, $content);
 		$mandate->setDocumentFileId($fileId);
 		$mandate = $this->mapper->update($mandate);
+		if ($replacesAppData) {
+			// Der neue Nachweis liegt im Nutzerordner; der app-interne aus einer Sicherung ist damit ersetzt.
+			$this->documents->deleteFromAppData($mandate->getId());
+		}
 		$this->logEvent($mandate, $this->l10n->t('Nachweis-Dokument hinterlegt'), MandateEvent::ACTOR_STAFF);
 		return $mandate;
 	}

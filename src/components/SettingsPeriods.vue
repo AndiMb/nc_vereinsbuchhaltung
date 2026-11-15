@@ -75,13 +75,26 @@
 		<div class="vbh-card">
 			<div class="vbh-sectionhead">
 				<h4>{{ t('Zeiträume') }}</h4>
-				<NcButton
-					variant="secondary"
-					:disabled="creating"
-					:title="t('Legt den Zeitraum nach dem bisher letzten an – nach der oben eingestellten Regel')"
-					@click="createNext">
-					{{ t('Nächsten Zeitraum anlegen') }}
-				</NcButton>
+				<!-- Zwei Knöpfe, weil die Kette an beiden Enden wachsen kann: nach
+				     vorn für die Planung des kommenden Jahres, nach hinten für
+				     alle, die mitten im Jahr einsteigen und das Vorjahr
+				     nachbuchen wollen (Issue #349). -->
+				<div class="vbh-actions">
+					<NcButton
+						variant="secondary"
+						:disabled="creating"
+						:title="t('Legt den Zeitraum vor dem bisher ersten an – nach der oben eingestellten Regel')"
+						@click="createPeriod('before')">
+						{{ t('Vorherigen Zeitraum anlegen') }}
+					</NcButton>
+					<NcButton
+						variant="secondary"
+						:disabled="creating"
+						:title="t('Legt den Zeitraum nach dem bisher letzten an – nach der oben eingestellten Regel')"
+						@click="createPeriod('after')">
+						{{ t('Nächsten Zeitraum anlegen') }}
+					</NcButton>
+				</div>
 			</div>
 			<p class="vbh-hint">
 				{{ t('Ein abgeschlossener Zeitraum ist') }} <strong>{{ t('festgeschrieben') }}</strong>{{ t(': Buchungen, Belege und Zuordnungen dieses Zeitraums können nicht mehr geändert oder gelöscht werden – z. B. nach der Kassenprüfung und Entlastung. Nur Verwalter können einen Zeitraum abschließen oder wiedereröffnen; beides wird im Protokoll (Berichte → Protokoll) festgehalten.') }}
@@ -482,10 +495,13 @@ export default {
 			} catch (e) { showError(this.errMsg(e, this.t('Umstellung fehlgeschlagen'))) } finally { this.applying = false }
 		},
 
-		async createNext() {
+		/**
+		 * @param {'before'|'after'} position vor dem ersten oder nach dem letzten Zeitraum
+		 */
+		async createPeriod(position) {
 			this.creating = true
 			try {
-				const { data } = await api.createPeriod()
+				const { data } = await api.createPeriod(position)
 				await this.loadPeriods()
 				showSuccess(this.tRaw('Zeitraum {label} angelegt.', { label: data.label }))
 			} catch (e) { showError(this.errMsg(e, this.t('Zeitraum konnte nicht angelegt werden'))) } finally { this.creating = false }

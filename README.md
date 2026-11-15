@@ -24,6 +24,7 @@ Eine schlanke Buchhaltungs-App für Vereine, direkt in Nextcloud integriert. Kon
 - **Willkommenshinweis für Revisoren** beim ersten Login mit der Rolle, inkl. Prüfleitfaden zum Ausdrucken
 
 ### Import
+- **Sicherung und Umzug**: der gesamte Bestand samt Mitgliedern, Mandaten, Einstellungen und – auf Wunsch – Belegen in einer passwortverschlüsselten Datei; einspielbar in eine leere Vereinsbuchhaltung derselben Version, auch auf einer anderen Nextcloud
 - **xbuc-Import** (zero Buchhaltung): übernimmt Kontenbaum und alle Buchungen aus einer `.xbuc`-Datei
   - **Merge-Modus** (Standard): nur fehlende Konten werden angelegt, bereits vorhandene Buchungen werden per Fingerprint übersprungen – mehrere Jahres-Dateien lassen sich nacheinander importieren
   - **Geschäftsjahr-Prüfung**: Jahr aus der Datei oder manuell wählbar; Buchungen außerhalb des Geschäftsjahres werden gemeldet und können automatisch auf den 01.01./31.12. datiert werden
@@ -67,10 +68,11 @@ Eine schlanke Buchhaltungs-App für Vereine, direkt in Nextcloud integriert. Kon
 - **Finanzplan**: geplante Beträge je Konto und Jahr, Soll-Ist-Vergleich mit farbiger Abweichung – als Baum über die Kontenhierarchie summiert (eine Planungsebene je Zweig, Filter „Nur Auffälligkeiten"), auch als druckfertige Seite für den Vorstand; Vergleich mit einem anderen Zeitraum (vorbelegt: Ist des Vorjahres) samt Veränderung in Euro und Prozent
   - **Notizen je Planzahl** (z. B. Herleitung „40 Mitglieder × 25 €")
   - **Plan-Stände**: kompletten Plan als benannten, datierten Stand einfrieren (z. B. „Beschluss MV") und später mit dem aktuellen Plan vergleichen
-- **Gliederungsbericht nach Vorlage**: Plan und Buchungen nach einer Vorlage gegliedert – zwei Standardvorlagen (Haushaltsplan nach Titelgruppen für Zuwendungsgeber, Ergebnis je Bereich und Projekt), die sich wie jede Vorlage bearbeiten, löschen und zurückholen lassen; neue Vorlagen bei null oder als Kopie, mit frei wählbaren Abschnitten, Spalten (Plan/Ist, auch Vorperioden) und Gruppen; druckfertig und als CSV
+- **Gliederungsbericht nach Vorlage**: Plan und Buchungen nach einer Vorlage gegliedert – zwei Standardvorlagen (Haushaltsplan nach Titelgruppen für Zuwendungsgeber, Ergebnis je Bereich und Projekt), die sich wie jede Vorlage bearbeiten, löschen und zurückholen lassen; neue Vorlagen bei null oder als Kopie, mit frei wählbaren Abschnitten, Spalten (Plan/Ist, auch Vorperioden) und Gruppen; druckfertig und als CSV. Dazu eine **visuelle Ansicht** derselben Vorlage: Kennzahlen, Ampeln, Verlauf und Balken mit wählbarem Stand, druckfertig, mit Sprung von jedem Konto in die passenden Buchungen
 - **Kassenbericht (druckfertig)**: eigenständige Druckseite für die Mitgliederversammlung – Vereinsname, Vermögensübersicht der Geldkonten (Bestand 01.01./31.12.), Einnahmen-/Ausgaben-Rechnung, Soll-Ist-Vergleich, Sphärenübersicht (steuerlich) mit Freigrenzen-Hinweis, Vollständigkeitsvermerk, Abschlussvermerk und Unterschriftszeilen; Drucken/Als-PDF-speichern über den Browser
 - **Kurzbericht für Vorstandssitzungen (druckfertig)**: kompakte Druckseite mit wählbarem Stichtag – Kontostände seither, Bewegungen, Finanzplan-Kurzfassung; optional im Corporate Design (Vereinslogo + Akzentfarbe, unter Zahnrad → Verein hinterlegbar)
 - **CSV-Exporte** (für Kassenprüfung/Excel): Journal, Saldenliste, Einnahmen-/Ausgaben-Übersicht, Soll-Ist-Vergleich (inkl. Notizen)
+- **Kostenstellen** (optional, ab Werk aus): ein Betrag auf einem Einnahmen-/Ausgabenkonto lässt sich einer oder mehreren Kostenstellen zuordnen (1.000 € Ausrüstung, davon 600 € Senioren und 400 € A-Junioren – eine Buchung, ein Konto); eigener Bericht je Kostenstelle mit Abstimmung gegen die Kontensalden, Druckseite und CSV
 - **Mehrjahresübersicht** (CSV-Matrix, Spalten = Jahre): Erfolgsrechnung nach Konten (Einnahmen/Ausgaben/Ergebnis) + Vermögen zum Jahresende sowie Ergebnis je Auswertungsgruppe/Projekt und nach steuerlichen Sphären über alle Jahre; zusätzlich als Liniendiagramm (Berichte → Auswertung) für Sitzungspräsentationen
 - **Geldkonten-Abstimmung**: Kontostand (Journal) vs. offene (nicht zugeordnete) Bankbuchungen, mit Summe über alle Geldkonten
 - **Geldbestand in der Kopfzeile**: die Kontostände aller Geldkonten als eine Zahl; einzelne Konten (z. B. Festgeld) lassen sich davon ausnehmen, ohne dass sie aus Kassenbericht, Vermögensübersicht oder Saldenliste verschwinden
@@ -79,6 +81,7 @@ Eine schlanke Buchhaltungs-App für Vereine, direkt in Nextcloud integriert. Kon
 - **Änderungsprotokoll** (Berichte → Protokoll, für alle Leseberechtigten): wer hat wann Buchungen angelegt/geändert/gelöscht, zugeordnet, importiert, Belege oder Berechtigungen geändert, Jahre abgeschlossen; übersteht bewusst auch „Alle Daten löschen"
 - **Beleg-ZIP**: alle Belege eines Jahres als ZIP-Download, ein Ordner je Buchung (`NNNN_Datum_Beschreibung/`); fehlende Dateien werden aufgelistet statt den Export abzubrechen
 - **Filter „nur ohne Beleg"** im Journal: zeigt Buchungen ohne angehängten Beleg
+- **Journal-Filter nach Datum und Konto**: Buchungsdatum „Von“ / „Bis“ sowie ein Konto, auf Wunsch samt allen Unterkonten; beides steht im Link der Seite
 - **Suche nach Text oder Betrag** im Journal und unter „Zuzuordnen“: `12,50` oder `1.250` findet auch Buchungen über genau diesen Betrag, bei Splittbuchungen auch Teilbeträge; flüssig auch bei vielen hundert Buchungen
 - **Lückenprüfung**: Warnhinweis über dem Journal bei fehlenden oder doppelten Buchungsnummern im gewählten Jahr (zusätzlich als Vollständigkeitszeile im Kassenbericht). In einem offenen Geschäftsjahr hält die App die Nummerierung selbst lückenlos – gelöschte Buchungen lassen die nachfolgenden Nummern aufrücken, mit dem Jahresabschluss werden sie festgeschrieben
 - **Prüfleitfaden** (Berichte → Auswertung): druckfertige 1-Seiten-Kurzanleitung für Kassenprüfer/innen – Rolle, Prüfschritte, wo was zu finden ist; mit Vereinsname im Kopf
@@ -219,6 +222,9 @@ vereinsbuchhaltung/
 | `vbh_bank_tx` | importierte Bankbuchungen inkl. Dedup-Hash und Zuordnungsstatus |
 | `vbh_journal` | Buchungssätze (Datum, Beschreibung, Belegnr., Buchungsnr.) |
 | `vbh_journal_line` | Soll-/Haben-Zeilen je Buchungssatz (Betrag in Cent) |
+| `vbh_booking_cc` | Kostenstellen an der Buchungszeile (Kürzel, Name, aktiv) – nicht zu verwechseln mit `vbh_costcenters` |
+| `vbh_line_alloc` | Verteilung einer Buchungszeile auf Kostenstellen (Zeile, Kostenstelle, Betrag); ohne Einträge verhält sich die App wie ohne die Funktion |
+| `vbh_cc_budgets` | Budget je Kostenstelle und Geschäftsjahr (Plan Einnahmen, Plan Ausgaben) – unabhängig vom Finanzplan je Konto in `vbh_budgets` |
 | `vbh_costcenters` | Auswertungsgruppen (Kürzel, Name); Konten verweisen über `vbh_accounts.cost_center_id` darauf. Tabellen- und Spaltenname stammen aus der Zeit, als die Auswertungsgruppe „Kostenstelle" hieß – sie bleiben, damit bestehende Installationen ohne Migration weiterlaufen |
 | `vbh_budgets` | Finanzplan (Konto × Jahr × Betrag in Cent + Notiz) |
 | `vbh_budget_snapshots` | eingefrorene Plan-Stände (Jahr, Label, Zeitpunkt) |

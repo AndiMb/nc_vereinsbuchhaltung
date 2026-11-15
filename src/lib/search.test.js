@@ -16,6 +16,8 @@ describe('parseAmountQuery', () => {
 		['+12,50', 1250],
 		['12,50 €', 1250],
 		['€ 12,50', 1250],
+		['12,50 CHF', 1250],
+		['CHF 12,50', 1250],
 		['0,99', 99],
 	])('%s → %i Cent', (input, cents) => {
 		expect(parseAmountQuery(input)).toBe(cents)

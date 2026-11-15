@@ -15,6 +15,7 @@ use OCA\Vereinsbuchhaltung\Db\InvoiceItemTemplateMapper;
 use OCA\Vereinsbuchhaltung\Db\InvoiceMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
 use OCA\Vereinsbuchhaltung\Service\AuditService;
+use OCA\Vereinsbuchhaltung\Service\CostCenter\CostCenterDefaults;
 use OCA\Vereinsbuchhaltung\Service\DebtorService;
 use OCA\Vereinsbuchhaltung\Service\InvoiceService;
 use OCA\Vereinsbuchhaltung\Service\OptionalL10n;
@@ -54,6 +55,10 @@ class InvoiceBatchService {
 		private IUserSession $userSession,
 		private ITempManager $tempManager,
 		private ?IL10N $l10n = null,
+		// Kostenstellen an der Buchungszeile (Issue #332): bei eingeschaltetem
+		// Modul meint die Spalte „Kostenstelle“ diese, sonst wie bisher die
+		// Auswertungsgruppe.
+		private ?CostCenterDefaults $costCenterDefaults = null,
 	) {
 	}
 
@@ -348,6 +353,10 @@ class InvoiceBatchService {
 			$costCenters[mb_strtolower(trim($cc->getName()))] = (int)$cc->getId();
 			// Der Code geht dem Namen vor, falls ein Name zufällig einem anderen Code gleicht.
 			$costCenters[mb_strtolower(trim($cc->getCode()))] = (int)$cc->getId();
+		}
+		$bookingCostCenters = $this->costCenterDefaults?->lookup(Application::BOOK);
+		if ($bookingCostCenters !== null) {
+			return new BatchSheetParser($templates, $accounts, $bookingCostCenters, $this->l10n, 'bookingCostCenterId');
 		}
 		return new BatchSheetParser($templates, $accounts, $costCenters, $this->l10n);
 	}

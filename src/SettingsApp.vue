@@ -5,6 +5,8 @@
 				<SettingsClub
 					v-model:clubName="clubName"
 					v-model:brandColor="brandColor"
+					v-model:clubCurrency="clubCurrency"
+					:clubCurrencies="clubCurrencies"
 					:hasLogo="hasLogo"
 					:storageSaving="storageSaving"
 					:saveStorageSettings="saveSettings"
@@ -18,6 +20,12 @@
 					v-model:amountDisplay="amountDisplay"
 					:storageSaving="storageSaving"
 					:saveStorageSettings="saveSettings" />
+			</NcSettingsSection>
+		</div>
+
+		<div id="settings-section_ampel">
+			<NcSettingsSection :name="t('Ampel im Gliederungsbericht')">
+				<SettingsBudgetStatus v-model:thresholds="budgetStatusThresholds" />
 			</NcSettingsSection>
 		</div>
 
@@ -68,6 +76,12 @@
 			</NcSettingsSection>
 		</div>
 
+		<div id="settings-section_kostenstellen">
+			<NcSettingsSection :name="t('Kostenstellen')">
+				<SettingsCostCenters />
+			</NcSettingsSection>
+		</div>
+
 		<div id="settings-section_mandats-rechtstext">
 			<NcSettingsSection :name="t('Mandats-Rechtstext')">
 				<SettingsMandateLegalText :clubName="clubName" />
@@ -89,6 +103,14 @@
 		<div id="settings-section_geschaeftsjahr">
 			<NcSettingsSection :name="t('Geschäftsjahr')">
 				<SettingsPeriods />
+			</NcSettingsSection>
+		</div>
+
+		<div id="settings-section_sicherung">
+			<NcSettingsSection :name="t('Sicherung und Umzug')">
+				<!-- Leeren und Einspielen ersetzen den ganzen Bestand samt
+				     Geschäftsjahren – die Tabelle unter „Geschäftsjahr" muss davon erfahren. -->
+				<SettingsBackup v-model:busy="busy" @changed="reloadPeriods" />
 			</NcSettingsSection>
 		</div>
 
@@ -130,7 +152,10 @@ import NcButton from '@nextcloud/vue/components/NcButton'
 import NcDialog from '@nextcloud/vue/components/NcDialog'
 import NcSettingsSection from '@nextcloud/vue/components/NcSettingsSection'
 import SettingsAttachments from './components/SettingsAttachments.vue'
+import SettingsBackup from './components/SettingsBackup.vue'
+import SettingsBudgetStatus from './components/SettingsBudgetStatus.vue'
 import SettingsClub from './components/SettingsClub.vue'
+import SettingsCostCenters from './components/SettingsCostCenters.vue'
 import SettingsDisplay from './components/SettingsDisplay.vue'
 import SettingsInvoices from './components/SettingsInvoices.vue'
 import SettingsMandateLegalText from './components/SettingsMandateLegalText.vue'
@@ -147,6 +172,8 @@ import { useAccounts } from './composables/useAccounts.js'
 import { useConfirm } from './composables/useConfirm.js'
 import { usePeriods } from './composables/usePeriods.js'
 import { usePermissions } from './composables/usePermissions.js'
+import { THRESHOLD_DEFAULTS } from './lib/budgetStatusSettings.js'
+import { currencySettingsPayload, setClubCurrency } from './lib/clubCurrency.js'
 import { setClubTimeZone } from './lib/clubTime.js'
 import { errMsg } from './lib/format.js'
 import { withPasswordConfirmation } from './lib/passwordGate.js'
@@ -171,7 +198,10 @@ export default {
 		NcDialog,
 		NcSettingsSection,
 		SettingsAttachments,
+		SettingsBackup,
+		SettingsBudgetStatus,
 		SettingsClub,
+		SettingsCostCenters,
 		SettingsDisplay,
 		SettingsInvoices,
 		SettingsReimbursements,
@@ -202,9 +232,17 @@ export default {
 			storagePath: '',
 			clubName: '',
 			brandColor: '',
+			// Vereinswährung (#202); savedCurrency ist der Stand des Servers –
+			// ändert er sich, lädt die Seite neu, damit alle Beträge passen.
+			clubCurrency: 'EUR',
+			savedCurrency: 'EUR',
+			clubCurrencies: [],
 			hasLogo: false,
 			// Betragsdarstellung in den Buchungslisten: 'plain' | 'signed'
 			amountDisplay: 'plain',
+			// Ampel-Schwellen der visuellen Gliederungsansicht; speichert
+			// SettingsBudgetStatus selbst (nicht über saveSettings()).
+			budgetStatusThresholds: { ...THRESHOLD_DEFAULTS },
 			storageSaving: false,
 			// Überwachter Ordner für Kontoauszüge (leer = aus); der stündliche
 			// Hintergrundjob liest daraus ein.
@@ -254,12 +292,17 @@ export default {
 				const { data } = await api.getSettings()
 				// „Heute“ der Unterseiten in der Vereinszone (#263); diese Seite hat keinen Initial State.
 				setClubTimeZone(data.club_time_zone)
+				setClubCurrency(data.club_currency)
+				this.clubCurrency = data.club_currency || 'EUR'
+				this.savedCurrency = this.clubCurrency
+				this.clubCurrencies = data.club_currencies || []
 				this.storageMode = data.storage_mode || 'appdata'
 				this.storageUser = data.storage_user || ''
 				this.storagePath = data.storage_path || 'Vereinsbuchhaltung/Belege'
 				this.clubName = data.club_name || ''
 				this.brandColor = data.brand_color || ''
 				this.amountDisplay = data.amount_display === 'signed' ? 'signed' : 'plain'
+				this.budgetStatusThresholds = { ...THRESHOLD_DEFAULTS, ...data.budget_status_thresholds }
 				this.hasLogo = !!data.has_logo
 				this.statementWatchUser = data.statement_watch_user || ''
 				this.statementWatchPath = data.statement_watch_path || ''
@@ -283,6 +326,7 @@ export default {
 					storage_user: this.storageUser,
 					storage_path: this.storagePath || 'Vereinsbuchhaltung/Belege',
 					club_name: this.clubName,
+					...currencySettingsPayload(this.clubCurrency, this.savedCurrency),
 					brand_color: this.brandColor,
 					amount_display: this.amountDisplay,
 					statement_watch_user: this.statementWatchUser,
@@ -296,6 +340,11 @@ export default {
 				// Die Auswahl „intern" räumt den Nutzer serverseitig ab – die Felder
 				// sollen danach dasselbe zeigen wie der Server.
 				this.storageUser = data.storage_user || ''
+				// Neue Vereinswährung: SEPA-Abschnitte, Beschriftungen und Beträge hängen daran.
+				if (data.club_currency && data.club_currency !== this.savedCurrency) {
+					window.location.reload()
+					return
+				}
 				if (data.storage_backfilled > 0) {
 					showSuccess(this.t('Einstellungen gespeichert. {n} vorhandene Belege wurden dem Wächter-Ordner zugeordnet.', { n: data.storage_backfilled }))
 				} else {
@@ -304,6 +353,8 @@ export default {
 			} catch (e) {
 				const msg = (e?.response?.data?.message) || this.t('Speichern fehlgeschlagen (HTTP {status})', { status: e?.response?.status ?? this.t('Netzwerkfehler') })
 				showError(msg)
+				// Nichts gespeichert: die Währungsauswahl zeigt wieder den Stand des Servers.
+				this.clubCurrency = this.savedCurrency
 			} finally { this.storageSaving = false }
 		},
 

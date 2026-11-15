@@ -46,7 +46,8 @@ final class PeriodLabel {
 		return $l->t('%1$s %2$d bis %3$s %4$d', [$fromName, $fromYear, $toName, $toYear]);
 	}
 
-	private static function monthName(int $month, IL10N $l): string {
+	/** Monatsname in der Sprache von $l (1 = Januar). */
+	public static function monthName(int $month, IL10N $l): string {
 		return match ($month) {
 			1 => $l->t('Januar'),
 			2 => $l->t('Februar'),

@@ -91,6 +91,16 @@
 					?
 				</button>
 			</div>
+			<!-- Kostenstelle verpflichtend (Issue #334): nur bei eingeschaltetem Modul
+			     und nur für Konten, die eine Kostenstelle tragen dürfen. -->
+			<div v-if="showCostCenterRequired" class="vbh-form">
+				<NcCheckboxRadioSwitch v-model="form.costCenterRequired">
+					{{ t('Kostenstelle verpflichtend') }}
+				</NcCheckboxRadioSwitch>
+			</div>
+			<p v-if="showCostCenterRequired && form.costCenterRequired" class="vbh-hint">
+				{{ t('Beim Buchen auf dieses Konto erinnert die App an die Kostenstelle; der Bericht „Kostenstellen“ listet nicht zugeordnete Beträge. Speichern bleibt immer möglich.') }}
+			</p>
 			<div v-if="showCostCenter" class="vbh-form">
 				<label class="vbh-grow">{{ t('Auswertungsgruppe') }}
 					<select v-model="form.costCenterId">
@@ -146,12 +156,13 @@
 </template>
 
 <script>
-import { toRefs } from 'vue'
+import { toRef, toRefs } from 'vue'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcCheckboxRadioSwitch from '@nextcloud/vue/components/NcCheckboxRadioSwitch'
 import NcModal from '@nextcloud/vue/components/NcModal'
 import NcSelect from '@nextcloud/vue/components/NcSelect'
 import { useAccounts } from '../composables/useAccounts.js'
+import { useBookingCostCenters } from '../composables/useBookingCostCenters.js'
 import { useCostCenters } from '../composables/useCostCenters.js'
 import { accountFilterBy, accountOption } from '../lib/accountLabel.js'
 import { focusOnOpen } from '../lib/modalFocus.js'
@@ -160,7 +171,7 @@ import { focusOnOpen } from '../lib/modalFocus.js'
  *
  */
 function emptyForm() {
-	return { number: '', name: '', shortName: '', description: '', type: 'income', category: '', isBank: false, countInTotal: true, parentId: null, sphere: '', reserveKind: '', iban: '', costCenterId: null, active: true }
+	return { number: '', name: '', shortName: '', description: '', type: 'income', category: '', isBank: false, countInTotal: true, parentId: null, sphere: '', reserveKind: '', iban: '', costCenterId: null, costCenterRequired: false, active: true }
 }
 
 export default {
@@ -190,7 +201,11 @@ export default {
 		// Kostenstellen ebenfalls aus dem geteilten Zustand: das Auswahlfeld
 		// erscheint nur, wenn welche angelegt sind.
 		const costCenters = useCostCenters()
-		return { accountsSorted: accounts.accountsSorted, ...toRefs(costCenters.state) }
+		return {
+			accountsSorted: accounts.accountsSorted,
+			...toRefs(costCenters.state),
+			bookingCostCentersEnabled: toRef(useBookingCostCenters().state, 'enabled'),
+		}
 	},
 
 	data() {
@@ -205,6 +220,11 @@ export default {
 		// Nur wo die Zuordnung auch wirkt und zum Kontotyp passt: Geldkonten und
 		// Eigenkapital tauchen in der Kostenstellen-Auswertung nicht auf
 		// (Account::isResultRelevant() im Backend).
+		/** „Kostenstelle verpflichtend“ (Issue #334): nur mit dem Modul und nur an Einnahmen-/Ausgabenkonten. */
+		showCostCenterRequired() {
+			return this.bookingCostCentersEnabled && (this.form.type === 'income' || this.form.type === 'expense')
+		},
+
 		showCostCenter() {
 			return this.costCenterMode === 'manual'
 				&& this.costCenters.length > 0

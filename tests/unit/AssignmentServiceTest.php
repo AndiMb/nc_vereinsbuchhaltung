@@ -17,6 +17,7 @@ use OCA\Vereinsbuchhaltung\Service\ContributionYearService;
 use OCA\Vereinsbuchhaltung\Service\DueDateScheduleService;
 use OCA\Vereinsbuchhaltung\Service\MonthlyAmount;
 use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubClockStub;
+use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubCurrencyStub;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\IL10N;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -30,6 +31,8 @@ use PHPUnit\Framework\TestCase;
  * und der Austritts-Hook beendet offene Zuweisungen.
  */
 class AssignmentServiceTest extends TestCase {
+	/** Vereinswährung des Dienstes (#202). */
+	private string $currencyCode = 'EUR';
 
 	private AssignmentMapper&MockObject $mapper;
 	private AssignmentEventMapper&MockObject $eventMapper;
@@ -91,7 +94,7 @@ class AssignmentServiceTest extends TestCase {
 		);
 		$contributionYear = new ContributionYearService($config, ClubClockStub::system());
 		$dueDateSchedule = new DueDateScheduleService($config, $contributionYear, $l10n);
-		return new AssignmentService($this->mapper, $this->eventMapper, $this->groupMapper, $this->openItemMapper, $contributionYear, $dueDateSchedule, $time, $l10n);
+		return new AssignmentService($this->mapper, $this->eventMapper, $this->groupMapper, $this->openItemMapper, $contributionYear, $dueDateSchedule, $time, $l10n, ClubCurrencyStub::of($this, $this->currencyCode));
 	}
 
 	public function testCreateLegtDieZuweisungAnUndLogtEinEreignis(): void {
@@ -602,6 +605,7 @@ class AssignmentServiceTest extends TestCase {
 		$this->assertSame('2027-12-31', $preview['periodEnd']);
 		$this->assertSame(12000, $preview['amountCents']);
 	}
+
 	/** Eine monatliche Zuweisung mit berechneten Perioden bis zum Monatsende $billedUntil. */
 	private function monthlyBilledUntil(string $billedUntil, ?string $prenotifiedAt = null): Assignment {
 		$assignment = new Assignment();
@@ -685,5 +689,241 @@ class AssignmentServiceTest extends TestCase {
 		$preview = $this->service('2026-02-20')->previewChange(5, 1500, null);
 
 		$this->assertSame('2026-03-01', $preview['effectiveFrom']);
+	}
+
+	/** Vereinswährung (#202): ohne Euro keine neue Lastschrift-Zuweisung. */
+	public function testOhneEuroGibtEsKeineNeueLastschriftZuweisung(): void {
+		$this->currencyCode = 'CHF';
+		$this->groupMapper->method('find')->willReturn($this->group());
+		$this->mapper->method('findByMemberAndGroup')->willReturn([]);
+		$this->mapper->expects($this->never())->method('insert');
+
+		$this->expectException(\InvalidArgumentException::class);
+		$this->expectExceptionMessage('nur in Euro');
+		$this->service()->create(7, 1, 12, 800, Assignment::PAYMENT_METHOD_DIRECT_DEBIT, '2026-06-15', null, null, null, 'staff', 'kassenwart');
+	}
+
+	public function testOhneEuroBleibtDieUeberweisungMoeglich(): void {
+		$this->currencyCode = 'CHF';
+		$this->groupMapper->method('find')->willReturn($this->group());
+		$this->mapper->method('findByMemberAndGroup')->willReturn([]);
+		$this->mapper->method('insert')->willReturnCallback($this->stubInsertAssignsId(101));
+
+		$assignment = $this->service()->create(7, 1, 12, 800, Assignment::PAYMENT_METHOD_TRANSFER, '2026-06-15', null, null, null, 'staff', 'kassenwart');
+
+		$this->assertSame(Assignment::PAYMENT_METHOD_TRANSFER, $assignment->getPaymentMethod());
+	}
+
+	public function testOhneEuroLaesstSichNichtAufLastschriftUmstellen(): void {
+		$this->currencyCode = 'CHF';
+		$assignment = $this->assignmentInGroup1();
+		$assignment->setPaymentMethod(Assignment::PAYMENT_METHOD_TRANSFER);
+		$this->mapper->method('find')->willReturn($assignment);
+		$this->groupMapper->method('find')->willReturn($this->group());
+
+		$this->expectException(\InvalidArgumentException::class);
+		$this->expectExceptionMessage('nur in Euro');
+		$this->service()->previewChange(5, null, null, null, Assignment::PAYMENT_METHOD_DIRECT_DEBIT);
+	}
+
+	/** Eine Altzuweisung auf Lastschrift bleibt änderbar (z. B. Betrag), solange die Zahlungsart gleich bleibt. */
+	public function testOhneEuroBleibtEineAlteLastschriftZuweisungAenderbar(): void {
+		$this->currencyCode = 'CHF';
+		$assignment = $this->assignmentInGroup1();
+		$assignment->setPaymentMethod(Assignment::PAYMENT_METHOD_DIRECT_DEBIT);
+		$this->mapper->method('find')->willReturn($assignment);
+		$this->groupMapper->method('find')->willReturn($this->group());
+
+		$preview = $this->service()->previewChange(5, 1500, null, null, Assignment::PAYMENT_METHOD_DIRECT_DEBIT);
+
+		$this->assertArrayHasKey('effectiveFrom', $preview);
+	}
+
+	// --- Jahresbeiträge (Issue #270) ---
+
+	/** Gruppe mit Jahresbetrag: Untergrenze 50 €/Jahr, nur jährlicher Turnus. */
+	private function annualGroup(bool $prorate = true, int $minAnnualCents = 5000): ContributionGroup {
+		$group = $this->group(417, [12]);
+		$group->setAmountBasis(ContributionGroup::BASIS_YEAR);
+		$group->setProrate($prorate);
+		$group->setMinAnnualAmountCents($minAnnualCents);
+		return $group;
+	}
+
+	/** Bestehende Zuweisung über 50 €/Jahr in Gruppe 1. */
+	private function annualAssignment(): Assignment {
+		$assignment = $this->assignmentInGroup1();
+		$assignment->setMonthlyAmountCents(417);
+		$assignment->setAnnualAmountCents(5000);
+		return $assignment;
+	}
+
+	public function testCreateSpeichertBeiJahresgruppenDenJahresbetragUndDenGerundetenMonatswert(): void {
+		$this->groupMapper->method('find')->willReturn($this->annualGroup());
+		$this->mapper->method('findByMemberAndGroup')->willReturn([]);
+		$this->mapper->method('insert')->willReturnCallback($this->stubInsertAssignsId(101));
+
+		$assignment = $this->service()->create(7, 1, 12, 0, Assignment::PAYMENT_METHOD_TRANSFER, '2026-06-15', null, null, null, 'staff', 'kassenwart', annualAmountCents: 7000);
+
+		$this->assertSame(7000, $assignment->getAnnualAmountCents());
+		$this->assertSame(583, $assignment->getMonthlyAmountCents());
+	}
+
+	public function testCreateLehntJahresbetragUnterDerJahresUntergrenzeAb(): void {
+		$this->groupMapper->method('find')->willReturn($this->annualGroup());
+
+		$this->expectExceptionMessage('Jahresbeitrag');
+		$this->service()->create(7, 1, 12, 0, Assignment::PAYMENT_METHOD_TRANSFER, '2026-06-15', null, null, null, 'staff', 'kassenwart', annualAmountCents: 4999);
+	}
+
+	public function testCreateErlaubtJahresbetragUnterDerUntergrenzeMitIndividuellerJahresUntergrenze(): void {
+		$this->groupMapper->method('find')->willReturn($this->annualGroup());
+		$this->mapper->method('findByMemberAndGroup')->willReturn([]);
+		$this->mapper->method('insert')->willReturnCallback($this->stubInsertAssignsId(102));
+
+		$assignment = $this->service()->create(7, 1, 12, 0, Assignment::PAYMENT_METHOD_TRANSFER, '2026-06-15', null, null, 'Sozialermäßigung', 'staff', 'kassenwart', annualAmountCents: 2500, minAnnualOverrideCents: 2500);
+
+		$this->assertSame(2500, $assignment->getAnnualAmountCents());
+		$this->assertSame(2500, $assignment->getMinAnnualOverrideCents());
+		$this->assertNull($assignment->getMinMonthlyAmountOverrideCents());
+	}
+
+	public function testCreateLehntFehlendenJahresbetragBeiJahresgruppeAb(): void {
+		$this->groupMapper->method('find')->willReturn($this->annualGroup());
+
+		$this->expectExceptionMessage('Jahresbetrag');
+		$this->service()->create(7, 1, 12, 800, Assignment::PAYMENT_METHOD_TRANSFER, '2026-06-15', null, null, null, 'staff', 'kassenwart');
+	}
+
+	/** Ein Jahresbetrag an einer Monatsgruppe würde als Monatsbetrag gelesen und läge um den Faktor 12 daneben. */
+	public function testCreateLehntJahresbetragBeiMonatsgruppeAb(): void {
+		$this->groupMapper->method('find')->willReturn($this->group());
+
+		$this->expectExceptionMessage('Monatsbetrag');
+		$this->service()->create(7, 1, 12, 800, Assignment::PAYMENT_METHOD_TRANSFER, '2026-06-15', null, null, null, 'staff', 'kassenwart', annualAmountCents: 9600);
+	}
+
+	public function testUpdateAendertDenJahresbetragUndLogtIhnInJahreswerten(): void {
+		$this->mapper->method('find')->willReturn($this->annualAssignment());
+		$this->groupMapper->method('find')->willReturn($this->annualGroup());
+		$this->mapper->method('update')->willReturnArgument(0);
+		$this->eventMapper->expects($this->once())->method('insert')->with($this->callback(
+			static function (AssignmentEvent $e): bool {
+				$details = $e->getDetailsArray();
+				return $e->getType() === AssignmentEvent::TYPE_AMOUNT_CHANGED
+					&& $details['from'] === 5000 && $details['to'] === 7000 && $details['basis'] === 'year';
+			},
+		));
+
+		$updated = $this->service()->update(5, null, null, null, 'staff', 'kassenwart', annualAmountCents: 7000);
+
+		$this->assertSame(7000, $updated->getAnnualAmountCents());
+		$this->assertSame(583, $updated->getMonthlyAmountCents());
+	}
+
+	public function testUpdateLehntMonatsbetragAnJahreszuweisungAb(): void {
+		$this->mapper->method('find')->willReturn($this->annualAssignment());
+		$this->groupMapper->method('find')->willReturn($this->annualGroup());
+
+		$this->expectExceptionMessage('Jahresbetrag');
+		$this->service()->update(5, 800, null, null, 'staff', 'kassenwart');
+	}
+
+	public function testUpdateLehntJahresbetragUnterDerUntergrenzeAb(): void {
+		$this->mapper->method('find')->willReturn($this->annualAssignment());
+		$this->groupMapper->method('find')->willReturn($this->annualGroup());
+
+		$this->expectExceptionMessage('Jahresbeitrag');
+		$this->service()->update(5, null, null, null, 'staff', 'kassenwart', annualAmountCents: 4000);
+	}
+
+	/** Der Betrag bliebe stehen, hätte in der neuen Gruppe aber eine andere Bedeutung. */
+	public function testUpdateLehntWechselZwischenMonatsUndJahresgruppeAb(): void {
+		$this->mapper->method('find')->willReturn($this->assignmentInGroup1());
+		$annual = $this->annualGroup();
+		$annual->setId(2);
+		$this->groupMapper->method('find')->with(2)->willReturn($annual);
+
+		$this->expectExceptionMessage('Betragsangabe');
+		$this->service()->update(5, null, null, 2, 'staff', 'kassenwart');
+	}
+
+	public function testPreviewChangeLehntWechselZwischenMonatsUndJahresgruppeAb(): void {
+		$this->mapper->method('find')->willReturn($this->assignmentInGroup1());
+		$annual = $this->annualGroup();
+		$annual->setId(2);
+		$this->groupMapper->method('find')->with(2)->willReturn($annual);
+
+		$this->expectExceptionMessage('Betragsangabe');
+		$this->service()->previewChange(5, null, null, 2);
+	}
+
+	public function testPreviewChangeRechnetDenNeuenJahresbetragAnteilig(): void {
+		$this->mapper->method('find')->willReturn($this->annualAssignment());
+		$this->groupMapper->method('find')->willReturn($this->annualGroup());
+
+		$preview = $this->service('2026-06-15')->previewChange(5, null, null, annualAmountCents: 6000);
+
+		// Juni bis Dezember = 7 Monate: 60 € × 7 ÷ 12 = 35,00 €.
+		$this->assertSame(3500, $preview['amountCents']);
+	}
+
+	public function testPreviewChangeOhneAnteiligeBerechnungZeigtDenVollenJahresbetrag(): void {
+		$this->mapper->method('find')->willReturn($this->annualAssignment());
+		$this->groupMapper->method('find')->willReturn($this->annualGroup(false));
+
+		$preview = $this->service('2026-06-15')->previewChange(5, null, null, annualAmountCents: 6000);
+
+		$this->assertSame(6000, $preview['amountCents']);
+	}
+
+	public function testPreviewFirstPeriodRechnetDenJahresbetragAnteiligGerundet(): void {
+		$this->groupMapper->method('find')->with(1)->willReturn($this->annualGroup());
+		$assignment = new Assignment();
+		$assignment->setGroupId(1);
+		$assignment->setIntervalMonths(12);
+		$assignment->setMonthlyAmountCents(417);
+		$assignment->setAnnualAmountCents(5000);
+		$assignment->setValidFrom('2026-06-15');
+
+		$preview = $this->service()->previewFirstPeriod($assignment);
+
+		$this->assertSame(7, $preview['months']);
+		$this->assertSame(2917, $preview['amountCents']);
+	}
+
+	public function testPreviewFirstPeriodOhneAnteiligeBerechnungZeigtDenVollenJahresbetrag(): void {
+		$this->groupMapper->method('find')->with(1)->willReturn($this->annualGroup(false));
+		$assignment = new Assignment();
+		$assignment->setGroupId(1);
+		$assignment->setIntervalMonths(12);
+		$assignment->setMonthlyAmountCents(417);
+		$assignment->setAnnualAmountCents(5000);
+		$assignment->setValidFrom('2026-06-15');
+
+		$this->assertSame(5000, $this->service()->previewFirstPeriod($assignment)['amountCents']);
+	}
+
+	public function testSetMinAmountOverrideSetztBeiJahreszuweisungenDieJahresUntergrenze(): void {
+		$this->mapper->method('find')->with(5)->willReturn($this->annualAssignment());
+		$this->mapper->method('update')->willReturnArgument(0);
+
+		$updated = $this->service()->setMinAmountOverride(5, 6000, 'Fördermitglied', 'staff', 'kassenwart');
+
+		$this->assertSame(6000, $updated->getMinAnnualOverrideCents());
+		$this->assertNull($updated->getMinMonthlyAmountOverrideCents());
+		// Der bisherige Beitrag von 50 € lag darunter und zieht mit.
+		$this->assertSame(6000, $updated->getAnnualAmountCents());
+		$this->assertSame(500, $updated->getMonthlyAmountCents());
+	}
+
+	public function testRaiseToMinimumHebtBeiJahreszuweisungenDenJahresbetrag(): void {
+		$assignment = $this->annualAssignment();
+		$this->mapper->expects($this->once())->method('update')->willReturnArgument(0);
+
+		$this->service()->raiseToMinimum($assignment, 7000, 'kassenwart');
+
+		$this->assertSame(7000, $assignment->getAnnualAmountCents());
+		$this->assertSame(583, $assignment->getMonthlyAmountCents());
 	}
 }

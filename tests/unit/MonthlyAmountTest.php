@@ -43,8 +43,18 @@ class MonthlyAmountTest extends TestCase {
 
 	public function testZuHoherBetragWirdAbgelehnt(): void {
 		$this->expectException(\InvalidArgumentException::class);
-		$this->expectExceptionMessage('höchstens 1.000.000,00 €');
+		$this->expectExceptionMessage('höchstens 1.000.000,00 betragen');
 		MonthlyAmount::assertValid(MonthlyAmount::MAX_CENTS + 1, $this->l10n());
+	}
+
+	/** Ein Jahresbetrag darf zwölfmal so hoch sein wie ein Monatsbetrag (Issue #270). */
+	public function testJahresbetragHatDieZwoelffacheGrenze(): void {
+		MonthlyAmount::assertValid(MonthlyAmount::MAX_ANNUAL_CENTS, $this->l10n(), true);
+		$this->assertSame(MonthlyAmount::MAX_ANNUAL_CENTS + 100, MonthlyAmount::centsFromEuro(1.0e12));
+
+		$this->expectException(\InvalidArgumentException::class);
+		$this->expectExceptionMessage('Der Jahresbeitrag darf höchstens 12.000.000,00 betragen');
+		MonthlyAmount::assertValid(MonthlyAmount::MAX_ANNUAL_CENTS + 1, $this->l10n(), true);
 	}
 
 	public function testNegativerBetragWirdAbgelehnt(): void {

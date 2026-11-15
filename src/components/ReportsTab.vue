@@ -8,6 +8,10 @@
 				<button :class="{ active: reportView === 'costcenters' }" @click="$emit('update:report-view', 'costcenters')">
 					{{ t('Auswertungsgruppen') }}
 				</button>
+				<!-- Kostenstellen an der Buchungszeile (Issue #7): nur bei eingeschaltetem Modul -->
+				<button v-if="costCentersEnabled" :class="{ active: reportView === 'allocations' }" @click="$emit('update:report-view', 'allocations')">
+					{{ t('Kostenstellen') }}
+				</button>
 				<button :class="{ active: reportView === 'spheres' }" @click="$emit('update:report-view', 'spheres')">
 					{{ t('Sphären') }}
 				</button>
@@ -25,6 +29,20 @@
 				</button>
 			</div>
 			<div class="vbh-sectiontop-actions">
+				<!-- Kostenstellen an der Buchungszeile (Issue #7): Druckseite und CSV -->
+				<a
+					v-if="costCentersEnabled && reportView === 'allocations'"
+					:href="costCenterPrintUrl"
+					target="_blank"
+					rel="noopener"
+					class="vbh-export-btn"
+					:title="t('Druckfertiger Bericht je Kostenstelle (öffnet in neuem Tab, dort drucken oder als PDF speichern)')"><NcIconSvgWrapper :path="mdiPrinter" :size="16" inline /> {{ t('Drucken') }}</a>
+				<a
+					v-if="costCentersEnabled && reportView === 'allocations'"
+					:href="costCenterCsvUrl"
+					download=""
+					class="vbh-export-btn"
+					:title="t('Bericht je Kostenstelle als CSV exportieren')"><NcIconSvgWrapper :path="mdiDownload" :size="16" inline /> {{ t('CSV') }}</a>
 				<a
 					v-if="reportView === 'summary' && selectedPeriodId && !isMobile"
 					:href="kassenberichtUrl"
@@ -183,6 +201,21 @@
 					size="small"
 					@click="ccPanelOpen = true">
 					{{ t('Auswertungsgruppen verwalten') }}
+				</NcButton>
+				<NcButton
+					v-if="canWrite && costCentersEnabled && reportView === 'allocations'"
+					variant="secondary"
+					size="small"
+					@click="bookingCcPanelOpen = true">
+					{{ t('Kostenstellen verwalten') }}
+				</NcButton>
+				<!-- Budget je Kostenstelle (Issue #335): einen Plan gibt es je Geschäftsjahr -->
+				<NcButton
+					v-if="canWrite && costCentersEnabled && reportView === 'allocations' && selectedPeriodId"
+					variant="secondary"
+					size="small"
+					@click="ccBudgetOpen = true">
+					{{ t('Budget planen') }}
 				</NcButton>
 				<NcButton
 					v-if="canWrite && reportView === 'spheres'"
@@ -870,7 +903,20 @@
 			<StructuredReportView
 				v-if="reportView === 'structure'"
 				:refreshKey="structuredRefreshKey"
+				:isMobile="isMobile"
+				:isActive="isActive"
+				:view="structuredView"
+				@update:view="$emit('update:structured-view', $event)"
+				@openAccount="$emit('open-account', $event)"
 				@openSpheres="spherePanelOpen = true" />
+
+			<!-- KOSTENSTELLEN an der Buchungszeile (Issue #7) -->
+			<CostCenterAllocationReport
+				v-if="costCentersEnabled && reportView === 'allocations'"
+				:periodId="selectedPeriodId"
+				:isActive="isActive"
+				:refreshKey="allocationRefreshKey + structuredRefreshKey"
+				@openAccount="$emit('open-account', $event)" />
 
 			<!-- ÄNDERUNGSPROTOKOLL -->
 			<div v-show="reportView === 'audit'">
@@ -940,6 +986,26 @@
 			</div>
 		</NcModal>
 
+		<CostCenterBudgetDialog
+			v-if="canWrite && ccBudgetOpen && selectedPeriodId"
+			:periodId="selectedPeriodId"
+			:periodLabel="(periods.find((p) => p.id === selectedPeriodId) || {}).label || ''"
+			@changed="allocationRefreshKey++"
+			@close="ccBudgetOpen = false" />
+
+		<NcModal
+			v-if="canWrite && bookingCcPanelOpen"
+			labelId="vbh-modal-title-booking-costcenters"
+			size="large"
+			@close="bookingCcPanelOpen = false">
+			<div class="vbh-modal-inner">
+				<h2 id="vbh-modal-title-booking-costcenters" class="vbh-modal-title">
+					{{ t('Kostenstellen verwalten') }}
+				</h2>
+				<BookingCostCenterPanel @changed="allocationRefreshKey++" />
+			</div>
+		</NcModal>
+
 		<NcModal
 			v-if="canWrite && spherePanelOpen"
 			labelId="vbh-modal-title-spheres"
@@ -958,7 +1024,7 @@
 <script>
 import { mdiCalendarRange, mdiDelete, mdiDownload, mdiPaperclip, mdiPrinter } from '@mdi/js'
 import { showError, showSuccess } from '@nextcloud/dialogs'
-import { toRefs } from 'vue'
+import { toRef, toRefs } from 'vue'
 import NcActionInput from '@nextcloud/vue/components/NcActionInput'
 import NcActionLink from '@nextcloud/vue/components/NcActionLink'
 import NcActions from '@nextcloud/vue/components/NcActions'
@@ -968,7 +1034,10 @@ import NcEmptyContent from '@nextcloud/vue/components/NcEmptyContent'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import NcModal from '@nextcloud/vue/components/NcModal'
 import NcSelect from '@nextcloud/vue/components/NcSelect'
+import BookingCostCenterPanel from './BookingCostCenterPanel.vue'
 import BudgetTreeTable from './BudgetTreeTable.vue'
+import CostCenterAllocationReport from './CostCenterAllocationReport.vue'
+import CostCenterBudgetDialog from './CostCenterBudgetDialog.vue'
 import CostCenterPanel from './CostCenterPanel.vue'
 import SphereAssignPanel from './SphereAssignPanel.vue'
 import StructuredReportView from './StructuredReportView.vue'
@@ -976,19 +1045,20 @@ import api from '../api.js'
 import { useAccounts } from '../composables/useAccounts.js'
 import { useAuth } from '../composables/useAuth.js'
 import { useBalances } from '../composables/useBalances.js'
+import { useBookingCostCenters } from '../composables/useBookingCostCenters.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { usePeriods } from '../composables/usePeriods.js'
 import { useSort } from '../composables/useSort.js'
 import { loadChart } from '../lib/chartLoader.js'
 import { chartTheme, onThemeChange, withAlpha } from '../lib/chartTheme.js'
 import { clubToday } from '../lib/clubTime.js'
-import { amountClass, budgetDiffClass, formatDate, formatDateTime, formatMoney, formatPercent, roleLabel, trendClass, typeLabel } from '../lib/format.js'
+import { amountClass, budgetDiffClass, formatCurrency, formatDate, formatDateTime, formatMoney, formatPercent, roleLabel, trendClass, typeLabel } from '../lib/format.js'
 import { addDays } from '../lib/invoices.js'
 import { statementRowKeys } from '../lib/rowKeys.js'
 
 export default {
 	name: 'ReportsTab',
-	components: { NcButton, NcActions, NcActionInput, NcActionLink, NcCheckboxRadioSwitch, NcEmptyContent, NcIconSvgWrapper, NcModal, NcSelect, BudgetTreeTable, CostCenterPanel, SphereAssignPanel, StructuredReportView },
+	components: { NcButton, NcActions, NcActionInput, NcActionLink, NcCheckboxRadioSwitch, NcEmptyContent, NcIconSvgWrapper, NcModal, NcSelect, BookingCostCenterPanel, CostCenterBudgetDialog, BudgetTreeTable, CostCenterAllocationReport, CostCenterPanel, SphereAssignPanel, StructuredReportView },
 	props: {
 		// Kostenstellen-Modus (group|account|manual), gesteuert ueber den
 		// Gruppierungs-Waehler in der Kopfzeile (nur reportView==='costcenters').
@@ -1035,9 +1105,11 @@ export default {
 		// App.vue zaehlt hoch, wenn der Gliederungsbericht neu laden soll
 		// (Zeitraum-Umstellung durch andere, fremde Aenderungen).
 		structuredRefreshKey: { type: Number, default: 0 },
+		// Tabelle oder visuelle Ansicht des Gliederungsberichts (URL, localStorage)
+		structuredView: { type: String, default: 'table' },
 	},
 
-	emits: ['budget-changed', 'budget-compare-changed', 'cost-centers-changed', 'help', 'snapshots-changed', 'spheres-changed', 'update:cost-center-mode', 'update:rename-name', 'update:report-view', 'update:selected-c-c-code', 'update:selected-sphere-code'],
+	emits: ['budget-changed', 'budget-compare-changed', 'cost-centers-changed', 'help', 'open-account', 'snapshots-changed', 'spheres-changed', 'update:cost-center-mode', 'update:rename-name', 'update:report-view', 'update:selected-c-c-code', 'update:selected-sphere-code', 'update:structured-view'],
 
 	setup() {
 		const auth = useAuth()
@@ -1048,6 +1120,8 @@ export default {
 		return {
 			canWrite: auth.canWrite,
 			isAdmin: auth.isAdmin,
+			// Schalter der Kostenstellen an der Buchungszeile (Issue #7)
+			costCentersEnabled: toRef(useBookingCostCenters().state, 'enabled'),
 			// periods/selectedPeriodId aus dem usePeriods-Singleton (derselbe
 			// geteilte Zustand wie in App.vue) - loadPeriods braucht der Knopf
 			// „Nächsten Zeitraum anlegen" unten.
@@ -1091,6 +1165,11 @@ export default {
 			// kontextnahes Modal statt als Block unter der Split-Ansicht.
 			ccPanelOpen: false,
 			spherePanelOpen: false,
+			// Kostenstellen an der Buchungszeile: Pflege-Modal, und ein Zaehler, der
+			// den Bericht nach einer Aenderung der Stammdaten neu laden laesst.
+			bookingCcPanelOpen: false,
+			allocationRefreshKey: 0,
+			ccBudgetOpen: false,
 		}
 	},
 
@@ -1100,6 +1179,8 @@ export default {
 		attachmentsZipUrl() { return api.exportAttachmentsUrl(this.selectedPeriodId) },
 		exportBalancesUrl() { return api.exportBalancesUrl(this.selectedPeriodId) },
 		exportReportUrl() { return api.exportReportUrl(this.selectedPeriodId) },
+		costCenterPrintUrl() { return api.exportCostCenterAllocationsUrl(this.selectedPeriodId) },
+		costCenterCsvUrl() { return api.exportCostCenterAllocationsCsvUrl(this.selectedPeriodId) },
 		exportMultiyearUrl() { return api.exportMultiyearUrl() },
 		// Druck und CSV bekommen immer die tatsächliche Wahl (ID oder 0), damit
 		// sie nie stillschweigend anders vergleichen als der Bildschirm.
@@ -1374,7 +1455,7 @@ export default {
 				return
 			}
 			const theme = chartTheme()
-			const eur = (v) => new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(v)
+			const eur = (v) => formatCurrency(v)
 			const config = {
 				type: 'line',
 				data: {

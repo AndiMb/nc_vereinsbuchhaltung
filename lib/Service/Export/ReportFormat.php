@@ -40,9 +40,12 @@ final class ReportFormat {
 		return ($percent > 0 ? '+' : '') . number_format($percent, 1, ',', '.');
 	}
 
-	/** Betrag in Cent, mit Währungszeichen: 123450 → "1.234,50 €" */
-	public static function cents(int $cents): string {
-		return self::money($cents / 100) . ' €';
+	/**
+	 * Betrag in Cent mit Währungszeichen: (123450, '€') → "1.234,50 €".
+	 * Das Zeichen kommt aus ClubCurrency::symbol() (Vereinswährung, #202).
+	 */
+	public static function cents(int $cents, string $symbol): string {
+		return self::money($cents / 100) . ' ' . $symbol;
 	}
 
 	/**

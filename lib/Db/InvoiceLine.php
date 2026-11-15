@@ -40,6 +40,8 @@ use OCP\AppFramework\Db\Entity;
  * @method void setAccountId(?int $accountId)
  * @method int|null getCostCenterId()
  * @method void setCostCenterId(?int $costCenterId)
+ * @method int|null getBookingCcId()
+ * @method void setBookingCcId(?int $bookingCcId)
  * @method string|null getDeliveryDate()
  * @method void setDeliveryDate(?string $deliveryDate)
  */
@@ -67,6 +69,7 @@ class InvoiceLine extends Entity implements \JsonSerializable {
 	protected $lineNetCents = 0;
 	protected $accountId;
 	protected $costCenterId;
+	protected $bookingCcId;
 	protected $deliveryDate;
 
 	public function __construct() {
@@ -79,6 +82,17 @@ class InvoiceLine extends Entity implements \JsonSerializable {
 		$this->addType('lineNetCents', 'integer');
 		$this->addType('accountId', 'integer');
 		$this->addType('costCenterId', 'integer');
+		$this->addType('bookingCcId', 'integer');
+	}
+
+	/**
+	 * Kostenstelle der Position (vbh_booking_cc.id, Issue #332): beim Buchen
+	 * einer Zahlung wird der Erlös anteilig dieser Kostenstelle zugeordnet.
+	 * Nicht zu verwechseln mit costCenterId, das eine Auswertungsgruppe meint
+	 * und nirgends ausgewertet wird.
+	 */
+	public function getBookingCostCenterId(): ?int {
+		return $this->bookingCcId !== null ? (int)$this->bookingCcId : null;
 	}
 
 	public function jsonSerialize(): array {
@@ -99,6 +113,7 @@ class InvoiceLine extends Entity implements \JsonSerializable {
 			'lineNetCents' => $this->lineNetCents,
 			'accountId' => $this->accountId,
 			'costCenterId' => $this->costCenterId,
+			'bookingCostCenterId' => $this->getBookingCostCenterId(),
 			'deliveryDate' => $this->deliveryDate,
 		];
 	}

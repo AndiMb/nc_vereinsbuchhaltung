@@ -62,6 +62,7 @@ class DebitBatchService {
 		private IL10N $l10n,
 		private ReturnedDebitMapper $returnedDebits,
 		private ClubClock $clock,
+		private ClubCurrency $currency,
 	) {
 	}
 
@@ -267,6 +268,8 @@ class DebitBatchService {
 	 *                                   Datum ungültig ist oder nichts fällig ist
 	 */
 	public function release(string $dueDate): DebitBatch {
+		// Vereinswährung (#202): SEPA gibt es nur in Euro.
+		$this->currency->assertSepaAvailable($this->l10n);
 		$this->assertDate($dueDate);
 
 		$creditorId = trim($this->config->getValueString(Application::APP_ID, 'sepa_creditor_id', ''));

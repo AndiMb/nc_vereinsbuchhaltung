@@ -460,13 +460,24 @@ prüft nichts mehr.
 Nachkommastellen), jeder Einzugsbetrag entsteht per Multiplikation (Monatsbeitrag ×
 Turnusmonate); nirgends wird geteilt oder gerundet.
 
+**Ausnahme Jahresbetrag (Issue #270):** Eine Beitragsgruppe kann ihre Beträge „pro Jahr"
+angeben (`amount_basis = year`). Untergrenze, Standardbeitrag und der Beitrag der Zuweisung
+sind dann Jahresbeträge in eigenen Spalten (`*_annual_*`); die Monatsspalten tragen dort nur
+den gerundeten Zwölftel-Wert als Hilfswert. Erlaubt ist allein der Turnus 12. Ein volles
+Beitragsjahr kostet exakt den Jahresbetrag. Im angebrochenen Jahr gilt je nach
+Gruppen-Schalter `prorate` entweder Jahresbetrag × Monate ÷ 12, kaufmännisch auf den Cent
+gerundet, oder der volle Jahresbetrag – die einzige Stelle im Modul, an der geteilt wird
+(`ContributionAmount`). Die Betragsangabe einer Gruppe steht fest, sobald sie Zuweisungen
+hat; eine Zuweisung wechselt nicht zwischen Gruppen unterschiedlicher Angabe. Für Gruppen
+„pro Monat" gilt der Leitsatz unverändert.
+
 **Verhalten:**
 
 - Erlaubte Turnuswerte = Teiler von 12 (1/2/3/4/6/12 Monate), gespeichert als
   `interval_months` an der Zuweisung, gewählt aus `allowed_intervals` der Gruppe.
 - Ein Beitragsjahr pro Verein, Startmonat konfigurierbar. Periode ≠ Einzugstermin (§3.5).
 - Prorata monatsgranular: angebrochene Monate zählen an beiden Enden voll. Kein
-  Gruppen-Schalter „kein Prorata".
+  Gruppen-Schalter „kein Prorata" – außer bei Gruppen mit Jahresbetrag (siehe oben).
 - **Untergrenzen-Erhöhung: Auto-Anhebung mit Vorschau** — betroffene Zuweisungen namentlich
   alt→neu, individuelle Untergrenzen separat als unberührt ausgewiesen.
 - **Eine Wirksamkeitsregel für alles** (Gruppenwechsel, Turnuswechsel, Betragsänderung,

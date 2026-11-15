@@ -242,6 +242,24 @@ Absenderadresse bleibt die aus den Mail-Einstellungen der Nextcloud. Steht
 in den Einstellungen unter *Rechnungen* eine E-Mail des Vereins, gehen
 Antworten an diese Adresse.
 
+**Vereinswährung.** Auf derselben Seite steht die Karte *Vereinswährung*.
+Ab Werk rechnet die App in Euro. Zur Wahl stehen außerdem Schweizer Franken
+(CHF), Britisches Pfund (GBP), Dänische, Schwedische und Norwegische Krone
+(DKK, SEK, NOK), Złoty (PLN) und Tschechische Krone (CZK). Die Währung
+bestimmt das Zeichen hinter jedem Betrag – in der Oberfläche, in Berichten,
+Exporten, Rechnungen und E-Mails. Das Zahlenformat bleibt deutsch
+(`1.234,50 CHF`). Umgerechnet wird nichts: Alle Beträge eines Vereins stehen
+in einer Währung. Gesetzliche Grenzen wie die Freigrenze von 45.000 € oder
+die Kleinunternehmergrenzen nach § 19 UStG nennt die App weiter in Euro.
+
+SEPA-Lastschrift und GiroCode gibt es nur in Euro. In jeder anderen Währung
+blendet die App Mandate, den Lastschriftlauf und die SEPA-Einstellungen aus;
+Rechnungen, Zahlungsaufforderungen und Auslagenüberweisungen kommen ohne
+GiroCode. Weg vom Euro lässt sich nur umstellen, wenn kein Mandat mehr gilt
+(alle erloschen), kein freigegebener Sammeleinzug auf die Einreichung
+wartet und keine Beitragszuweisung mehr per Lastschrift läuft – solche
+Zuweisungen vorher auf Überweisung umstellen. Nach dem Speichern lädt die Seite neu.
+
 ### 2.6 Corporate Design (optional)
 
 Zahnrad → *Verein* (zweite Karte auf derselben Seite): ein **Vereinslogo**
@@ -921,7 +939,10 @@ anpassen.
 > zur Gesamtsumme zusammenziehen. Bis Version 0.28.0 hieß die
 > Auswertungsgruppe „Kostenstelle"; der Begriff ist bewusst aufgegeben worden,
 > weil eine Kostenstelle in der Kosten- und Leistungsrechnung genau jene
-> zweite Dimension je Buchungszeile bezeichnet, die die App nicht führt.
+> zweite Dimension je Buchungszeile bezeichnet. Diese zweite Dimension gibt
+> es inzwischen als eigene, zuschaltbare Funktion: mit **Kostenstellen**
+> (Kapitel 5.8) verteilen Sie einen Betrag auf demselben Konto auf mehrere
+> Mannschaften, ohne Unterkonten anzulegen.
 
 Wie die App die Konten zu Auswertungsgruppen zusammenfasst, entscheidet der
 **Auswertungsgruppen-Modus** (Auswahl „Gruppierung" in der Kopfzeile des Berichts,
@@ -970,6 +991,9 @@ zusammengezählten Bestand **aller** Geldkonten, nicht nur eines. Führt der
 Verein genau ein Geldkonto, steht dort weiterhin dessen Name. Die
 Aufschlüsselung nach Konten erscheint als Tooltip, wenn die Maus auf der
 Zahl steht; Screenreader lesen sie ohne Umweg mit vor.
+
+Ob ein Geldkonto mit dem Kontoauszug der Bank übereinstimmt, prüft die
+**Kontoabstimmung** (Kapitel 5.9).
 
 ### 5.6 Steuerliche Sphären
 
@@ -1027,6 +1051,210 @@ allgemeine Eigenkapitalkonto).
 **Auswerten:** Tab Berichte → „Rücklagen" zeigt den aktuellen Saldo je Art
 sowie die beteiligten Konten – so ist auf einen Blick sichtbar, wie viel
 bereits zurückgelegt wurde.
+
+### 5.8 Kostenstellen (optional)
+
+Mit **Kostenstellen** ordnen Sie einen einzelnen Betrag einer Abteilung,
+Mannschaft oder einem Projekt zu – auch anteilig. Das klassische Beispiel:
+1.000 € für Trikots auf dem Konto „Ausrüstung", davon 600 € für die Senioren
+und 400 € für die A-Junioren. Es bleibt **eine** Buchung auf **einem** Konto;
+ein eigenes Konto je Mannschaft ist dafür nicht nötig.
+
+Die Funktion ist **ab Werk ausgeschaltet**. Wer sie nicht braucht, sieht von
+ihr nichts.
+
+**Drei Begriffe, drei Fragen:**
+
+| Begriff | Beantwortet | Hängt an |
+|---|---|---|
+| **Sphäre** (Kapitel 5.6) | Wie ist der Betrag steuerlich einzuordnen? | dem Konto |
+| **Auswertungsgruppe** (Kapitel 5.4) | Welche Konten gehören für den Bericht zusammen? | dem Konto |
+| **Kostenstelle** | Für welche Abteilung, Mannschaft, welches Projekt war das Geld? | dem einzelnen Betrag einer Buchung |
+
+Kostenstellen haben keine steuerliche Bedeutung und ersetzen die Sphären
+nicht.
+
+**Einschalten:** *Einstellungen → Vereinsbuchhaltung → Kostenstellen →
+Kostenstellen aktivieren* (nur Verwalter).
+
+**Anlegen:** Tab **Berichte → Kostenstellen → Kostenstellen verwalten**. Jede
+Kostenstelle hat ein Kürzel (höchstens acht Zeichen, z. B. `SEN`) und einen
+Namen. Eine Kostenstelle, der schon Beträge zugeordnet sind, lässt sich nicht
+löschen, aber **deaktivieren**: Sie steht dann beim Buchen nicht mehr zur
+Auswahl, ihre bisherigen Beträge bleiben im Bericht.
+
+**Zuordnen beim Buchen:** Im Buchungsdialog erscheint unter dem Buchungstext
+das Feld **Kostenstelle**, sobald ein Einnahmen- oder Ausgabenkonto gewählt
+ist. Die Angabe ist immer freiwillig.
+
+- Eine Kostenstelle wählen – der ganze Betrag der Zeile ist zugeordnet.
+- **Auf mehrere verteilen…** – je Kostenstelle ein Betrag. Was Sie nicht
+  verteilen, bleibt „ohne Kostenstelle"; das ist erlaubt. Mehr als den Betrag
+  der Zeile können Sie nicht verteilen.
+- Bei einer Aufteilung auf mehrere Gegenkonten (*Betrag aufteilen*) hat jede
+  Zeile ihr eigenes Feld. Dasselbe gilt für **„Aufteilen…"** beim Zuordnen
+  eines Bankumsatzes (Kapitel 4.1).
+
+Geld-, Bestands- und Durchlaufkonten tragen keine Kostenstelle. Buchungen mit
+Kostenstelle zeigen in der Buchungsliste ein kleines Etikett mit dem Kürzel
+(bei mehreren z. B. „SEN +1"). Ändern Sie später den Betrag einer Zeile,
+wandert eine einzelne Kostenstelle mit; eine Aufteilung auf mehrere bleibt
+stehen und muss gegebenenfalls angepasst werden.
+
+**Vorgabe an einer Importregel:** Eine Regel (Tab Buchungen → Regeln) kann
+neben dem Gegenkonto eine Kostenstelle vorgeben. Greift die Regel beim
+Import, wird der ganze Betrag dieser Kostenstelle zugeordnet; übernehmen
+Sie den Vorschlag einer Regel in der Zuordnungsliste, gilt dasselbe. Ist
+die Kostenstelle inzwischen inaktiv oder trägt das Gegenkonto keine
+Kostenstelle, wird der Umsatz trotzdem zugeordnet, nur ohne Kostenstelle.
+Eine Kostenstelle, auf die noch eine Regel zeigt, lässt sich nicht löschen.
+
+**Rechnungen:** Im Rechnungseditor (Kapitel 15) hat jede Position neben dem
+Erlöskonto das Feld **Kostenstelle**. Wird die Rechnung bezahlt – per
+Bankumsatz oder bar –, verteilt die App den Erlös je Erlöskonto anteilig auf
+die Kostenstellen der Positionen; Positionen ohne Kostenstelle bleiben
+„ohne“, die Umsatzsteuer trägt keine. Bei Teilzahlungen wird jede Zahlung
+für sich anteilig verteilt; über mehrere Teilzahlungen kann die Summe je
+Kostenstelle deshalb um einen Cent je Zahlung vom Betrag der Position
+abweichen. Kopie, Storno und wiederkehrende Rechnungen übernehmen die
+Kostenstellen. Im Sammelimport meint die Spalte *Kostenstelle* bei
+eingeschalteter Funktion diese Kostenstelle (Kürzel oder Name); eine Tabelle,
+die dort noch Auswertungsgruppen nennt, meldet die Zeile dann als Fehler.
+Eine Rabattposition mindert den Anteil ihrer Kostenstelle.
+
+**Auslagen:** Der Dialog „Umsatz einer Auslage zuordnen“ hat unter dem
+Aufwandskonto das Feld **Kostenstelle**; die Buchung der Auszahlung trägt
+sie.
+
+**Beiträge und SEPA-Einzug:** Jede Beitragsgruppe (Kapitel 13) kann eine
+Kostenstelle als Vorgabe tragen. Beim Verbuchen einer Sammelgutschrift im
+Bankabgleich ordnet die App den Beitrag jedes Mitglieds der Kostenstelle
+seiner Gruppe zu – in einer Buchung, je Erlöskonto summiert; Beiträge aus
+Gruppen ohne Vorgabe bleiben ohne. Dasselbe gilt für einen einzeln
+zugeordneten Zahlungseingang. Eine Rücklastschrift nimmt den Erlös wieder
+aus der Kostenstelle heraus, sofern der Einzug ihn ihr zugeordnet hatte; die
+Bankgebühr gehört keiner. Die Vorgabe
+gilt für Forderungen, die der Einzugszyklus aus einer Zuweisung erzeugt –
+von Hand angelegte Forderungen haben keine Gruppe und bleiben ohne. Ist
+die Kostenstelle inaktiv, wird ohne sie verbucht; die Verbuchung scheitert
+daran nie.
+
+**Kostenstelle verpflichtend:** Soll auf einem Konto möglichst jeder Betrag
+eine Kostenstelle bekommen, setzen Sie im Kontodialog (Tab Konten → Konto
+bearbeiten) den Schalter **Kostenstelle verpflichtend**. Er steht nur bei
+Einnahmen- und Ausgabenkonten. Das Kennzeichen ist eine Erinnerung, keine
+Sperre: Buchungs- und Aufteilen-Dialog zeigen an der Zeile den noch nicht
+zugeordneten Betrag, speichern lässt sich trotzdem. Der Bericht führt oben
+den Block **Pflichtkonten mit offenem Betrag** – dort stehen auch Beträge
+aus automatisch erzeugten Buchungen, an die im Dialog niemand erinnert
+wurde. Ein Klick auf das Konto führt zu den Buchungen. Wird ein solches
+Konto später zum Bestands- oder Geldkonto, fällt das Kennzeichen weg.
+
+**Auswerten:** Tab **Berichte → Kostenstellen** zeigt je Kostenstelle die
+Einnahmen und Ausgaben nach Konten und das Ergebnis, darunter den Block
+**Ohne Kostenstelle** mit allem, was nicht zugeordnet ist. Die Gesamtsumme
+am Ende ist dieselbe wie in den übrigen Berichten; der Bericht weist das
+eigens aus („entspricht dem Ergebnis laut Kontensalden"). Ein Klick auf ein
+Konto führt zu seinen Buchungen. Über **Drucken** und **CSV** gibt es den
+Bericht druckfertig bzw. als Tabelle.
+
+**Budget je Kostenstelle:** Ist im Kopfbereich ein Geschäftsjahr gewählt,
+steht im Bericht der Knopf **Budget planen** (ab Rolle Buchhalter). Der
+Dialog nimmt je Kostenstelle einen Planwert für die Einnahmen und einen für
+die Ausgaben auf; gespeichert wird beim Verlassen des Feldes, ein leeres
+Feld heißt „kein Plan“. Der Bericht stellt dann je Kostenstelle **Plan**,
+**Ist** und **Abweichung** (Ist minus Plan) für Einnahmen, Ausgaben und
+Ergebnis nebeneinander – auch für Kostenstellen, auf die noch nichts
+gebucht wurde – und ebenso auf der Druckseite und in der CSV-Datei. Bei
+„Alle Zeiträume“ gibt es keinen Plan. Ein Plan ist keine Buchung: er lässt
+sich auch für ein abgeschlossenes Geschäftsjahr ändern und ändert keine
+Summe. Das Budget je Kostenstelle ist unabhängig vom Finanzplan je Konto
+(Kapitel 6). Ein Geschäftsjahr, das solche Planwerte trägt, lässt sich nicht
+entfernen. Werden die Geschäftsjahre später umgestellt, wandern diese
+Planwerte nicht mit und sind neu einzugeben.
+
+Der Journal-Export (CSV) bekommt bei eingeschalteter Funktion eine
+zusätzliche letzte Spalte **Kostenstellen**, z. B. `SEN 600,00 | AJU 400,00`.
+Die bisherigen Spalten bleiben an ihrer Stelle.
+
+**Wieder ausschalten:** Feld, Etikett, Bericht und Exportspalte verschwinden.
+Die gespeicherten Zuordnungen bleiben erhalten – auch wenn Sie in der
+Zwischenzeit Buchungen bearbeiten – und erscheinen wieder, sobald Sie die
+Funktion erneut einschalten. Nur wer an einer Zeile das Konto oder den Betrag
+ändert, während die Funktion aus ist, verliert die Zuordnung dieser Zeile.
+
+**Alle Daten löschen** (Kapitel 12.1) entfernt auch die Kostenstellen und
+ihre Zuordnungen.
+
+### 5.9 Kontoabstimmung: Geldkonto gegen den Kontoauszug prüfen
+
+Stimmt das Geldkonto in der App mit dem überein, was die Bank ausweist? Die
+**Kontoabstimmung** vergleicht einen Kontoauszug Zeile für Zeile mit den
+Bewegungen eines Geldkontos und zeigt, was nicht zusammenpasst – etwa eine
+doppelt erfasste Buchung oder einen Umsatz, der nie in der App angekommen
+ist. Sie ist die Prüfung, die Kassenprüfer am Jahresende verlangen, und sie
+steht allen ab der Rolle Revisor offen.
+
+**Es wird nur verglichen.** Der Auszug wird weder importiert noch
+gespeichert; Buchungen und Bankumsätze bleiben, wie sie sind. Zum Einlesen
+von Umsätzen dient weiter der Import (Kapitel 3.2).
+
+**So geht es:**
+
+1. Reiter **Konten** → das Geldkonto anklicken → **Kontoabstimmung**.
+2. **Datei wählen**: den Kontoauszug aus dem Onlinebanking, in denselben
+   Formaten wie beim Import (CSV-CAMT, CAMT.053, MT940). Der Abgleich
+   startet sofort.
+3. Optional den Zeitraum mit **Von** und **Bis** einengen und erneut
+   **Abgleichen**. Ohne Angabe gilt der Zeitraum des Auszugs; über ihn
+   hinaus reicht der Vergleich nie – ein weiter gefasster Zeitraum wird auf
+   den ersten und letzten Buchungstag des Auszugs begrenzt.
+
+Enthält der Auszug mehrere Konten, zählen nur die Zeilen des gewählten
+Geldkontos; maßgeblich ist dessen IBAN (Kapitel 2.2). Gehört der Auszug zu
+einem anderen Konto, sagt die Meldung, welche IBAN in der Datei steht.
+Nennt der Auszug kein Konto oder trägt das Geldkonto keine IBAN, gilt er
+für das gewählte Konto.
+
+**Was das Ergebnis zeigt:**
+
+| Liste | Bedeutung | Typische Ursache |
+|---|---|---|
+| **Zu viel in der App** | Bewegungen auf dem Konto, die der Auszug nicht kennt | doppelt gebucht, falsches Geldkonto, falscher Betrag oder Tag |
+| **Fehlt in der App** | Zeilen des Auszugs ohne Buchung und ohne Bankumsatz | Auszug nicht importiert, Umsatz verworfen, Barbewegung vergessen |
+| **Zeitlich verschoben** | Zeilen mit Gegenstück, das aber außerhalb des Zeitraums gebucht ist | Buchung über den Monats- oder Jahreswechsel hinweg |
+
+Als Bewegung der App zählen die Buchungen auf dem Geldkonto **und** die noch
+nicht zugeordneten Bankumsätze dieses Kontos – ein importierter, aber noch
+nicht zugeordneter Umsatz gilt also nicht als fehlend. Der Eröffnungssaldo
+(Kapitel 2.3) ist keine Bewegung, sondern Anfangsbestand. Aus „Zu viel in der
+App" führt **Zur Buchung** in die Buchungsliste des Tages, **Zum Umsatz** zu
+den noch zuzuordnenden Bankumsätzen.
+
+**Datumstoleranz:** Bank und Buchung tragen nicht immer denselben Tag
+(Buchungstag, Wertstellung, Belegdatum). Die Toleranz – ab Werk 3 Tage,
+höchstens 10 – erlaubt diesen Abstand. Gleicher Betrag am selben Tag hat
+stets Vorrang.
+
+**Saldenprüfung:** Trägt der Auszug Salden (MT940, CAMT.053, CSV mit
+Saldospalte), stellt die App Anfangs- und Endsaldo der Bank dem eigenen
+Stand gegenüber. „App" ist der Kontostand laut Buchungen zuzüglich der noch
+nicht zugeordneten Bankumsätze; die Differenz ist App − Bank. Darunter
+steht, wie sich die Differenz am Ende zusammensetzt: Differenz am Anfang,
+zu viel, fehlend, verschoben. Bleibt ein **nicht erklärter Rest**, passen
+Zeilen und Salden des Auszugs nicht zusammen – die App nennt dann die
+Stellen, an denen die Salden des Auszugs nicht lückenlos aufgehen (meist
+fehlen Zeilen). Eine Differenz schon am Anfang weist auf einen falschen
+Eröffnungssaldo (Kapitel 2.3) oder einen Fehler vor dem Zeitraum hin.
+Auszüge ohne Salden werden nur zeilenweise verglichen.
+
+**Als CSV herunterladen** sichert das Ergebnis, etwa für die Kassenprüfung.
+
+> **Nicht verwechseln:** Die *Geldkonten-Abstimmung* (Kapitel 5.5) zeigt nur,
+> wie viel an Bankumsätzen noch nicht zugeordnet ist. Der *Bankabgleich* des
+> Beitragseinzugs (Kapitel 13.10) verbucht Lastschriften und
+> Rücklastschriften. Die Kontoabstimmung prüft dagegen, ob Konto und
+> Kontoauszug übereinstimmen – und ändert nichts.
 
 ---
 
@@ -1229,6 +1457,91 @@ immer alle Einnahmen und Ausgaben und stimmt mit dem Finanzplan überein.
 im Querformat), **CSV** liefert dieselben Zeilen mit einer Spalte „Ebene" zum
 Gliedern in der Tabellenkalkulation.
 
+### 7.5 Gliederungsbericht visuell: Plan gegen Ist
+
+Tab **Berichte → Gliederung**, Schalter **Tabelle | Visuell** neben der
+Vorlagenauswahl. Die visuelle Ansicht zeigt dieselbe Vorlage als Kennzahlen,
+Ampeln und Balken – gedacht für die Frage „Liegen wir im Plan?“, etwa vor
+einer Vorstandssitzung. Die Tabelle, ihr Druck und ihr CSV bleiben
+unverändert. Die Wahl merkt sich der Browser, und sie steckt im Link
+(`view=visual`); wer den Link weitergibt, öffnet dieselbe Ansicht.
+
+Die Ansicht spricht von **Plan** und **Ist**.
+
+**Stand und Vergleich.** Zwei Auswahlfelder steuern alle Zahlen:
+
+- **Stand:** ein Monat der Periode (voreingestellt der zuletzt abgeschlossene)
+  oder „Aktuell (alle Buchungen)“. Bei einem Monat zählen nur Buchungen bis
+  zum Ende dieses Monats.
+- **Vergleich gegen:** „Jahresplan“ oder „Zeitanteilig“. Zeitanteilig ist der
+  Plan mal vergangene Monate geteilt durch die Monate der Periode; das
+  funktioniert auch für kurze und nicht kalendergleiche Geschäftsjahre. Es
+  unterstellt, dass sich der Plan gleichmäßig auf die Monate verteilt.
+
+**Aufbau von oben nach unten:**
+
+- **Kennzahlen** für Einnahmen, Ausgaben und Ergebnis: Ist, Plan,
+  Ausschöpfung (beim Ergebnis die Differenz), Ampel, zeitanteiliger Plan und
+  eine **Hochrechnung** bis zum Periodenende. Die Hochrechnung ist linear;
+  saisonale Posten wie Jahresbeiträge verzerren sie.
+- **Ampel der Ausgabenkonten** und **Ampel der Einnahmenkonten:** wie viele
+  Konten in welchem Status stehen. Ein Klick auf eine Stufe filtert den
+  Aufriss darunter. Die Zahlen beziehen sich auf die Konten der
+  Planungsebene, unabhängig von der Vorlage, und können daher von den Zeilen
+  einer Vorlage abweichen.
+- **Größte Überschreitungen** (Ausgaben) und **größte Lücken** (Einnahmen):
+  bis zu sieben Konten je Liste. Ein Klick auf einen Eintrag öffnet wie im
+  Aufriss die Buchungen des Kontos.
+- **Verlauf:** Diagramm mit dem kumulierten Ist je Monat für Einnahmen und
+  Ausgaben, der Plan-Linie und der gestrichelten Hochrechnung.
+- **Aufriss nach Vorlage:** jede Zeile der Vorlage mit Ampel und Balken;
+  Kontoäste lassen sich ein- und ausklappen. Ein Klick auf ein Konto öffnet
+  die Buchungsliste der Periode, gefiltert auf dieses Konto. Bei einem Konto
+  mit Unterkonten – auch in den Abweichungslisten – ist dort „inkl.
+  Unterkonten“ eingeschaltet, weil seine Zahl die Unterkonten einschließt.
+  Zählt eine Zeile die Unterkonten nicht mit (sie stehen in einem anderen
+  Abschnitt der Vorlage), filtert der Sprung nur das Konto selbst; zählt sie
+  nur einen Teil davon, ist die Bezeichnung kein Link. Mit
+  einem Monat als Stand endet die Liste am letzten Tag dieses Monats (Feld
+  „Bis“ der Buchungsliste) und summiert sich so zum angeklickten Ist; mit
+  „Aktuell“ bleibt sie ohne Datumsfilter.
+
+Tragen die Unterkonten eines Oberkontos eigene Planwerte, zählen in den
+Ampelzahlen und Abweichungslisten die Unterkonten; Buchungen direkt auf dem
+Oberkonto gehen dann nur in die Kennzahlen und den Aufriss ein. Steht der
+Plan auf dem Oberkonto oder nirgends, zählt das Oberkonto samt seinen
+Unterkonten als ein Posten.
+
+**Die Ampel.** Jeder Status erscheint mit Symbol und Text, nie nur als Farbe.
+Mit den Standardschwellen gilt, bezogen auf den Vergleichswert (Plan):
+
+| Art | Grün | Orange | Rot |
+|---|---|---|---|
+| Ausgaben | unter 80 % – „im Rahmen“ | 80–120 % – „beobachten“ | über 120 % – „überschritten“ |
+| Einnahmen | ab 100 % – „im Plan“ | 80–100 % – „beobachten“ | unter 80 % – „unter Plan“ |
+| Ergebnis | mindestens Plan – „im Plan“ | bis 20 % darunter – „leicht unter Plan“ | mehr – „deutlich unter Plan“ |
+
+„Ungeplant“ heißt: Ist ohne Plan; die Zeile ist schraffiert bzw. gestrichelt,
+bei Einnahmen zählt sie als gut. Ein Unterkonto, dessen Plan auf dem Oberkonto
+steht, trägt statt dessen „im Oberkonto geplant“.
+
+**Kein Plan.** Ist für die Periode kein Plan erfasst, weist ein Hinweis auf
+den Finanzplan hin, in dem die Planwerte stehen.
+
+**Schwellen anpassen.** Zahnrad → Einstellungen, Abschnitt **Ampel im
+Gliederungsbericht** (nur Rolle Verwalter): fünf Schwellen, vereinsweit
+dieselben für alle. Zulässig sind ganze Zahlen von 0 bis 999. Bei den Ausgaben
+muss „orange ab“ unter „rot über“ liegen, bei den Einnahmen „rot unter“ unter
+„grün ab“. **Standardwerte** stellt die Vorgaben wieder her.
+
+**Drucken / PDF** öffnet in der visuellen Ansicht eine druckfertige Seite für
+den gewählten Stand und Vergleich: Kennzahlen, Ampelzahlen, Abweichungen,
+Verlauf und Aufriss mit Balken. Sie ist auch in Schwarzweiß lesbar. Ein CSV
+der visuellen Ansicht gibt es nicht; das CSV der Tabelle bleibt.
+
+Am Handy stapeln sich die Kacheln, und die Zeilen des Aufrisses brechen auf
+zwei Zeilen um.
+
 ---
 
 ## 8. Geschäftsjahr und Festschreibung
@@ -1308,6 +1621,12 @@ Zeitraum neu (nach Datum, lückenlos ab 1). Der Vorgang steht im
 - **„Nächsten Zeitraum anlegen"** (Knopf über der Liste) hängt hinten einen
   weiteren Zeitraum nach der geltenden Regel an. Nötig ist das selten – die
   App legt einen Zeitraum von allein an, sobald eine Buchung hineinfällt.
+- **„Vorherigen Zeitraum anlegen"** (daneben) stellt vorne einen Zeitraum
+  voran. Die Liste beginnt mit dem Geschäftsjahr, in dem die App zum ersten
+  Mal geöffnet wurde; wer ein früheres Jahr nachbuchen oder dafür planen
+  will, legt es hier an. Auch das geht von allein, sobald eine Buchung mit
+  einem früheren Datum erfasst wird – der Knopf zeigt den Zeitraum nur schon
+  vorher in der Auswahl.
 - **„Entfernen"** gibt es nur für einen leeren Zeitraum am Anfang oder am
   Ende der Kette (weder Buchungen noch Planwerte). In der Mitte entstünde
   sonst ein Loch, in das keine Buchung mehr gehört.
@@ -1432,6 +1751,15 @@ Handbuch einzulesen.
 - **Filter „nur ohne Beleg"** im Tab Buchungen (Journal): zeigt alle
   Buchungen ohne angehängten Beleg. Diese vorab zu klären spart in der
   Prüfung Rückfragen.
+- **Datumsfilter „Von“ / „Bis“** im Journal: grenzt die Liste auf eine
+  Spanne des Buchungsdatums ein, beide Tage eingeschlossen – etwa ein Quartal
+  oder einen einzelnen Tag. Jedes Feld gilt für sich; das Kreuz daneben hebt
+  den Filter auf. Die Spanne steht wie der Kontofilter im Link der Seite.
+- **Kontofilter „inkl. Unterkonten“** im Journal: Ist auf ein Konto mit
+  Unterkonten gefiltert, erscheint daneben dieses Häkchen. Eingeschaltet
+  zeigt die Liste die Buchungen des Kontos und aller seiner Unterkonten in
+  jeder Tiefe – so, wie Berichte die Zeile eines Oberkontos rechnen. Ohne
+  das Häkchen bleibt es bei genau dem einen Konto.
 - **Lückenprüfung:** Über dem Journal erscheint automatisch ein
   Warnhinweis, falls Buchungsnummern fehlen oder doppelt sind. Im
   Kassenbericht steht dasselbe als Vollständigkeitszeile. In einem offenen
@@ -1539,7 +1867,9 @@ und die Zeiträume samt ihrer Festschreibung. **Das Änderungsprotokoll bleibt e
 Mandate, Beitragsgruppen und Zuweisungen (Kapitel 13) gehören nicht zum
 Buchungsbestand und bleiben unberührt (der Einzug wird mitgeräumt, siehe unten).
 Gleiches gilt für den Reset-Modus beim xbuc-Import. Beides ist
-unwiderruflich – also nur nach Rücksprache und nie aus Versehen.
+unwiderruflich – also nur nach Rücksprache und nie aus Versehen. Wer wirklich
+alles entfernen will, auch Mitglieder, Mandate und Einstellungen – etwa um
+eine Sicherung einzuspielen –, nimmt *Bestand vollständig leeren* (12.3).
 
 **Beiträge und SEPA (Kapitel 13):** Der Reset nimmt auch den Einzug mit – die
 **Lastschrift-Läufe** samt ihren Posten (mit den IBANs im Klartext), die
@@ -1575,14 +1905,86 @@ oder löschen und neu anlegen. Bei Konflikten mit einer anderen Person: neu
 öffnen und erneut speichern. Ein abgeschlossener Zeitraum lässt sich nur
 nach Wiedereröffnung (Verwalter, Kapitel 8.4) korrigieren.
 
-### 12.3 Datenbank-Backup vor Updates
+### 12.3 Sicherung und Umzug
 
-Vor jedem Update, das eine Datenbank-Migration enthält, sollte ein
-Datenbank-Backup (mysqldump) gemacht werden – das App-Deployment
+Zahnrad → *Sicherung und Umzug* (nur Verwalter) sichert den **gesamten
+Bestand** in eine einzige, verschlüsselte Datei (`.vbhbackup`) und spielt eine
+solche Datei wieder ein – auf derselben Nextcloud oder auf einer anderen. Das
+ist der Weg für den Umzug auf einen neuen Server und für eine Sicherung, die
+ohne Zugriff auf Datenbank und `config.php` auskommt.
+
+**Was in der Sicherung steckt:** Konten, Buchungen, Geschäftsjahre samt
+Festschreibung, Bankumsätze und Regeln, offene Posten, Rechnungen,
+Auslagenanträge, Kostenstellen, Finanzplan und Berichtsvorlagen, Mitglieder,
+Mandate samt Verlauf, Beitragsgruppen, Zuweisungen, Lastschrift-Läufe, die
+Rollen, das Änderungsprotokoll und die Einstellungen des Vereins samt Logo.
+Mit dem Schalter *Belege und Dokumente mitsichern* (Vorgabe: an) kommen die
+Dateien dazu: Buchungsbelege, Rechnungs-PDF und E-Rechnungen, Belege der
+Auslagenanträge und Mandatsnachweise. Ohne den Schalter ist die Datei klein,
+im Ziel fehlen dann aber alle Dateien.
+
+**Was nicht mitkommt:** alles, was an der jeweiligen Nextcloud hängt – die
+Belegablage und der Wächter-Ordner (Kapitel 5), die Ordner für
+Mandatsnachweise, Rechnungen und SEPA-Dateien sowie offene Aktivierungslinks
+für Mandate. Diese Einstellungen richten Sie im Ziel neu ein. Die
+eingespielten Dateien liegen dort zunächst in der app-internen Ablage und
+lassen sich wie gewohnt öffnen und herunterladen.
+
+**Sicherung erstellen:** Passwort vergeben (mindestens zehn Zeichen, zweimal
+eingeben), *Sicherung erstellen* – der Download startet von selbst. Die Datei
+ist mit diesem Passwort verschlüsselt (AES-256). **Das Passwort wird nirgends
+gespeichert: Ohne es lässt sich die Sicherung nicht mehr öffnen**, auch nicht
+vom Entwickler der App. Bewahren Sie es getrennt von der Datei auf. Fehlt beim
+Sichern eine Datei in der Ablage (in der Dateien-App gelöscht oder
+verschoben), bricht die Sicherung nicht ab, sondern nennt die fehlenden
+Dateien je Art beim Namen. Solange eine Sicherung erstellt oder eingespielt
+wird, sollte niemand in der Buchhaltung arbeiten – sonst hält die Sicherung
+womöglich einen Zwischenstand fest.
+
+**Sicherung einspielen:** geht nur in einen **leeren Bestand** und nur mit
+**derselben Version** der App, mit der die Sicherung erstellt wurde – bringen
+Sie im Zweifel erst beide Seiten auf denselben Stand und sichern Sie dann neu.
+Datei hochladen oder, bei großen Sicherungen, in die eigenen
+Nextcloud-Dateien legen und über *Aus Nextcloud-Dateien wählen* auswählen (so
+umgehen Sie die Upload-Grenze des Servers). Nach *Sicherung prüfen* zeigt die
+App, von welchem Verein, welchem Stand und welcher Version die Datei stammt und
+was sie enthält; erst *Jetzt einspielen* schreibt. Meldet die App dabei einen
+Fehler, ist der Bestand unverändert leer. Bricht dagegen nur die Verbindung ab
+(etwa weil ein vorgeschalteter Proxy bei einer sehr großen Sicherung die
+Geduld verliert), arbeitet der Server womöglich weiter: Seite nach einigen
+Minuten neu laden und den Bestand prüfen, bevor Sie es erneut versuchen. Lässt
+sich ein Datensatz in der Datenbank des Ziels nicht speichern, nennt die
+Meldung Tabelle und Datensatz. Am Ende steht ein Bericht: wie viele
+Datensätze und Dateien übernommen wurden, welche Dateien fehlen und welche
+Benutzer oder Gruppen aus den Rollen es auf dieser Nextcloud nicht gibt. Die
+Rollen und das Änderungsprotokoll kommen aus der Sicherung; **wer einspielt,
+bleibt in jedem Fall Verwalter**. Rollen für Konten, die es im Ziel nicht gibt,
+vergeben Sie unter *Berechtigungen* neu oder legen die Konten mit demselben
+Namen an. Die IBANs der Mitglieder werden im Ziel mit dessen eigenem Schlüssel
+neu verschlüsselt – die `config.php` der alten Nextcloud braucht es dafür
+nicht.
+
+**Bestand vollständig leeren:** bereitet das Einspielen vor und geht weiter
+als *Alle Daten löschen* (12.1): Es entfernt auch Mitglieder, Mandate,
+Beitragsgruppen und die Einstellungen des Vereins samt der von der App
+abgelegten Belege und Dokumente. Zur Bestätigung ist der Vereinsname
+einzutippen. Bestehen bleiben die Rollen, das Änderungsprotokoll, die
+Einstellungen zur Ablage und alles, was in Ihren eigenen Nextcloud-Ordnern
+liegt (Wächter-Ordner, Mandatsnachweise, SEPA-Dateien). Unwiderruflich – vorher
+sichern und die Sicherung prüfen.
+
+**Umzug in Kurzform:** alte und neue Nextcloud auf dieselbe App-Version
+bringen → in der alten *Sicherung erstellen* (mit Belegen) → in der neuen die
+App installieren, Datei einspielen → Ablage und Ordner neu einstellen, Rollen
+prüfen → stichprobenartig Salden, einen Beleg und ein Mandat ansehen.
+
+**Datenbank-Backup vor Updates:** Die Sicherung der App ersetzt nicht das
+Backup des Servers. Vor jedem Update, das eine Datenbank-Migration enthält,
+sollte ein Datenbank-Backup (mysqldump) gemacht werden – das App-Deployment
 stellt nur den Programmcode, nicht das Datenbankschema wieder her. Im
 Zweifel die verwaltende Person fragen.
 
-Zu einer vollständigen Sicherung gehört neben der Datenbank die `config.php`
+Zu einem vollständigen Datenbank-Backup gehört neben der Datenbank die `config.php`
 der Nextcloud. Die IBANs der Mitglieder liegen verschlüsselt in der Datenbank,
 der Schlüssel hängt am `secret` in der `config.php` (13.13). Eine Datenbank
 ohne die passende `config.php` lässt sich zwar einspielen, die
@@ -1927,7 +2329,7 @@ zusätzliche Spalten (Stimmlage …) werden einfach übergangen:
 | Mandat am | `15.01.2026` | ja, sobald eine IBAN dasteht |
 | Mandatsreferenz | `ALT-0001` | nein, sonst vergibt die App eine |
 | Beitragsgruppe | `Chormitglieder` | ja, sobald ein Beitrag entstehen soll – gibt es nur eine Gruppe, darf die Spalte fehlen |
-| Betrag | `8,00` | nur wenn ein Beitrag entstehen soll – der **Monatsbeitrag**, unabhängig vom Turnus. **`0`** bedeutet beitragsfrei (Passiv-, Ehren-, Fördermitglieder, Pausen). Leer, aber mit Start: der Standardbeitrag der Beitragsgruppe |
+| Betrag | `8,00` | nur wenn ein Beitrag entstehen soll – der **Monatsbeitrag**, unabhängig vom Turnus (bei einer Beitragsgruppe mit Beträgen *pro Jahr* der **Jahresbeitrag**, siehe 13.4). **`0`** bedeutet beitragsfrei (Passiv-, Ehren-, Fördermitglieder, Pausen). Leer, aber mit Start: der Standardbeitrag der Beitragsgruppe |
 | Frequenz | `monatlich` | nein – ohne Angabe gilt **jährlich**, bei leerem Betrag der Standard-Turnus der Beitragsgruppe; bestimmt nur den Turnus, nicht den Betrag |
 | Start | `01.02.2026` | ja, sobald ein Betrag über 0 dasteht – darf nicht in der Vergangenheit liegen. Bei **0 €** darf er fehlen: die Zuweisung gilt dann ab dem Importtag |
 
@@ -1995,6 +2397,20 @@ Was ein Mitglied zahlt, steht in einer **Zuweisung** zu einer
   setzen Sie über **„Untergrenze anheben"**: die Vorschau nennt vorher die
   betroffenen Zuweisungen, und bereits eingezogene Perioden werden nie neu
   berechnet.
+- **Beträge pro Jahr:** Steht der Beitrag in Ihrer Satzung als Jahresbetrag
+  (etwa 50 € im Jahr), stellen Sie an der Gruppe **„Beträge gelten" → *pro
+  Jahr*** ein. Untergrenze, Standardbeitrag und der Beitrag jeder Zuweisung
+  sind dann Jahresbeträge, und ein volles Beitragsjahr kostet genau diesen
+  Betrag – 50 € lassen sich nicht ohne Rest auf zwölf Monate verteilen
+  (12 × 4,17 € wären 50,04 €). Eingezogen wird bei diesen Gruppen nur
+  jährlich. Der Schalter **„Angebrochenes Beitragsjahr anteilig berechnen"**
+  legt fest, was bei Ein- oder Austritt im laufenden Jahr gilt: eingeschaltet
+  Jahresbeitrag × Monate ÷ 12, auf den Cent gerundet (50 € ab Juni sind
+  29,17 €), ausgeschaltet der volle Jahresbeitrag. Den Schalter können Sie
+  jederzeit ändern, er wirkt auf künftig erzeugte Forderungen. Die Angabe *pro
+  Monat* oder *pro Jahr* selbst steht fest, sobald die Gruppe Zuweisungen
+  hat; eine Zuweisung wechselt auch nicht zwischen Gruppen mit
+  unterschiedlicher Angabe – beenden Sie sie und legen Sie eine neue an.
 - Die **Zuweisung** verbindet ein Mitglied mit einer Gruppe: *Monatsbeitrag*,
   *Turnus*, *Zahlungsart* (*Lastschrift* oder *Überweisung*) sowie *Gültig ab*
   und optional *Gültig bis*. Der **Monatsbeitrag ist der Ausgangswert**: der
@@ -2608,8 +3024,9 @@ nicht. In der App ändert sich nichts: Wer die IBAN sehen darf, sieht sie wie
 bisher. Der Schlüssel wird aus dem `secret` in der `config.php` der Nextcloud
 abgeleitet. Daraus folgt zweierlei: Wer den Server selbst unter Kontrolle hat,
 liest die IBANs weiterhin – die Verschlüsselung ersetzt keine Absicherung des
-Servers. Und ein Backup ist nur mit der zugehörigen `config.php` vollständig
-(12.3). Die IBANs des Vereins selbst (Geldkonten, Gläubiger-IBAN) bleiben
+Servers. Und ein Datenbank-Backup ist nur mit der zugehörigen `config.php` vollständig
+(12.3) – die Sicherung der App (*Sicherung und Umzug*, 12.3) enthält die IBANs
+dagegen unter ihrem eigenen Passwort und braucht die `config.php` nicht. Die IBANs des Vereins selbst (Geldkonten, Gläubiger-IBAN) bleiben
 unverschlüsselt; sie stehen ohnehin auf jedem Mandatsformular.
 
 ---

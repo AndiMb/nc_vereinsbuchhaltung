@@ -21,6 +21,7 @@ use OCA\Vereinsbuchhaltung\Service\AuditService;
 use OCA\Vereinsbuchhaltung\Service\BookingService;
 use OCA\Vereinsbuchhaltung\Service\ClaimService;
 use OCA\Vereinsbuchhaltung\Service\ClaimStateResolver;
+use OCA\Vereinsbuchhaltung\Service\CostCenter\CostCenterDefaults;
 use OCA\Vereinsbuchhaltung\Service\DunningLadderService;
 use OCA\Vereinsbuchhaltung\Service\MandateService;
 use OCP\AppFramework\Db\DoesNotExistException;
@@ -86,7 +87,61 @@ class SepaImportConfirmationService {
 		private IUserSession $userSession,
 		private ITimeFactory $time,
 		private IL10N $l10n,
+		// Vorgabe-Kostenstellen der Beitragsgruppen (Issue #333); ohne die beiden
+		// entsteht jede Buchung ohne Kostenstelle, wie zuvor.
+		private ?ContributionCostCenterResolver $costCenterResolver = null,
+		private ?CostCenterDefaults $costCenterDefaults = null,
 	) {
+	}
+
+	/**
+	 * Kontoteile einer Sammelbuchung mit den Kostenstellen der Beitragsgruppen
+	 * (Issue #333): je Erlöskonto ein Teil, darin die Beträge je Kostenstelle
+	 * summiert. Was keiner Kostenstelle gehört, bleibt ohne; ein Teil ganz ohne
+	 * Kostenstelle bekommt den Schlüssel `allocations` gar nicht und sieht aus
+	 * wie vor der Funktion.
+	 *
+	 * @param list<array{accountId:int, amountCents:int, costCenterId:?int}> $rows ein Eintrag je Posten
+	 * @return list<array{accountId:int, amountCents:int, allocations?: list<array{costCenterId:int, amountCents:int}>}>
+	 */
+	public static function partsWithAllocations(array $rows): array {
+		$totals = [];
+		$byCostCenter = [];
+		foreach ($rows as $row) {
+			$amountCents = (int)$row['amountCents'];
+			if ($amountCents <= 0) {
+				continue;
+			}
+			$accountId = (int)$row['accountId'];
+			$totals[$accountId] = ($totals[$accountId] ?? 0) + $amountCents;
+			if ($row['costCenterId'] !== null) {
+				$costCenterId = (int)$row['costCenterId'];
+				$byCostCenter[$accountId][$costCenterId] = ($byCostCenter[$accountId][$costCenterId] ?? 0) + $amountCents;
+			}
+		}
+		$parts = [];
+		foreach ($totals as $accountId => $amountCents) {
+			$part = ['accountId' => $accountId, 'amountCents' => $amountCents];
+			foreach ($byCostCenter[$accountId] ?? [] as $costCenterId => $cents) {
+				$part['allocations'][] = ['costCenterId' => $costCenterId, 'amountCents' => $cents];
+			}
+			$parts[] = $part;
+		}
+		return $parts;
+	}
+
+	/**
+	 * Vorgabe-Kostenstelle eines Postens – oder null, wenn es keine gibt oder
+	 * sie auf diesem Konto nicht anwendbar ist (Konto trägt keine Kostenstelle,
+	 * Kostenstelle inaktiv, Modul aus). Eine Vorgabe scheitert weich.
+	 */
+	private function costCenterOf(OpenItem $openItem, int $accountId, int $amountCents, bool $isReturn = false): ?int {
+		// Bei ausgeschaltetem Modul gar nicht erst nachschlagen.
+		if ($this->costCenterResolver === null || $this->costCenterDefaults === null || $this->costCenterDefaults->usableIds(Application::BOOK) === []) {
+			return null;
+		}
+		$costCenterId = $isReturn ? $this->costCenterResolver->forReturn($openItem) : $this->costCenterResolver->forOpenItem($openItem);
+		return $this->costCenterDefaults->fullAllocation(Application::BOOK, $costCenterId, $accountId, $amountCents) !== null ? $costCenterId : null;
 	}
 
 	// --- Lesen -------------------------------------------------------------------
@@ -185,7 +240,7 @@ class SepaImportConfirmationService {
 	 * Rückgabe-Zeile, deren Posten schon eine Rücklastschrift trägt, fehlt
 	 * (Posten-Guard, Spec §3.6/§5: Dubletten verpuffen still).
 	 *
-	 * @return array{direction:string, rows:list<array{detail:BankTxSepaDetail, debitItem:DebitItem, openItem:OpenItem, accountId:int}>, parts:list<array{accountId:int, amountCents:int}>, chargesCents:int, feeAccountId:?int}
+	 * @return array{direction:string, rows:list<array{detail:BankTxSepaDetail, debitItem:DebitItem, openItem:OpenItem, accountId:int}>, parts:list<array{accountId:int, amountCents:int, allocations?:list<array{costCenterId:int, amountCents:int}>}>, chargesCents:int, feeAccountId:?int}
 	 * @throws SettlementBlockedException
 	 */
 	public function plan(BankTransaction $tx): array {
@@ -240,29 +295,25 @@ class SepaImportConfirmationService {
 
 	/**
 	 * @param BankTxSepaDetail[] $settlements
-	 * @return array{direction:string, rows:list<array{detail:BankTxSepaDetail, debitItem:DebitItem, openItem:OpenItem, accountId:int}>, parts:list<array{accountId:int, amountCents:int}>, chargesCents:int, feeAccountId:?int}
+	 * @return array{direction:string, rows:list<array{detail:BankTxSepaDetail, debitItem:DebitItem, openItem:OpenItem, accountId:int}>, parts:list<array{accountId:int, amountCents:int, allocations?:list<array{costCenterId:int, amountCents:int}>}>, chargesCents:int, feeAccountId:?int}
 	 */
 	private function planSettlements(array $settlements): array {
 		$rows = [];
-		$partsByAccount = [];
+		$amounts = [];
 		foreach ($settlements as $detail) {
 			$debitItem = $this->debitItems->find((int)$detail->getDebitItemId());
 			$openItem = $this->openItems->find($debitItem->getOpenItemId());
 			$accountId = $this->revenueAccountId($openItem);
-			$partsByAccount[$accountId] = ($partsByAccount[$accountId] ?? 0) + $debitItem->getAmountCents();
+			$amounts[] = ['accountId' => $accountId, 'amountCents' => $debitItem->getAmountCents(), 'costCenterId' => $this->costCenterOf($openItem, $accountId, $debitItem->getAmountCents())];
 			$rows[] = ['detail' => $detail, 'debitItem' => $debitItem, 'openItem' => $openItem, 'accountId' => $accountId];
 		}
 
-		$parts = [];
-		foreach ($partsByAccount as $accountId => $amountCents) {
-			$parts[] = ['accountId' => $accountId, 'amountCents' => $amountCents];
-		}
-		return ['direction' => self::DIRECTION_COLLECTION, 'rows' => $rows, 'parts' => $parts, 'chargesCents' => 0, 'feeAccountId' => null];
+		return ['direction' => self::DIRECTION_COLLECTION, 'rows' => $rows, 'parts' => self::partsWithAllocations($amounts), 'chargesCents' => 0, 'feeAccountId' => null];
 	}
 
 	/**
 	 * @param BankTxSepaDetail[] $returns
-	 * @return array{direction:string, rows:list<array{detail:BankTxSepaDetail, debitItem:DebitItem, openItem:OpenItem, accountId:int}>, parts:list<array{accountId:int, amountCents:int}>, chargesCents:int, feeAccountId:?int}
+	 * @return array{direction:string, rows:list<array{detail:BankTxSepaDetail, debitItem:DebitItem, openItem:OpenItem, accountId:int}>, parts:list<array{accountId:int, amountCents:int, allocations?:list<array{costCenterId:int, amountCents:int}>}>, chargesCents:int, feeAccountId:?int}
 	 * @throws SettlementBlockedException wenn eine Bankgebühr bekannt ist, aber
 	 *                                    kein Rücklastschriftgebühren-Konto eingestellt ist
 	 */
@@ -293,7 +344,7 @@ class SepaImportConfirmationService {
 			);
 		}
 
-		$byAccount = [];
+		$amounts = [];
 		foreach ($rows as $index => $row) {
 			$accountId = $this->revenueAccountId($row['openItem']);
 			$rows[$index]['accountId'] = $accountId;
@@ -301,14 +352,11 @@ class SepaImportConfirmationService {
 			// Bankgebühr (nicht des Gesamt-Umsatzes) - bei mehreren gebündelten
 			// Rückgaben in einer Buchung trägt jede Zeile ihre eigene Gebühr.
 			$originalCents = abs($row['detail']->getAmountCents()) - max(0, $row['detail']->getChargesCents() ?? 0);
-			$byAccount[$accountId] = ($byAccount[$accountId] ?? 0) + max(0, $originalCents);
+			// Die Rückgabe nimmt den Erlös wieder aus der Kostenstelle heraus, die
+			// der Einzug trug; die Bankgebühr unten gehört keiner.
+			$amounts[] = ['accountId' => $accountId, 'amountCents' => max(0, $originalCents), 'costCenterId' => $this->costCenterOf($row['openItem'], $accountId, max(0, $originalCents), true)];
 		}
-		$parts = [];
-		foreach ($byAccount as $accountId => $amountCents) {
-			if ($amountCents > 0) {
-				$parts[] = ['accountId' => $accountId, 'amountCents' => $amountCents];
-			}
-		}
+		$parts = self::partsWithAllocations($amounts);
 		if ($totalCharges > 0) {
 			$parts[] = ['accountId' => (int)$feeAccountId, 'amountCents' => $totalCharges];
 		}
@@ -321,7 +369,7 @@ class SepaImportConfirmationService {
 	 * gruppiert nach `account_id`. Schließt anschließend jede beteiligte
 	 * Forderung ab, verknüpft mit der entstandenen Sammelbuchung.
 	 *
-	 * @param array{direction:string, rows:list<array{detail:BankTxSepaDetail, debitItem:DebitItem, openItem:OpenItem, accountId:int}>, parts:list<array{accountId:int, amountCents:int}>, chargesCents:int, feeAccountId:?int} $plan
+	 * @param array{direction:string, rows:list<array{detail:BankTxSepaDetail, debitItem:DebitItem, openItem:OpenItem, accountId:int}>, parts:list<array{accountId:int, amountCents:int, allocations?:list<array{costCenterId:int, amountCents:int}>}>, chargesCents:int, feeAccountId:?int} $plan
 	 */
 	private function bookSettlements(BankTransaction $tx, array $plan): int {
 		$tx = $this->bookingService->assignParts($tx, $plan['parts']);
@@ -349,7 +397,7 @@ class SepaImportConfirmationService {
 	 * konfigurierbare Rücklastschriftgebühren-Konto. Fehlt der Bank-Beleg zur
 	 * Bankgebühr, entfällt die zweite Zeile (siehe planReturns()).
 	 *
-	 * @param array{direction:string, rows:list<array{detail:BankTxSepaDetail, debitItem:DebitItem, openItem:OpenItem, accountId:int}>, parts:list<array{accountId:int, amountCents:int}>, chargesCents:int, feeAccountId:?int} $plan
+	 * @param array{direction:string, rows:list<array{detail:BankTxSepaDetail, debitItem:DebitItem, openItem:OpenItem, accountId:int}>, parts:list<array{accountId:int, amountCents:int, allocations?:list<array{costCenterId:int, amountCents:int}>}>, chargesCents:int, feeAccountId:?int} $plan
 	 */
 	private function bookReturns(BankTransaction $tx, array $plan): int {
 		$rows = $plan['rows'];
@@ -493,8 +541,13 @@ class SepaImportConfirmationService {
 		}
 		$accountId = $this->revenueAccountId($openItem);
 
-		return $this->transaction->run(function () use ($tx, $openItem, $accountId): OpenItem {
-			$tx = $this->bookingService->assign($tx, $accountId);
+		// Vorgabe-Kostenstelle der Beitragsgruppe (Issue #333); null = nichts gesagt.
+		$amountCents = abs($tx->getAmountCents());
+		$costCenterId = $this->costCenterOf($openItem, $accountId, $amountCents);
+		$allocations = $costCenterId !== null ? [['costCenterId' => $costCenterId, 'amountCents' => $amountCents]] : null;
+
+		return $this->transaction->run(function () use ($tx, $openItem, $accountId, $allocations): OpenItem {
+			$tx = $this->bookingService->assign($tx, $accountId, $allocations);
 			$openItem->setStatus('paid');
 			$openItem->setPaidJournalId($tx->getJournalId());
 			$openItem->setSettledAt($this->now());

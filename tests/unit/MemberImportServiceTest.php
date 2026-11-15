@@ -17,6 +17,7 @@ use OCA\Vereinsbuchhaltung\Service\IbanValidator;
 use OCA\Vereinsbuchhaltung\Service\MandateService;
 use OCA\Vereinsbuchhaltung\Service\MemberImportService;
 use OCA\Vereinsbuchhaltung\Service\Sepa\MemberCsvParser;
+use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubCurrencyStub;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\IL10N;
 use OCP\IUser;
@@ -38,6 +39,8 @@ use PHPUnit\Framework\TestCase;
  * Klasse sie aufruft.
  */
 class MemberImportServiceTest extends TestCase {
+	/** Vereinswährung des Dienstes (#202). */
+	private string $currencyCode = 'EUR';
 
 	private MemberMapper&MockObject $memberMapper;
 	private MandateService&MockObject $mandates;
@@ -99,6 +102,7 @@ class MemberImportServiceTest extends TestCase {
 			$l10n,
 			$time,
 			new IbanValidator($l10n),
+			ClubCurrencyStub::of($this, $this->currencyCode),
 		);
 	}
 
@@ -790,5 +794,88 @@ class MemberImportServiceTest extends TestCase {
 
 		$this->assertSame(1, $result['summary']['ok']);
 		$this->assertSame(1, $result['summary']['warnings']);
+	}
+
+	/** Vereinswährung (#202): ohne Euro keine SEPA-Mandate – die Zeile mit IBAN scheitert schon in der Vorschau. */
+	public function testOhneEuroIstEineIbanZeileEinFehler(): void {
+		$this->currencyCode = 'CHF';
+		$this->mandates->expects($this->never())->method('createPaper');
+
+		$csv = "Name;IBAN;Mandat am\nKatrin Brunner;DE02120300000000202051;15.01.2026\n";
+		$result = $this->service()->preview($csv);
+
+		$this->assertSame(1, $result['summary']['failed']);
+		$this->assertStringContainsString('nur in Euro', $result['rows'][0]['errors'][0]);
+	}
+
+	/** Ohne Euro landet auch eine Zeile mit Mail auf Überweisung. */
+	public function testOhneEuroLandetDieZeileMitMailAufUeberweisung(): void {
+		$this->currencyCode = 'CHF';
+		$this->groupMapper->method('findAll')->willReturn([$this->group(1, 'Chormitglieder')]);
+		$this->assignments->expects($this->once())->method('create')
+			->with($this->anything(), 1, 1, 500, Assignment::PAYMENT_METHOD_TRANSFER, '2026-02-01', null, null, null, $this->anything(), $this->anything())
+			->willReturn((function () {
+				$a = new Assignment();
+				$a->setId(7);
+				return $a;
+			})());
+
+		$csv = "Name;E-Mail;Betrag;Frequenz;Start\nKatrin Brunner;k@example.org;5,00;monatlich;01.02.2026\n";
+		$result = $this->service()->import($csv, true);
+
+		$this->assertSame(7, $result['rows'][0]['assignmentId']);
+	}
+
+	// --- Gruppen mit Jahresbetrag (Issue #270): die Spalte „Betrag“ ist dort der Jahresbetrag ---
+
+	private function annualGroup(int $id, string $name, int $minAnnualCents, int $defaultAnnualCents): ContributionGroup {
+		$group = $this->group($id, $name, (int)round($minAnnualCents / 12), (int)round($defaultAnnualCents / 12));
+		$group->setAmountBasis(ContributionGroup::BASIS_YEAR);
+		$group->setMinAnnualAmountCents($minAnnualCents);
+		$group->setDefaultAnnualAmountCents($defaultAnnualCents);
+		$group->setAllowedIntervalsArray([12]);
+		return $group;
+	}
+
+	public function testBetragEinerJahresgruppeWirdAlsJahresbetragAngelegt(): void {
+		$this->groupMapper->method('findAll')->willReturn([$this->annualGroup(1, 'Fördermitglied', 2500, 5000)]);
+		$this->assignments->expects($this->once())->method('create')
+			->with($this->anything(), 1, 12, 0, Assignment::PAYMENT_METHOD_DIRECT_DEBIT, '2026-02-01', null, null, null, $this->anything(), $this->anything(), null, 7000, null)
+			->willReturn($this->createdAssignment(41));
+
+		$csv = "Name;E-Mail;Betrag;Start\nKatrin Brunner;k@example.org;70,00;01.02.2026\n";
+		$result = $this->service()->import($csv, true);
+
+		$this->assertSame([], $result['rows'][0]['errors']);
+		$this->assertSame(41, $result['rows'][0]['assignmentId']);
+	}
+
+	public function testStartOhneBetragNimmtDenJahresbetragDerJahresgruppe(): void {
+		$this->groupMapper->method('findAll')->willReturn([$this->annualGroup(1, 'Fördermitglied', 2500, 5000)]);
+		$this->assignments->expects($this->once())->method('create')
+			->with($this->anything(), 1, 12, 0, $this->anything(), '2026-02-01', null, null, null, $this->anything(), $this->anything(), null, 5000, null)
+			->willReturn($this->createdAssignment(42));
+
+		$result = $this->service()->import("Name;E-Mail;Start\nKatrin Brunner;k@example.org;01.02.2026\n", true);
+
+		$this->assertSame(50.0, (float)$result['rows'][0]['amount']);
+	}
+
+	public function testBetragUnterDerJahresUntergrenzeIstSchonInDerVorschauEinFehler(): void {
+		$this->groupMapper->method('findAll')->willReturn([$this->annualGroup(1, 'Fördermitglied', 2500, 5000)]);
+
+		// 20 € lägen als Monatsbetrag weit über der gerundeten Monats-Untergrenze von 2,08 €.
+		$result = $this->service()->preview("Name;Betrag;Start\nKatrin Brunner;20,00;01.02.2026\n");
+
+		$this->assertSame(1, $result['summary']['failed']);
+		$this->assertStringContainsString('Jahresbeitrag darf die Untergrenze von 25,00 €', $result['rows'][0]['errors'][0]);
+	}
+
+	public function testMonatlicheFrequenzIstBeiEinerJahresgruppeEinFehler(): void {
+		$this->groupMapper->method('findAll')->willReturn([$this->annualGroup(1, 'Fördermitglied', 2500, 5000)]);
+
+		$result = $this->service()->preview("Name;Betrag;Frequenz;Start\nKatrin Brunner;70,00;monatlich;01.02.2026\n");
+
+		$this->assertStringContainsString('Turnus', $result['rows'][0]['errors'][0]);
 	}
 }

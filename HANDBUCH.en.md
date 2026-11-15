@@ -238,6 +238,23 @@ and in the footer instead of the Nextcloud's name. The sender address stays
 the one from the Nextcloud mail settings. If a club email is set in the
 settings under *Invoices*, replies go to that address.
 
+**Club currency.** The same page has a *Club currency* card. Out of the box
+the app works in euros. You can also choose Swiss franc (CHF), British pound
+(GBP), Danish, Swedish and Norwegian krone (DKK, SEK, NOK), złoty (PLN) and
+Czech koruna (CZK). The currency sets the sign after every amount – in the
+interface, reports, exports, invoices and emails. The number format stays
+German (`1.234,50 CHF`). Nothing is converted: all of a club's amounts are in
+one currency. Statutory limits such as the €45,000 threshold or the
+small-business limits under § 19 UStG remain in euros.
+
+SEPA direct debit and GiroCode exist only in euros. In any other currency the
+app hides mandates, the direct debit run and the SEPA settings; invoices,
+payment requests and expense transfers come without a GiroCode. Switching
+away from the euro is only possible when no mandate is in force any more (all
+ended), no released collection is waiting to be submitted and no contribution
+assignment is still paid by direct debit – switch those to bank transfer first. The page
+reloads after saving.
+
 ### 2.6 Corporate design (optional)
 
 Gear icon → *Club* (second card on the same page): upload a **club logo**
@@ -898,7 +915,10 @@ to individual postings. Names can be adjusted directly here.
 > trial balance, *including sub-accounts* rolls the children back up into one
 > total. Up to version 0.28.0 a reporting group was called a "cost center";
 > that term was dropped deliberately, because in cost accounting a cost center
-> is precisely the per-line second dimension that this app does not keep.
+> is precisely the per-line second dimension. That second dimension now exists
+> as a separate feature you can switch on: with **cost centres** (chapter 5.8)
+> you split an amount on the same account across several teams without
+> creating sub-accounts.
 
 How the app groups accounts into reporting groups is decided by the
 **reporting-group mode** (the "grouping" selector in the report header,
@@ -947,6 +967,9 @@ and which money is not part of it.
 of **all** cash accounts, not just one. If the club runs exactly one cash
 account, its name still appears there. Hovering over the figure shows the
 breakdown by account as a tooltip; screen readers read it out directly.
+
+Whether a cash account matches the bank statement is checked by **account
+reconciliation** (chapter 5.9).
 
 ### 5.6 Tax spheres
 
@@ -1004,6 +1027,208 @@ general equity account).
 **Evaluating:** Reports tab → "Reserves" shows the current balance per type
 as well as the accounts involved – so it's visible at a glance how much has
 already been set aside.
+
+### 5.8 Cost centres (optional)
+
+With **cost centres** you allocate a single amount to a department, a team or
+a project – also in parts. The classic example: €1,000 for jerseys on the
+"Equipment" account, of which €600 is for the seniors and €400 for the
+under-19s. It remains **one** entry on **one** account; you do not need a
+separate account per team.
+
+The feature is **switched off by default**. If you do not need it, you see
+nothing of it.
+
+**Three terms, three questions:**
+
+| Term | Answers | Belongs to |
+|---|---|---|
+| **Sphere** (chapter 5.6) | How is the amount classified for tax purposes? | the account |
+| **Reporting group** (chapter 5.4) | Which accounts belong together in the report? | the account |
+| **Cost centre** | Which department, team or project was the money for? | the individual amount of an entry |
+
+Cost centres have no tax meaning and do not replace the spheres.
+
+**Switching on:** *Settings → Vereinsbuchhaltung → Cost centres → Enable cost
+centres* (administrators only).
+
+**Creating:** **Reports → Cost centres → Manage cost centres** tab. Each cost
+centre has a code (at most eight characters, e.g. `SEN`) and a name. A cost
+centre that already has amounts allocated cannot be deleted, but it can be
+**deactivated**: it is then no longer offered when posting, and its previous
+amounts remain in the report.
+
+**Allocating when posting:** in the entry dialog the **Cost centre** field
+appears below the entry text as soon as an income or expense account is
+selected. Entering one is always optional.
+
+- Select one cost centre – the whole amount of the line is allocated.
+- **Split across several…** – one amount per cost centre. Whatever you do not
+  allocate stays "without cost centre"; that is allowed. You cannot allocate
+  more than the amount of the line.
+- When an amount is split across several contra accounts (*Split amount*),
+  every line has its own field. The same applies to **"Split…"** when
+  assigning a bank transaction (chapter 4.1).
+
+Money, balance-sheet and transit accounts carry no cost centre. Entries with
+a cost centre show a small label with the code in the entry list (with
+several, e.g. "SEN +1"). If you later change the amount of a line, a single
+cost centre follows it; a split across several stays as it is and may need
+adjusting.
+
+**Default on an import rule:** a rule (Entries → Rules tab) can set a cost
+centre in addition to the contra account. When the rule applies during
+import, the whole amount is allocated to that cost centre; the same happens
+when you accept a rule's suggestion in the assignment list. If the cost
+centre has become inactive, or the contra account carries no cost centre,
+the transaction is still assigned, just without a cost centre. A cost
+centre that a rule still points to cannot be deleted.
+
+**Invoices:** in the invoice editor (chapter 15) every item has a **Cost
+centre** field next to the revenue account. When the invoice is paid – by
+bank transaction or in cash – the app distributes the revenue per revenue
+account proportionally across the cost centres of the items; items without
+a cost centre stay "without", and VAT carries none. With partial payments
+each payment is distributed on its own; across several partial payments the
+total per cost centre can therefore differ from the item amount by one cent
+per payment. Copies, cancellations and recurring invoices take the cost
+centres over. In the batch import the *Kostenstelle* column means this cost
+centre (code or name) when the feature is switched on; a sheet that still
+names evaluation groups there then reports the row as an error. A discount
+item reduces the share of its cost centre.
+
+**Expense claims:** the dialog "Umsatz einer Auslage zuordnen" has a **Cost
+centre** field below the expense account; the payout entry carries it.
+
+**Contributions and SEPA collection:** every contribution group (chapter 13)
+can carry a default cost centre. When a bulk credit is booked in the bank
+reconciliation, the app assigns each member's contribution to the cost
+centre of their group – in one entry, summed per revenue account;
+contributions from groups without a default stay without. The same applies
+to a single incoming payment assigned to a claim. A returned debit takes
+the revenue out of the cost centre again, provided the collection had
+assigned it there; the bank fee belongs to none. The
+default applies to claims the collection cycle creates from an assignment –
+claims created by hand have no group and stay without. If the cost centre
+is inactive, the entry is booked without it; booking never fails because
+of it.
+
+**Cost centre required:** if every amount on an account should ideally get a
+cost centre, switch on **Cost centre required** in the account dialog
+(Accounts tab → edit account). It is offered for income and expense
+accounts only. The flag is a reminder, not a lock: the entry dialog and the
+split dialog show the amount not yet allocated on the line, and you can
+still save. At the top, the report lists **Mandatory accounts with an open
+amount** – this also includes amounts from automatically created entries,
+where nobody was reminded in a dialog. A click on the account leads to its
+entries. If such an account later becomes a balance-sheet or money account,
+the flag is dropped.
+
+**Evaluating:** the **Reports → Cost centres** tab shows, per cost centre,
+income and expenses by account and the result, followed by the **Without cost
+centre** block with everything that is not allocated. The grand total at the
+end is the same as in the other reports; the report states this explicitly
+("matches the result according to the account balances"). A click on an
+account leads to its entries. **Print** and **CSV** provide the report ready
+to print or as a table.
+
+**Budget per cost centre:** when a financial year is selected in the
+header, the report offers the **Budget planen** button (from the
+bookkeeper role). The dialog takes one planned value for income and one
+for expenses per cost centre; values are saved when you leave the field,
+and an empty field means "no plan". The report then shows **Plan**,
+**Ist** (actual) and **Abweichung** (variance, actual minus plan) for
+income, expenses and result per cost centre – also for cost centres with
+no entries yet – and likewise on the print page and in the CSV file. With
+"All periods" there is no plan. A plan is not an entry: it can be changed
+for a closed financial year too and changes no total. The budget per cost
+centre is independent of the financial plan per account (chapter 6). A
+financial year that carries such planned values cannot be removed. If the
+financial years are restructured later, these planned values do not move
+along and have to be entered again.
+
+With the feature switched on, the journal export (CSV) gets an additional
+last column **Kostenstellen**, e.g. `SEN 600,00 | AJU 400,00`. The existing
+columns keep their position.
+
+**Switching off again:** field, label, report and export column disappear.
+The saved allocations are kept – even if you edit entries in the meantime –
+and reappear as soon as you switch the feature on again. Only if you change
+the account or the amount of a line while the feature is off does that line
+lose its allocation.
+
+**Delete all data** (chapter 12.1) also removes the cost centres and their
+allocations.
+
+### 5.9 Account reconciliation: checking a cash account against the bank statement
+
+Does the cash account in the app match what the bank reports? **Account
+reconciliation** compares a bank statement row by row with the movements of
+a cash account and shows what does not fit – an entry recorded twice, for
+instance, or a transaction that never reached the app. It is the check
+auditors ask for at year end, and everyone from the auditor role upwards
+may use it.
+
+**It only compares.** The statement is neither imported nor stored; entries
+and bank transactions stay as they are. To read in transactions, keep using
+the import (chapter 3.2).
+
+**How it works:**
+
+1. **Accounts** tab → click the cash account → **Account reconciliation**.
+2. **Choose file**: the statement from your online banking, in the same
+   formats as the import (CSV-CAMT, CAMT.053, MT940). The comparison starts
+   immediately.
+3. Optionally narrow the period with **From** and **To** and **Compare**
+   again. Without dates, the period of the statement applies; the
+   comparison never reaches beyond it – a wider period is limited to the
+   first and last booking day of the statement.
+
+If the statement covers several accounts, only the rows of the chosen cash
+account count; its IBAN decides (chapter 2.2). If the statement belongs to
+a different account, the message names the IBAN found in the file. If the
+statement names no account, or the cash account has no IBAN, it is taken
+to be for the chosen account.
+
+**What the result shows:**
+
+| List | Meaning | Typical cause |
+|---|---|---|
+| **Surplus in the app** | movements on the account that the statement does not contain | recorded twice, wrong cash account, wrong amount or day |
+| **Missing in the app** | statement rows with neither an entry nor a bank transaction | statement not imported, transaction discarded, cash movement forgotten |
+| **Shifted in time** | rows with a counterpart that is dated outside the period | entry across the turn of a month or year |
+
+The app's movements are the entries on the cash account **and** the bank
+transactions of this account that are not yet assigned – an imported but
+unassigned transaction therefore does not count as missing. The opening
+balance (chapter 2.3) is not a movement but the starting stock. From "Surplus
+in the app", **To the entry** opens the entry list for that day and **To
+the transaction** the bank transactions still to be assigned.
+
+**Date tolerance:** the bank and the entry do not always carry the same day
+(booking date, value date, receipt date). The tolerance – 3 days by default,
+10 at most – allows that distance. The same amount on the same day always
+takes precedence.
+
+**Balance check:** if the statement carries balances (MT940, CAMT.053, CSV
+with a balance column), the app sets the bank's opening and closing balance
+against its own. "App" is the account balance according to the entries plus
+the bank transactions not yet assigned; the difference is app − bank. Below
+it you see how the difference at the end is made up: difference at the
+start, surplus, missing, shifted. If an **unexplained remainder** is left,
+the rows and the balances of the statement do not agree – the app then
+names the places where the statement's balances do not add up without gaps
+(usually rows are missing). A difference already at the start points to a
+wrong opening balance (chapter 2.3) or an error before the period.
+Statements without balances are compared row by row only.
+
+**Download as CSV** keeps the result, for example for the audit.
+
+> **Do not confuse:** *cash-account reconciliation* (chapter 5.5) only shows
+> how much in bank transactions is still unassigned. The *bank
+> reconciliation* of the direct debit run (chapter 13.10) posts debits and
+> returned debits. Account reconciliation, by contrast, checks whether the
+> account and the bank statement agree – and changes nothing.
 
 ---
 
@@ -1204,6 +1429,91 @@ covers all income and expenses and matches the financial plan.
 columns on), **CSV** delivers the same lines with a "level" column for
 outlining in a spreadsheet.
 
+### 7.5 Structured report, visual view: budget vs. actual
+
+Tab **Reports → Structured report**, switch **Table | Visual** next to the
+template picker. The visual view shows the same template as key figures,
+traffic lights and bars – meant for the question "are we on plan?", for
+instance before a board meeting. The table, its print and its CSV stay
+unchanged. The browser remembers the choice and it is part of the link
+(`view=visual`); anyone opening a shared link sees the same view.
+
+The view speaks of **plan** and **actual**.
+
+**As of and comparison.** Two selection fields control all figures:
+
+- **As of:** a month of the period (by default the last completed one) or
+  "Current (all entries)". With a month, only entries up to the end of that
+  month count.
+- **Compare against:** "Full plan" or "Time-proportional". Time-proportional
+  is the plan times elapsed months divided by the months of the period;
+  this also works for short and non-calendar fiscal years. It assumes that
+  the plan is spread evenly over the months.
+
+**Layout from top to bottom:**
+
+- **Key figures** for income, expenses and result: actual, plan,
+  utilisation (for the result, the difference), traffic light,
+  time-proportional plan and a **forecast** to the end of the period. The
+  forecast is linear; seasonal items such as annual membership fees distort
+  it.
+- **Status of expense accounts** and **Status of income accounts:** how many
+  accounts are in which status. A click on a level filters the breakdown
+  below. The numbers refer to the accounts at the planning level, regardless
+  of the template, and can therefore differ from the rows of a template.
+- **Largest overruns** (expenses) and **largest shortfalls** (income): up to
+  seven accounts per list. A click on an entry opens the account's entries,
+  as in the breakdown.
+- **Trend:** chart with the cumulative actual per month for income and
+  expenses, the plan line and the dashed forecast.
+- **Breakdown by template:** every row of the template with traffic light
+  and bar; account branches can be collapsed and expanded. A click on an
+  account opens the bookings list of the period filtered to that account.
+  For an account with sub-accounts – in the deviation lists as well –
+  "incl. sub-accounts" is switched on there, because its figure includes the
+  sub-accounts. If a row does not count the sub-accounts (they sit in
+  another section of the template), the jump filters the account alone; if
+  it counts only some of them, the name is not a link.
+  With a month as the snapshot the list ends on the last day of that month
+  (field "To" of the bookings list) and so adds up to the figure that was
+  clicked; with "Current" it stays without a date filter.
+
+If the sub-accounts of a parent account carry their own plan values, the
+status counts and deviation lists count the sub-accounts; entries posted
+directly on the parent then only appear in the key figures and the
+breakdown. If the plan is entered on the parent or nowhere, the parent
+together with its sub-accounts counts as one item.
+
+**The traffic light.** Every status appears with a symbol and text, never by
+colour alone. With the default thresholds, relative to the reference value
+(plan):
+
+| Type | Green | Orange | Red |
+|---|---|---|---|
+| Expenses | below 80 % – "within budget" | 80–120 % – "watch" | above 120 % – "exceeded" |
+| Income | from 100 % – "on plan" | 80–100 % – "watch" | below 80 % – "below plan" |
+| Result | at least the plan – "on plan" | up to 20 % below – "slightly below plan" | more – "well below plan" |
+
+"Unplanned" means actual without a plan; the row is hatched or dashed, and
+for income it counts as good. A sub-account whose plan is entered on its
+parent account is marked "planned on parent account" instead.
+
+**No plan.** If no plan is entered for the period, a notice points to the
+budget, where the plan values are entered.
+
+**Adjusting the thresholds.** Gear icon → Settings, section **Status in the
+structured report** (administrator role only): five thresholds, the same for
+everyone in the club. Whole numbers from 0 to 999 are allowed. For expenses
+"orange from" must be below "red above", for income "red below" must be
+below "green from". **Default values** restores the defaults.
+
+**Print / PDF** opens a print-ready page of the visual view for the chosen
+snapshot and comparison: key figures, status counts, deviations, trend and
+breakdown with bars. It is readable in black and white. There is no CSV of
+the visual view; the table's CSV remains.
+
+On phones the tiles stack and the rows of the breakdown wrap onto two lines.
+
 ---
 
 ## 8. Fiscal year and finalization
@@ -1281,6 +1591,11 @@ the actions.
 - **"Create next period"** (button above the list) appends one more period
   at the end according to the current rule. This is rarely needed – the app
   creates a period by itself as soon as a posting falls into it.
+- **"Create previous period"** (next to it) prepends a period at the
+  front. The list starts with the fiscal year in which the app was first
+  opened; if you want to post or plan for an earlier year, create it here.
+  This also happens by itself as soon as a posting with an earlier date is
+  entered – the button merely makes the period selectable beforehand.
 - **"Remove"** is offered only for an empty period at the beginning or the
   end of the chain (no postings and no plan figures). In the middle it
   would leave a hole that no posting could belong to.
@@ -1395,6 +1710,15 @@ the auditor from having to read through this entire manual.
 - **"Only without receipt" filter** in the Bookings tab (journal): shows
   all postings without an attached receipt. Clearing these beforehand saves
   follow-up questions during the audit.
+- **Date filter "From" / "To"** in the journal: narrows the list to a range
+  of booking dates, both days included – a quarter, say, or a single day.
+  Each field works on its own; the cross next to them clears the filter. The
+  range is part of the page's link, like the account filter.
+- **Account filter "incl. sub-accounts"** in the journal: when the list is
+  filtered to an account that has sub-accounts, this checkbox appears next
+  to it. Switched on, the list shows the bookings of the account and of all
+  its sub-accounts at any depth – the way reports calculate the row of a
+  parent account. Without it the filter stays on exactly that one account.
 - **Gap check:** a warning automatically appears above the journal if
   posting numbers are missing or duplicated. The treasurer's report shows
   the same as a completeness line. In an open fiscal year, the app itself
@@ -1501,7 +1825,9 @@ again) and the year-end closing markers.
 assignments (chapter 13) are not part of the posting records and stay untouched
 (the collection is cleared with it, see below). The same applies to
 reset mode during the xbuc import. Both are irreversible – so only after
-checking with others, and never by accident.
+checking with others, and never by accident. If you really want to remove
+everything, including members, mandates and settings – for instance to restore
+a backup –, use *Clear data set completely* (12.3).
 
 **Fees and SEPA (chapter 13):** The reset takes the collection with it – the
 **direct-debit runs** with their items (including the IBANs in plain text), the
@@ -1537,13 +1863,81 @@ delete it and create a new one. On conflicts with another person: reopen
 and save again. A closed year can only be corrected after reopening
 (administrators, chapter 8.4).
 
-### 12.3 Database backup before updates
+### 12.3 Backup and migration
 
-Before every update that includes a database migration, a database backup
-(mysqldump) should be made – the app deployment only restores the program
-code, not the database schema. When in doubt, ask your administrator.
+Gear icon → *Backup and migration* (administrators only) saves the **entire
+data set** into a single encrypted file (`.vbhbackup`) and restores such a
+file – on the same Nextcloud or on a different one. This is the way to move to
+a new server, and a backup that works without access to the database and
+`config.php`.
 
-A complete backup includes Nextcloud's `config.php` as well as the database.
+**What the backup contains:** accounts, postings, fiscal years including
+their locking, bank transactions and rules, open items, invoices, expense
+claims, cost centres, financial plan and report templates, members, mandates
+with their history, contribution groups, assignments, direct debit runs, the
+roles, the change log and the club settings including the logo. With the
+switch *Include receipts and documents* (default: on) the files are added:
+posting receipts, invoice PDFs and e-invoices, receipts of expense claims and
+mandate proofs. Without the switch the file is small, but the target then
+lacks all files.
+
+**What is not included:** everything tied to the respective Nextcloud – the
+receipt storage and the watch folder (chapter 5), the folders for mandate
+proofs, invoices and SEPA files, and open activation links for mandates. You
+configure these settings again in the target. The restored files are kept in
+the app-internal storage there at first and can be opened and downloaded as
+usual.
+
+**Creating a backup:** set a password (at least ten characters, entered
+twice), *Create backup* – the download starts automatically. The file is
+encrypted with this password (AES-256). **The password is not stored
+anywhere: without it the backup can no longer be opened**, not even by the
+developer of the app. Keep it separate from the file. If a file is missing
+from the storage during the backup (deleted or moved in the Files app), the
+backup does not abort but lists the missing files of each kind by name. While
+a backup is being created or restored, nobody should be working in the
+bookkeeping – otherwise the backup may capture an intermediate state.
+
+**Restoring a backup:** only works in an **empty data set** and only with the
+**same version** of the app the backup was created with – when in doubt,
+bring both sides to the same version first and then create the backup again.
+Upload the file or, for large backups, put it into your own Nextcloud files
+and pick it via *Choose from Nextcloud files* (this avoids the server's upload
+limit). After *Check backup* the app shows which club, snapshot and version the
+file comes from and what it contains; only *Restore now* writes. If the app
+reports an error, the data set is still empty and unchanged. If, however, only
+the connection is lost (for instance because a reverse proxy gives up on a
+very large backup), the server may keep working: reload the page after a few
+minutes and check the data set before trying again. If a record cannot be
+stored in the target's database, the message names the table and the record. At the end there is a
+report: how many records and files were imported, which files are missing and
+which users or groups from the roles do not exist on this Nextcloud. Roles and
+the change log come from the backup; **whoever restores remains administrator
+in any case**. Assign roles for accounts that do not exist in the target again
+under *Permissions*, or create the accounts with the same name. Members' IBANs
+are re-encrypted in the target with its own key – the old Nextcloud's
+`config.php` is not needed for that.
+
+**Clear data set completely:** prepares a restore and goes further than
+*Delete all data* (12.1): it also removes members, mandates, contribution
+groups and the club settings, together with the receipts and documents stored
+by the app. To confirm, the club name has to be typed in. Roles, the change
+log, the storage settings and everything in your own Nextcloud folders (watch
+folder, mandate proofs, SEPA files) are kept. Irrevocable – create a backup
+and check it first.
+
+**Migration in short:** bring the old and the new Nextcloud to the same app
+version → *Create backup* (with receipts) in the old one → install the app in
+the new one, restore the file → configure storage and folders again, check the
+roles → spot-check balances, one receipt and one mandate.
+
+**Database backup before updates:** the app's backup does not replace the
+server backup. Before every update that includes a database migration, a
+database backup (mysqldump) should be made – the app deployment only restores
+the program code, not the database schema. When in doubt, ask your
+administrator.
+
+A complete database backup includes Nextcloud's `config.php` as well as the database.
 Members' IBANs are stored encrypted in the database, and the key depends on the
 `secret` in `config.php` (13.13). A database restored without the matching
 `config.php` loads fine, but the bank details can no longer be read. So back
@@ -1891,7 +2285,7 @@ and extra columns (voice part …) are simply ignored:
 | Mandate on | `15.01.2026` | yes, as soon as there's an IBAN |
 | Mandate reference | `ALT-0001` | no, otherwise the app assigns one |
 | Contribution group | `Choir members` | yes, as soon as a fee should be created – if there is only one group, the column may be missing |
-| Amount | `8.00` | only if a fee should be created – the **monthly amount**, regardless of the interval. **`0`** means fee-free (passive, honorary, supporting members, pauses). Empty but with a start: the default fee of the contribution group |
+| Amount | `8.00` | only if a fee should be created – the **monthly amount**, regardless of the interval (for a contribution group with amounts *per year* the **annual amount**, see 13.4). **`0`** means fee-free (passive, honorary, supporting members, pauses). Empty but with a start: the default fee of the contribution group |
 | Frequency | `monthly` | no – **yearly** applies if not specified, or the default interval of the contribution group when the amount is empty; only sets the interval, not the amount |
 | Start | `01.02.2026` | yes, as soon as there's an amount above 0 – must not lie in the past. For **0 €** it may be missing: the assignment then applies from the import day |
 
@@ -1961,6 +2355,20 @@ group** (**"Contributions" tab → Contribution groups**):
   A higher lower limit is set via **"Raise lower limit"** (*Untergrenze
   anheben*): the preview names the assignments affected beforehand, and
   periods already collected are never recalculated.
+- **Amounts per year:** if your statutes define the fee as an annual amount
+  (say €50 a year), set **"Amounts apply" (*Beträge gelten*) → *per year***
+  on the group. The lower limit, the default fee and the fee of every
+  assignment are then annual amounts, and a full contribution year costs
+  exactly that amount – €50 cannot be split into twelve equal months
+  (12 × €4.17 would be €50.04). These groups are collected once a year only.
+  The switch **"Prorate a partial contribution year"** (*Angebrochenes
+  Beitragsjahr anteilig berechnen*) decides what applies when someone joins
+  or leaves during the year: switched on, annual fee × months ÷ 12, rounded
+  to the cent (€50 from June is €29.17); switched off, the full annual fee.
+  You can change the switch at any time; it affects claims created from then
+  on. The choice between *per month* and *per year* itself is fixed once the
+  group has assignments, and an assignment does not move between groups with
+  different settings – end it and create a new one.
 - The **assignment** connects a member with a group: "monthly fee"
   (*Monatsbeitrag*), "interval" (*Turnus*), "payment method"
   (*Zahlungsart*) – "direct debit" (*Lastschrift*) or *Bank transfer* – as
@@ -2580,8 +2988,10 @@ wrong hands without the Nextcloud configuration doesn't reveal them. Nothing
 changes in the app: whoever may see an IBAN sees it as before. The key is
 derived from the `secret` in Nextcloud's `config.php`. Two things follow from
 that: whoever controls the server itself can still read the IBANs – encryption
-is no substitute for securing the server. And a backup is only complete with
-the matching `config.php` (12.3). The club's own IBANs (money accounts,
+is no substitute for securing the server. And a database backup is only complete with
+the matching `config.php` (12.3) – the app's own backup (*Backup and
+migration*, 12.3), by contrast, holds the IBANs under its own password and
+does not need `config.php`. The club's own IBANs (money accounts,
 creditor IBAN) stay unencrypted; they are printed on every mandate form anyway.
 
 ---

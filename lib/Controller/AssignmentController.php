@@ -65,12 +65,15 @@ class AssignmentController extends Controller {
 		int $memberId,
 		int $groupId,
 		int $intervalMonths,
-		float $monthlyAmount,
-		string $paymentMethod,
-		string $validFrom,
+		float $monthlyAmount = 0,
+		string $paymentMethod = '',
+		string $validFrom = '',
 		?string $validTo = null,
 		?float $minMonthlyAmountOverride = null,
 		?string $overrideReason = null,
+		// Gruppen mit Jahresbetrag (Issue #270): Beitrag und individuelle Untergrenze als Jahreswerte.
+		?float $annualAmount = null,
+		?float $minAnnualAmountOverride = null,
 	): DataResponse {
 		try {
 			$assignment = $this->service->create(
@@ -85,6 +88,8 @@ class AssignmentController extends Controller {
 				$overrideReason,
 				'staff',
 				$this->actorUid(),
+				annualAmountCents: self::cents($annualAmount),
+				minAnnualOverrideCents: self::cents($minAnnualAmountOverride),
 			);
 			return new DataResponse($assignment->jsonSerialize(), Http::STATUS_CREATED);
 		} catch (\InvalidArgumentException $e) {
@@ -98,16 +103,31 @@ class AssignmentController extends Controller {
 	#[NoAdminRequired]
 	#[RequiresRole(PermissionService::ROLE_WRITE)]
 	#[NoRevisionBump]
-	public function previewNew(int $intervalMonths, float $monthlyAmount, string $validFrom): DataResponse {
+	public function previewNew(int $intervalMonths, string $validFrom, float $monthlyAmount = 0, ?float $annualAmount = null, ?int $groupId = null): DataResponse {
 		$transient = new Assignment();
 		$transient->setIntervalMonths($intervalMonths);
 		$transient->setMonthlyAmountCents(MonthlyAmount::centsFromEuro($monthlyAmount));
 		$transient->setValidFrom($validFrom);
+		if ($annualAmount !== null) {
+			// Jahresbetrag (Issue #270): ob das angebrochene Jahr anteilig zählt, steht an der Gruppe.
+			if ($groupId === null) {
+				return new DataResponse(['message' => $this->l10n->t('Beitragsgruppe nicht gefunden')], Http::STATUS_BAD_REQUEST);
+			}
+			$transient->setGroupId($groupId);
+			$transient->setAnnualAmountCents(self::cents($annualAmount));
+		}
 		try {
 			return new DataResponse($this->service->previewFirstPeriod($transient));
 		} catch (\InvalidArgumentException $e) {
 			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
+		} catch (DoesNotExistException) {
+			return new DataResponse(['message' => $this->l10n->t('Beitragsgruppe nicht gefunden')], Http::STATUS_NOT_FOUND);
 		}
+	}
+
+	/** Euro aus der Anfrage in Cent, ohne Überlauf bei unsinnigen Werten ({@see MonthlyAmount::centsFromEuro()}). */
+	private static function cents(?float $amount): ?int {
+		return $amount !== null ? MonthlyAmount::centsFromEuro($amount) : null;
 	}
 
 	/**
@@ -117,14 +137,15 @@ class AssignmentController extends Controller {
 	#[NoAdminRequired]
 	#[RequiresRole(PermissionService::ROLE_WRITE)]
 	#[NoRevisionBump]
-	public function previewChange(int $id, ?float $monthlyAmount = null, ?int $intervalMonths = null, ?int $groupId = null, ?string $paymentMethod = null): DataResponse {
+	public function previewChange(int $id, ?float $monthlyAmount = null, ?int $intervalMonths = null, ?int $groupId = null, ?string $paymentMethod = null, ?float $annualAmount = null): DataResponse {
 		try {
 			return new DataResponse($this->service->previewChange(
 				$id,
-				$monthlyAmount !== null ? MonthlyAmount::centsFromEuro($monthlyAmount) : null,
+				self::cents($monthlyAmount),
 				$intervalMonths,
 				$groupId,
 				$paymentMethod,
+				self::cents($annualAmount),
 			));
 		} catch (\InvalidArgumentException $e) {
 			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
@@ -142,18 +163,20 @@ class AssignmentController extends Controller {
 	 */
 	#[NoAdminRequired]
 	#[RequiresRole(PermissionService::ROLE_WRITE)]
-	public function update(int $id, ?float $monthlyAmount = null, ?int $intervalMonths = null, ?int $groupId = null, ?string $paymentMethod = null): DataResponse {
+	public function update(int $id, ?float $monthlyAmount = null, ?int $intervalMonths = null, ?int $groupId = null, ?string $paymentMethod = null, ?float $annualAmount = null): DataResponse {
 		try {
-			$monthlyAmountCents = $monthlyAmount !== null ? MonthlyAmount::centsFromEuro($monthlyAmount) : null;
+			$monthlyAmountCents = self::cents($monthlyAmount);
+			$annualAmountCents = self::cents($annualAmount);
 			$current = $this->service->find($id);
 			$before = [
-				'amountCents' => $current->getMonthlyAmountCents(),
+				// In der Betragsangabe der Gruppe: Jahresbetrag bei Jahresgruppen (Issue #270), sonst Monatsbetrag.
+				'amountCents' => $current->amountCents(),
 				'intervalMonths' => $current->getIntervalMonths(),
 				'groupId' => $current->getGroupId(),
 				'paymentMethod' => $current->getPaymentMethod(),
 			];
 			// Dieselbe Prüfung und Rechnung wie das Speichern gleich; sie liefert „wirkt ab“ und den ersten Einzug für die Mail.
-			$preview = $this->service->previewChange($id, $monthlyAmountCents, $intervalMonths, $groupId, $paymentMethod);
+			$preview = $this->service->previewChange($id, $monthlyAmountCents, $intervalMonths, $groupId, $paymentMethod, $annualAmountCents);
 			$assignment = $this->service->update(
 				$id,
 				$monthlyAmountCents,
@@ -162,6 +185,7 @@ class AssignmentController extends Controller {
 				'staff',
 				$this->actorUid(),
 				paymentMethod: $paymentMethod,
+				annualAmountCents: $annualAmountCents,
 			);
 			return new DataResponse($assignment->jsonSerialize() + ['receipt' => $this->receipts->send($assignment, $before, $preview)]);
 		} catch (\InvalidArgumentException $e) {
@@ -174,11 +198,13 @@ class AssignmentController extends Controller {
 	/** Individuelle Untergrenze setzen/ändern/entfernen – explizit `buchhalter`-only (Issue #68 AK „Rollen"). */
 	#[NoAdminRequired]
 	#[RequiresRole(PermissionService::ROLE_WRITE)]
-	public function setMinAmountOverride(int $id, ?float $minMonthlyAmountOverride = null, ?string $overrideReason = null): DataResponse {
+	public function setMinAmountOverride(int $id, ?float $minMonthlyAmountOverride = null, ?string $overrideReason = null, ?float $minAnnualAmountOverride = null): DataResponse {
 		try {
+			// Die Zuweisung bestimmt, welche Angabe zählt: bei einem Jahresbetrag (Issue #270) die Jahres-Untergrenze.
+			$annual = $this->service->find($id)->isAnnual();
 			$assignment = $this->service->setMinAmountOverride(
 				$id,
-				$minMonthlyAmountOverride !== null ? MonthlyAmount::centsFromEuro($minMonthlyAmountOverride) : null,
+				self::cents($annual ? $minAnnualAmountOverride : $minMonthlyAmountOverride),
 				$overrideReason,
 				'staff',
 				$this->actorUid(),

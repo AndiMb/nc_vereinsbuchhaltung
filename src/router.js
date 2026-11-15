@@ -29,9 +29,12 @@ export default createRouter({
 		{ path: '/accounts/new', name: 'accounts-new', component: RouteHost },
 		{ path: '/accounts/:accountId(\\d+)', name: 'accounts-detail', component: RouteHost },
 		{ path: '/accounts/:accountId(\\d+)/edit', name: 'accounts-edit', component: RouteHost },
+		{ path: '/accounts/:accountId(\\d+)/reconcile', name: 'accounts-reconcile', component: RouteHost },
 
 		{ path: '/reports', name: 'reports', component: RouteHost },
 		{ path: '/reports/costcenters', name: 'reports-costcenters', component: RouteHost },
+		// Kostenstellen an der Buchungszeile (Issue #7); 'costcenters' darueber sind die Auswertungsgruppen.
+		{ path: '/reports/allocations', name: 'reports-allocations', component: RouteHost },
 		{ path: '/reports/spheres', name: 'reports-spheres', component: RouteHost },
 		{ path: '/reports/reserves', name: 'reports-reserves', component: RouteHost },
 		{ path: '/reports/budget', name: 'reports-budget', component: RouteHost },

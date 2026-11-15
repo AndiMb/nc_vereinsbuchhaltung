@@ -19,7 +19,7 @@ use OCP\IL10N;
  * Unterstützt werden die gängigen Fassungen camt.053.001.02 bis .08; sie
  * unterscheiden sich in den hier genutzten Elementen nicht.
  */
-class Camt053Parser implements StatementParser {
+class Camt053Parser implements StatementParser, StatementBalanceReader {
 
 	/**
 	 * $l10n ist bewusst optional: der Parser bleibt dadurch ohne laufende
@@ -77,6 +77,89 @@ class Camt053Parser implements StatementParser {
 	 * @return array<int, array{0: \SimpleXMLElement, 1: ?string}>
 	 */
 	private function entries(string $content): array {
+		[$statements, $prefix, $default] = $this->statements($content);
+		$out = [];
+		foreach ($statements as $stmt) {
+			$ownAccount = $this->accountOf($stmt, $prefix);
+			foreach ($stmt->xpath('./' . $prefix . 'Ntry') ?: [] as $ntry) {
+				if ($default !== null && $default !== '') {
+					$ntry->registerXPathNamespace('c', $default);
+				}
+				$out[] = [$ntry, $ownAccount];
+			}
+		}
+		return $out;
+	}
+
+	private function accountOf(\SimpleXMLElement $stmt, string $prefix): ?string {
+		return $this->firstValue($stmt, './' . $prefix . 'Acct/' . $prefix . 'Id/' . $prefix . 'IBAN')
+			?? $this->firstValue($stmt, './' . $prefix . 'Acct/' . $prefix . 'Id/' . $prefix . 'Othr/' . $prefix . 'Id');
+	}
+
+	/**
+	 * Anfangs- und Endsaldo je Konto aus <Bal> (Kontoabstimmung, Issue #159):
+	 * OPBD – ersatzweise PRCD, der Schlusssaldo des Vortags – und CLBD.
+	 * Mehrere <Stmt> desselben Kontos werden nach ihrem Anfangsdatum
+	 * aneinandergereiht; schließt einer nicht an den vorigen an, ist das eine
+	 * Bruchstelle.
+	 *
+	 * @return list<StatementBalance>
+	 */
+	public function balances(string $content): array {
+		[$statements, $p, $default] = $this->statements($content);
+		$byAccount = [];
+		foreach ($statements as $stmt) {
+			$found = [];
+			foreach ($stmt->xpath('./' . $p . 'Bal') ?: [] as $bal) {
+				// Jeder Knoten braucht den Namensraum-Präfix für XPath neu.
+				if ($default !== null && $default !== '') {
+					$bal->registerXPathNamespace('c', $default);
+				}
+				$code = strtoupper((string)$this->firstValue($bal, './' . $p . 'Tp/' . $p . 'CdOrPrtry/' . $p . 'Cd'));
+				$cents = $this->toCents((string)$this->firstValue($bal, './' . $p . 'Amt'));
+				$date = $this->firstValue($bal, './' . $p . 'Dt/' . $p . 'Dt') ?? $this->firstValue($bal, './' . $p . 'Dt/' . $p . 'DtTm');
+				if ($cents === null || $date === null || !in_array($code, ['OPBD', 'PRCD', 'CLBD'], true)) {
+					continue;
+				}
+				$debit = strtoupper((string)$this->firstValue($bal, './' . $p . 'CdtDbtInd')) === 'DBIT';
+				$found[$code] ??= ['cents' => $debit ? -$cents : $cents, 'date' => substr($date, 0, 10)];
+			}
+			$opening = $found['OPBD'] ?? $found['PRCD'] ?? null;
+			if ($opening === null || !isset($found['CLBD'])) {
+				continue;
+			}
+			$account = $this->normalizer->normalizeOwnAccount($this->accountOf($stmt, $p));
+			$byAccount[$account ?? ''][] = ['opening' => $opening, 'closing' => $found['CLBD']];
+		}
+
+		$result = [];
+		foreach ($byAccount as $key => $list) {
+			usort($list, static fn (array $a, array $b): int => [$a['opening']['date'], $a['closing']['date']] <=> [$b['opening']['date'], $b['closing']['date']]);
+			$gaps = [];
+			for ($i = 1; $i < count($list); $i++) {
+				if ($list[$i]['opening']['cents'] !== $list[$i - 1]['closing']['cents']) {
+					$gaps[] = ['date' => $list[$i]['opening']['date'], 'expectedCents' => $list[$i - 1]['closing']['cents'], 'actualCents' => $list[$i]['opening']['cents']];
+				}
+			}
+			$last = $list[count($list) - 1];
+			$result[] = new StatementBalance(
+				$key === '' ? null : (string)$key,
+				$list[0]['opening']['cents'],
+				$list[0]['opening']['date'],
+				$last['closing']['cents'],
+				$last['closing']['date'],
+				$gaps,
+			);
+		}
+		return $result;
+	}
+
+	/**
+	 * Lädt das Dokument und liefert seine <Stmt>-Knoten samt XPath-Präfix.
+	 *
+	 * @return array{0: list<\SimpleXMLElement>, 1: string, 2: ?string} Knoten, Präfix ('c:' oder ''), Standard-Namensraum
+	 */
+	private function statements(string $content): array {
 		// Die Datei kommt von außen: SafeXml sperrt Netzzugriffe und lehnt
 		// Doctype-Deklarationen ab, deren Entitäten sonst beim Lesen eines
 		// Knotens den Speicher sprengen.
@@ -97,22 +180,13 @@ class Camt053Parser implements StatementParser {
 			$prefix = 'c:';
 		}
 
-		$statements = $xml->xpath('//' . $prefix . 'Stmt') ?: [];
-		$out = [];
+		$statements = array_values($xml->xpath('//' . $prefix . 'Stmt') ?: []);
 		foreach ($statements as $stmt) {
 			if ($default !== null && $default !== '') {
 				$stmt->registerXPathNamespace('c', $default);
 			}
-			$ownAccount = $this->firstValue($stmt, './' . $prefix . 'Acct/' . $prefix . 'Id/' . $prefix . 'IBAN')
-				?? $this->firstValue($stmt, './' . $prefix . 'Acct/' . $prefix . 'Id/' . $prefix . 'Othr/' . $prefix . 'Id');
-			foreach ($stmt->xpath('./' . $prefix . 'Ntry') ?: [] as $ntry) {
-				if ($default !== null && $default !== '') {
-					$ntry->registerXPathNamespace('c', $default);
-				}
-				$out[] = [$ntry, $ownAccount];
-			}
 		}
-		return $out;
+		return [$statements, $prefix, $default];
 	}
 
 	/**

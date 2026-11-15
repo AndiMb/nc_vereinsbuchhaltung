@@ -177,6 +177,14 @@
 					:removeTxPendingFile="removeTxPendingFile"
 					:openFolderPickerForBookings="openFolderPickerForBookings"
 					:reimbursementsReloadKey="reimbursementsReloadKey"
+					:filterAccountId="bookingFilterAccountId"
+					:filterFrom="bookingFilterFrom"
+					:filterTo="bookingFilterTo"
+					:filterIncludeSub="bookingFilterSub"
+					@update:filterAccountId="bookingFilterAccountId = $event"
+					@update:filterFrom="bookingFilterFrom = $event"
+					@update:filterTo="bookingFilterTo = $event"
+					@update:filterIncludeSub="bookingFilterSub = $event"
 					@payReimbursement="openBookingForReimbursement"
 					@update:bookingView="bookingView = $event"
 					@attachmentsChanged="afterAttachmentsChanged"
@@ -213,6 +221,7 @@
 				<AccountsTab
 					v-model:statementIncludeChildren="statementIncludeChildren"
 					v-model:openingForm="openingForm"
+					v-model:reconcile="accountReconcile"
 					:isMobile="isMobile"
 					:selectedAccountId="selectedAccountId"
 					:statement="statement"
@@ -265,7 +274,9 @@
 					:costCenterMode="costCenterMode"
 					:saveCostCenterMode="saveCostCenterMode"
 					:structuredRefreshKey="structuredRefreshKey"
+					:structuredView="structuredView"
 					@update:reportView="reportView = $event"
+					@update:structuredView="structuredView = $event"
 					@update:selectedCCCode="selectedCCCode = $event"
 					@update:selectedSphereCode="selectedSphereCode = $event"
 					@update:renameName="renameName = $event"
@@ -273,6 +284,7 @@
 					@costCentersChanged="onCostCentersChanged"
 					@spheresChanged="onSpheresChanged"
 					@help="openHelp"
+					@openAccount="openAccountBookings"
 					@budgetChanged="loadBudget"
 					@budgetCompareChanged="setBudgetCompare"
 					@snapshotsChanged="loadBudgetSnapshots" />
@@ -462,7 +474,7 @@
 import { mdiAccountCashOutline, mdiAccountPlusOutline, mdiCardAccountDetailsOutline, mdiChartBar, mdiFileDocumentOutline, mdiFileTreeOutline, mdiHelpCircleOutline, mdiPlus, mdiPrinter, mdiSwapHorizontal, mdiViewDashboardOutline } from '@mdi/js'
 import { showError, showInfo, showSuccess, showUndo } from '@nextcloud/dialogs'
 import { generateUrl } from '@nextcloud/router'
-import { defineAsyncComponent, toRefs } from 'vue'
+import { defineAsyncComponent, toRef, toRefs } from 'vue'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcDialog from '@nextcloud/vue/components/NcDialog'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
@@ -484,6 +496,7 @@ import { buildAccountOptions, useAccounts } from './composables/useAccounts.js'
 import { useAttachmentInbox } from './composables/useAttachmentInbox.js'
 import { useAuth } from './composables/useAuth.js'
 import { useBalances } from './composables/useBalances.js'
+import { useBookingCostCenters } from './composables/useBookingCostCenters.js'
 import { useConfirm } from './composables/useConfirm.js'
 import { useCostCenters } from './composables/useCostCenters.js'
 import { useEinzugRequest } from './composables/useEinzugRequest.js'
@@ -498,10 +511,13 @@ import { useSync } from './composables/useSync.js'
 import { useTasks } from './composables/useTasks.js'
 import { buildWhatsNewEntries, filterWhatsNewEntries } from './data/whatsNew.js'
 import { accountLabel, accountOption } from './lib/accountLabel.js'
+import { allocationError, bookingLines, carryingLines, defaultAllocation, firstAllocationError, toPayload, withAllocations } from './lib/allocation.js'
 import { takeBootState } from './lib/bootState.js'
+import { setClubCurrency } from './lib/clubCurrency.js'
 import { clubToday, setClubTimeZone } from './lib/clubTime.js'
 import { amountClass, budgetDiffClass, errMsg, formatDate, formatDateTime, formatMoney, typeLabel } from './lib/format.js'
 import { createHeaderCollapse } from './lib/headerCollapse.js'
+import { parseDateParam } from './lib/journalDateFilter.js'
 import { createLatestRequest } from './lib/latestRequest.js'
 import { withPasswordConfirmation } from './lib/passwordGate.js'
 import { linkFilesToBookings } from './lib/receiptBatch.js'
@@ -555,8 +571,10 @@ const ROUTE_META = {
 	'accounts-new': { tab: 'accounts', accountNew: true },
 	'accounts-detail': { tab: 'accounts', hasAccountId: true },
 	'accounts-edit': { tab: 'accounts', hasAccountId: true, accountEdit: true },
+	'accounts-reconcile': { tab: 'accounts', hasAccountId: true, accountReconcile: true },
 	reports: { tab: 'reports', reportView: 'summary' },
 	'reports-costcenters': { tab: 'reports', reportView: 'costcenters' },
+	'reports-allocations': { tab: 'reports', reportView: 'allocations' },
 	'reports-spheres': { tab: 'reports', reportView: 'spheres' },
 	'reports-reserves': { tab: 'reports', reportView: 'reserves' },
 	'reports-budget': { tab: 'reports', reportView: 'budget' },
@@ -567,6 +585,13 @@ const ROUTE_META = {
 	'contributions-groups': { tab: 'contributions', contribView: 'groups' },
 	self: { tab: 'self', selfView: 'beitrag' },
 	'self-reimbursements': { tab: 'self', selfView: 'auslagen' },
+}
+
+// Tabelle oder visuelle Ansicht des Gliederungsberichts, im Browser gemerkt
+const STRUCTURED_VIEW_KEY = 'vbh.structuredReport.view'
+
+function storedStructuredView() {
+	try { return localStorage.getItem(STRUCTURED_VIEW_KEY) === 'visual' ? 'visual' : 'table' } catch { return 'table' }
 }
 
 /** Erkennungsmerkmal einer Datei, um dieselbe Auswahl nicht doppelt zu sammeln. */
@@ -612,6 +637,7 @@ export default {
 		const openItems = useOpenItems()
 		const attachmentInbox = useAttachmentInbox()
 		const costCenters = useCostCenters()
+		const bookingCostCenters = useBookingCostCenters()
 		const rulesC = useRules()
 		const memberAkteRequest = useMemberAkteRequest()
 		const einzugRequest = useEinzugRequest()
@@ -619,6 +645,10 @@ export default {
 		return {
 			loadOpenItems: openItems.loadOpenItems,
 			loadCostCenters: costCenters.loadCostCenters,
+			setBookingCostCentersEnabled: bookingCostCenters.setBookingCostCentersEnabled,
+			costCentersEnabled: toRef(bookingCostCenters.state, 'enabled'),
+			costCentersKnown: toRef(bookingCostCenters.state, 'known'),
+			bookingCostCentersById: bookingCostCenters.bookingCostCentersById,
 			// Regeln: geteilter Zustand (useRules.js), seit dem Umzug der Pflege
 			// nach RulesPanel.vue (Unterreiter „Regeln" von BookingsTab.vue) hier
 			// nur noch fuer computeSuggestion()/createRuleFromTx() gebraucht.
@@ -700,6 +730,15 @@ export default {
 			],
 
 			bookingView: 'journal',
+			// Kontofilter des Journals (BookingsTab); in der URL als account=<id>,
+			// nur auf der Route bookings. Kategoriefilter stehen nicht in der URL.
+			bookingFilterAccountId: null,
+			// Kontofilter samt Unterkonten; in der URL als sub=1, nur zusammen mit account.
+			bookingFilterSub: false,
+			// Datumsfilter des Journals (JJJJ-MM-TT, beide Tage eingeschlossen); in
+			// der URL als from=/to=, ebenfalls nur auf der Route bookings.
+			bookingFilterFrom: null,
+			bookingFilterTo: null,
 			// "Mein Bereich": Unterreiter beitrag | auslagen (MyAreaTab)
 			selfView: 'beitrag',
 			// Auslage, deren Auszahlung gerade im Buchungsdialog gebucht wird (siehe saveBooking)
@@ -708,6 +747,9 @@ export default {
 			reportView: 'summary',
 			// Gliederungsbericht laedt selbst; hochzaehlen = neu laden (fremde Aenderungen)
 			structuredRefreshKey: 0,
+			// 'table' | 'visual'; in der URL als view=visual (Startwert: URL,
+			// sonst localStorage)
+			structuredView: storedStructuredView(),
 			contribView: 'members',
 			budgetData: null,
 			// Vergleich im Finanzplan (Issue #114): null = Periode davor (wählt
@@ -725,6 +767,8 @@ export default {
 			ccBookings: {},
 			newAccount: { number: '', name: '', type: 'income', category: '', isBank: false, countInTotal: true, parentId: null, sphere: '' },
 			accountEditId: null,
+			// Kontoabstimmung (#159) statt des Kontoblatts in der Detailansicht.
+			accountReconcile: false,
 			openingForm: {},
 			selectedAccountId: null,
 			statement: null,
@@ -1160,6 +1204,12 @@ export default {
 
 			if (this.activeTab === 'bookings') {
 				const names = { unassigned: 'bookings-unassigned', openitems: 'bookings-open-items', rules: 'bookings-rules', reimbursements: 'bookings-reimbursements' }
+				if (this.bookingView === 'journal' && this.bookingFilterAccountId !== null) {
+					query.account = this.bookingFilterAccountId
+					if (this.bookingFilterSub) { query.sub = 1 }
+				}
+				if (this.bookingView === 'journal' && this.bookingFilterFrom) { query.from = this.bookingFilterFrom }
+				if (this.bookingView === 'journal' && this.bookingFilterTo) { query.to = this.bookingFilterTo }
 				return { name: names[this.bookingView] || 'bookings', query }
 			}
 			if (this.activeTab === 'invoices') {
@@ -1174,14 +1224,15 @@ export default {
 						: { name: 'accounts-new', query }
 				}
 				return this.selectedAccountId
-					? { name: 'accounts-detail', params: { accountId: this.selectedAccountId }, query }
+					? { name: this.accountReconcile ? 'accounts-reconcile' : 'accounts-detail', params: { accountId: this.selectedAccountId }, query }
 					: { name: 'accounts', query }
 			}
 			if (this.activeTab === 'reports') {
-				const names = { costcenters: 'reports-costcenters', spheres: 'reports-spheres', reserves: 'reports-reserves', budget: 'reports-budget', structure: 'reports-structure', audit: 'reports-audit' }
+				const names = { costcenters: 'reports-costcenters', allocations: 'reports-allocations', spheres: 'reports-spheres', reserves: 'reports-reserves', budget: 'reports-budget', structure: 'reports-structure', audit: 'reports-audit' }
 				if (this.reportView === 'costcenters' && this.selectedCCCode !== false) { query.cc = this.selectedCCCode }
 				if (this.reportView === 'spheres' && this.selectedSphereCode !== false) { query.sphere = this.selectedSphereCode }
 				if (this.reportView === 'budget' && this.snapshotView.open && this.snapshotView.data) { query.snapshot = this.snapshotView.data.id }
+				if (this.reportView === 'structure' && this.structuredView === 'visual') { query.view = 'visual' }
 				return { name: names[this.reportView] || 'reports', query }
 			}
 			if (this.activeTab === 'contributions') {
@@ -1231,7 +1282,12 @@ export default {
 			if (target !== this.$route.fullPath) { this.$router.push(loc) }
 		},
 
+		structuredView(v) {
+			try { localStorage.setItem(STRUCTURED_VIEW_KEY, v) } catch { /* voll/gesperrt – dann eben ohne */ }
+		},
+
 		reportView(v) {
+			if (v === 'allocations' && this.leaveDisabledAllocationView()) { return }
 			if (v === 'summary') { this.loadBalances() } else if (v === 'costcenters') { this.loadReport() } else if (v === 'spheres') { this.loadSphereReport() } else if (v === 'budget') { this.loadBudget() } else if (v === 'audit') { this.loadAudit() }
 		},
 
@@ -1471,6 +1527,10 @@ export default {
 			const schonWeitergeklicktVorErstemAbgleich = !this.routeReady && tab === 'dashboard' && this.activeTab !== 'dashboard'
 			if (this.activeTab !== tab && !schonWeitergeklicktVorErstemAbgleich) { this.activeTab = tab }
 			if (tab === 'bookings' && this.bookingView !== meta.bookingView) { this.bookingView = meta.bookingView }
+			if (tab === 'bookings' && meta.bookingView === 'journal') {
+				this.applyAccountQuery(route)
+				this.applyDateQuery(route)
+			}
 			if (tab === 'reports' && this.reportView !== meta.reportView) { this.reportView = meta.reportView }
 			if (tab === 'contributions' && this.contribView !== meta.contribView) { this.contribView = meta.contribView }
 			if (tab === 'self' && this.selfView !== meta.selfView) { this.selfView = meta.selfView }
@@ -1491,6 +1551,8 @@ export default {
 					} else if (this.selectedAccountId !== accountId) {
 						await this.selectAccount(node)
 					}
+					// Nur Geldkonten lassen sich abstimmen; sonst bleibt es beim Kontoblatt.
+					this.accountReconcile = !!meta.accountReconcile && !!node.isBank
 				} else if (this.selectedAccountId !== null) {
 					this.closeAccountDetail()
 				}
@@ -1516,6 +1578,12 @@ export default {
 					}
 				} else if (this.snapshotView.open && !query.snapshot) {
 					this.closeSnapshot()
+				}
+				// Ohne view in der Start-URL gilt die gemerkte Wahl; danach (Zurück,
+				// Vor, Links) steht eine URL ohne view für die Tabelle.
+				if (meta.reportView === 'structure' && (this.routeReady || query.view !== undefined)) {
+					const view = query.view === 'visual' ? 'visual' : 'table'
+					if (this.structuredView !== view) { this.structuredView = view }
 				}
 			}
 
@@ -1547,16 +1615,88 @@ export default {
 		 * die Deep-Link-URL. Klickt jemand in dieser Zeit schon einen Reiter an oder
 		 * oeffnet den Buchungsdialog, bleibt die URL deshalb auf der Startseite, und
 		 * das Zurueck des Browsers, ein Reload oder ein geteilter Link passten nicht
-		 * zur Ansicht. Verglichen werden nur Pfad (= Reiter/Ansicht) und ?booking=;
-		 * der Zeitraum und andere Parameter hat der Erstabgleich schon aufgeloest.
+		 * zur Ansicht. Verglichen werden nur Pfad (= Reiter/Ansicht), ?booking= und
+		 * ?view= (die Wahl des Gliederungsberichts kann allein aus localStorage
+		 * kommen); der Zeitraum und andere Parameter hat der Erstabgleich schon
+		 * aufgeloest. Fehlt nur ?view=, wird die URL ersetzt statt gepusht - sonst
+		 * fuehrte Zurueck auf dieselbe Seite ohne view, also in die Tabelle.
 		 */
 		syncUrlAfterBoot() {
 			const target = this.$router.resolve(this.vbhRouteLocation)
 			const current = this.$route
-			const bookingOf = (r) => String((r.query && r.query.booking) || '')
-			if (target.path !== current.path || bookingOf(target) !== bookingOf(current)) {
+			const param = (r, key) => String((r.query && r.query[key]) || '')
+			if (target.path !== current.path || param(target, 'booking') !== param(current, 'booking')) {
 				this.$router.push(this.vbhRouteLocation)
+			} else if (param(target, 'view') !== param(current, 'view')) {
+				this.$router.replace(this.vbhRouteLocation)
 			}
+		},
+
+		/**
+		 * Kontofilter des Journals aus ?account= (nur Route bookings). Ein
+		 * unbekanntes Konto oder ein Wert, der keine Zahl ist, gilt nicht und
+		 * verschwindet aus der URL - per replace, ohne eigenen Verlaufseintrag.
+		 *
+		 * @param {object} route aktuelle vue-router-Route
+		 */
+		applyAccountQuery(route) {
+			const raw = route.query.account
+			const id = raw !== undefined && /^\d+$/.test(String(raw)) ? Number(raw) : null
+			if (id !== null && this.accountsById[id]) {
+				this.bookingFilterAccountId = id
+				// sub=1 = samt Unterkonten; jeder andere Wert gilt nicht.
+				this.bookingFilterSub = String(route.query.sub ?? '') === '1'
+				if (route.query.sub === undefined || this.bookingFilterSub) { return }
+			} else {
+				this.bookingFilterAccountId = null
+				this.bookingFilterSub = false
+				if (raw === undefined && route.query.sub === undefined) { return }
+			}
+			// Was nicht gilt, verschwindet aus der URL: ein unbekanntes Konto und
+			// ein sub ohne Konto oder mit anderem Wert.
+			const query = { ...route.query }
+			if (this.bookingFilterAccountId === null) { delete query.account }
+			delete query.sub
+			this.$router.replace({ name: route.name, query })
+		},
+
+		/**
+		 * Datumsfilter des Journals aus ?from= und ?to= (nur Route bookings).
+		 * Was kein Kalenderdatum JJJJ-MM-TT ist, gilt nicht und verschwindet aus
+		 * der URL - per replace, ohne eigenen Verlaufseintrag.
+		 *
+		 * @param {object} route aktuelle vue-router-Route
+		 */
+		applyDateQuery(route) {
+			const from = parseDateParam(route.query.from)
+			const to = parseDateParam(route.query.to)
+			this.bookingFilterFrom = from
+			this.bookingFilterTo = to
+			const query = { ...route.query }
+			if (query.from !== undefined && from === null) { delete query.from }
+			if (query.to !== undefined && to === null) { delete query.to }
+			if (Object.keys(query).length !== Object.keys(route.query).length) {
+				this.$router.replace({ name: route.name, query })
+			}
+		},
+
+		/**
+		 * Sprung aus dem Gliederungsbericht (visuelle Ansicht): Buchungsliste der
+		 * Periode, die der Bericht zeigt, auf das Konto gefiltert. Bei „alle
+		 * Perioden“ rechnet der Bericht mit der laufenden Periode – die Liste
+		 * nimmt dann dieselbe statt aller Jahre. Rechnet der Bericht mit einem
+		 * Monat als Stand, endet die Liste am letzten Tag dieses Monats (`until`)
+		 * und summiert sich damit zum angeklickten Ist; bei „Aktuell“ bleibt sie
+		 * ohne Datumsfilter. push statt replace - Zurück führt in den Bericht.
+		 *
+		 * Ein Oberkonto rechnet der Bericht samt Unterkonten – die Liste dann
+		 * ebenso (`includeSub`, Issue #326).
+		 *
+		 * @param {{ accountId: number, periodId: number|null, until?: string|null, includeSub?: boolean }} target Konto der angeklickten Zeile, Periode und Stand des Berichts
+		 */
+		openAccountBookings({ accountId, periodId, until = null, includeSub = false }) {
+			const period = periodId ?? this.selectedPeriodId ?? 'all'
+			this.$router.push({ name: 'bookings', query: { period, account: accountId, ...(includeSub ? { sub: 1 } : {}), ...(until ? { to: until } : {}) } })
 		},
 
 		/** Ersetzt die Route, behält aber den gewählten Zeitraum (?period=) bei. */
@@ -1686,9 +1826,15 @@ export default {
 				this.storageMode = data.storage_mode || 'appdata'
 				this.clubName = data.club_name || ''
 				setClubTimeZone(data.club_time_zone)
+				setClubCurrency(data.club_currency)
 				this.demoActive = !!data.demo_active
 				this.membershipActive = !!data.membership_active
 				this.invoicesActive = !!data.invoice_module_active
+				// Kostenstellen an der Buchungszeile (Issue #7): standardmaessig aus;
+				// ausgeschaltet gibt es den Bericht nicht, ein Deep-Link dorthin
+				// faellt auf die Auswertung zurueck.
+				this.setBookingCostCentersEnabled(!!data.cost_centers_enabled)
+				this.leaveDisabledAllocationView()
 			} catch { /* ignorieren */ }
 		},
 
@@ -1749,6 +1895,9 @@ export default {
 				splitMode: false,
 				splitSide: 'credit',
 				splitLines: [],
+				// Kostenstellen (Issue #7): Verteilung je Konto der Buchung,
+				// { [accountId]: [{ costCenterId, amount }] }; leer = keine.
+				allocations: {},
 				// Gespeicherte Belege, die im Dialog zum Lösen bzw. Löschen
 				// markiert sind - ausgeführt erst beim Speichern
 				// (removeMarkedAttachments), bis dahin gilt der Dialog als geändert.
@@ -1865,6 +2014,7 @@ export default {
 		// --- Baum: toggleExpand/expandAll/collapseAll sind jetzt Teil von
 		// AccountsTab.vue. ---
 		async selectAccount(node) {
+			this.accountReconcile = false
 			this.selectedAccountId = node.id
 			this.statementIncludeChildren = true
 			await this.loadStatement(node.id)
@@ -2071,7 +2221,7 @@ export default {
 			if (this.activeTab === 'reports' && this.reportView === 'costcenters') { await this.loadReport() }
 		},
 
-		async onAssign(tx, value) {
+		async onAssign(tx, value, allocations = undefined) {
 			const prevContra = tx.contraAccountId
 			const revision = this.attachmentsRevision
 			try {
@@ -2087,7 +2237,7 @@ export default {
 						})
 					}
 				} else {
-					const { data } = await api.assignTransaction(tx.id, Number(value))
+					const { data } = await api.assignTransaction(tx.id, Number(value), allocations)
 					await this.linkTxPendingFiles(tx.id, data && data.journalId)
 				}
 				this.afterOwnJournalWrite(revision)
@@ -2133,6 +2283,10 @@ export default {
 			if (rows.length < 2) { showError(this.t('Eine Aufteilung braucht mindestens zwei Zeilen.')); return }
 			if (rows.some((p) => !p.accountId)) { showError(this.t('Jeder Zeile der Aufteilung fehlt noch ein Konto.')); return }
 			if (rows.some((p) => !(Number(p.amount) > 0))) { showError(this.t('Jede Zeile der Aufteilung braucht einen Betrag größer als 0.')); return }
+			if (this.costCentersEnabled && rows.some((p) => allocationError(Number(p.amount), p.allocations))) {
+				showError(this.t('Die Verteilung auf Kostenstellen passt noch nicht – bitte in der betroffenen Zeile korrigieren.'))
+				return
+			}
 			const total = Math.abs(tx.amountCents || 0) / 100
 			if (!splitBalanced(total, rows)) {
 				const rest = splitRemainder(total, rows)
@@ -2143,7 +2297,12 @@ export default {
 			}
 			try {
 				const revision = this.attachmentsRevision
-				const { data } = await api.assignTransactionParts(tx.id, rows.map((p) => ({ accountId: p.accountId, amount: Number(p.amount) })))
+				const { data } = await api.assignTransactionParts(tx.id, rows.map((p) => ({
+					accountId: p.accountId,
+					amount: Number(p.amount),
+					// Kostenstellen (Issue #7) nur bei eingeschaltetem Modul mitschicken.
+					...(this.costCentersEnabled ? { allocations: toPayload(p.allocations) } : {}),
+				})))
 				showSuccess(this.t('Umsatz aufgeteilt zugeordnet.'))
 				this.closeSplitAssign()
 				await this.linkTxPendingFiles(tx.id, data && data.journalId)
@@ -2160,7 +2319,8 @@ export default {
 				const haystack = { counterparty: tx.counterparty, purpose: tx.purpose, iban: tx.iban }[rule.matchField]
 				if (haystack && rule.matchValue && haystack.toLowerCase().includes(rule.matchValue.toLowerCase())) {
 					const acc = this.accountsById[rule.contraAccountId]
-					if (acc && acc.active) { return { accountId: acc.id, label: accountLabel(acc) } }
+					// Die Vorgabe-Kostenstelle der Regel (Issue #331) reist mit dem Vorschlag.
+					if (acc && acc.active) { return { accountId: acc.id, label: accountLabel(acc), costCenterId: rule.costCenterId ?? null } }
 				}
 			}
 			if (tx.counterparty) {
@@ -2176,7 +2336,13 @@ export default {
 
 		applySuggestion(tx) {
 			const s = this.suggestionsById[tx.id]
-			if (s) { this.onAssign(tx, s.accountId) }
+			if (!s) { return }
+			// Kommt der Vorschlag aus einer Regel mit Kostenstelle, gehoert ihr der
+			// ganze Betrag - wie beim Import. Nicht anwendbar heisst: ohne.
+			const allocations = this.costCentersEnabled
+				? defaultAllocation(s.costCenterId, Math.abs(tx.amountCents || 0) / 100, this.accountsById[s.accountId], this.bookingCostCentersById)
+				: undefined
+			this.onAssign(tx, s.accountId, allocations)
 		},
 
 		async createRuleFromTx(tx) {
@@ -2596,6 +2762,7 @@ export default {
 		// statementRowNet ist jetzt Teil von AccountsTab.vue.
 		// Mobil: Konten-Drilldown zurück zur Liste
 		closeAccountDetail() {
+			this.accountReconcile = false
 			this.selectedAccountId = null
 			this.statement = null
 		},
@@ -2696,6 +2863,11 @@ export default {
 					this.bookingMode = 'expert'
 				}
 			}
+			// Kostenstellen der Zeilen ins Formular (nur bei eingeschaltetem Modul
+			// liefert das Journal sie mit).
+			for (const l of r.lines || []) {
+				if (l.allocations && l.allocations.length) { this.bookingForm.allocations[l.accountId] = l.allocations.map((a) => ({ ...a })) }
+			}
 			this.loadAttachments(r.id)
 			this.bookingForceFolderPanel = folderPanel
 			this.showBooking = true
@@ -2785,12 +2957,57 @@ export default {
 			}
 		},
 
+		/**
+		 * Der Bericht "Kostenstellen" existiert nur bei eingeschaltetem Modul.
+		 * Wer per Direktlink dort landet, kommt zur Auswertung - aber erst, wenn
+		 * die Einstellungen gelesen sind (vorher ist "aus" nur die Vorgabe).
+		 *
+		 * @return {boolean} ob die Ansicht verlassen wurde
+		 */
+		leaveDisabledAllocationView() {
+			if (this.reportView !== 'allocations' || !this.costCentersKnown || this.costCentersEnabled) { return false }
+			this.reportView = 'summary'
+			return true
+		},
+
+		/**
+		 * Ergaenzt die Nutzlast um die Kostenstellen (Issue #7). Bei
+		 * ausgeschaltetem Modul bleibt sie exakt wie bisher - das Backend laesst
+		 * eine vorhandene Verteilung dann stehen. Eingeschaltet geht immer die
+		 * Zeilenform hinaus, jede Zeile mit `allocations` (auch leer = keine).
+		 *
+		 * @param {object} payload aus buildSimplePayload()/buildSplitPayload()
+		 * @return {object|null} null, wenn eine Meldung gezeigt wurde
+		 */
+		withCostCenters(payload) {
+			if (!this.costCentersEnabled) { return payload }
+			const f = this.bookingForm
+			const carrying = carryingLines(bookingLines(f, this.bookingMode), this.accountsById)
+			const problem = firstAllocationError(carrying, f.allocations)
+			if (problem) {
+				showError(this.t('Die Verteilung auf Kostenstellen passt noch nicht – bitte im Abschnitt „Kostenstelle“ korrigieren.'))
+				return null
+			}
+			const lines = payload.lines ?? [
+				{ accountId: payload.debitAccountId, debit: payload.amount, credit: 0 },
+				{ accountId: payload.creditAccountId, debit: 0, credit: payload.amount },
+			]
+			return {
+				date: payload.date,
+				description: payload.description,
+				documentRef: payload.documentRef,
+				lines: withAllocations(lines, f.allocations, carrying.map((l) => l.accountId)),
+			}
+		},
+
 		async saveBooking() {
 			if (this.bookingSaving) { return }
 			const f = this.bookingForm
 			// Abgeschlossener Zeitraum: nur der Kommentar ist noch aenderbar.
 			const commentOnly = this.bookingLocked
-			const payload = commentOnly ? null : (f.splitMode ? this.buildSplitPayload() : this.buildSimplePayload())
+			const basePayload = commentOnly ? null : (f.splitMode ? this.buildSplitPayload() : this.buildSimplePayload())
+			if (!commentOnly && !basePayload) { return }
+			const payload = basePayload ? this.withCostCenters(basePayload) : null
 			if (!commentOnly && !payload) { return }
 			this.bookingSaving = true
 			const revision = this.attachmentsRevision
@@ -2956,6 +3173,7 @@ export default {
 				isBank: !!acc.isBank,
 				// Altbestand ohne gesetztes Feld zaehlt mit (Spaltenvorgabe).
 				countInTotal: acc.countInTotal !== false,
+				costCenterRequired: !!acc.costCenterRequired,
 				parentId: acc.parentId || null,
 				sphere: acc.sphere || '',
 				reserveKind: acc.reserveKind || '',
@@ -2986,6 +3204,9 @@ export default {
 						category: f.category || '',
 						isBank: f.isBank,
 						countInTotal: !!f.countInTotal,
+						// Nur bei eingeschaltetem Modul mitschicken: der Dialog zeigt den
+						// Schalter sonst nicht, und null hiesse fuer den Server "unveraendert".
+						...(this.costCentersEnabled ? { costCenterRequired: !!f.costCenterRequired } : {}),
 						parentId: f.parentId || 0,
 						sphere: f.sphere || '',
 						reserveKind: f.reserveKind || '',
@@ -3000,9 +3221,11 @@ export default {
 				} else {
 					// active bleibt hier aussen vor: ein neu angelegtes Konto ist
 					// immer aktiv, der Schalter erscheint erst beim Bearbeiten.
-					// eslint-disable-next-line no-unused-vars -- active wird bewusst nur herausdestrukturiert, um es aus rest auszuschliessen
-					const { active, ...rest } = f
-					await api.createAccount({ ...rest, parentId: f.parentId || null, sphere: f.sphere || null, reserveKind: f.reserveKind || null, iban: f.iban || null, costCenterId: f.costCenterId || null })
+					// costCenterRequired geht nur bei eingeschaltetem Kostenstellen-Modul
+					// mit (unten), sonst bleibt der Request wie vor der Funktion.
+					// eslint-disable-next-line no-unused-vars -- active und costCenterRequired werden bewusst nur herausdestrukturiert, um sie aus rest auszuschliessen
+					const { active, costCenterRequired, ...rest } = f
+					await api.createAccount({ ...rest, parentId: f.parentId || null, sphere: f.sphere || null, reserveKind: f.reserveKind || null, iban: f.iban || null, costCenterId: f.costCenterId || null, ...(this.costCentersEnabled ? { costCenterRequired: !!costCenterRequired } : {}) })
 				}
 				this.showAccount = false
 				this.accountEditId = null

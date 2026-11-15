@@ -15,6 +15,7 @@ use OCA\Vereinsbuchhaltung\Db\Task;
 use OCA\Vereinsbuchhaltung\Service\ContributionCycleSettings;
 use OCA\Vereinsbuchhaltung\Service\ContributionCycleTaskService;
 use OCA\Vereinsbuchhaltung\Service\DirectDebitEligibilityResolver;
+use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubCurrencyStub;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\IAppConfig;
@@ -107,6 +108,7 @@ class ContributionCycleTaskServiceTest extends TestCase {
 			new ContributionCycleSettings($config),
 			$time,
 			$l10n,
+			ClubCurrencyStub::of($this),
 		);
 	}
 

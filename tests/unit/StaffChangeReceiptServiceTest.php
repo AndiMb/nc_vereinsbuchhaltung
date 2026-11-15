@@ -11,6 +11,7 @@ use OCA\Vereinsbuchhaltung\Db\Member;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Service\SelfServiceReceiptMailService;
 use OCA\Vereinsbuchhaltung\Service\StaffChangeReceiptService;
+use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubCurrencyStub;
 use OCP\Config\IUserConfig;
 use OCP\IConfig;
 use OCP\IL10N;
@@ -55,7 +56,7 @@ class StaffChangeReceiptServiceTest extends TestCase {
 	}
 
 	private function service(): StaffChangeReceiptService {
-		return new StaffChangeReceiptService($this->receiptMail, $this->members, $this->groups, $this->userManager, $this->config, $this->l10nFactory, $this->l10n(), $this->logger, $this->userConfig);
+		return new StaffChangeReceiptService($this->receiptMail, $this->members, $this->groups, $this->userManager, $this->config, $this->l10nFactory, $this->l10n(), $this->logger, ClubCurrencyStub::of($this), $this->userConfig);
 	}
 
 	private function member(?string $email = 'katrin@example.org', ?string $ncUserId = null): Member {
@@ -233,5 +234,20 @@ class StaffChangeReceiptServiceTest extends TestCase {
 		$this->logger->expects($this->once())->method('warning');
 
 		$this->assertSame(StaffChangeReceiptService::FAILED, $this->service()->send($this->assignment(1500), $this->before(1000), $this->preview()));
+	}
+
+	/** Bei Gruppen mit Jahresbetrag (Issue #270) nennt die Mail den Jahresbeitrag, nicht den gerundeten Monatswert. */
+	public function testJahresbeitragStehtAlsJahresbeitragInDerMail(): void {
+		$member = $this->member();
+		$after = $this->assignment(583);
+		$after->setAnnualAmountCents(7000);
+		$this->receiptMail->expects($this->once())->method('sendReceipt')->with(
+			$member,
+			'katrin@example.org',
+			'Ihr Beitrag wurde geändert',
+			'Der Vorstand hat Ihren Jahresbeitrag von 50,00 € auf 70,00 € geändert.',
+		);
+
+		$this->assertSame(StaffChangeReceiptService::SENT, $this->service()->send($after, $this->before(5000), $this->preview()));
 	}
 }

@@ -14,6 +14,7 @@ use OCA\Vereinsbuchhaltung\Service\SelfContributionService;
 use OCA\Vereinsbuchhaltung\Service\SelfServiceActivityPublisher;
 use OCA\Vereinsbuchhaltung\Service\SelfServiceReceiptMailService;
 use OCA\Vereinsbuchhaltung\Service\SelfServiceService;
+use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubCurrencyStub;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\IL10N;
@@ -65,7 +66,7 @@ class SelfContributionServiceTest extends TestCase {
 		$l10n->method('t')->willReturnCallback(static fn (string $text, array $parameters = []): string => vsprintf($text, $parameters));
 		$time = $this->createMock(ITimeFactory::class);
 		$time->method('getDateTime')->willReturn(new \DateTime($today));
-		return new SelfContributionService($this->actorContext, $this->assignments, $this->selfService, $this->members, $this->receiptMail, $this->activity, $this->userManager, $time, $l10n);
+		return new SelfContributionService($this->actorContext, $this->assignments, $this->selfService, $this->members, $this->receiptMail, $this->activity, $this->userManager, $time, $l10n, ClubCurrencyStub::of($this));
 	}
 
 	private function ownAssignment(int $amountCents = 1000, int $intervalMonths = 1, string $paymentMethod = Assignment::PAYMENT_METHOD_DIRECT_DEBIT): Assignment {
@@ -364,5 +365,47 @@ class SelfContributionServiceTest extends TestCase {
 		$this->receiptMail->expects($this->never())->method('sendReceipt');
 
 		$this->service()->apply(self::ASSIGNMENT_ID, 1500, null);
+	}
+
+	// --- Jahresbeiträge (Issue #270) ---
+
+	private function ownAnnualAssignment(int $annualCents): Assignment {
+		$a = $this->ownAssignment(amountCents: (int)round($annualCents / 12), intervalMonths: 12);
+		$a->setAnnualAmountCents($annualCents);
+		return $a;
+	}
+
+	public function testApplyReichtDenJahresbetragDurchUndQuittiertIhnAlsJahresbeitrag(): void {
+		$this->actorContext->setMemberChannel(self::OWN_MEMBER_ID);
+		$this->assignments->method('find')->willReturn($this->ownAnnualAssignment(5000));
+		$this->assignments->expects($this->once())->method('previewChange')
+			->with(self::ASSIGNMENT_ID, null, null, null, null, 7000)
+			->willReturn($this->fixedPreview());
+		$this->assignments->expects($this->once())->method('update')
+			->with(self::ASSIGNMENT_ID, null, null, null, ActorContextService::TYPE_MEMBER, $this->anything(), null, null, 7000)
+			->willReturn($this->ownAnnualAssignment(7000));
+		$this->members->method('find')->willReturn($this->member());
+
+		$this->activity->expects($this->once())->method('publish')
+			->with('katrin.b', SelfServiceProvider::SUBJECT_CONTRIBUTION_AMOUNT_CHANGED, ['from' => 5000, 'to' => 7000, 'effectiveFrom' => '2026-07-01', 'basis' => 'year'], 'assignment', self::ASSIGNMENT_ID);
+		$this->receiptMail->expects($this->once())->method('sendReceipt')
+			->with(
+				$this->isInstanceOf(Member::class),
+				'katrin@example.org',
+				$this->anything(),
+				$this->stringContains('Ihr Jahresbeitrag wurde von 50,00 € auf 70,00 € geändert.'),
+			);
+
+		$this->service()->apply(self::ASSIGNMENT_ID, null, null, null, 7000);
+	}
+
+	public function testPreviewReichtDenJahresbetragDurch(): void {
+		$this->actorContext->setMemberChannel(self::OWN_MEMBER_ID);
+		$this->assignments->method('find')->willReturn($this->ownAnnualAssignment(5000));
+		$this->assignments->expects($this->once())->method('previewChange')
+			->with(self::ASSIGNMENT_ID, null, null, null, null, 7000)
+			->willReturn($this->fixedPreview());
+
+		$this->service()->preview(self::ASSIGNMENT_ID, null, null, null, 7000);
 	}
 }

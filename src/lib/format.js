@@ -3,19 +3,36 @@
 // App.vue unveraendert als Komponenten-Methoden eingebunden (das Template ruft
 // formatMoney(...) etc. wie bisher auf) und sind hier unabhaengig testbar.
 import { getLocale } from '@nextcloud/l10n'
+import { currencyCode, stripCurrencyTokens } from './clubCurrency.js'
 import { t } from './l10n.js'
 
-// Einmal anlegen: ein neues Intl.NumberFormat je Aufruf war bei langen
-// Buchungslisten der teuerste Teil des Zeilen-Renderings.
-const EUR = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' })
+// Je Waehrung einmal anlegen: ein neues Intl.NumberFormat je Aufruf war bei
+// langen Buchungslisten der teuerste Teil des Zeilen-Renderings.
+const MONEY_FORMATS = new Map()
 
-export function formatMoney(v) {
-	return EUR.format(v || 0)
+// Vereinswaehrung (Issue #202): deutsches Zahlenformat, Zeichen der Vereinswaehrung.
+// currencyCode() liest einen ref – im Render wird er so als Abhaengigkeit erfasst.
+function moneyFormat(whole = false) {
+	const code = currencyCode()
+	const key = code + (whole ? ':0' : '')
+	if (!MONEY_FORMATS.has(key)) {
+		MONEY_FORMATS.set(key, new Intl.NumberFormat('de-DE', { style: 'currency', currency: code, ...(whole ? { maximumFractionDigits: 0 } : {}) }))
+	}
+	return MONEY_FORMATS.get(key)
 }
 
-/** Betrag in Euro (nicht Cent) als Waehrungstext; ohne Rueckfall auf null wie formatMoney. */
-export function formatEuro(value) {
-	return EUR.format(value)
+/** Ganzer Betrag mit Waehrungszeichen, fuer Diagrammachsen: 1234.6 → „1.235 €“. */
+export function formatCurrencyWhole(value) {
+	return moneyFormat(true).format(value)
+}
+
+export function formatMoney(v) {
+	return moneyFormat().format(v || 0)
+}
+
+/** Betrag (nicht Cent) als Waehrungstext; ohne Rueckfall auf null wie formatMoney. */
+export function formatCurrency(value) {
+	return moneyFormat().format(value)
 }
 
 const DAY_FORMATS = new Map()
@@ -222,7 +239,7 @@ export function parseAmountInput(s) {
 	if (typeof s === 'number') { return Number.isFinite(s) ? s : null }
 	let str = String(s ?? '')
 		.replace(/[\s\u00a0\u202f]/g, '')
-		.replace(/€|EUR/gi, '')
+	str = stripCurrencyTokens(str)
 	if (!str) { return null }
 
 	let sign = 1

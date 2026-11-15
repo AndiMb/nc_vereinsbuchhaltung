@@ -650,6 +650,16 @@ export const api = {
 		return (await call(request, 'GET', '/periods', { user })).json()
 	},
 
+	/** Zeitraum am Rand der Kette anlegen: 'after' hinter dem letzten, 'before' vor dem ersten (ab Verwalter). */
+	async createPeriod(request, position, { user = 'admin', expectOk = true } = {}) {
+		return call(request, 'POST', '/periods', { user, expectOk, data: { position } })
+	},
+
+	/** Leeren Zeitraum am Rand der Kette entfernen (ab Verwalter). */
+	async deletePeriod(request, periodId, { user = 'admin', expectOk = true } = {}) {
+		return call(request, 'DELETE', `/periods/${periodId}`, { user, expectOk })
+	},
+
 	/**
 	 * Die ID des Zeitraums, in den ein Datum fällt. Die Tests kennen ihre
 	 * Buchungsdaten, aber nicht die IDs – und bei abweichendem Geschäftsjahr
@@ -700,6 +710,24 @@ export const api = {
 
 	async seedDemo(request, { user = 'admin' } = {}) {
 		return call(request, 'POST', '/demo/seed', { user })
+	},
+
+	/** Stand von „Sicherung und Umzug“ (Issue #111): leer?, Vereinsname, Zählung. */
+	async backupStatus(request, { user = 'admin' } = {}) {
+		return (await call(request, 'GET', '/backup/status', { user })).json()
+	},
+
+	/**
+	 * Bestand vollständig leeren – anders als resetBook() auch Mitglieder,
+	 * Mandate und die Einstellungen des Vereins. Die Bestätigung (Vereinsname
+	 * oder das feste Wort) holt sich der Helfer selbst.
+	 */
+	async backupWipe(request, { user = 'admin', expectOk = true } = {}) {
+		let confirmation = 'LÖSCHEN'
+		if (expectOk) {
+			confirmation = String((await api.backupStatus(request)).clubName || '').trim() || 'LÖSCHEN'
+		}
+		return call(request, 'POST', '/backup/wipe', { user, expectOk, data: { confirmation } })
 	},
 
 	async createRule(request, { matchField = 'description', matchValue, contraAccountId, user = 'admin' }) {

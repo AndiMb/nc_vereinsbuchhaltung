@@ -10,6 +10,7 @@ use OCA\Vereinsbuchhaltung\Db\Reimbursement;
 use OCA\Vereinsbuchhaltung\Service\EpcQrCodeGenerator;
 use OCA\Vereinsbuchhaltung\Service\ReimbursementService;
 use OCA\Vereinsbuchhaltung\Service\ReimbursementTransferService;
+use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubCurrencyStub;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\IL10N;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -22,6 +23,8 @@ use Psr\Log\LoggerInterface;
  * (docs/reimbursement-design.md §7).
  */
 class ReimbursementTransferServiceTest extends TestCase {
+	/** Vereinswährung des Dienstes (#202). */
+	private string $currencyCode = 'EUR';
 
 	private ReimbursementService&MockObject $service;
 	private MemberMapper&MockObject $members;
@@ -38,7 +41,7 @@ class ReimbursementTransferServiceTest extends TestCase {
 	private function transfer(): ReimbursementTransferService {
 		$l10n = $this->createMock(IL10N::class);
 		$l10n->method('t')->willReturnArgument(0);
-		return new ReimbursementTransferService($this->service, $this->members, $this->qr, $this->logger, $l10n);
+		return new ReimbursementTransferService($this->service, $this->members, $this->qr, $this->logger, $l10n, ClubCurrencyStub::of($this, $this->currencyCode));
 	}
 
 	private function reimbursement(string $status = Reimbursement::STATUS_APPROVED, string $holder = 'Erika Muster', string $iban = 'DE02120300000000202051'): Reimbursement {
@@ -140,5 +143,18 @@ class ReimbursementTransferServiceTest extends TestCase {
 		$this->service->method('find')->willThrowException(new DoesNotExistException(''));
 		$this->expectException(DoesNotExistException::class);
 		$this->transfer()->prepare(99);
+	}
+
+	/** Vereinswährung (#202): ohne Euro kein GiroCode, die Felder zum Abtippen bleiben. */
+	public function testOhneEuroKeinGiroCode(): void {
+		$this->currencyCode = 'CHF';
+		$this->service->method('find')->with(12)->willReturn($this->reimbursement());
+		$this->qr->expects($this->never())->method('generatePng');
+		$this->logger->expects($this->never())->method('warning');
+
+		$data = $this->transfer()->prepare(12);
+
+		$this->assertNull($data['qrPng']);
+		$this->assertSame('DE02120300000000202051', $data['iban']);
 	}
 }

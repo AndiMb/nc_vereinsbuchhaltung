@@ -17,6 +17,182 @@ als „[object Object]" (falsche Renderer-Callback-Signatur, Nextcloud-
 Core-Bug, reproduziert 23.08.2026). Stattdessen **Fettdruck als Zeilenanfang**
 verwenden, z. B. `**Neu:**`.
 
+## [Unreleased]
+
+**Neu:**
+- **Sicherung und Umzug** (#111): Verwalter sichern unter *Zahnrad →
+  Sicherung und Umzug* den gesamten Bestand – Buchhaltung, Mitglieder,
+  Mandate, Beiträge, Rechnungen, Auslagen, Rollen, Änderungsprotokoll und
+  Einstellungen, auf Wunsch samt Belegen und Dokumenten – in eine einzige
+  Datei und spielen sie auf derselben oder einer anderen Nextcloud wieder
+  ein. Die Datei ist mit einem selbst vergebenen Passwort verschlüsselt
+  (AES-256); ohne das Passwort lässt sie sich nicht öffnen. Einspielen geht
+  nur in einen leeren Bestand und nur mit derselben App-Version; dafür gibt
+  es *Bestand vollständig leeren*, das anders als *Alle Daten löschen* auch
+  Mitglieder, Mandate und Einstellungen entfernt. Große Sicherungen lassen
+  sich aus den eigenen Nextcloud-Dateien wählen statt hochzuladen. Nach dem
+  Einspielen nennt ein Bericht fehlende Dateien und Benutzer oder Gruppen,
+  die es im Ziel nicht gibt; Belegablage, Wächter-Ordner und die übrigen
+  Ordner sind im Ziel neu einzustellen (Handbuch 12.3).
+- **Jahresbeiträge** (#270): Eine Beitragsgruppe kann ihre Beträge jetzt *pro
+  Jahr* statt *pro Monat* angeben (*Beiträge → Beitragsgruppen → Beträge
+  gelten*). Ein volles Beitragsjahr kostet dann genau den Jahresbeitrag –
+  50 € im Jahr bleiben 50,00 € statt 12 × 4,17 € = 50,04 €. Je Gruppe ist
+  einstellbar, ob ein angebrochenes Jahr anteilig berechnet wird
+  (Jahresbeitrag × Monate ÷ 12, auf den Cent gerundet) oder der volle
+  Jahresbeitrag fällig ist. Dialoge, Listen, „Mein Beitrag", Quittungsmails
+  und der Mitgliederimport zeigen und erwarten bei diesen Gruppen den
+  Jahresbeitrag; eingezogen wird nur jährlich. Bestehende Gruppen bleiben
+  unverändert bei Beträgen pro Monat.
+- **Kontoabstimmung** (#159): Am Geldkonto (Reiter „Konten") lässt sich ein
+  Kontoauszug der Bank hochladen und Zeile für Zeile mit dem Konto
+  vergleichen. Die App zeigt, was in der App zu viel ist (etwa doppelte
+  Buchungen), was fehlt und was zeitlich verschoben gebucht wurde, und
+  erklärt bei Auszügen mit Salden die Differenz zum Kontostand. Es wird
+  nur verglichen – nichts wird importiert oder gespeichert. Für alle ab
+  Revisor; Handbuch Kapitel 5.9.
+- **Vorherigen Zeitraum anlegen** (#349): Unter *Einstellungen →
+  Geschäftsjahr* lässt sich jetzt auch ein Zeitraum *vor* dem bisher ersten
+  anlegen. Die Liste beginnt mit dem Geschäftsjahr, in dem die App zum
+  ersten Mal geöffnet wurde; wer ein früheres Jahr nachbuchen will, musste
+  bisher wissen, dass es mit der ersten Buchung darin von allein entsteht.
+
+## [0.53.0] – 2026-11-12
+
+**Neu:**
+- **Kostenstellen an der Buchungszeile** (#7, optional, ab Werk
+  ausgeschaltet): Ein Betrag auf einem Einnahmen- oder Ausgabenkonto lässt
+  sich einer oder mehreren Kostenstellen zuordnen – 1.000 € Ausrüstung, davon
+  600 € Senioren und 400 € A-Junioren, in einer Buchung auf einem Konto.
+  Einschalten unter *Einstellungen → Kostenstellen*; Kostenstellen anlegen
+  unter *Berichte → Kostenstellen → Kostenstellen verwalten*. Das Feld
+  „Kostenstelle" steht im Buchungsdialog und bei „Aufteilen…" eines
+  Bankumsatzes; die Angabe ist immer freiwillig. Der neue Bericht
+  *Berichte → Kostenstellen* zeigt Einnahmen, Ausgaben und Ergebnis je
+  Kostenstelle nach Konten, dazu „Ohne Kostenstelle" und die Abstimmung mit
+  den Kontensalden, auch als Druckseite und CSV. Der Journal-Export bekommt
+  bei eingeschalteter Funktion eine letzte Spalte „Kostenstellen".
+  Auswertungsgruppen und Sphären bleiben
+  unverändert. Handbuch Kapitel 5.8.
+- **Kostenstelle an Importregeln** (#331): Eine Regel kann neben dem
+  Gegenkonto eine Kostenstelle vorgeben. Greift sie beim Import oder wird
+  ihr Vorschlag übernommen, gehört der ganze Betrag dieser Kostenstelle.
+  Ist die Vorgabe nicht anwendbar (Kostenstelle inaktiv, Gegenkonto trägt
+  keine), wird der Umsatz wie bisher ohne Kostenstelle zugeordnet.
+- **Kostenstelle verpflichtend** (#334): neuer Schalter am Einnahmen- oder
+  Ausgabenkonto. Buchungs- und Aufteilen-Dialog erinnern dann mit dem noch
+  nicht zugeordneten Betrag an die Kostenstelle – speichern bleibt möglich –,
+  und der Bericht *Kostenstellen* listet „Pflichtkonten mit offenem Betrag“,
+  auch auf der Druckseite und im CSV.
+- **Kostenstellen an Rechnungen** (#332): Jede Rechnungsposition kann eine
+  Kostenstelle tragen. Beim Buchen einer Zahlung – per Bankumsatz oder bar –
+  wird der Erlös je Erlöskonto anteilig auf die Kostenstellen der
+  Positionen verteilt. Kopie, Storno und wiederkehrende Rechnungen
+  übernehmen sie; im Sammelimport meint die Spalte „Kostenstelle“ bei
+  eingeschalteter Funktion die echte Kostenstelle.
+- **Kostenstellen bei Auslagen und im SEPA-Einzug** (#333): Der Dialog
+  „Umsatz einer Auslage zuordnen“ fragt nach der Kostenstelle. Jede
+  Beitragsgruppe kann eine Vorgabe-Kostenstelle tragen; Sammelgutschrift,
+  Rücklastschrift und einzelner Zahlungseingang werden damit verbucht.
+- **Budget je Kostenstelle** (#335): Je Kostenstelle und Geschäftsjahr
+  lassen sich Planwerte für Einnahmen und Ausgaben hinterlegen (Knopf
+  „Budget planen“ im Kostenstellen-Bericht). Bericht, Druckseite und CSV
+  zeigen Plan, Ist und Abweichung.
+- Für bestehende Installationen ändert sich ohne Einschalten nichts: keine
+  neue Spalte im Journal-Export, kein neues Feld, kein neuer Bericht. Wird
+  die Funktion wieder ausgeschaltet, bleiben die Zuordnungen gespeichert.
+- **Vereinswährung** (#202): unter *Einstellungen → Verein* wählbar – Euro,
+  CHF, GBP, DKK, SEK, NOK, PLN oder CZK. Das Zeichen steht hinter jedem
+  Betrag in Oberfläche, Berichten, Exporten, Rechnungen und E-Mails; das
+  Zahlenformat bleibt deutsch (`1.234,50 CHF`). Kontoauszüge ohne
+  Währungsangabe übernehmen die Vereinswährung.
+- SEPA-Lastschrift und GiroCode gibt es nur in Euro: In anderen Währungen
+  sind Mandate, Lastschriftlauf und SEPA-Einstellungen ausgeblendet und
+  gesperrt. Die Umstellung weg vom Euro ist gesperrt, solange Mandate gelten,
+  ein freigegebener Sammeleinzug auf die Einreichung wartet oder Zuweisungen
+  per Lastschrift laufen.
+- **Gliederungsbericht visuell:** Neben der Vorlage steht der Schalter
+  „Tabelle | Visuell“. Die Ansicht zeigt dieselbe Vorlage als Kennzahlen,
+  Ampeln und Balken: Plan und Ist für Einnahmen, Ausgaben und Ergebnis mit
+  zeitanteiligem Plan und linearer Hochrechnung, die Ampel der Konten,
+  die größten Überschreitungen und Lücken, einen **Verlauf** (kumuliertes Ist
+  je Monat mit Plan-Linie) und den „Aufriss nach Vorlage“. „Stand“ (ein Monat
+  oder alle Buchungen) und „Vergleich gegen“ (Jahresplan oder zeitanteilig)
+  sind wählbar. Die Wahl zwischen Tabelle und Visuell bleibt im Browser
+  erhalten und steckt im Link (`view=visual`); die Vergleichsbasis merkt sich
+  der Browser. Die Ampel-Schwellen stellen Verwalter unter
+  *Einstellungen → Ampel im Gliederungsbericht* vereinsweit ein.
+  „Drucken / PDF“ öffnet in der visuellen Ansicht eine druckfertige Seite,
+  auch in Schwarzweiß lesbar. Ein Klick auf ein Konto ohne Unterkonten im
+  Aufriss oder in den Abweichungslisten springt in die Buchungsliste,
+  gefiltert auf dieses Konto; der Kontofilter der Liste steht jetzt im Link
+  (`account=`). Tabelle, Druck und CSV der Tabelle bleiben unverändert.
+- **Datumsfilter in der Buchungsliste** (#328): Die Felder „Von“ und
+  „Bis“ grenzen das Journal auf eine Spanne des Buchungsdatums ein, beide
+  Tage eingeschlossen; jedes Feld gilt für sich, das Kreuz daneben hebt den
+  Filter auf. Die Spanne steht wie der Kontofilter im Link (`from=`,
+  `to=`). Der Sprung aus der visuellen Ansicht des Gliederungsberichts setzt
+  „Bis“ auf den letzten Tag des gewählten Stands – die Liste summiert
+  sich damit zum angeklickten Ist. Mit „Aktuell“ bleibt sie ungefiltert.
+- **Kontofilter „inkl. Unterkonten“ in der Buchungsliste** (#326): Ist das
+  Journal auf ein Konto mit Unterkonten gefiltert, zeigt ein Häkchen daneben
+  auch die Buchungen aller Unterkonten in jeder Tiefe; im Link steht das als
+  `sub=1`. In der visuellen Ansicht des Gliederungsberichts sind damit auch
+  Oberkonten Links – im Aufriss und in den Abweichungslisten –, und die
+  Liste summiert sich zur angeklickten Zahl. Zählt eine Zeile die
+  Unterkonten nicht mit, weil sie in einem anderen Abschnitt der Vorlage
+  stehen, filtert der Sprung nur das Konto selbst.
+
+**Behoben:**
+- **Beitragsfreie Zuweisung hielt den täglichen Forderungslauf an:** Gab es
+  eine Zuweisung mit Monatsbeitrag 0 € (etwa eine Gruppe „Ruhend“), brach der
+  Lauf an ihr ab – alle Zuweisungen danach bekamen an diesem und jedem
+  folgenden Tag keine Forderung mehr. Der Lauf hält die beitragsfreie Periode
+  jetzt wie vorgesehen fest und arbeitet weiter; ausgebliebene Forderungen
+  holt der nächste Lauf von selbst nach.
+- **Doppelte Kontonummer endete in einem Serverfehler** (#327): Wer ein
+  Konto mit einer bereits vergebenen Nummer anlegte oder ein Konto auf eine
+  solche Nummer änderte, bekam „Interner Serverfehler“. Jetzt sagt die
+  App, dass die Kontonummer bereits vergeben ist, und der Dialog bleibt
+  mit den Eingaben offen.
+- **Druckseite des visuellen Gliederungsberichts** (#329): Eine Überschrift
+  oder ein Konto mit Unterzeilen steht im Aufriss nicht mehr als letzte Zeile
+  einer Seite, während die zugehörigen Zeilen erst auf der nächsten beginnen.
+  Die Kopfzeile der Tabelle bleibt einzeilig („Ist zu Plan“ brach bei
+  großen Beträgen um).
+
+## [0.52.0] – 2026-11-09
+
+**Neu:**
+- **Testversand** von Rechnungen und Mahnungen ([#216](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/216)): „Test an mich senden“
+  schickt die Mail mit „[TEST]“ im Betreff an die eigene Adresse. An der
+  Rechnung ändert sich nichts. Entwürfe: „Testversand …“ mit Vorschau-PDF.
+- **Konten:** Kurzname und Beschreibung ([#201](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/201)). Der Kurzname steht in
+  Auswahllisten, Journal und Kontenbaum; die Berichte zeigen den vollen Namen.
+- **Lange Vereinsnamen auf Rechnungen** ([#238](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/238)): freiwillig „Name auf
+  Rechnungen“ und „Kontoinhaber“; das PDF bricht lange Namen sauber um.
+- **Mobil:** kompakter Kopf, der beim Scrollen wegklappt; die Buchungsliste
+  bekommt deutlich mehr Platz.
+
+**Geändert:**
+- **Kontoverknüpfung eines Mitglieds** gilt erst nach Bestätigung per Mail-Link
+  durch das Mitglied; bestehende Verknüpfungen bleiben bestätigt ([#295](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/295)).
+- **Lastschriftlauf:** Posten mit widerrufenem oder gesperrtem Mandat erscheinen
+  als Abweichung; Einreichen verlangt dann eine Bestätigung ([#302](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/302)).
+
+**Sicherheit:**
+- Mehrere kleinere Absicherungen ([#295](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/295)–[#307](https://github.com/AndiMb/nc_vereinsbuchhaltung/issues/307)): Rollen gelöschter Nutzer und
+  Gruppen verfallen, abgeschlossene Jahre bleiben gesperrt, die Anonymisierung
+  greift vollständig, ein Lastschriftlauf lässt sich nicht doppelt freigeben,
+  Uploads und Importe sind gegen manipulierte Dateien begrenzt.
+
+**Behoben:**
+- **Integritätsprüfung** der Nextcloud meldete nach der ersten E-Rechnung eine
+  Zusatzdatei in `vendor/horstoeko/invoicesuite`; das Paket enthält sie jetzt.
+
+**Hinweis zum Update:** Migrationen laufen automatisch (neue Spalten für Konten
+und Kontoverknüpfung, ein Index im Lastschriftlauf).
+
 ## [0.51.0] – 2026-11-06
 
 **Neu:**

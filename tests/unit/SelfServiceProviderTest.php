@@ -7,6 +7,7 @@ namespace OCA\Vereinsbuchhaltung\Tests\Unit;
 use OCA\Vereinsbuchhaltung\Activity\SelfServiceProvider;
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Service\SelfServiceMandateService;
+use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubCurrencyStub;
 use OCP\Activity\Exceptions\UnknownActivityException;
 use OCP\Activity\IEvent;
 use OCP\IL10N;
@@ -34,7 +35,7 @@ class SelfServiceProviderTest extends TestCase {
 		$urlGenerator = $this->createMock(IURLGenerator::class);
 		$urlGenerator->method('imagePath')->with(Application::APP_ID, 'app-dark.svg')->willReturn('/apps/vereinsbuchhaltung/img/app-dark.svg');
 		$urlGenerator->method('getAbsoluteURL')->willReturnCallback(static fn (string $url): string => 'https://cloud.example' . $url);
-		return new SelfServiceProvider($factory, $urlGenerator);
+		return new SelfServiceProvider($factory, $urlGenerator, ClubCurrencyStub::of($this));
 	}
 
 	private function event(string $subject, array $params, string $app = Application::APP_ID): IEvent&MockObject {
@@ -63,6 +64,18 @@ class SelfServiceProviderTest extends TestCase {
 		]);
 		$event->expects($this->once())->method('setParsedSubject')
 			->with('Monatsbeitrag geändert: 10,00 € → 15,00 € (wirkt ab 01.07.2026)')
+			->willReturnSelf();
+
+		$this->provider()->parse('de', $event);
+	}
+
+	/** Beträge einer Gruppe mit Jahresbetrag (Issue #270) sind Jahreswerte und heißen im Feed auch so. */
+	public function testFormatiertAenderungDesJahresbeitrags(): void {
+		$event = $this->event(SelfServiceProvider::SUBJECT_CONTRIBUTION_AMOUNT_CHANGED, [
+			'from' => 5000, 'to' => 7000, 'effectiveFrom' => '2027-01-01', 'basis' => 'year',
+		]);
+		$event->expects($this->once())->method('setParsedSubject')
+			->with('Jahresbeitrag geändert: 50,00 € → 70,00 € (wirkt ab 01.01.2027)')
 			->willReturnSelf();
 
 		$this->provider()->parse('de', $event);

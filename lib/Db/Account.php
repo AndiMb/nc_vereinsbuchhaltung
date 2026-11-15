@@ -22,6 +22,7 @@ use OCP\AppFramework\Db\Entity;
  * @method void setIsBank(bool $isBank)
  * @method bool getCountInTotal()
  * @method void setCountInTotal(bool $countInTotal)
+ * @method void setCostCenterRequired(?bool $costCenterRequired)
  * @method bool getActive()
  * @method void setActive(bool $active)
  * @method int getOpeningBalanceCents()
@@ -68,6 +69,12 @@ class Account extends Entity implements \JsonSerializable, AccountNature {
 	 * Modus 'manual' ausgewertet, siehe ReportService::costCenterReport().
 	 */
 	protected $costCenterId;
+	/**
+	 * „Kostenstelle verpflichtend“ (Issue #334): die Buchungsdialoge erinnern
+	 * an die Kostenstelle, der Kostenstellen-Bericht listet nicht zugeordnete
+	 * Beträge dieses Kontos. Eine Erinnerung, keine Sperre. NULL gilt wie false.
+	 */
+	protected $costCenterRequired = false;
 	/** Kurzname für schmale Auswahllisten (#201); null = der Name. */
 	protected $shortName;
 	/** Erklärung zum Konto in Markdown (#201), steht über dem Kontoauszug. */
@@ -82,6 +89,7 @@ class Account extends Entity implements \JsonSerializable, AccountNature {
 	public function __construct() {
 		$this->addType('isBank', 'boolean');
 		$this->addType('countInTotal', 'boolean');
+		$this->addType('costCenterRequired', 'boolean');
 		$this->addType('active', 'boolean');
 		$this->addType('openingBalanceCents', 'integer');
 		$this->addType('parentId', 'integer');
@@ -155,6 +163,23 @@ class Account extends Entity implements \JsonSerializable, AccountNature {
 	}
 
 	/**
+	 * Darf eine Buchungszeile auf diesem Konto einer Kostenstelle zugeordnet
+	 * werden (Issue #7)? Nur Einnahmen und Ausgaben – ein Bank-, Bestands-
+	 * oder Durchlaufkonto beantwortet die Frage "für welche Abteilung" nicht.
+	 *
+	 * Heute dieselbe Bedingung wie {@see isBudgetable()}, aber eine eigene
+	 * Regel: beide sollen sich unabhängig voneinander ändern können.
+	 */
+	public function canCarryCostCenter(): bool {
+		return $this->type === 'income' || $this->type === 'expense';
+	}
+
+	/** Soll beim Buchen auf dieses Konto an die Kostenstelle erinnert werden (Issue #334)? */
+	public function isCostCenterRequired(): bool {
+		return (bool)$this->costCenterRequired && $this->canCarryCostCenter();
+	}
+
+	/**
 	 * Wirtschaftlicher Geschäftsbetrieb: die steuerlich sensibelste Sphäre
 	 * (Freigrenze, siehe ReportService::sphereReport()).
 	 */
@@ -180,6 +205,7 @@ class Account extends Entity implements \JsonSerializable, AccountNature {
 			'reserveKind' => $this->reserveKind,
 			'iban' => $this->iban,
 			'costCenterId' => $this->costCenterId,
+			'costCenterRequired' => $this->isCostCenterRequired(),
 			'shortName' => $this->shortName,
 			'description' => $this->description,
 			// Serverseitig gerendert und escaped: das Frontend gibt es per v-html aus.

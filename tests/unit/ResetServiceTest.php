@@ -8,7 +8,10 @@ use OCA\Vereinsbuchhaltung\Db\AccountMapper;
 use OCA\Vereinsbuchhaltung\Db\AttachmentMapper;
 use OCA\Vereinsbuchhaltung\Db\BankTransactionMapper;
 use OCA\Vereinsbuchhaltung\Db\BankTxSepaDetailMapper;
+use OCA\Vereinsbuchhaltung\Db\BookingCostCenterMapper;
 use OCA\Vereinsbuchhaltung\Db\BudgetMapper;
+use OCA\Vereinsbuchhaltung\Db\ContributionGroupMapper;
+use OCA\Vereinsbuchhaltung\Db\CostCenterBudgetMapper;
 use OCA\Vereinsbuchhaltung\Db\CostCenterMapper;
 use OCA\Vereinsbuchhaltung\Db\DebitBatchMapper;
 use OCA\Vereinsbuchhaltung\Db\DebitItemMapper;
@@ -24,6 +27,7 @@ use OCA\Vereinsbuchhaltung\Db\InvoicePaymentMapper;
 use OCA\Vereinsbuchhaltung\Db\InvoicePlanMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalMapper;
+use OCA\Vereinsbuchhaltung\Db\LineAllocationMapper;
 use OCA\Vereinsbuchhaltung\Db\MandateAmendmentMapper;
 use OCA\Vereinsbuchhaltung\Db\MandateMapper;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
@@ -75,6 +79,8 @@ class ResetServiceTest extends TestCase {
 	/** Alles, was der Reset aus der Datenbank löscht – je Tabelle genau einmal. */
 	private const WIPED_TABLES = [
 		'vbh_attachments',
+		'vbh_line_alloc',
+		'vbh_cc_budgets',
 		'vbh_journal_line',
 		'vbh_journal',
 		'vbh_bank_tx',
@@ -83,6 +89,7 @@ class ResetServiceTest extends TestCase {
 		'vbh_rules',
 		'vbh_accounts',
 		'vbh_costcenters',
+		'vbh_booking_cc',
 		'vbh_budgets',
 		'vbh_budget_snapshots',
 		'vbh_budget_snap_items',
@@ -325,6 +332,10 @@ class ResetServiceTest extends TestCase {
 			new ReimbursementEventMapper($this->db),
 			$reimbursementFiles,
 			new InvoiceBatchMapper($this->db),
+			new LineAllocationMapper($this->db),
+			new BookingCostCenterMapper($this->db),
+			new ContributionGroupMapper($this->db),
+			new CostCenterBudgetMapper($this->db),
 		);
 	}
 
@@ -368,6 +379,8 @@ class ResetServiceTest extends TestCase {
 			'UPDATE vbh_mandates SET returned_debit_id=NULL',
 			// „übermittelt" gibt es ohne eingereichten Posten nicht mehr.
 			'UPDATE vbh_mandate_amendments SET status=open, debit_item_id=NULL',
+			// Beitragsgruppen bleiben, aber ihre Vorgabe-Kostenstelle (Issue #333) zeigt auf Gelöschtes.
+			'UPDATE vbh_contribution_groups SET booking_cc_id=NULL',
 		], $updates);
 		$this->assertNotContains('vbh_mandates', $this->deleted());
 		$this->assertNotContains('vbh_mandate_amendments', $this->deleted());

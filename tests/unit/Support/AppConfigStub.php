@@ -54,6 +54,9 @@ final class AppConfigStub {
 				self::$stores[$config] = $store;
 			},
 		);
+		$config->method('getKeys')->willReturnCallback(
+			static fn (string $app): array => array_keys(self::$stores[$config]),
+		);
 		$config->method('hasKey')->willReturnCallback(
 			static fn (string $app, string $key, ?bool $lazy = false): bool => array_key_exists($key, self::$stores[$config]),
 		);

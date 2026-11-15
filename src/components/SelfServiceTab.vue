@@ -99,11 +99,14 @@
 				<h4>{{ t('Mein Beitrag') }}</h4>
 				<div v-for="a in assignments" :key="a.id" class="vbh-selfservice-assignment">
 					<h5>{{ a.groupName || t('Beitrag') }}</h5>
-					<p v-if="a.effectiveMinMonthlyAmount !== null" class="vbh-hint">
+					<p v-if="isAnnual(a) && a.effectiveMinAnnualAmount !== null" class="vbh-hint">
+						{{ t('Untergrenze: {amount} im Jahr', { amount: formatMoney(a.effectiveMinAnnualAmount) }) }}
+					</p>
+					<p v-else-if="a.effectiveMinMonthlyAmount !== null" class="vbh-hint">
 						{{ t('Untergrenze: {amount}', { amount: formatMoney(a.effectiveMinMonthlyAmount) }) }}
 					</p>
 					<div class="vbh-form">
-						<label>{{ t('Monatsbeitrag (€)') }}
+						<label>{{ amountFieldLabel(isAnnual(a), currencySymbol()) }}
 							<AmountInput v-model="a._form.monthlyAmount" class="vbh-short" />
 						</label>
 						<label>{{ t('Turnus') }}
@@ -142,73 +145,75 @@
 			</div>
 
 			<div class="vbh-card">
-				<h4>{{ t('Mein SEPA-Lastschriftmandat') }}</h4>
+				<template v-if="isEuro()">
+					<h4>{{ t('Mein SEPA-Lastschriftmandat') }}</h4>
 
-				<template v-if="mandate">
-					<dl class="vbh-selfservice-fields">
-						<dt>{{ t('IBAN') }}</dt>
-						<dd>{{ mandate.ibanMasked }}</dd>
-						<dt>{{ t('Kontoinhaber') }}</dt>
-						<dd>{{ mandate.accountHolder }}</dd>
-						<dt>{{ t('Status') }}</dt>
-						<dd>
-							{{ statusLabel(mandate.status) }}
-							<span v-if="mandate.storyText" class="vbh-typetag">{{ mandate.storyText }}</span>
-						</dd>
-					</dl>
+					<template v-if="mandate">
+						<dl class="vbh-selfservice-fields">
+							<dt>{{ t('IBAN') }}</dt>
+							<dd>{{ mandate.ibanMasked }}</dd>
+							<dt>{{ t('Kontoinhaber') }}</dt>
+							<dd>{{ mandate.accountHolder }}</dd>
+							<dt>{{ t('Status') }}</dt>
+							<dd>
+								{{ statusLabel(mandate.status) }}
+								<span v-if="mandate.storyText" class="vbh-typetag">{{ mandate.storyText }}</span>
+							</dd>
+						</dl>
 
-					<!-- Die Verwaltung hat den Mandatstext aktualisiert; das Mandat gilt unverändert weiter, bis das Mitglied bestätigt hat. -->
-					<p v-if="needsReconfirmation" class="vbh-hint vbh-hint--info" data-testid="self-reconfirm-hint">
-						<strong>{{ t('Mandatstext aktualisiert') }}</strong> – {{ t('Bitte lesen und bestätigen Sie die neue Fassung. Ihr Mandat und Ihre Bankverbindung bleiben unverändert und gelten bis dahin weiter.') }}
-					</p>
+						<!-- Die Verwaltung hat den Mandatstext aktualisiert; das Mandat gilt unverändert weiter, bis das Mitglied bestätigt hat. -->
+						<p v-if="needsReconfirmation" class="vbh-hint vbh-hint--info" data-testid="self-reconfirm-hint">
+							<strong>{{ t('Mandatstext aktualisiert') }}</strong> – {{ t('Bitte lesen und bestätigen Sie die neue Fassung. Ihr Mandat und Ihre Bankverbindung bleiben unverändert und gelten bis dahin weiter.') }}
+						</p>
 
-					<div class="vbh-mcard-actions">
-						<NcButton
-							v-if="needsReconfirmation"
-							variant="primary"
-							data-testid="self-reconfirm-open"
-							@click="openGrantDialog('reconfirm')">
-							{{ t('Neuen Text lesen und bestätigen') }}
-						</NcButton>
-						<template v-if="isUnconfirmedElectronicDraft">
-							<NcButton variant="primary" @click="openGrantDialog('confirm')">
-								{{ t('Jetzt bestätigen') }}
+						<div class="vbh-mcard-actions">
+							<NcButton
+								v-if="needsReconfirmation"
+								variant="primary"
+								data-testid="self-reconfirm-open"
+								@click="openGrantDialog('reconfirm')">
+								{{ t('Neuen Text lesen und bestätigen') }}
 							</NcButton>
-							<NcButton variant="tertiary" :disabled="requestingLink" @click="requestLink">
-								{{ t('Stattdessen Link per Mail zuschicken') }}
+							<template v-if="isUnconfirmedElectronicDraft">
+								<NcButton variant="primary" @click="openGrantDialog('confirm')">
+									{{ t('Jetzt bestätigen') }}
+								</NcButton>
+								<NcButton variant="tertiary" :disabled="requestingLink" @click="requestLink">
+									{{ t('Stattdessen Link per Mail zuschicken') }}
+								</NcButton>
+							</template>
+							<template v-else-if="mandate.status === 'aktiv'">
+								<NcButton variant="secondary" @click="openAccountDialog('iban')">
+									{{ t('Bankverbindung ändern') }}
+								</NcButton>
+								<NcButton variant="secondary" @click="openAccountDialog('holder')">
+									{{ t('Kontoinhaber wechseln') }}
+								</NcButton>
+								<NcButton variant="error" @click="revokeOpen = true">
+									{{ t('Mandat widerrufen') }}
+								</NcButton>
+							</template>
+							<template v-else-if="mandate.status === 'ausgesetzt'">
+								<NcButton variant="error" @click="revokeOpen = true">
+									{{ t('Mandat widerrufen') }}
+								</NcButton>
+							</template>
+							<!-- Aus einem Entwurf (elektronisch oder Papier) kommt das Mitglied sonst nicht heraus (Issue #118) -->
+							<NcButton v-if="mandate.status === 'entwurf'" variant="error" @click="discardOpen = true">
+								{{ t('Entwurf verwerfen') }}
 							</NcButton>
-						</template>
-						<template v-else-if="mandate.status === 'aktiv'">
-							<NcButton variant="secondary" @click="openAccountDialog('iban')">
-								{{ t('Bankverbindung ändern') }}
+						</div>
+					</template>
+					<template v-else>
+						<p class="vbh-hint">
+							{{ t('Kein Mandat hinterlegt.') }}
+						</p>
+						<div class="vbh-mcard-actions">
+							<NcButton variant="primary" @click="openGrantDialog('grant')">
+								{{ t('Mandat jetzt erteilen') }}
 							</NcButton>
-							<NcButton variant="secondary" @click="openAccountDialog('holder')">
-								{{ t('Kontoinhaber wechseln') }}
-							</NcButton>
-							<NcButton variant="error" @click="revokeOpen = true">
-								{{ t('Mandat widerrufen') }}
-							</NcButton>
-						</template>
-						<template v-else-if="mandate.status === 'ausgesetzt'">
-							<NcButton variant="error" @click="revokeOpen = true">
-								{{ t('Mandat widerrufen') }}
-							</NcButton>
-						</template>
-						<!-- Aus einem Entwurf (elektronisch oder Papier) kommt das Mitglied sonst nicht heraus (Issue #118) -->
-						<NcButton v-if="mandate.status === 'entwurf'" variant="error" @click="discardOpen = true">
-							{{ t('Entwurf verwerfen') }}
-						</NcButton>
-					</div>
-				</template>
-				<template v-else>
-					<p class="vbh-hint">
-						{{ t('Kein Mandat hinterlegt.') }}
-					</p>
-					<div class="vbh-mcard-actions">
-						<NcButton variant="primary" @click="openGrantDialog('grant')">
-							{{ t('Mandat jetzt erteilen') }}
-						</NcButton>
-					</div>
+						</div>
+					</template>
 				</template>
 
 				<h4 class="vbh-selfservice-subhead">
@@ -318,10 +323,13 @@ import SelfServiceMandateAccountDialog from './SelfServiceMandateAccountDialog.v
 import SelfServiceMandateGrantDialog from './SelfServiceMandateGrantDialog.vue'
 import SelfServiceMandateRevokeDialog from './SelfServiceMandateRevokeDialog.vue'
 import api from '../api.js'
+import { amountFieldLabel, amountPayload, assignmentAmount } from '../lib/amountBasis.js'
+import { currencySymbol, isEuro } from '../lib/clubCurrency.js'
 import { countryName } from '../lib/countries.js'
 import { defaultCountry } from '../lib/countryDefault.js'
 import { errMsg, formatDate, formatMoney } from '../lib/format.js'
 import { intervalLabel } from '../lib/frequency.js'
+import { isAnnual } from '../lib/prorata.js'
 import { returnedDebitRows } from '../lib/selfReturnedDebits.js'
 
 function emptyContactForm() {
@@ -476,6 +484,10 @@ export default {
 	},
 
 	methods: {
+		isEuro,
+		currencySymbol,
+		amountFieldLabel,
+		isAnnual,
 		intervalLabel,
 		formatDate,
 		formatMoney,
@@ -621,7 +633,8 @@ export default {
 		withEditState(a) {
 			return {
 				...a,
-				_form: { monthlyAmount: a.monthlyAmount, intervalMonths: a.intervalMonths, paymentMethod: a.paymentMethod },
+				// `monthlyAmount` ist das Betragsfeld: bei einem Jahresbetrag (Issue #270) steht dort der Jahresbeitrag.
+				_form: { monthlyAmount: assignmentAmount(a), intervalMonths: a.intervalMonths, paymentMethod: a.paymentMethod },
 				_preview: null,
 				_previewedFor: null,
 				_loadingPreview: false,
@@ -658,7 +671,7 @@ export default {
 			a._loadingPreview = true
 			try {
 				const { data } = await api.selfPreviewAssignment(a.id, {
-					monthlyAmount: a._form.monthlyAmount,
+					...amountPayload(isAnnual(a), a._form.monthlyAmount),
 					intervalMonths: a._form.intervalMonths,
 					paymentMethod: a._form.paymentMethod,
 				})
@@ -677,7 +690,7 @@ export default {
 			if (!this.canSave(a)) { return }
 			try {
 				const { data } = await api.selfUpdateAssignment(a.id, {
-					monthlyAmount: a._form.monthlyAmount,
+					...amountPayload(isAnnual(a), a._form.monthlyAmount),
 					intervalMonths: a._form.intervalMonths,
 					paymentMethod: a._form.paymentMethod,
 				})

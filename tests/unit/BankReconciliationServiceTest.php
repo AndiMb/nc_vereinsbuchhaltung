@@ -31,6 +31,7 @@ use OCA\Vereinsbuchhaltung\Service\Sepa\IncomingPaymentMatchingService;
 use OCA\Vereinsbuchhaltung\Service\Sepa\SepaImportConfirmationService;
 use OCA\Vereinsbuchhaltung\Service\Sepa\SepaImportSettingsService;
 use OCA\Vereinsbuchhaltung\Service\Sepa\SepaMatchingService;
+use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubCurrencyStub;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\IL10N;
@@ -120,6 +121,7 @@ class BankReconciliationServiceTest extends TestCase {
 			$session,
 			$time,
 			$l10n,
+			ClubCurrencyStub::of($this),
 		);
 	}
 

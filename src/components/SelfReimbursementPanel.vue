@@ -87,7 +87,7 @@
 				<form class="vbh-reimb-form" novalidate @submit.prevent="submit">
 					<div class="vbh-reimb-row2">
 						<label class="vbh-reimb-field">
-							<span class="vbh-reimb-label">{{ t('Betrag (€)') }}</span>
+							<span class="vbh-reimb-label">{{ t('Betrag ({currency})', { currency: currencySymbol() }) }}</span>
 							<AmountInput v-model="form.amount" class="vbh-reimb-amount" />
 						</label>
 						<label class="vbh-reimb-field">
@@ -304,6 +304,7 @@ import ReimbursementHistory from './ReimbursementHistory.vue'
 import ReimbursementReceiptPicker from './ReimbursementReceiptPicker.vue'
 import ReimbursementStatusTag from './ReimbursementStatusTag.vue'
 import api from '../api.js'
+import { currencySymbol } from '../lib/clubCurrency.js'
 import { errMsg, formatDate, formatFileSize, formatMoney, roundCents } from '../lib/format.js'
 import { formatIban, ibanState, normalizeIban } from '../lib/iban.js'
 import { todayIso } from '../lib/invoices.js'
@@ -354,6 +355,7 @@ export default {
 	},
 
 	methods: {
+		currencySymbol,
 		formatDate,
 		formatFileSize,
 		formatIban,

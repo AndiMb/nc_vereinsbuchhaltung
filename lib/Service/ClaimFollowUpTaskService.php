@@ -54,6 +54,7 @@ class ClaimFollowUpTaskService {
 		private MandateMapper $mandates,
 		private DirectDebitEligibilityResolver $eligibility,
 		private IL10N $l10n,
+		private ClubCurrency $currency,
 	) {
 	}
 
@@ -117,8 +118,8 @@ class ClaimFollowUpTaskService {
 			return [];
 		}
 		return [$this->aggregated($severity, $this->l10n->n(
-			'%n Forderung nach Rücklastschrift weiter offen, zusammen %s €. Sie wird nicht erneut eingezogen.',
-			'%n Forderungen nach Rücklastschrift weiter offen, zusammen %s €. Sie werden nicht erneut eingezogen.',
+			'%n Forderung nach Rücklastschrift weiter offen, zusammen %s. Sie wird nicht erneut eingezogen.',
+			'%n Forderungen nach Rücklastschrift weiter offen, zusammen %s. Sie werden nicht erneut eingezogen.',
 			$count,
 			[$this->formatAmount($sumCents)],
 		))];
@@ -152,8 +153,8 @@ class ClaimFollowUpTaskService {
 			return [];
 		}
 		return [$this->aggregated(Task::SEVERITY_HINT, $this->l10n->n(
-			'%n Forderung nach Widerruf des Mandats weiter offen, zusammen %s €. Sie kann nicht mehr eingezogen werden.',
-			'%n Forderungen nach Widerruf des Mandats weiter offen, zusammen %s €. Sie können nicht mehr eingezogen werden.',
+			'%n Forderung nach Widerruf des Mandats weiter offen, zusammen %s. Sie kann nicht mehr eingezogen werden.',
+			'%n Forderungen nach Widerruf des Mandats weiter offen, zusammen %s. Sie können nicht mehr eingezogen werden.',
 			$count,
 			[$this->formatAmount($sumCents)],
 		))];
@@ -192,6 +193,6 @@ class ClaimFollowUpTaskService {
 	}
 
 	private function formatAmount(int $cents): string {
-		return number_format($cents / 100, 2, ',', '.');
+		return $this->currency->format($cents);
 	}
 }

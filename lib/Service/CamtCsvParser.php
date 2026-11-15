@@ -6,6 +6,8 @@ namespace OCA\Vereinsbuchhaltung\Service;
 
 use OCA\Vereinsbuchhaltung\Exception\UserFacingException;
 use OCA\Vereinsbuchhaltung\Service\Statement\RowNormalizer;
+use OCA\Vereinsbuchhaltung\Service\Statement\StatementBalance;
+use OCA\Vereinsbuchhaltung\Service\Statement\StatementBalanceReader;
 use OCA\Vereinsbuchhaltung\Service\Statement\StatementParser;
 use OCP\IL10N;
 
@@ -34,7 +36,7 @@ use OCP\IL10N;
  * tests/unit/CamtCsvParserTest.php), übersetzt seine Fehlermeldungen aber,
  * sobald ihn Nextclouds DI-Container mit einer echten IL10N versorgt.
  */
-class CamtCsvParser implements StatementParser {
+class CamtCsvParser implements StatementParser, StatementBalanceReader {
 
 	public function __construct(
 		private RowNormalizer $normalizer = new RowNormalizer(),
@@ -87,6 +89,8 @@ class CamtCsvParser implements StatementParser {
 		'amount' => ['betrag', 'umsatz'],
 		'currency' => ['waehrung', 'whrg', 'currency'],
 		'info' => ['info'],
+		// Nur für die Kontoabstimmung (balances()), der Import liest die Spalte nicht.
+		'balance' => ['saldonachbuchung', 'saldo', 'kontostand'],
 		// SEPA-Feldkatalog (Spec §5, Issue #72) - Sparkassen-CSV-Spaltennamen
 		// laut Klassendoc oben, hier normalisiert (klein, ohne Leer-/
 		// Sonderzeichen, wie {@see normalizeKey()} es mit dem Header tut).
@@ -130,6 +134,93 @@ class CamtCsvParser implements StatementParser {
 		}
 
 		return $rows;
+	}
+
+	/**
+	 * Anfangs- und Endsaldo je Konto aus der Spalte „Saldo nach Buchung“
+	 * (Kontoabstimmung, Issue #159).
+	 *
+	 * Arbeitet auf den Rohzeilen statt auf parse(): der Normalizer verwirft
+	 * 0,00-Buchungen, die zur Saldenkette gehören. Die Datei darf auf- oder
+	 * absteigend sortiert sein (Bankexporte stehen meist mit der neuesten
+	 * Zeile oben); innerhalb eines Tages gilt die Reihenfolge der Datei.
+	 *
+	 * @return list<StatementBalance>
+	 */
+	public function balances(string $content): array {
+		$content = $this->toUtf8($content);
+		$content = (string)preg_replace('/^\xEF\xBB\xBF/', '', $content);
+		$records = $this->readRecords($content);
+		if (count($records) < 2) {
+			return [];
+		}
+		$map = $this->mapHeader($records[0]);
+		if (!isset($map['balance'], $map['bookingDate'], $map['amount'])) {
+			return [];
+		}
+		$cell = static function (array $cols, int $idx): ?string {
+			$value = isset($cols[$idx]) ? trim((string)$cols[$idx]) : '';
+			return $value !== '' ? $value : null;
+		};
+
+		$byAccount = [];
+		for ($i = 1; $i < count($records); $i++) {
+			$cols = $records[$i];
+			$info = isset($map['info']) ? $cell($cols, $map['info']) : null;
+			if ($info !== null && stripos($info, 'vorgemerkt') !== false) {
+				continue;
+			}
+			$date = $this->parseDate($cell($cols, $map['bookingDate']));
+			$amount = $this->parseAmount($cell($cols, $map['amount']));
+			$balance = $this->parseAmount($cell($cols, $map['balance']));
+			if ($date === null || $amount === null || $balance === null) {
+				continue;
+			}
+			$account = $this->normalizer->normalizeOwnAccount(isset($map['ownAccount']) ? $cell($cols, $map['ownAccount']) : null);
+			$byAccount[$account ?? ''][] = ['date' => $date, 'amount' => $amount, 'balance' => $balance];
+		}
+
+		$result = [];
+		foreach ($byAccount as $account => $rows) {
+			$forward = $this->balanceGaps($rows);
+			$first = $rows[0]['date'];
+			$last = $rows[count($rows) - 1]['date'];
+			$descending = $first > $last;
+			if ($first === $last && $forward !== []) {
+				// Alles an einem Tag: die Richtung nehmen, in der die Kette besser aufgeht.
+				$descending = count($this->balanceGaps(array_reverse($rows))) < count($forward);
+			}
+			if ($descending) {
+				$rows = array_reverse($rows);
+			}
+			$end = $rows[count($rows) - 1];
+			$result[] = new StatementBalance(
+				$account === '' ? null : (string)$account,
+				$rows[0]['balance'] - $rows[0]['amount'],
+				$rows[0]['date'],
+				$end['balance'],
+				$end['date'],
+				$descending ? $this->balanceGaps($rows) : $forward,
+			);
+		}
+		return $result;
+	}
+
+	/**
+	 * Stellen, an denen ein Saldo nicht aus dem vorigen plus dem Betrag folgt.
+	 *
+	 * @param list<array{date:string, amount:int, balance:int}> $rows in zeitlicher Reihenfolge
+	 * @return list<array{date:string, expectedCents:int, actualCents:int}>
+	 */
+	private function balanceGaps(array $rows): array {
+		$gaps = [];
+		for ($i = 1; $i < count($rows); $i++) {
+			$expected = $rows[$i - 1]['balance'] + $rows[$i]['amount'];
+			if ($expected !== $rows[$i]['balance']) {
+				$gaps[] = ['date' => $rows[$i]['date'], 'expectedCents' => $expected, 'actualCents' => $rows[$i]['balance']];
+			}
+		}
+		return $gaps;
 	}
 
 	/**

@@ -32,6 +32,7 @@ class DemoDataService {
 		private TransactionRunner $transaction,
 		private IL10N $l10n,
 		private ClubClock $clock,
+		private ClubCurrency $currency,
 	) {
 	}
 
@@ -124,7 +125,7 @@ class DemoDataService {
 			$tx->setUserId($userId);
 			$tx->setBookingDate($date);
 			$tx->setAmountCents($cents);
-			$tx->setCurrency('EUR');
+			$tx->setCurrency($this->currency->code());
 			$tx->setBookingText('Beispielbuchung');
 			$tx->setPurpose($purpose);
 			$tx->setCounterparty($purpose);

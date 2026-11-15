@@ -27,6 +27,7 @@ use OCA\Vereinsbuchhaltung\Service\InvoiceSettings;
 use OCA\Vereinsbuchhaltung\Service\NumberRangeService;
 use OCA\Vereinsbuchhaltung\Service\SepaDebtorAccountService;
 use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubClockStub;
+use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubCurrencyStub;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\IAppConfig;
 use OCP\IDBConnection;
@@ -175,8 +176,8 @@ class InvoiceServiceTest extends TestCase {
 			$this->audit,
 			$session,
 			ClubClockStub::system(),
-			$l10n,
-		);
+			ClubCurrencyStub::of($this),
+			$l10n);
 	}
 
 	/** @return array<string, mixed> */

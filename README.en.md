@@ -24,6 +24,7 @@ A lightweight accounting app for nonprofit clubs, integrated directly into Nextc
 - **Welcome notice for auditors** on first login with that role, including a printable audit guide
 
 ### Import
+- **Backup and migration**: the entire data set including members, mandates, settings and – optionally – receipts in one password-encrypted file; can be restored into an empty Vereinsbuchhaltung of the same version, also on a different Nextcloud
 - **xbuc import** (zero Buchhaltung): takes over the account tree and all postings from a `.xbuc` file
   - **Merge mode** (default): only missing accounts are created, postings already present are skipped via fingerprint – several yearly files can be imported one after another
   - **Fiscal year check**: year taken from the file or chosen manually; postings outside the fiscal year are reported and can be dated automatically to 01/01 or 12/31
@@ -68,10 +69,11 @@ A lightweight accounting app for nonprofit clubs, integrated directly into Nextc
 - **Financial plan**: planned amounts per account and year, plan/actual comparison with color-coded deviation – as a tree summed over the account hierarchy (one budget level per branch, "only items needing attention" filter), also as a print-ready page for the board; comparison with another period (default: previous year's actual) including the change in euros and percent
   - **Notes per plan figure** (e.g. rationale "40 members × €25")
   - **Plan snapshots**: freeze the entire plan as a named, dated snapshot (e.g. "resolved at the general assembly") and compare it later against the current plan
-- **Structured report by template**: budget and postings structured by a template – two standard templates (budget by title groups for funding bodies, result by area and project) that can be edited, deleted and restored like any template; new templates from scratch or as a copy, with freely chosen sections, columns (budget/actual, also earlier periods) and groups; print-ready and as CSV
+- **Structured report by template**: budget and postings structured by a template – two standard templates (budget by title groups for funding bodies, result by area and project) that can be edited, deleted and restored like any template; new templates from scratch or as a copy, with freely chosen sections, columns (budget/actual, also earlier periods) and groups; print-ready and as CSV. Plus a **visual view** of the same template: key figures, traffic lights, trend and bars with a selectable snapshot, print-ready, with a jump from every account to the matching postings
 - **Treasurer's report (print-ready)**: a standalone print page for the general assembly – club name, cash-account overview (balance on 01/01 and 12/31), income/expense statement, plan/actual comparison, tax-sphere overview with an exemption-threshold notice, completeness note, closing note and signature lines; print or save as PDF via the browser
 - **Short report for board meetings (print-ready)**: a compact print page with a selectable reference date – account balances since then, movements, short financial-plan summary; optionally in your corporate design (club logo + accent color, configurable under gear icon → Club)
 - **CSV exports** (for the audit / Excel): journal, trial balance, income/expense overview, plan/actual comparison (including notes)
+- **Cost centres** (optional, off by default): an amount on an income/expense account can be allocated to one or more cost centres (€1,000 equipment, of which €600 seniors and €400 under-19s – one entry, one account); separate report per cost centre with reconciliation against the account balances, print page and CSV
 - **Multi-year overview** (CSV matrix, columns = years): income statement by account (income/expenses/result) + assets at year-end, plus result per reporting group/project and by tax sphere across all years; also as a line chart (Reports → Evaluation) for meeting presentations
 - **Cash-account reconciliation**: account balance (journal) vs. open (unassigned) bank transactions, with a total across all cash accounts
 - **Funds in the header**: the balances of all cash accounts as a single figure; individual accounts (a fixed-term deposit, say) can be left out of it without disappearing from the cash report, the assets overview or the trial balance
@@ -80,6 +82,7 @@ A lightweight accounting app for nonprofit clubs, integrated directly into Nextc
 - **Change log** (Reports → Log, for everyone with read access): who created/changed/deleted, assigned, imported postings, changed attachments or permissions, or closed years, and when; deliberately survives even "delete all data"
 - **Receipt ZIP**: all receipts for a year as a ZIP download, one folder per posting (`NNNN_date_description/`); missing files are listed instead of aborting the export
 - **"Only without receipt" filter** in the journal: shows postings without an attached receipt
+- **Journal filters by date and account**: booking date "From" / "To" and an account, optionally including all its sub-accounts; both are part of the page's link
 - **Search by text or amount** in the journal and under "to assign": `12,50` or `1.250` also finds postings of exactly that amount, for split postings also single parts; smooth even with several hundred postings
 - **Gap check**: warning above the journal for missing or duplicate posting numbers in the selected year (also as a completeness line in the treasurer's report). Within an open fiscal year the app keeps the numbering itself gap-free – deleting a posting shifts the following numbers down; the year-end closing then locks them in
 - **Audit guide** (Reports → Evaluation): a print-ready one-page quick guide for auditors – role, audit steps, where to find what; with the club name in the header
@@ -220,6 +223,9 @@ vereinsbuchhaltung/
 | `vbh_bank_tx` | imported bank transactions incl. dedup hash and assignment status |
 | `vbh_journal` | postings (date, description, receipt no., posting no.) |
 | `vbh_journal_line` | debit/credit lines per posting (amount in cents) |
+| `vbh_booking_cc` | cost centres on the entry line (code, name, active) – not to be confused with `vbh_costcenters` |
+| `vbh_line_alloc` | allocation of an entry line to cost centres (line, cost centre, amount); without rows the app behaves as it does without the feature |
+| `vbh_cc_budgets` | budget per cost centre and financial year (planned income, planned expenses) – independent of the financial plan per account in `vbh_budgets` |
 | `vbh_costcenters` | reporting groups (code, name); accounts reference them via `vbh_accounts.cost_center_id`. Table and column names date from when a reporting group was called a "cost center" – they stay so existing installations keep working without a migration |
 | `vbh_budgets` | financial plan (account × year × amount in cents + note) |
 | `vbh_budget_snapshots` | frozen plan snapshots (year, label, timestamp) |

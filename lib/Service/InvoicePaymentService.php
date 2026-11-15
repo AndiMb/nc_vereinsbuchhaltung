@@ -46,6 +46,7 @@ class InvoicePaymentService {
 		private TransactionRunner $transaction,
 		private AuditService $audit,
 		private IUserSession $userSession,
+		private ClubCurrency $currency,
 		private ?IL10N $l10n = null,
 	) {
 	}
@@ -73,9 +74,16 @@ class InvoicePaymentService {
 			$this->assertWithinRemaining($item, $amount);
 
 			$parts = $this->ledger->allocate($invoice, $amount);
+			// Kostenstellen der Rechnungszeilen (Issue #332): je Erlöskonto anteilig.
+			// Der Schlüssel steht nur, wo es Anteile gibt – sonst wie zuvor.
+			$shares = $this->ledger->costCenterShares($invoice, $parts);
 			$list = [];
 			foreach ($parts as $accountId => $cents) {
-				$list[] = ['accountId' => $accountId, 'amountCents' => $cents];
+				$part = ['accountId' => $accountId, 'amountCents' => $cents];
+				if (isset($shares[$accountId])) {
+					$part['allocations'] = $shares[$accountId];
+				}
+				$list[] = $part;
 			}
 			$tx = $this->booking->assignParts($tx, $list);
 			$journalId = (int)$tx->getJournalId();
@@ -120,8 +128,13 @@ class InvoicePaymentService {
 
 			$parts = $this->ledger->allocate($invoice, $amount);
 			$lines = [['accountId' => $cashAccountId, 'debitCents' => $amount, 'creditCents' => 0]];
+			$shares = $this->ledger->costCenterShares($invoice, $parts);
 			foreach ($parts as $accountId => $cents) {
-				$lines[] = ['accountId' => $accountId, 'debitCents' => 0, 'creditCents' => $cents];
+				$line = ['accountId' => $accountId, 'debitCents' => 0, 'creditCents' => $cents];
+				if (isset($shares[$accountId])) {
+					$line['allocations'] = $shares[$accountId];
+				}
+				$lines[] = $line;
 			}
 			$journal = $this->journals->createBookingLines(
 				Application::BOOK,
@@ -184,12 +197,12 @@ class InvoicePaymentService {
 			throw new \InvalidArgumentException($this->msg('Die Rechnung ist bereits vollständig bezahlt.'));
 		}
 		if ($amount <= 0) {
-			throw new \InvalidArgumentException($this->msg('Der Betrag muss größer als 0 € sein.'));
+			throw new \InvalidArgumentException($this->msg('Der Betrag muss größer als %s sein.', [$this->currency->withSymbol('0')]));
 		}
 		if ($amount > $remaining) {
 			throw new \InvalidArgumentException($this->msg(
-				'Der Betrag (%1$s €) übersteigt den offenen Rest der Rechnung (%2$s €). Bitte den Umsatz aufteilen und den Rest einem anderen Konto zuordnen.',
-				[number_format($amount / 100, 2, ',', '.'), number_format($remaining / 100, 2, ',', '.')],
+				'Der Betrag (%1$s) übersteigt den offenen Rest der Rechnung (%2$s). Bitte den Umsatz aufteilen und den Rest einem anderen Konto zuordnen.',
+				[$this->currency->format($amount), $this->currency->format($remaining)],
 			));
 		}
 	}

@@ -77,7 +77,8 @@ class RowNormalizer {
 			'counterpartyIban' => $this->cleanIban($this->str($raw['counterpartyIban'] ?? null), $ownAccount),
 			'counterpartyBic' => $this->cleanBic($this->str($raw['counterpartyBic'] ?? null)),
 			'amountCents' => $amountCents,
-			'currency' => $this->str($raw['currency'] ?? null) ?: 'EUR',
+			// Ohne Angabe im Auszug: null – der Import setzt dann die Vereinswährung (#202).
+			'currency' => $this->str($raw['currency'] ?? null) ?: null,
 		];
 		$row['hash'] = $this->computeHash($row);
 		// Additiv, siehe Docblock oben - geht NICHT in computeHash() ein.

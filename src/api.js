@@ -40,7 +40,8 @@ export default {
 	periods: (config) => axios.get(url('/periods'), config),
 	periodRule: () => axios.get(url('/periods/rule')),
 	savePeriodRule: (rule, dryRun = false) => axios.put(url('/periods/rule'), { ...rule, dryRun: dryRun ? 1 : 0 }),
-	createPeriod: () => axios.post(url('/periods')),
+	// position: 'after' hängt hinten an (Vorgabe), 'before' stellt vorne voran.
+	createPeriod: (position = 'after') => axios.post(url('/periods'), { position }),
 	updatePeriod: (id, data) => axios.put(url(`/periods/${id}`), data),
 	deletePeriod: (id) => axios.delete(url(`/periods/${id}`)),
 	closePeriod: (id) => axios.post(url(`/periods/${id}/close`)),
@@ -62,7 +63,9 @@ export default {
 	listTransactions: (status) => axios.get(url('/transactions'), { params: { status } }),
 	// Historie, Fortschritt und Umsätze der Journal-Zeilen zu den bereits zugeordneten Umsätzen (Issue #255).
 	transactionContext: (period) => axios.get(url('/transactions/context'), { params: { period } }),
-	assignTransaction: (id, contraAccountId) => axios.post(url(`/transactions/${id}/assign`), { contraAccountId }),
+	// allocations (Kostenstellen, Issue #7/#331) nur mitschicken, wenn angegeben -
+	// ohne drittes Argument ist der Request wie vor der Funktion.
+	assignTransaction: (id, contraAccountId, allocations) => axios.post(url(`/transactions/${id}/assign`), allocations ? { contraAccountId, allocations } : { contraAccountId }),
 	// Aufteilung auf mehrere Gegenkonten: parts = [{accountId, amount}, …] in Euro
 	assignTransactionParts: (id, parts) => axios.post(url(`/transactions/${id}/assign`), { parts }),
 	unassignTransaction: (id) => axios.delete(url(`/transactions/${id}/assign`)),
@@ -71,6 +74,8 @@ export default {
 	// Import CSV-CAMT
 	previewImport: (formData) => axios.post(url('/import/preview'), formData),
 	commitImport: (formData) => axios.post(url('/import/commit'), formData),
+	// Kontoabstimmung (#159): vergleicht einen Auszug mit dem Geldkonto, importiert nichts.
+	reconcileAccount: (accountId, formData) => axios.post(url('/accounts/' + accountId + '/reconciliation'), formData),
 
 	// Import zero Buchhaltung (.xbuc)
 	previewXbuc: (formData) => axios.post(url('/import/xbuc/preview'), formData),
@@ -78,6 +83,15 @@ export default {
 	// Löscht vorher alle Daten – nur nach withPasswordConfirmation() aufrufen (#260).
 	commitXbucWithReset: (formData) => axios.post(url('/import/xbuc/reset'), formData),
 	reset: () => axios.post(url('/reset')),
+
+	// Sicherung und Umzug (Issue #111). Alle schreibenden Aufrufe nur nach withPasswordConfirmation().
+	backupStatus: () => axios.get(url('/backup/status')),
+	backupExport: (password, withFiles) => axios.post(url('/backup/export'), { password, withFiles }),
+	/** Adresse, unter der der Browser die eben erstellte Sicherung einmalig herunterlädt. */
+	backupDownloadUrl: (token) => url('/backup/download/' + encodeURIComponent(token)),
+	backupInspect: (formData) => axios.post(url('/backup/inspect'), formData),
+	backupImport: (formData) => axios.post(url('/backup/import'), formData),
+	backupWipe: (confirmation) => axios.post(url('/backup/wipe'), { confirmation }),
 	seedDemo: () => axios.post(url('/demo/seed')),
 
 	// Journal / Buchungssätze
@@ -102,6 +116,17 @@ export default {
 	updateCostCenter: (id, code, name) => axios.put(url(`/costcenters/${id}`), { code, name }),
 	deleteCostCenter: (id) => axios.delete(url(`/costcenters/${id}`)),
 	assignCostCenter: (accountIds, costCenterId) => axios.post(url('/costcenters/assign'), { accountIds, costCenterId: costCenterId || 0 }),
+
+	// Kostenstellen an der Buchungszeile (Issue #7) - die Routen darueber heissen
+	// historisch 'costcenters', meinen aber die Auswertungsgruppen.
+	bookingCostCenters: () => axios.get(url('/booking-cost-centers')),
+	createBookingCostCenter: (data) => axios.post(url('/booking-cost-centers'), data),
+	updateBookingCostCenter: (id, data) => axios.put(url(`/booking-cost-centers/${id}`), data),
+	deleteBookingCostCenter: (id) => axios.delete(url(`/booking-cost-centers/${id}`)),
+	costCenterAllocationReport: (period) => axios.get(url('/report/cost-center-allocations'), { params: { period: period || undefined } }),
+	// Budget je Kostenstelle (Issue #335): Planwerte eines Geschäftsjahres, Beträge beim Setzen in Euro.
+	costCenterBudgets: (period) => axios.get(url('/cost-center-budgets'), { params: { period } }),
+	setCostCenterBudget: ({ period, costCenterId, income, expense }) => axios.put(url('/cost-center-budgets'), { period, costCenterId, income, expense }),
 	sphereReport: (period) => axios.get(url('/report/spheres'), { params: { period: period || undefined } }),
 	bulkSphere: (accountIds, sphere) => axios.post(url('/accounts/sphere-bulk'), { accountIds, sphere }),
 	multiyearTrend: () => axios.get(url('/report/multiyear-trend')),
@@ -114,6 +139,8 @@ export default {
 	updateReportTemplate: (id, name, definition) => axios.put(url(`/report-templates/${encodeURIComponent(id)}`), { name, definition }),
 	deleteReportTemplate: (id) => axios.delete(url(`/report-templates/${encodeURIComponent(id)}`)),
 	structuredReport: (template, period) => axios.get(url('/report/structured'), { params: { template, period: period || undefined } }),
+	// asOf: 'YYYY-MM', 'current' oder null (Vorgabe des Servers)
+	visualReport: (template, period, asOf) => axios.get(url('/report/structured/visual'), { params: { template, period: period || undefined, asOf: asOf || undefined } }),
 
 	// Finanzplan / Budget
 	// compare: null = Periode davor (Vorgabe des Servers), 0 = kein Vergleich, sonst Perioden-ID
@@ -252,8 +279,9 @@ export default {
 	createContributionGroup: (data) => axios.post(url('/contribution-groups'), data),
 	updateContributionGroup: (id, data) => axios.put(url(`/contribution-groups/${id}`), data),
 	deleteContributionGroup: (id) => axios.delete(url(`/contribution-groups/${id}`)),
-	previewMinAmountIncrease: (id, newMinMonthlyAmount) => axios.get(url(`/contribution-groups/${id}/min-amount-preview`), { params: { newMinMonthlyAmount } }),
-	applyMinAmountIncrease: (id, newMinMonthlyAmount) => axios.post(url(`/contribution-groups/${id}/min-amount-increase`), { newMinMonthlyAmount }),
+	// `amount` ist { newMinMonthlyAmount } oder – bei Gruppen mit Jahresbetrag (Issue #270) – { newMinAnnualAmount }
+	previewMinAmountIncrease: (id, amount) => axios.get(url(`/contribution-groups/${id}/min-amount-preview`), { params: amount }),
+	applyMinAmountIncrease: (id, amount) => axios.post(url(`/contribution-groups/${id}/min-amount-increase`), amount),
 
 	// Zuweisungen (Issue #68)
 	listAssignments: (memberId) => axios.get(url('/assignments'), { params: memberId ? { memberId } : {} }),
@@ -370,6 +398,8 @@ export default {
 
 	// Export (CSV-Download – Browser-Navigation, kein Axios)
 	exportJournalUrl: (period) => generateUrl(base + '/export/journal') + (period ? `?period=${period}` : ''),
+	exportCostCenterAllocationsUrl: (period) => generateUrl(base + '/export/cost-center-allocations') + (period ? `?period=${period}` : ''),
+	exportCostCenterAllocationsCsvUrl: (period) => generateUrl(base + '/export/cost-center-allocations-csv') + (period ? `?period=${period}` : ''),
 	// Kontenblatt: Zeitraum und "inkl. Unterkonten" wie im Kontoauszug.
 	accountStatementCsvUrl: (id, period, includeChildren) => generateUrl(base + `/export/account/${id}`) + `?includeChildren=${includeChildren ? 1 : 0}` + (period ? `&period=${period}` : ''),
 	accountStatementPrintUrl: (id, period, includeChildren) => generateUrl(base + `/export/account/${id}/print`) + `?includeChildren=${includeChildren ? 1 : 0}` + (period ? `&period=${period}` : ''),
@@ -380,6 +410,8 @@ export default {
 	exportMultiyearUrl: () => generateUrl(base + '/export/multiyear'),
 	gliederungsberichtUrl: (template, period) => generateUrl(base + '/export/gliederungsbericht') + `?template=${encodeURIComponent(template)}` + (period ? `&period=${period}` : ''),
 	gliederungsberichtCsvUrl: (template, period) => generateUrl(base + '/export/gliederungsbericht-csv') + `?template=${encodeURIComponent(template)}` + (period ? `&period=${period}` : ''),
+	// Visuelle Ansicht (Plan gegen Ist): Stand `YYYY-MM`/`current` (leer = Vorgabe), Basis `year`/`time`.
+	gliederungsberichtVisuellUrl: (template, period, asOf, basis = 'year') => generateUrl(base + '/export/gliederungsbericht-visuell') + `?template=${encodeURIComponent(template)}` + (period ? `&period=${period}` : '') + (asOf ? `&asOf=${encodeURIComponent(asOf)}` : '') + `&basis=${encodeURIComponent(basis)}`,
 	kassenberichtUrl: (period) => generateUrl(base + '/export/kassenbericht') + (period ? `?period=${period}` : ''),
 	kurzberichtUrl: (since) => generateUrl(base + '/export/kurzbericht') + (since ? `?since=${since}` : ''),
 	exportAttachmentsUrl: (period) => generateUrl(base + '/export/attachments') + (period ? `?period=${period}` : ''),
@@ -455,7 +487,8 @@ export default {
 	markReimbursementTransferred: (id) => axios.post(url(`/reimbursements/${id}/transferred`)),
 	unmarkReimbursementTransferred: (id) => axios.delete(url(`/reimbursements/${id}/transferred`)),
 	revertReimbursementPayment: (id) => axios.post(url(`/reimbursements/${id}/revert-payment`)),
-	assignReimbursementTransaction: (id, bankTxId, contraAccountId) => axios.post(url(`/reimbursements/${id}/assign`), { bankTxId, contraAccountId }),
+	// allocations (Verteilung auf Kostenstellen, Issue #333) geht nur mit, wenn angegeben.
+	assignReimbursementTransaction: (id, bankTxId, contraAccountId, allocations) => axios.post(url(`/reimbursements/${id}/assign`), { bankTxId, contraAccountId, ...(allocations !== undefined ? { allocations } : {}) }),
 	payReimbursement: (id, journalId, paidDate) => axios.post(url(`/reimbursements/${id}/pay`), { journalId, paidDate }),
 	reimbursementReceiptUrl: (id, fileId) => generateUrl(`${base}/reimbursements/${id}/receipts/${fileId}/view`),
 

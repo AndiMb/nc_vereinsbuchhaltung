@@ -107,6 +107,9 @@ test.describe('Mobile Ansicht', () => {
 			await eintrag.click()
 			await expect(eintrag).toHaveClass(/active/)
 			await expect(visibleSection(page)).toBeVisible()
+			// Nachgeladene Reiter zeigen bis zum Eintreffen ihres Bundles nur einen
+			// Kommentarknoten – erst zaehlen, wenn die Komponente gerendert ist.
+			await expect(visibleSection(page).locator(':scope > *').first()).toBeAttached()
 
 			const leiste = visibleSection(page).locator('.vbh-subtabs')
 			// Uebersicht und Konten haben keine Unterreiter.

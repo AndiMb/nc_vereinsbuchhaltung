@@ -18,6 +18,7 @@ use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
 use OCA\Vereinsbuchhaltung\Db\ReturnedDebitMapper;
 use OCA\Vereinsbuchhaltung\Service\ClaimStateResolver;
 use OCA\Vereinsbuchhaltung\Service\ClubClock;
+use OCA\Vereinsbuchhaltung\Service\ClubCurrency;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\IAppConfig;
 use OCP\IL10N;
@@ -58,6 +59,7 @@ class DatenuebersichtRenderer {
 		private IAppConfig $config,
 		private IL10N $l10n,
 		private ClubClock $clock,
+		private ClubCurrency $currency,
 	) {
 	}
 
@@ -162,7 +164,7 @@ class DatenuebersichtRenderer {
 		foreach ($rows as $returnedDebit) {
 			$h .= '<tr><td>' . ReportFormat::date(substr($returnedDebit->getReceivedAt(), 0, 10)) . '</td>'
 				. '<td>' . PrintableReportPage::escape((string)($returnedDebit->getReasonCode() ?? '–')) . '</td>'
-				. '<td class="num">' . ($returnedDebit->getChargesCents() !== null ? ReportFormat::cents($returnedDebit->getChargesCents()) : '–') . '</td></tr>';
+				. '<td class="num">' . ($returnedDebit->getChargesCents() !== null ? ReportFormat::cents($returnedDebit->getChargesCents(), $this->currency->symbol()) : '–') . '</td></tr>';
 		}
 		return $h . '</table>';
 	}
@@ -189,7 +191,7 @@ class DatenuebersichtRenderer {
 			$h .= '<tr>'
 				. '<td>' . PrintableReportPage::escape($period) . '</td>'
 				. '<td>' . PrintableReportPage::escape((string)($item->getDescription() ?? '')) . '</td>'
-				. '<td class="num">' . ReportFormat::cents($item->getAmountCents()) . '</td>'
+				. '<td class="num">' . ReportFormat::cents($item->getAmountCents(), $this->currency->symbol()) . '</td>'
 				. '<td>' . PrintableReportPage::escape(ClaimStateResolver::resolveForItem($item)) . '</td>'
 				. '</tr>';
 		}
@@ -203,13 +205,15 @@ class DatenuebersichtRenderer {
 			return $h . '<p>' . $this->l10n->t('Keine Beitragszuweisung vorhanden.') . '</p></section>';
 		}
 		$h .= '<table><tr><th>' . $this->l10n->t('Beitragsgruppe') . '</th><th>' . $this->l10n->t('Turnus')
-			. '</th><th class="num">' . $this->l10n->t('Monatsbetrag') . '</th><th>' . $this->l10n->t('Zahlungsart')
+			. '</th><th class="num">' . $this->l10n->t('Beitrag') . '</th><th>' . $this->l10n->t('Zahlungsart')
 			. '</th><th>' . $this->l10n->t('Gültig von') . '</th><th>' . $this->l10n->t('Gültig bis') . '</th></tr>';
 		foreach ($assignments as $assignment) {
 			$h .= '<tr>'
 				. '<td>' . PrintableReportPage::escape($this->groupName($assignment)) . '</td>'
 				. '<td>' . PrintableReportPage::escape($this->intervalName($assignment->getIntervalMonths())) . '</td>'
-				. '<td class="num">' . ReportFormat::cents($assignment->getMonthlyAmountCents()) . '</td>'
+				// Betrag in der Betragsangabe der Gruppe (Issue #270): Jahresbetrag bei Jahresgruppen, sonst Monatsbetrag.
+				. '<td class="num">' . ReportFormat::cents($assignment->amountCents(), $this->currency->symbol()) . ' '
+				. PrintableReportPage::escape($assignment->isAnnual() ? $this->l10n->t('pro Jahr') : $this->l10n->t('pro Monat')) . '</td>'
 				. '<td>' . PrintableReportPage::escape(Assignment::paymentMethodName($assignment->getPaymentMethod(), $this->l10n)) . '</td>'
 				. '<td>' . PrintableReportPage::escape(ReportFormat::date($assignment->getValidFrom())) . '</td>'
 				. '<td>' . PrintableReportPage::escape(ReportFormat::date($assignment->getValidTo())) . '</td>'

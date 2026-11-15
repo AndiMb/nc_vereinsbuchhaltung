@@ -7,6 +7,7 @@ namespace OCA\Vereinsbuchhaltung\Controller;
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\BankTransactionMapper;
 use OCA\Vereinsbuchhaltung\Service\BookingService;
+use OCA\Vereinsbuchhaltung\Service\CostCenter\AllocationRules;
 use OCA\Vereinsbuchhaltung\Service\PeriodService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Db\DoesNotExistException;
@@ -78,19 +79,28 @@ class TransactionController extends Controller {
 	 *                     ausgewertet; die Summe der Teile muss den Umsatz ergeben.
 	 */
 	#[NoAdminRequired]
-	public function assign(int $id, int $contraAccountId = 0, array $parts = []): DataResponse {
+	public function assign(int $id, int $contraAccountId = 0, array $parts = [], ?array $allocations = null): DataResponse {
 		try {
 			$tx = $this->txMapper->find($id, $this->userId());
 			if ($parts === []) {
-				$tx = $this->bookingService->assign($tx, $contraAccountId);
+				$tx = $this->bookingService->assign($tx, $contraAccountId, AllocationRules::parseEuro(['allocations' => $allocations]));
 			} else {
 				// Beträge kommen in Euro und werden je Teil einzeln auf Cent
 				// gerundet – erst danach prüft validateParts() die Summe.
 				$tx = $this->bookingService->assignParts($tx, array_map(
-					static fn ($part): array => [
-						'accountId' => (int)($part['accountId'] ?? 0),
-						'amountCents' => (int)round(((float)($part['amount'] ?? 0)) * 100),
-					],
+					static function ($part): array {
+						$parsed = [
+							'accountId' => (int)($part['accountId'] ?? 0),
+							'amountCents' => (int)round(((float)($part['amount'] ?? 0)) * 100),
+						];
+						// Verteilung des Teils auf Kostenstellen (Issue #7); fehlt der
+						// Schlüssel, bleibt er weg.
+						$partAllocations = AllocationRules::parseEuro($part);
+						if ($partAllocations !== null) {
+							$parsed['allocations'] = $partAllocations;
+						}
+						return $parsed;
+					},
 					array_values(array_filter($parts, 'is_array')),
 				));
 			}

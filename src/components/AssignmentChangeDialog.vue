@@ -27,7 +27,7 @@
 				</label>
 			</div>
 			<div class="vbh-form">
-				<label>{{ t('Monatsbeitrag (€)') }}
+				<label>{{ amountFieldLabel(annual, currencySymbol()) }}
 					<AmountInput ref="amountInput" v-model="form.monthlyAmount" class="vbh-short" />
 				</label>
 				<label>{{ t('Turnus') }}
@@ -39,7 +39,7 @@
 				</label>
 				<label v-if="!isGroupMode">{{ t('Zahlungsart') }}
 					<select v-model="form.paymentMethod">
-						<option value="direct_debit">{{ t('Lastschrift') }}</option>
+						<option v-if="isEuro() || assignment?.paymentMethod === 'direct_debit'" value="direct_debit">{{ t('Lastschrift') }}</option>
 						<option value="ueberweisung">{{ t('Überweisung') }}</option>
 					</select>
 				</label>
@@ -87,9 +87,12 @@ import NcModal from '@nextcloud/vue/components/NcModal'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import AmountInput from './AmountInput.vue'
 import api from '../api.js'
-import { errMsg, formatDate, formatEuro } from '../lib/format.js'
+import { amountFieldLabel, amountPayload, assignmentAmount, assignmentMinOverrideCents, groupDefaultAmount, groupMinCents, isAnnualGroup } from '../lib/amountBasis.js'
+import { currencySymbol, isEuro } from '../lib/clubCurrency.js'
+import { errMsg, formatCurrency, formatDate } from '../lib/format.js'
 import { intervalLabel } from '../lib/frequency.js'
 import { focusOnOpen } from '../lib/modalFocus.js'
+import { isAnnual } from '../lib/prorata.js'
 
 /**
  * „Beitrag ändern“ und „Beitragsgruppe wechseln“ für den Vorstand: Monatsbeitrag, Turnus und Zahlungsart einer bestehenden Zuweisung beziehungsweise ihre Beitragsgruppe
@@ -144,7 +147,9 @@ export default {
 
 		/** Wählbar sind die aktiven Gruppen und – damit die Auswahl nie leer aussieht – die bisherige. */
 		selectableGroups() {
-			return this.groups.filter((g) => g.isActive || (this.assignment && g.id === this.assignment.groupId))
+			// Nur Gruppen derselben Betragsangabe (Issue #270): der Betrag bliebe beim Wechsel stehen, hätte in
+			// einer Gruppe der anderen Angabe aber eine andere Bedeutung – der Server lehnt das ab.
+			return this.groups.filter((g) => (g.isActive && isAnnualGroup(g) === this.annual) || (this.assignment && g.id === this.assignment.groupId))
 		},
 
 		groupChanged() {
@@ -168,9 +173,14 @@ export default {
 				: this.t('Wirkt ab {from} · erster Einzug am {due} · Betrag {amount}', params)
 		},
 
+		/** Trägt die Zuweisung einen Jahresbetrag (Issue #270)? Sie bleibt bei ihrer Betragsangabe, auch beim Gruppenwechsel. */
+		annual() {
+			return !!this.assignment && isAnnual(this.assignment)
+		},
+
 		effectiveMinCents() {
 			if (!this.assignment) { return 0 }
-			return this.assignment.minMonthlyAmountOverrideCents ?? (this.selectedGroup ? this.selectedGroup.minMonthlyAmountCents : 0)
+			return assignmentMinOverrideCents(this.assignment) ?? (this.selectedGroup ? groupMinCents(this.selectedGroup) : 0)
 		},
 
 		allowedIntervals() {
@@ -180,7 +190,7 @@ export default {
 
 		unchanged() {
 			return !!this.assignment
-				&& Number(this.form.monthlyAmount) === this.assignment.monthlyAmount
+				&& Number(this.form.monthlyAmount) === assignmentAmount(this.assignment)
 				&& this.form.intervalMonths === this.assignment.intervalMonths
 				&& !this.groupChanged
 				&& !this.paymentMethodChanged
@@ -196,7 +206,8 @@ export default {
 	watch: {
 		show(open) {
 			if (!open || !this.assignment) { return }
-			this.form = { monthlyAmount: this.assignment.monthlyAmount, intervalMonths: this.assignment.intervalMonths, groupId: this.assignment.groupId, paymentMethod: this.assignment.paymentMethod }
+			// `monthlyAmount` ist das Betragsfeld des Formulars: bei einem Jahresbetrag (Issue #270) steht dort der Jahresbeitrag.
+			this.form = { monthlyAmount: assignmentAmount(this.assignment), intervalMonths: this.assignment.intervalMonths, groupId: this.assignment.groupId, paymentMethod: this.assignment.paymentMethod }
 			this.preview = null
 			this.previewedFor = null
 			this.previewError = ''
@@ -209,9 +220,12 @@ export default {
 	beforeUnmount() { clearTimeout(this.timer) },
 
 	methods: {
+		isEuro,
+		currencySymbol,
+		amountFieldLabel,
 		intervalLabel,
 		formatDate,
-		euro(cents) { return formatEuro(cents / 100) },
+		euro(cents) { return formatCurrency(cents / 100) },
 
 		/**
 		 * Wechselt die Gruppe, gelten ihre Regeln: ein Turnus, den sie nicht kennt, wird durch ihren Standard-Turnus
@@ -222,7 +236,7 @@ export default {
 			const group = this.selectedGroup
 			if (!group) { return }
 			if (!group.allowedIntervals.includes(this.form.intervalMonths)) { this.form.intervalMonths = group.defaultInterval }
-			this.form.monthlyAmount = group.defaultMonthlyAmount
+			this.form.monthlyAmount = groupDefaultAmount(group)
 		},
 
 		/** Die Vorschau folgt den Feldern mit kurzer Verzögerung, damit nicht jede Ziffer eine Anfrage auslöst. */
@@ -239,7 +253,7 @@ export default {
 			this.loadingPreview = true
 			try {
 				const { data } = await api.previewAssignmentChange(this.assignment.id, {
-					monthlyAmount: this.form.monthlyAmount,
+					...amountPayload(this.annual, this.form.monthlyAmount),
 					intervalMonths: this.form.intervalMonths,
 					groupId: this.form.groupId,
 					paymentMethod: this.form.paymentMethod,
@@ -273,7 +287,7 @@ export default {
 			this.saving = true
 			try {
 				const { data } = await api.updateAssignment(this.assignment.id, {
-					monthlyAmount: this.form.monthlyAmount,
+					...amountPayload(this.annual, this.form.monthlyAmount),
 					intervalMonths: this.form.intervalMonths,
 					groupId: this.form.groupId,
 					paymentMethod: this.form.paymentMethod,

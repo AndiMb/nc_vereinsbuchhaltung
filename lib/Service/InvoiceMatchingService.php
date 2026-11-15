@@ -43,6 +43,7 @@ class InvoiceMatchingService {
 	public function __construct(
 		private OpenItemMapper $openItems,
 		private InvoiceMapper $invoices,
+		private ClubCurrency $currency,
 		private ?IL10N $l10n = null,
 	) {
 	}
@@ -173,12 +174,12 @@ class InvoiceMatchingService {
 	 * @return array{invoiceId: int, number: string, debtorName: string, remainingCents: int, reason: string, text: string, exact: bool, overpay: bool}
 	 */
 	private function suggestion(array $c, string $reason, int $amount): array {
-		$fmt = static fn (int $cents): string => number_format($cents / 100, 2, ',', '.');
+		$fmt = fn (int $cents): string => $this->currency->format($cents);
 		$text = match ($reason) {
 			self::REASON_REFERENCE => $this->msg('Die Zahlungsreferenz der Rechnung %1$s steht im Verwendungszweck.', [$c['number']]),
 			self::REASON_NUMBER => $this->msg('Die Rechnungsnummer %1$s steht im Verwendungszweck.', [$c['number']]),
-			self::REASON_AMOUNT_NAME => $this->msg('Der Betrag %1$s € passt zur Rechnung %2$s, und der Name stimmt überein.', [$fmt($amount), $c['number']]),
-			default => $this->msg('Der Betrag %1$s € passt zur offenen Rechnung %2$s.', [$fmt($amount), $c['number']]),
+			self::REASON_AMOUNT_NAME => $this->msg('Der Betrag %1$s passt zur Rechnung %2$s, und der Name stimmt überein.', [$fmt($amount), $c['number']]),
+			default => $this->msg('Der Betrag %1$s passt zur offenen Rechnung %2$s.', [$fmt($amount), $c['number']]),
 		};
 		return [
 			'invoiceId' => $c['invoiceId'],

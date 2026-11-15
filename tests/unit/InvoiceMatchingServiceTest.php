@@ -11,6 +11,7 @@ use OCA\Vereinsbuchhaltung\Db\OpenItem;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
 use OCA\Vereinsbuchhaltung\Service\Invoice\CreditorReference;
 use OCA\Vereinsbuchhaltung\Service\InvoiceMatchingService;
+use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubCurrencyStub;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -53,7 +54,7 @@ class InvoiceMatchingServiceTest extends TestCase {
 		$openItems->method('findOpenInvoiceItems')->willReturnCallback(fn () => $this->items);
 		$invoices = $this->createMock(InvoiceMapper::class);
 		$invoices->method('findByIds')->willReturnCallback(fn () => $this->invoices);
-		return new InvoiceMatchingService($openItems, $invoices);
+		return new InvoiceMatchingService($openItems, $invoices, ClubCurrencyStub::of($this));
 	}
 
 	private function tx(int $id, int $amount, string $purpose, string $counterparty = 'Unbekannt'): BankTransaction {

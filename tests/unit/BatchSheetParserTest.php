@@ -124,6 +124,29 @@ class BatchSheetParserTest extends TestCase {
 		}
 	}
 
+	/** Issue #332: bei eingeschaltetem Kostenstellen-Modul meint die Spalte die echte Kostenstelle. */
+	public function testSpalteKostenstelleFuelltBeiEingeschaltetemModulDasNeueFeld(): void {
+		$parser = new BatchSheetParser([], ['8200' => 40], ['sen' => 3, 'senioren' => 3], null, 'bookingCostCenterId');
+		$result = $parser->parse([
+			1 => ['Name', 'Position', 'Preis', 'Kostenstelle'],
+			2 => ['Muster GmbH', 'Teilnahme', '120', 'SEN'],
+			3 => ['Muster GmbH', 'Anreise', '30', ''],
+		]);
+		$items = array_merge(...array_column($result['groups'], 'items'));
+		$this->assertSame([3, null], array_column($items, 'bookingCostCenterId'));
+		// Das alte Feld (Auswertungsgruppe) bleibt dann leer.
+		$this->assertSame([null, null], array_column($items, 'costCenterId'));
+	}
+
+	public function testUnbekannteKostenstelleIstAuchImNeuenFeldEinZeilenfehler(): void {
+		$parser = new BatchSheetParser([], [], ['sen' => 3], null, 'bookingCostCenterId');
+		$result = $parser->parse([
+			1 => ['Name', 'Position', 'Preis', 'Kostenstelle'],
+			2 => ['Muster GmbH', 'Teilnahme', '120', 'Jugend'],
+		]);
+		$this->assertCount(1, $result['groups'][0]['errors']);
+	}
+
 	public function testKostenstelleNachCodeOderNameUndEinheitenNachWort(): void {
 		$result = $this->parse([
 			['Name', 'Position', 'Preis', 'Kostenstelle', 'Einheit', 'Leistungsdatum', 'Rabatt', 'Steuersatz'],

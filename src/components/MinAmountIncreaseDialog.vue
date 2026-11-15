@@ -14,7 +14,7 @@
 				{{ t('Bereits eingezogene Perioden werden nie neu berechnet – die Änderung wirkt erst ab der nächsten Forderung.') }}
 			</p>
 			<div class="vbh-form">
-				<label>{{ t('Neue Untergrenze (€/Monat)') }}
+				<label>{{ annual ? t('Neue Untergrenze ({currency}/Jahr)', { currency: currencySymbol() }) : t('Neue Untergrenze ({currency}/Monat)', { currency: currencySymbol() }) }}
 					<AmountInput
 						ref="amountInput"
 						v-model="newMinMonthlyAmount"
@@ -70,7 +70,8 @@ import NcButton from '@nextcloud/vue/components/NcButton'
 import NcModal from '@nextcloud/vue/components/NcModal'
 import AmountInput from './AmountInput.vue'
 import api from '../api.js'
-import { errMsg, formatEuro } from '../lib/format.js'
+import { currencySymbol } from '../lib/clubCurrency.js'
+import { errMsg, formatCurrency } from '../lib/format.js'
 import { focusOnOpen } from '../lib/modalFocus.js'
 
 /**
@@ -84,6 +85,8 @@ export default {
 	props: {
 		show: { type: Boolean, default: false },
 		groupId: { type: [Number, String], default: null },
+		/** Gruppe mit Jahresbetrag (Issue #270): die Untergrenze ist dann ein Jahresbetrag. */
+		annual: { type: Boolean, default: false },
 	},
 
 	emits: ['close', 'applied', 'update:show'],
@@ -103,11 +106,18 @@ export default {
 	},
 
 	methods: {
-		euro(cents) { return formatEuro(cents / 100) },
+		currencySymbol,
+		euro(cents) { return formatCurrency(cents / 100) },
+
+		/** Der neue Wert unter dem Namen seiner Betragsangabe; der Server lehnt die falsche ab. */
+		amountParam() {
+			const amount = Number(this.newMinMonthlyAmount)
+			return this.annual ? { newMinAnnualAmount: amount } : { newMinMonthlyAmount: amount }
+		},
 
 		async loadPreview() {
 			try {
-				const { data } = await api.previewMinAmountIncrease(this.groupId, Number(this.newMinMonthlyAmount))
+				const { data } = await api.previewMinAmountIncrease(this.groupId, this.amountParam())
 				this.preview = data
 			} catch (e) {
 				this.preview = null
@@ -117,7 +127,7 @@ export default {
 
 		async apply() {
 			try {
-				await api.applyMinAmountIncrease(this.groupId, Number(this.newMinMonthlyAmount))
+				await api.applyMinAmountIncrease(this.groupId, this.amountParam())
 				this.$emit('applied')
 				this.$emit('close')
 			} catch (e) { showError(errMsg(e, this.t('Untergrenze konnte nicht angehoben werden'))) }

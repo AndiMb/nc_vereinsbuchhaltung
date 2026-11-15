@@ -17,7 +17,7 @@ declare(strict_types=1);
  * <html>/<head>/<body>-Gerüst, sondern nur der Inhalt (mit eigenem
  * Scroll-Container, siehe .vbh-consent-page).
  *
- * $_['status']: 'pending' | 'consumed' | 'invalid' | 'expired'
+ * $_['status']: 'pending' | 'consumed' | 'invalid' | 'expired' | 'unavailable' (Vereinswährung ≠ Euro, #202)
  * $_['reconfirm']: true = geänderten Text eines bestehenden Mandats erneut bestätigen
  * (Bankverbindung und Referenz bleiben), false = Mandat erteilen
  */
@@ -50,7 +50,12 @@ $copy = !empty($_['reconfirm'])
 			<div class="vbh-club"><?php p($clubName); ?></div>
 		<?php } ?>
 
-		<?php if ($status === 'invalid' || $status === 'expired') { ?>
+		<?php if ($status === 'unavailable') { ?>
+			<div class="vbh-status-box vbh-error">
+				<strong>Lastschrift nicht verfügbar</strong>
+				<p><?php p((string)($_['errorMessage'] ?? '')); ?></p>
+			</div>
+		<?php } elseif ($status === 'invalid' || $status === 'expired') { ?>
 			<div class="vbh-status-box vbh-error">
 				<strong><?php echo $status === 'expired' ? 'Link abgelaufen' : 'Link ungültig'; ?></strong>
 				<p><?php p((string)($_['errorMessage'] ?? '')); ?></p>

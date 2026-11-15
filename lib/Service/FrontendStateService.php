@@ -56,6 +56,8 @@ class FrontendStateService {
 		private MandateExpirySettings $mandateExpirySettings,
 		private InvoiceSettings $invoiceSettings,
 		private ReimbursementSettings $reimbursementSettings,
+		private ClubCurrency $currency,
+		private BudgetStatusSettings $budgetStatusSettings,
 	) {
 	}
 
@@ -77,6 +79,10 @@ class FrontendStateService {
 		// Hier statt nur in settings(), weil Konten ohne Leserolle („Mein
 		// Bereich“) keinen Einstellungssatz bekommen.
 		$data['clubTimeZone'] = ClubClock::zone()->getName();
+		// Vereinswährung (#202) aus demselben Grund hier: auch „Mein Bereich“ zeigt Beträge.
+		$data['clubCurrency'] = $this->currency->code();
+		$data['clubCurrencySymbol'] = $this->currency->symbol();
+		$data['sepaAvailable'] = $this->currency->isEuro();
 		return $data;
 	}
 
@@ -147,6 +153,11 @@ class FrontendStateService {
 			'club_name' => $this->config->getValueString(Application::APP_ID, 'club_name', ''),
 			// Nur lesbar: Zeitzone des Vereins (Server-Zeitzone, sonst Europe/Berlin, #263).
 			'club_time_zone' => ClubClock::zone()->getName(),
+			// Vereinswährung (#202); SEPA-Lastschrift und GiroCode nur in Euro.
+			'club_currency' => $this->currency->code(),
+			'club_currency_symbol' => $this->currency->symbol(),
+			'club_currencies' => ClubCurrency::options(),
+			'sepa_available' => $this->currency->isEuro(),
 			'brand_color' => $this->config->getValueString(Application::APP_ID, 'brand_color', ''),
 			'has_logo' => $this->config->getValueString(Application::APP_ID, 'brand_logo_mime', '') !== '',
 			'demo_active' => $this->demoService->isActive(),
@@ -177,6 +188,10 @@ class FrontendStateService {
 			// und die Zahl der Verwalter, die zur Wahl von N passen muss (N+1).
 			'reimbursement_enabled' => $this->reimbursementSettings->isEnabled(),
 			'reimbursement_required_approvals' => $this->reimbursementSettings->requiredApprovals(),
+			// Kostenstellen an der Buchungszeile (Issue #7), standardmäßig aus.
+			'cost_centers_enabled' => $this->config->getValueString(Application::APP_ID, CostCenterSettings::SETTING_ENABLED, '0') === '1',
+			// Ampel-Schwellen der visuellen Gliederungsansicht, vereinsweit.
+			BudgetStatusSettings::KEY => $this->budgetStatusSettings->thresholds(),
 		] + $this->invoiceSettings->all();
 	}
 

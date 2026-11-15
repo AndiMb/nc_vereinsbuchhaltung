@@ -47,6 +47,7 @@ class XbucImportService {
 		private EntryNumberService $entryNumbers,
 		private TransactionRunner $transaction,
 		private IL10N $l10n,
+		private ClubCurrency $currency,
 	) {
 	}
 
@@ -630,11 +631,11 @@ class XbucImportService {
 		foreach ($transition['comparisons'] as $c) {
 			if (($c['matches'] ?? true) === false) {
 				$lines[] = $this->l10n->t(
-					'%s: Endstand Datei %s € ≠ gespeicherter Anfangsbestand %s €',
+					'%s: Endstand Datei %s ≠ gespeicherter Anfangsbestand %s',
 					[
 						$c['account'],
-						number_format((float)$c['fileClosing'], 2, ',', '.'),
-						number_format((float)$c['storedOpening'], 2, ',', '.'),
+						$this->currency->withSymbol(number_format((float)$c['fileClosing'], 2, ',', '.')),
+						$this->currency->withSymbol(number_format((float)$c['storedOpening'], 2, ',', '.')),
 					],
 				);
 			}
@@ -743,7 +744,7 @@ class XbucImportService {
 		$tx->setBookingDate($b['date']);
 		$tx->setValueDate(null);
 		$tx->setAmountCents($this->openTxAmount($b));
-		$tx->setCurrency('EUR');
+		$tx->setCurrency($this->currency->code());
 		$tx->setBookingText(null);
 		$tx->setPurpose($purpose !== '' ? mb_substr($purpose, 0, 255) : null);
 		$tx->setCounterparty(($counterparty !== null && $counterparty !== '') ? mb_substr($counterparty, 0, 255) : null);

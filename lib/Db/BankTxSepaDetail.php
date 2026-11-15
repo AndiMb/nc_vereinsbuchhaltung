@@ -94,6 +94,9 @@ class BankTxSepaDetail extends Entity implements \JsonSerializable {
 	public const STATUSES = [self::STATUS_OPEN, self::STATUS_ASSIGNED, self::STATUS_REJECTED, self::STATUS_UNMATCHED];
 
 	public function __construct() {
+		// Pflichtspalte ohne Datenbank-Vorgabe: auch der Vorgabewert muss im INSERT stehen
+		// (der Setter merkt nur geänderte Werte vor, siehe EntityDefaultValueInsertTest).
+		$this->markFieldUpdated('amountCents');
 		$this->addType('bankTxId', 'integer');
 		$this->addType('detailIndex', 'integer');
 		$this->addType('originalAmountCents', 'integer');

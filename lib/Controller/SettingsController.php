@@ -10,7 +10,11 @@ use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
 use OCA\Vereinsbuchhaltung\Service\AttachmentStorageService;
 use OCA\Vereinsbuchhaltung\Service\AttachmentWatchFolderService;
 use OCA\Vereinsbuchhaltung\Service\AuditService;
+use OCA\Vereinsbuchhaltung\Service\BudgetStatusSettings;
+use OCA\Vereinsbuchhaltung\Service\ClubCurrency;
+use OCA\Vereinsbuchhaltung\Service\ClubCurrencySwitchGuard;
 use OCA\Vereinsbuchhaltung\Service\ContributionYearService;
+use OCA\Vereinsbuchhaltung\Service\CostCenterSettings;
 use OCA\Vereinsbuchhaltung\Service\DunningSettings;
 use OCA\Vereinsbuchhaltung\Service\FolderPathValidator;
 use OCA\Vereinsbuchhaltung\Service\ForeignHomeGuard;
@@ -62,6 +66,9 @@ class SettingsController extends Controller {
 		private FrontendStateService $frontendState,
 		private AuditService $audit,
 		private ForeignHomeGuard $foreignHomeGuard,
+		private ClubCurrency $currency,
+		private ClubCurrencySwitchGuard $currencySwitchGuard,
+		private BudgetStatusSettings $budgetStatusSettings,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -238,6 +245,16 @@ class SettingsController extends Controller {
 			return new DataResponse(['message' => $folderError], Http::STATUS_BAD_REQUEST);
 		}
 
+		// Vereinswährung (#202): ebenfalls vor allen Schreibzugriffen prüfen.
+		$newCurrency = null;
+		if (array_key_exists('club_currency', $params)) {
+			$newCurrency = strtoupper(trim((string)$params['club_currency']));
+			$currencyError = $this->currencySwitchGuard->error($newCurrency);
+			if ($currencyError !== null) {
+				return new DataResponse(['message' => $currencyError], Http::STATUS_BAD_REQUEST);
+			}
+		}
+
 		// Belegablage (Tripel Modus + Nutzer + Pfad): nur anfassen, wenn
 		// mindestens ein Teil gesendet wurde; die fehlenden Teile werden aus
 		// dem aktuellen Stand ergänzt, damit die Prüfung vollständig bleibt.
@@ -341,6 +358,14 @@ class SettingsController extends Controller {
 		if (array_key_exists('club_name', $params)) {
 			$clubName = mb_substr(trim((string)$params['club_name']), 0, 128);
 			$this->config->setValueString($appId, 'club_name', $clubName);
+		}
+
+		if ($newCurrency !== null) {
+			$oldCurrency = $this->currency->code();
+			$this->config->setValueString($appId, ClubCurrency::SETTING, $newCurrency);
+			if ($oldCurrency !== $newCurrency) {
+				$this->audit->log('Vereinswährung geändert', 'settings', null, ['von' => $oldCurrency, 'nach' => $newCurrency]);
+			}
 		}
 
 		if (array_key_exists('brand_color', $params)) {
@@ -472,6 +497,16 @@ class SettingsController extends Controller {
 			}
 		}
 
+		// Ampel-Schwellen der visuellen Gliederungsansicht: die fünf Werte nur gemeinsam.
+		if (array_key_exists(BudgetStatusSettings::KEY, $params)) {
+			$thresholds = $params[BudgetStatusSettings::KEY];
+			try {
+				$this->budgetStatusSettings->set(is_array($thresholds) ? $thresholds : []);
+			} catch (\InvalidArgumentException $e) {
+				return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
+			}
+		}
+
 		if (array_key_exists('self_service_enabled', $params)) {
 			$selfServiceEnabled = (string)$params['self_service_enabled'] === '1';
 			$this->config->setValueString($appId, SelfServiceService::SETTING_ENABLED, $selfServiceEnabled ? '1' : '0');
@@ -496,6 +531,12 @@ class SettingsController extends Controller {
 			} catch (\InvalidArgumentException $e) {
 				return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
 			}
+		}
+
+		// Kostenstellen an der Buchungszeile (Issue #7). Ausschalten löscht nichts:
+		// die Zuordnungen bleiben gespeichert und werden nur ausgeblendet.
+		if (array_key_exists(CostCenterSettings::SETTING_ENABLED, $params)) {
+			$this->config->setValueString($appId, CostCenterSettings::SETTING_ENABLED, (string)$params[CostCenterSettings::SETTING_ENABLED] === '1' ? '1' : '0');
 		}
 
 		// Rechnungsmodul (Epic #168): Ausstellerangaben und Vorgaben. Das

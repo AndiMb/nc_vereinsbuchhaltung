@@ -10,6 +10,7 @@ use OCA\Vereinsbuchhaltung\Exception\ConsumedActivationTokenException;
 use OCA\Vereinsbuchhaltung\Exception\ExpiredActivationTokenException;
 use OCA\Vereinsbuchhaltung\Exception\InvalidActivationTokenException;
 use OCA\Vereinsbuchhaltung\Service\ClubClock;
+use OCA\Vereinsbuchhaltung\Service\ClubCurrency;
 use OCA\Vereinsbuchhaltung\Service\MandateActivationService;
 use OCA\Vereinsbuchhaltung\Service\MandateFormRenderer;
 use OCP\AppFramework\Controller;
@@ -23,6 +24,7 @@ use OCP\AppFramework\Http\Attribute\PublicPage;
 use OCP\AppFramework\Http\Attribute\UserRateLimit;
 use OCP\AppFramework\Http\TemplateResponse;
 use OCP\IAppConfig;
+use OCP\IL10N;
 use OCP\IRequest;
 use OCP\IURLGenerator;
 
@@ -63,6 +65,8 @@ class MandateConsentController extends Controller {
 		private IURLGenerator $urlGenerator,
 		private IAppConfig $config,
 		private ClubClock $clock,
+		private ClubCurrency $currency,
+		private IL10N $l10n,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -74,6 +78,9 @@ class MandateConsentController extends Controller {
 	#[UserRateLimit(limit: 30, period: 3600)]
 	#[BruteForceProtection(action: 'vbh_mandate_consent')]
 	public function show(string $token): TemplateResponse {
+		if (($unavailable = $this->sepaUnavailablePage()) !== null) {
+			return $unavailable;
+		}
 		try {
 			$view = $this->activation->view($token);
 		} catch (InvalidActivationTokenException $e) {
@@ -95,6 +102,9 @@ class MandateConsentController extends Controller {
 	#[UserRateLimit(limit: 10, period: 3600)]
 	#[BruteForceProtection(action: 'vbh_mandate_consent')]
 	public function accept(string $token): TemplateResponse {
+		if (($unavailable = $this->sepaUnavailablePage()) !== null) {
+			return $unavailable;
+		}
 		try {
 			$this->activation->consent($token, $this->request->getRemoteAddress(), $this->request->getHeader('User-Agent'));
 		} catch (InvalidActivationTokenException $e) {
@@ -152,11 +162,24 @@ class MandateConsentController extends Controller {
 	}
 
 	/**
+	 * Vereinswährung (#202): ohne Euro keine Lastschrift – statt des Formulars ein
+	 * Hinweis. Kein Missbrauchsverdacht, daher ohne Drosselung.
+	 */
+	private function sepaUnavailablePage(): ?TemplateResponse {
+		try {
+			$this->currency->assertSepaAvailable($this->l10n);
+			return null;
+		} catch (\InvalidArgumentException $e) {
+			return $this->errorPage('unavailable', $e->getMessage(), Http::STATUS_CONFLICT, false);
+		}
+	}
+
+	/**
 	 * Fehlerseite eines ungültigen/abgelaufenen Links. Standardmäßig als
 	 * Fehlversuch gedrosselt: `#[BruteForceProtection]` zählt nur, wenn die
 	 * Antwort `throttle()` meldet (#259).
 	 *
-	 * @param 404|410 $httpStatus
+	 * @param 404|409|410 $httpStatus
 	 */
 	private function errorPage(string $status, string $message, int $httpStatus, bool $throttle = true): TemplateResponse {
 		$response = new TemplateResponse(

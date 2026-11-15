@@ -25,6 +25,7 @@
 			     ist. Der Vermerk davor ordnet sie trotzdem gleich ein. -->
 			<span class="vbh-mcard-accounts">
 				<template v-if="row.isSplit">{{ t('Splitt: ') }}</template>{{ row.soll }} ← {{ row.haben }}
+				<AllocationBadge :allocations="row.allocations" />
 			</span>
 			<button
 				v-if="attachmentCount === 0 && suggestion"
@@ -51,6 +52,7 @@
 <script>
 import { mdiCommentTextOutline, mdiPaperclip } from '@mdi/js'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
+import AllocationBadge from './AllocationBadge.vue'
 import { flowClass, flowLabel, formatFlowMoney } from '../lib/flow.js'
 import { formatDate } from '../lib/format.js'
 import { levelIcon } from '../lib/receiptSuggestions.js'
@@ -63,7 +65,7 @@ import { levelIcon } from '../lib/receiptSuggestions.js'
  */
 export default {
 	name: 'BookingCard',
-	components: { NcIconSvgWrapper },
+	components: { AllocationBadge, NcIconSvgWrapper },
 	props: {
 		row: { type: Object, required: true },
 		attachmentCount: { type: Number, default: 0 },

@@ -204,7 +204,9 @@ class InvoicePlanService {
 		if ($plan->getDueDays() !== null) {
 			$data['dueDate'] = (new \DateTimeImmutable($runDate))->modify('+' . $plan->getDueDays() . ' days')->format('Y-m-d');
 		}
-		$invoice = $this->invoices->createDraft($data);
+		// Nachsichtig: eine im Plan gespeicherte, inzwischen gelöschte Kostenstelle
+		// darf den Lauf nicht scheitern lassen (Issue #332).
+		$invoice = $this->invoices->createDraft($data, true);
 		$this->audit->log('Wiederkehrende Rechnung angelegt', 'invoice', (int)$invoice->getId(), ['plan' => $plan->getName(), 'runDate' => $runDate]);
 		return (int)$invoice->getId();
 	}

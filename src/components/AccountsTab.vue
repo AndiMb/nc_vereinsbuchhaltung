@@ -90,6 +90,9 @@
 						<span class="vbh-typetag" :class="selectedAccount.type">{{ typeLabel(selectedAccount.type) }}</span>
 						<span v-if="selectedAccount.category" class="vbh-cat">{{ selectedAccount.category }}</span>
 					</div>
+					<NcButton v-if="selectedAccount.isBank && !reconcileOpen" variant="secondary" @click="$emit('update:reconcile', true)">
+						{{ t('Kontoabstimmung') }}
+					</NcButton>
 					<span v-if="canWrite" class="nowrap">
 						<NcButton variant="tertiary" :aria-label="t('Konto bearbeiten')" @click="openEditAccount(selectedAccount)">
 							<template #icon><NcIconSvgWrapper :path="mdiPencil" :size="20" /></template>
@@ -100,26 +103,32 @@
 					</span>
 				</div>
 
+				<!-- Kontoabstimmung (#159) ersetzt das Kontoblatt, solange sie offen ist. -->
+				<AccountReconciliation
+					v-if="reconcileOpen"
+					:account="selectedAccount"
+					@close="$emit('update:reconcile', false)" />
+
 				<!-- Erklärung zum Konto (#201): serverseitig aus Markdown erzeugt und escaped
 				     (Account::jsonSerialize(), HandbookMarkdownRenderer). -->
 				<!-- eslint-disable-next-line vue/no-v-html -- serverseitig erzeugtes, escaptes HTML -->
-				<div v-if="selectedAccount.descriptionHtml" class="vbh-account-description" v-html="selectedAccount.descriptionHtml" />
+				<div v-if="!reconcileOpen && selectedAccount.descriptionHtml" class="vbh-account-description" v-html="selectedAccount.descriptionHtml" />
 
 				<!-- Eröffnungssaldo nur für Geldkonten: nur deren Bestand geht über die
 				     Grenze eines Geschäftsjahres hinweg. -->
-				<div v-if="canWrite && selectedAccount.isBank" class="vbh-opening">
+				<div v-if="!reconcileOpen && canWrite && selectedAccount.isBank" class="vbh-opening">
 					<span>{{ t('Eröffnungssaldo:') }}</span>
 					<AmountInput
 						v-model="openingAmount"
 						class="vbh-num"
-						:aria-label="t('Eröffnungssaldo in Euro')" />
+						:aria-label="t('Eröffnungssaldo in {currency}', { currency: currencySymbol() })" />
 					<input v-model="openingDate" type="date">
 					<NcButton variant="primary" size="small" @click="saveOpening(selectedAccount)">
 						{{ t('Speichern') }}
 					</NcButton>
 				</div>
 
-				<div v-if="statement" class="vbh-statementbar">
+				<div v-if="!reconcileOpen && statement" class="vbh-statementbar">
 					<NcCheckboxRadioSwitch :modelValue="statementIncludeChildren" @update:modelValue="onIncludeChildrenChange">
 						{{ t('inkl. Unterkonten') }}
 					</NcCheckboxRadioSwitch>
@@ -147,7 +156,8 @@
 					</div>
 				</div>
 
-				<div v-if="statementRows.length && isMobile" class="vbh-cardlist">
+				<div v-if="reconcileOpen" hidden />
+				<div v-else-if="statementRows.length && isMobile" class="vbh-cardlist">
 					<div v-if="statement.carry" class="vbh-mcard">
 						<div class="vbh-mcard-top">
 							<span class="vbh-mcard-title">{{ t('Saldovortrag aus dem vorherigen Zeitraum') }}</span>
@@ -382,6 +392,7 @@ import NcActions from '@nextcloud/vue/components/NcActions'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcCheckboxRadioSwitch from '@nextcloud/vue/components/NcCheckboxRadioSwitch'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
+import AccountReconciliation from './AccountReconciliation.vue'
 import AmountInput from './AmountInput.vue'
 import CommentMark from './CommentMark.vue'
 import ReassignPanel from './ReassignPanel.vue'
@@ -392,12 +403,13 @@ import { useBalances } from '../composables/useBalances.js'
 import { usePeriods } from '../composables/usePeriods.js'
 import { useSort } from '../composables/useSort.js'
 import { accountDisplayName, accountOption } from '../lib/accountLabel.js'
+import { currencySymbol } from '../lib/clubCurrency.js'
 import { amountClass, formatDate, formatMoney, typeLabel } from '../lib/format.js'
 import { statementRowKeys } from '../lib/rowKeys.js'
 
 export default {
 	name: 'AccountsTab',
-	components: { NcActionButton, NcActions, NcButton, NcCheckboxRadioSwitch, NcIconSvgWrapper, AmountInput, CommentMark, ReassignPanel },
+	components: { NcActionButton, NcActions, NcButton, NcCheckboxRadioSwitch, NcIconSvgWrapper, AccountReconciliation, AmountInput, CommentMark, ReassignPanel },
 	props: {
 		isMobile: { type: Boolean, required: true },
 		// selectedAccountId/statement/statementIncludeChildren bleiben in App.vue
@@ -406,6 +418,8 @@ export default {
 		selectedAccountId: { type: [Number, String], default: null },
 		statement: { type: Object, default: null },
 		statementIncludeChildren: { type: Boolean, required: true },
+		// Kontoabstimmung statt Kontoblatt (#159); der Zustand liegt in App.vue, weil er in der Route steht.
+		reconcile: { type: Boolean, default: false },
 		// Belegzähler je Journal-ID (wie im Reiter Buchungen). Die Zeilen des
 		// Kontoauszugs tragen dieselbe ID, deshalb passt die Karte hier direkt.
 		attachmentCountMap: { type: Object, required: true },
@@ -431,7 +445,7 @@ export default {
 		seedAccounts: { type: Function, required: true },
 	},
 
-	emits: ['help', 'update:openingForm', 'update:statementIncludeChildren'],
+	emits: ['help', 'update:openingForm', 'update:reconcile', 'update:statementIncludeChildren'],
 
 	setup() {
 		const auth = useAuth()
@@ -474,6 +488,11 @@ export default {
 	computed: {
 		selectedAccount() {
 			return this.selectedAccountId ? this.accountsById[this.selectedAccountId] : null
+		},
+
+		// Kontoabstimmung (#159) offen: sie ersetzt Kontoblatt und Eröffnungssaldo. Nur Geldkonten.
+		reconcileOpen() {
+			return this.reconcile && !!this.selectedAccount && !!this.selectedAccount.isBank
 		},
 
 		// Saldo je Konto-ID als Map statt Array: balanceFor() steigt bei "inkl.
@@ -607,6 +626,7 @@ export default {
 	},
 
 	methods: {
+		currencySymbol,
 		accountDisplayName,
 
 		formatMoney,

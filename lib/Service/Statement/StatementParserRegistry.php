@@ -72,4 +72,14 @@ class StatementParserRegistry {
 		$parser = $this->detect($content);
 		return [$parser->parse($content), $parser->sourceKey()];
 	}
+
+	/**
+	 * Salden des Auszugs für die Kontoabstimmung (Issue #159).
+	 *
+	 * @return list<StatementBalance> leer, wenn Format oder Datei keine Salden tragen
+	 */
+	public function balances(string $content): array {
+		$parser = $this->detect($content);
+		return $parser instanceof StatementBalanceReader ? $parser->balances($content) : [];
+	}
 }

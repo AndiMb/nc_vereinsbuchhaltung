@@ -109,6 +109,52 @@
 					<NcEllipsisedOption v-else :name="opt.label" :search="bookingFilterSearch" />
 				</template>
 			</NcSelect>
+			<!-- Nur an einem Konto mit Unterkonten: der Filter trifft sonst genau ein
+			     Konto, der Gliederungsbericht rechnet ein Oberkonto aber samt
+			     Unterkonten (Issue #326). -->
+			<label
+				v-if="bookingView === 'journal' && filterAccountHasChildren && (!isMobile || filtersOpen)"
+				class="vbh-checkinline"
+				:title="t('Auch die Buchungen aller Unterkonten dieses Kontos zeigen')">
+				<input
+					type="checkbox"
+					:checked="filterIncludeSub"
+					@change="$emit('update:filter-include-sub', $event.target.checked)">
+				{{ t('inkl. Unterkonten') }}
+			</label>
+			<!-- Buchungsdatum von/bis, beide Tage eingeschlossen (Issue #328). Steht wie
+			     der Kontofilter in der URL; der Sprung aus dem visuellen
+			     Gliederungsbericht setzt „bis“ auf das Ende des Stand-Monats. -->
+			<div
+				v-if="bookingView === 'journal' && (!isMobile || filtersOpen)"
+				class="vbh-filter-dates"
+				role="group"
+				:aria-label="t('Buchungsdatum')">
+				<label class="vbh-filter-date">{{ t('Von') }}
+					<input
+						type="date"
+						:value="filterFrom || ''"
+						:max="filterTo || null"
+						@change="$emit('update:filter-from', $event.target.value || null)">
+				</label>
+				<label class="vbh-filter-date">{{ t('Bis') }}
+					<input
+						type="date"
+						:value="filterTo || ''"
+						:min="filterFrom || null"
+						@change="$emit('update:filter-to', $event.target.value || null)">
+				</label>
+				<NcButton
+					v-if="filterFrom || filterTo"
+					variant="tertiary"
+					:aria-label="t('Datumsfilter aufheben')"
+					:title="t('Datumsfilter aufheben')"
+					@click="clearDateFilter">
+					<template #icon>
+						<NcIconSvgWrapper :path="mdiClose" :size="20" />
+					</template>
+				</NcButton>
+			</div>
 			<label v-if="bookingView === 'journal' && (!isMobile || filtersOpen)" class="vbh-checkinline" :title="t('Nur Buchungen ohne angehängten Beleg zeigen (z. B. vor der Kassenprüfung)')">
 				<input v-model="journalOnlyNoAttachment" type="checkbox">
 				{{ t('nur ohne Beleg') }}
@@ -243,6 +289,7 @@
 								</td>
 								<td class="vbh-purpose" :title="r.description">
 									<span class="vbh-clamp">{{ r.description }}</span>
+									<AllocationBadge :allocations="r.allocations" />
 								</td>
 								<td class="vbh-col-hide-sm">
 									{{ r.soll }}
@@ -646,7 +693,7 @@
 					<h4>{{ t('Neuer offener Posten') }}</h4>
 					<div class="vbh-form">
 						<label class="vbh-grow">{{ t('Debitor') }}<input v-model="openItemForm.debtor" :placeholder="t('z. B. Max Mustermann')"></label>
-						<label>{{ t('Betrag (€)') }}<AmountInput
+						<label>{{ t('Betrag ({currency})', { currency: currencySymbol() }) }}<AmountInput
 							v-model="openItemForm.amount"
 							class="vbh-num" /></label>
 						<label>{{ t('Fällig am') }}<input v-model="openItemForm.dueDate" type="date"></label>
@@ -801,7 +848,7 @@
 </template>
 
 <script>
-import { mdiDelete, mdiDownload, mdiFilterVariant, mdiFlash, mdiPaperclip, mdiPaperclipCheck, mdiPencil, mdiUpload } from '@mdi/js'
+import { mdiClose, mdiDelete, mdiDownload, mdiFilterVariant, mdiFlash, mdiPaperclip, mdiPaperclipCheck, mdiPencil, mdiUpload } from '@mdi/js'
 import { showError, showSuccess } from '@nextcloud/dialogs'
 import { toRefs } from 'vue'
 import NcActionButton from '@nextcloud/vue/components/NcActionButton'
@@ -812,6 +859,7 @@ import NcEllipsisedOption from '@nextcloud/vue/components/NcEllipsisedOption'
 import NcEmptyContent from '@nextcloud/vue/components/NcEmptyContent'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import NcSelect from '@nextcloud/vue/components/NcSelect'
+import AllocationBadge from './AllocationBadge.vue'
 import AmountInput from './AmountInput.vue'
 import BookingCard from './BookingCard.vue'
 import CommentMark from './CommentMark.vue'
@@ -826,11 +874,13 @@ import { useJournal } from '../composables/useJournal.js'
 import { useOpenItems } from '../composables/useOpenItems.js'
 import { usePeriods } from '../composables/usePeriods.js'
 import { useSort } from '../composables/useSort.js'
-import { journalRowMatchesAccountFilter } from '../lib/accountFilter.js'
-import { accountFilterBy, accountLabel } from '../lib/accountLabel.js'
+import { accountSubtreeIds, journalRowMatchesAccountFilter } from '../lib/accountFilter.js'
+import { accountFilterBy, accountLabel, accountOption } from '../lib/accountLabel.js'
 import { claimTypeLabel } from '../lib/claims.js'
+import { currencySymbol } from '../lib/clubCurrency.js'
 import { bookingFlow, flowClass, flowLabel, formatFlowMoney, transactionFlow } from '../lib/flow.js'
 import { amountClass, errMsg, formatDate, formatMoney } from '../lib/format.js'
+import { journalRowInDateRange } from '../lib/journalDateFilter.js'
 import { openItemStatusLabel } from '../lib/openItems.js'
 import { rangeIds } from '../lib/receiptBatch.js'
 import { levelIcon, suggestionTitle, sureSuggestionPairs } from '../lib/receiptSuggestions.js'
@@ -843,7 +893,7 @@ const JOURNAL_PAGE = 200
 
 export default {
 	name: 'BookingsTab',
-	components: { NcButton, NcActions, NcActionButton, NcActionLink, NcSelect, NcEllipsisedOption, NcEmptyContent, NcIconSvgWrapper, AmountInput, BookingCard, CommentMark, ReceiptSuggestionConfirmDialog, ReimbursementAssignDialog, ReimbursementsPanel, RulesPanel },
+	components: { NcButton, NcActions, NcActionButton, NcActionLink, NcSelect, NcEllipsisedOption, NcEmptyContent, NcIconSvgWrapper, AllocationBadge, AmountInput, BookingCard, CommentMark, ReceiptSuggestionConfirmDialog, ReimbursementAssignDialog, ReimbursementsPanel, RulesPanel },
 	props: {
 		isMobile: { type: Boolean, required: true },
 		// 'plain' | 'signed': Vorzeichen und Farbe am Betrag, siehe lib/flow.js
@@ -882,9 +932,21 @@ export default {
 		openFolderPickerForBookings: { type: Function, default: async () => false },
 		// Hochzählen = die Auslagen neu laden (nach der Auszahlungsbuchung in App.vue).
 		reimbursementsReloadKey: { type: Number, default: 0 },
+		// Kontofilter des Journals von außen (URL-Parameter account, Sprung aus
+		// dem Gliederungsbericht). Eine Änderung in der Auswahl meldet
+		// update:filter-account-id zurück; ein Kategoriefilter meldet null.
+		filterAccountId: { type: Number, default: null },
+		// Datumsfilter des Journals (URL-Parameter from/to, JJJJ-MM-TT, beide
+		// Tage eingeschlossen); null = offen. Die Felder melden
+		// update:filter-from / update:filter-to zurück.
+		filterFrom: { type: String, default: null },
+		filterTo: { type: String, default: null },
+		// Kontofilter samt Unterkonten (URL-Parameter sub=1); wirkt nur zusammen
+		// mit einem Kontofilter. Meldet update:filter-include-sub zurück.
+		filterIncludeSub: { type: Boolean, default: false },
 	},
 
-	emits: ['attachments-changed', 'go-claims', 'help', 'invoice-paid', 'pay-reimbursement', 'reimbursement-booking-changed', 'update:booking-view'],
+	emits: ['attachments-changed', 'go-claims', 'help', 'invoice-paid', 'pay-reimbursement', 'reimbursement-booking-changed', 'update:booking-view', 'update:filter-account-id', 'update:filter-from', 'update:filter-include-sub', 'update:filter-to'],
 
 	setup() {
 		const auth = useAuth()
@@ -917,6 +979,7 @@ export default {
 	data() {
 		return {
 			mdiDownload,
+			mdiClose,
 			mdiFilterVariant,
 			mdiUpload,
 			mdiPaperclip,
@@ -980,11 +1043,31 @@ export default {
 		// waehlbar und meinen alle Konten der Kategorie. In den Konto-Pickern
 		// (Zuordnen, Offene Posten) bleiben sie reine Trenner.
 		accountFilterOptions() {
-			return buildAccountOptions(this.accountsSorted, this.accountUsageCounts, this.t, { selectableCategories: true })
+			const opts = buildAccountOptions(this.accountsSorted, this.accountUsageCounts, this.t, { selectableCategories: true })
+			// Ein nicht mehr aktives Konto steht nur dann zur Wahl, wenn es von
+			// außen gefiltert wurde (Gliederungsbericht) - sonst fehlte der Auswahl
+			// die Anzeige des wirksamen Filters.
+			const acc = this.bookingFilter?.accountId ? this.accountsById[this.bookingFilter.accountId] : null
+			if (acc && !acc.active) { opts.push(accountOption(acc)) }
+			return opts
+		},
+
+		// Hat das gefilterte Konto Unterkonten? Nur dann gibt es die Option.
+		filterAccountHasChildren() {
+			const id = this.bookingFilter?.accountId
+			return !!id && this.accountsSorted.some((a) => a.parentId === id)
+		},
+
+		// Der Filter, wie er auf die Zeilen wirkt: mit „inkl. Unterkonten“ die
+		// Menge aus Konto und Unterkonten, einmal je Auswahl berechnet.
+		effectiveBookingFilter() {
+			const f = this.bookingFilter
+			if (!f?.accountId || !this.filterIncludeSub) { return f }
+			return { ...f, accountIds: accountSubtreeIds(f.accountId, this.accountsSorted) }
 		},
 
 		journalFilterActive() {
-			return !!this.bookingFilter || this.journalOnlyNoAttachment
+			return !!this.bookingFilter || this.journalOnlyNoAttachment || !!this.filterFrom || !!this.filterTo
 		},
 
 		bookingFilterAccountOption: {
@@ -1004,6 +1087,12 @@ export default {
 				} else {
 					// Leeren oder eine reine Trenner-Option (id null): kein Filter.
 					this.bookingFilter = null
+				}
+				const accountId = this.bookingFilter?.accountId ?? null
+				if (accountId !== this.filterAccountId) {
+					// Ein anderes Konto ist eine neue Frage: wieder genau dieses Konto.
+					if (this.filterIncludeSub) { this.$emit('update:filter-include-sub', false) }
+					this.$emit('update:filter-account-id', accountId)
 				}
 			},
 		},
@@ -1029,8 +1118,12 @@ export default {
 				const index = this.journalSearchIndex
 				rows = rows.filter((r) => matchesQuery(index.get(r.id), q))
 			}
-			if (this.bookingFilter) {
-				rows = rows.filter((r) => journalRowMatchesAccountFilter(r, this.bookingFilter, this.accountsById, this.t))
+			const filter = this.effectiveBookingFilter
+			if (filter) {
+				rows = rows.filter((r) => journalRowMatchesAccountFilter(r, filter, this.accountsById, this.t))
+			}
+			if (this.filterFrom || this.filterTo) {
+				rows = rows.filter((r) => journalRowInDateRange(r, this.filterFrom, this.filterTo))
 			}
 			if (this.journalOnlyNoAttachment) {
 				rows = rows.filter((r) => !this.attachmentCountMap[r.id])
@@ -1204,6 +1297,17 @@ export default {
 		// Neue Auswahl, neue Liste: wieder mit den ersten JOURNAL_PAGE Buchungen.
 		bookingSearch() { this.journalLimit = JOURNAL_PAGE },
 		bookingFilter() { this.journalLimit = JOURNAL_PAGE },
+		filterFrom() { this.journalLimit = JOURNAL_PAGE },
+		filterIncludeSub() { this.journalLimit = JOURNAL_PAGE },
+		filterTo() { this.journalLimit = JOURNAL_PAGE },
+
+		filterAccountId: {
+			handler() { this.applyFilterAccountId() },
+			immediate: true,
+		},
+
+		// Kaltstart per Link: das Konto kann vor den Konten ankommen.
+		accountsById() { this.applyFilterAccountId() },
 		journalOnlyNoAttachment() { this.journalLimit = JOURNAL_PAGE },
 
 		// Nach jeder Änderung an Belegen und beim Ein-/Ausschalten des
@@ -1231,9 +1335,31 @@ export default {
 	},
 
 	methods: {
+		currencySymbol,
 		formatMoney,
 		formatDate,
 		levelIcon,
+
+		clearDateFilter() {
+			this.$emit('update:filter-from', null)
+			this.$emit('update:filter-to', null)
+		},
+
+		/**
+		 * Übernimmt den Kontofilter von außen (Prop filterAccountId). null hebt
+		 * nur einen Konto-, keinen Kategoriefilter auf. Ein noch nicht geladenes
+		 * Konto holt der Watcher auf accountsById nach.
+		 */
+		applyFilterAccountId() {
+			const id = this.filterAccountId
+			const current = this.bookingFilter?.accountId ?? null
+			if (id === current) { return }
+			if (id === null) {
+				this.bookingFilter = null
+			} else if (this.accountsById[id]) {
+				this.bookingFilter = { accountId: id }
+			}
+		},
 
 		// --- Belegvorschläge (#229) ---------------------------------------
 		async loadReceiptSuggestions() {

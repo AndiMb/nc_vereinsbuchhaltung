@@ -7,6 +7,7 @@ namespace OCA\Vereinsbuchhaltung\Service;
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\BudgetMapper;
 use OCA\Vereinsbuchhaltung\Db\BudgetSnapshotMapper;
+use OCA\Vereinsbuchhaltung\Db\CostCenterBudgetMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Db\Period;
 use OCA\Vereinsbuchhaltung\Db\PeriodMapper;
@@ -70,6 +71,8 @@ class PeriodService {
 		private IAppConfig $config,
 		private IL10N $l10n,
 		private ClubClock $clock,
+		// Budget je Kostenstelle (Issue #335): hält ein Geschäftsjahr wie der Finanzplan fest.
+		private ?CostCenterBudgetMapper $costCenterBudgets = null,
 	) {
 	}
 
@@ -421,6 +424,24 @@ class PeriodService {
 	}
 
 	/**
+	 * Legt den Zeitraum vor dem bisher ersten an (Knopf „Vorherigen Zeitraum
+	 * anlegen", Issue #349).
+	 *
+	 * Die Kette beginnt mit dem Zeitraum, in dem die App zum ersten Mal
+	 * geöffnet wurde. Wer mitten im Jahr einsteigt und das Vorjahr nachbuchen
+	 * will, bekam den früheren Zeitraum bisher nur als Nebenwirkung der ersten
+	 * Buchung darin – in der Zeitraumauswahl stand er vorher nicht, und nichts
+	 * deutete darauf hin, dass es ihn geben kann.
+	 */
+	public function prependPrevious(string $userId): Period {
+		$first = $this->mapper->findFirst($userId);
+		if ($first === null) {
+			return $this->current($userId);
+		}
+		return $this->forDateOrCreate($userId, PeriodRule::previousDay($first->getStartDate()));
+	}
+
+	/**
 	 * Entfernt einen leeren Zeitraum am Rand der Kette.
 	 *
 	 * Nur am Rand, weil eine Lücke in der Mitte die Zusicherung bräche, dass
@@ -441,7 +462,7 @@ class PeriodService {
 		if ($this->journalMapper->countByPeriod($userId, $id) > 0) {
 			throw new \InvalidArgumentException($this->l10n->t('Der Zeitraum %s enthält Buchungen.', [$period->getLabel()]));
 		}
-		if ($this->budgetMapper->countByPeriod($userId, $id) > 0 || $this->snapshotMapper->countByPeriod($userId, $id) > 0) {
+		if ($this->budgetMapper->countByPeriod($userId, $id) > 0 || $this->snapshotMapper->countByPeriod($userId, $id) > 0 || ($this->costCenterBudgets?->countByPeriod($id) ?? 0) > 0) {
 			throw new \InvalidArgumentException($this->l10n->t('Der Zeitraum %s enthält Planwerte.', [$period->getLabel()]));
 		}
 

@@ -28,6 +28,7 @@ use OCA\Vereinsbuchhaltung\Service\MandateService;
 use OCA\Vereinsbuchhaltung\Service\Sepa\PainXmlBuilder;
 use OCA\Vereinsbuchhaltung\Service\SepaDebtorAccountService;
 use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubClockStub;
+use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubCurrencyStub;
 use OCP\IAppConfig;
 use OCP\IL10N;
 use OCP\IUser;
@@ -48,6 +49,8 @@ use PHPUnit\Framework\TestCase;
  * DebitBatchService orchestriert nur, siehe Klassendoc dort.
  */
 class DebitBatchServiceTest extends TestCase {
+	/** Vereinswährung des Dienstes (#202). */
+	private string $currencyCode = 'EUR';
 
 	private const SCHEMA = __DIR__ . '/../schema/pain.008.001.02.xsd';
 
@@ -147,6 +150,7 @@ class DebitBatchServiceTest extends TestCase {
 			$l10n,
 			$this->returnedDebits,
 			ClubClockStub::system(),
+			ClubCurrencyStub::of($this, $this->currencyCode),
 		);
 	}
 
@@ -621,5 +625,16 @@ class DebitBatchServiceTest extends TestCase {
 
 		$this->assertSame('im_einzug', $rows[0]['claimState']);
 		$this->assertSame('(Forderung gelöscht)', $rows[0]['memberDisplayName']);
+	}
+
+	/** Vereinswährung (#202): ohne Euro gibt es keinen Sammeleinzug. */
+	public function testOhneEuroGibtEsKeinenSammeleinzug(): void {
+		$this->currencyCode = 'CHF';
+		$this->configureBaseSettings();
+		$this->batchMapper->expects($this->never())->method('insert');
+
+		$this->expectException(\InvalidArgumentException::class);
+		$this->expectExceptionMessage('nur in Euro');
+		$this->service()->release('2026-10-01');
 	}
 }
