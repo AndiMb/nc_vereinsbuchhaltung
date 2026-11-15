@@ -17,7 +17,40 @@
 		],
 		"endCardCue": "Vereinsbuchhaltung",
 		"claimCue": "Daten",
-		"repoUrl": "github.com/AndiMb/nc_vereinsbuchhaltung"
+		"repoUrl": "github.com/AndiMb/nc_vereinsbuchhaltung",
+		"intro": [
+			{
+				"cue": "Kasse",
+				"scene": "02-geld",
+				"shot": "import",
+				"offset": 0.3
+			},
+			{
+				"cue": "Beiträge",
+				"scene": "03-beitraege",
+				"shot": "einzug",
+				"offset": 0.4
+			},
+			{
+				"cue": "Rechnungen",
+				"scene": "04-rechnungen",
+				"shot": "rechnungen",
+				"offset": 0.3
+			},
+			{
+				"cue": "Kassenprüfung",
+				"scene": "06-pruefung",
+				"shot": "bericht",
+				"offset": 3.0
+			},
+			{
+				"cue": "Verein",
+				"scene": "01-souveraen",
+				"shot": "uebersicht",
+				"offset": 0.2
+			}
+		],
+		"titleCue": "trotzdem"
 	},
 	"scenes": [
 		{
@@ -169,5 +202,19 @@
 			"Open Source",
 			"Selfhosting"
 		]
+	},
+	"tts": {
+		"engine": "elevenlabs",
+		"name": "Brian",
+		"voiceId": "nPczCjzI2devNBz1zQrb",
+		"model": "eleven_multilingual_v2",
+		"languageCode": "de",
+		"settings": {
+			"stability": 0.5,
+			"similarity_boost": 0.75,
+			"style": 0.0,
+			"use_speaker_boost": true,
+			"speed": 0.9
+		}
 	}
 }

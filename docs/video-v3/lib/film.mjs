@@ -101,6 +101,26 @@ const fill = (tpl, vars) => tpl.replace(/\{\{([A-Z_]+)\}\}/g, (m, k) => {
 });
 /** Kurzer, CSS-tauglicher Praefix je Block: "01-souveraen" -> "b01". */
 const prefix = (id) => `b${id.slice(0, 2)}`;
+
+/**
+ * Bildfolge des Auftakts: je Stichwort ein kurzer Ausschnitt aus einer
+ * aufgenommenen Szene (content cards.intro), harter Schnitt 0,15 s vor dem
+ * Wort. Der erste beginnt bei 0, der letzte laeuft 0,6 s unter die
+ * Titelkarte, die zum titleCue erscheint. Zeiten relativ zum Block.
+ */
+export function introShots({ intro, titleCue, at, manifests, head = 0.55 }) {
+	const r3 = (x) => Math.round(x * 1000) / 1000;
+	const lead = 0.15;
+	const titleAt = r3(at(titleCue) + head - lead);
+	const starts = intro.map((s, i) => (i === 0 ? 0 : r3(at(s.cue) + head - lead)));
+	const shots = intro.map((s, i) => {
+		const shot = manifests[s.scene]?.shots.find((x) => x.id === s.shot);
+		if (!shot) throw new Error(`Auftakt: Shot ${s.scene}/${s.shot} fehlt im Manifest`);
+		const end = i + 1 < intro.length ? starts[i + 1] : titleAt + 0.6;
+		return { scene: s.scene, start: starts[i], duration: r3(end - starts[i]), mediaStart: r3(shot.t + (s.offset ?? 0)) };
+	});
+	return { titleAt, shots };
+}
 const r3 = (v) => Math.round(v * 1000) / 1000;
 
 function blockFile({ tplBlock, tplExtra, block, content, cues, isLast }) {
@@ -208,9 +228,19 @@ export async function buildFilm(lang, { templateDir = join(root, 'film-template'
 		const isCard = !manifests[b.id];
 		const P = isCard ? 'a00' : prefix(b.id);
 		if (isCard) {
+			const intro = introShots({
+				intro: content.cards.intro, titleCue: content.cards.titleCue,
+				at: (w) => cues[b.id].at(w), manifests,
+			});
+			const shotTags = intro.shots.map((s, k) => [
+				`    <div id="a00-shot${k}" class="a00-shot">`,
+				`      <video id="a00-v${k}" class="clip" src="assets/clips/${s.scene}.mp4" muted playsinline`,
+				`        data-start="${s.start}" data-duration="${s.duration}" data-media-start="${s.mediaStart}" data-track-index="${k + 1}"></video>`,
+				'    </div>',
+			].join('\n')).join('\n');
 			files[`compositions/${b.id}.html`] = fill(tplCard, {
-				DURATION: b.duration, TITLE: esc(content.cards.title), SUBTITLE: esc(content.cards.subtitle),
-				DATA: JSON.stringify({ duration: b.duration, xfade: tl.xfade, subAt: 1.6 }),
+				DURATION: b.duration, TITLE: esc(content.cards.title), SUBTITLE: esc(content.cards.subtitle), SHOTS: shotTags,
+				DATA: JSON.stringify({ duration: b.duration, xfade: tl.xfade, titleAt: intro.titleAt, shots: intro.shots }),
 			});
 		} else {
 			files[`compositions/${b.id}.html`] = blockFile({

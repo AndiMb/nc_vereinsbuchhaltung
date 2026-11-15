@@ -159,6 +159,9 @@ export function makeClock() {
 		async until(seconds) {
 			const rest = seconds * 1000 - (Date.now() - t0);
 			if (rest > 0) await new Promise((r) => setTimeout(r, rest));
+			// Die vorige Aktion hat ihr Zeitfenster ueberzogen: das Bild laeuft
+			// der Sprache hinterher. Melden, damit es in der Szene auffaellt.
+			else if (rest < -400) console.warn(`      verspaetet: Ziel ${seconds.toFixed(2)} s, erreicht ${((Date.now() - t0) / 1000).toFixed(2)} s`);
 			return this.now();
 		},
 	};

@@ -18,11 +18,15 @@ Ergebnis je Sprache in build/<lang>/vo/:
 
 import argparse
 import asyncio
+import base64
 import json
 import os
 import sys
+import urllib.error
+import urllib.request
 
-import edge_tts
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from tts_words import words_from_alignment  # noqa: E402
 
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -50,6 +54,34 @@ def content(lang):
         return json.load(f)
 
 
+def speak_elevenlabs(text, tts, mp3_path):
+    """ElevenLabs mit Zeitmarken je Zeichen; daraus werden Wortzeiten.
+
+    Der Schluessel liegt in build/.elevenlabs-key (nicht versioniert) oder in
+    der Umgebungsvariablen ELEVENLABS_API_KEY.
+    """
+    key = os.environ.get("ELEVENLABS_API_KEY")
+    if not key:
+        with open(os.path.join(BASE, "build", ".elevenlabs-key"), encoding="utf-8") as f:
+            key = f.read().strip()
+    body = json.dumps({
+        "text": text,
+        "model_id": tts.get("model", "eleven_multilingual_v2"),
+        "language_code": tts.get("languageCode"),
+        "voice_settings": tts.get("settings", {}),
+    }).encode()
+    req = urllib.request.Request(
+        f'https://api.elevenlabs.io/v1/text-to-speech/{tts["voiceId"]}/with-timestamps?output_format=mp3_44100_128',
+        data=body, headers={"xi-api-key": key, "Content-Type": "application/json"})
+    try:
+        res = json.load(urllib.request.urlopen(req, timeout=180))
+    except urllib.error.HTTPError as e:
+        sys.exit(f"ElevenLabs {e.code}: {e.read().decode()[:300]}")
+    with open(mp3_path, "wb") as out:
+        out.write(base64.b64decode(res["audio_base64"]))
+    return words_from_alignment(res["alignment"])
+
+
 async def speak(text, voice, rate, pitch, mp3_path):
     """Erzeugt die MP3 und sammelt dabei die Wortgrenzen ein.
 
@@ -59,6 +91,7 @@ async def speak(text, voice, rate, pitch, mp3_path):
     # boundary="WordBoundary" ist Pflicht: edge-tts liefert seit 7.x sonst nur
     # noch einen SentenceBoundary je Satz, und damit laesst sich keine Bildaktion
     # auf ein einzelnes Wort legen.
+    import edge_tts  # nur fuer die edge-Stimmen noetig
     communicate = edge_tts.Communicate(text, voice, rate=rate, pitch=pitch, boundary="WordBoundary")
     words = []
     with open(mp3_path, "wb") as out:
@@ -86,12 +119,19 @@ async def run_language(lang, only_scene=None):
         with open(timing_path, encoding="utf-8") as f:
             timing = json.load(f).get("scenes", {})
 
-    print(f'Stimme {cfg["voice"]}, Tempo {cfg["rate"]}')
+    tts = cfg.get("tts")
+    if tts:
+        print(f'Stimme ElevenLabs {tts["name"]} ({tts["voiceId"]}), Modell {tts.get("model")}')
+    else:
+        print(f'Stimme {cfg["voice"]}, Tempo {cfg["rate"]}')
     for scene in cfg["scenes"]:
         if only_scene and scene["id"] != only_scene:
             continue
         mp3 = os.path.join(out_dir, scene["id"] + ".mp3")
-        words = await speak(scene["vo"], cfg["voice"], cfg["rate"], cfg.get("pitch", "+0Hz"), mp3)
+        if tts:
+            words = speak_elevenlabs(scene["vo"], tts, mp3)
+        else:
+            words = await speak(scene["vo"], cfg["voice"], cfg["rate"], cfg.get("pitch", "+0Hz"), mp3)
         if not words:
             sys.exit(f'Keine Wortzeiten fuer {scene["id"]} - Text leer oder Stimme ohne WordBoundary?')
 
@@ -104,7 +144,7 @@ async def run_language(lang, only_scene=None):
 
     gesamt = sum(v["duration"] for v in timing.values())
     with open(timing_path, "w", encoding="utf-8") as f:
-        json.dump({"lang": lang, "voice": cfg["voice"], "rate": cfg["rate"],
+        json.dump({"lang": lang, "voice": (tts or {}).get("name") or cfg["voice"], "rate": cfg["rate"],
                    "scenes": timing, "total": round(gesamt, 2)}, f, ensure_ascii=False, indent="\t")
 
     minuten, sekunden = divmod(gesamt, 60)

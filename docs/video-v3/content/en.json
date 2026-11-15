@@ -17,7 +17,40 @@
 		],
 		"endCardCue": "Vereinsbuchhaltung",
 		"claimCue": "data",
-		"repoUrl": "github.com/AndiMb/nc_vereinsbuchhaltung"
+		"repoUrl": "github.com/AndiMb/nc_vereinsbuchhaltung",
+		"intro": [
+			{
+				"cue": "books",
+				"scene": "02-geld",
+				"shot": "import",
+				"offset": 0.3
+			},
+			{
+				"cue": "fees",
+				"scene": "03-beitraege",
+				"shot": "einzug",
+				"offset": 0.4
+			},
+			{
+				"cue": "invoices",
+				"scene": "04-rechnungen",
+				"shot": "rechnungen",
+				"offset": 0.3
+			},
+			{
+				"cue": "audit",
+				"scene": "06-pruefung",
+				"shot": "bericht",
+				"offset": 3.0
+			},
+			{
+				"cue": "club",
+				"scene": "01-souveraen",
+				"shot": "uebersicht",
+				"offset": 0.2
+			}
+		],
+		"titleCue": "yet"
 	},
 	"scenes": [
 		{
@@ -168,5 +201,19 @@
 			"open source",
 			"selfhosted"
 		]
+	},
+	"tts": {
+		"engine": "elevenlabs",
+		"name": "Brian",
+		"voiceId": "nPczCjzI2devNBz1zQrb",
+		"model": "eleven_multilingual_v2",
+		"languageCode": "en",
+		"settings": {
+			"stability": 0.5,
+			"similarity_boost": 0.75,
+			"style": 0.0,
+			"use_speaker_boost": true,
+			"speed": 0.9
+		}
 	}
 }

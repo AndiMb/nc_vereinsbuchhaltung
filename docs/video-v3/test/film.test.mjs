@@ -53,3 +53,33 @@ test('memberRect: Rechteck im Mitgliederfenster in Filmkoordinaten', async () =>
 		x: Math.round(MEMBER_WINDOW.x + 100 * k), y: Math.round(MEMBER_WINDOW.y + 200 * k), w: Math.round(400 * k), h: Math.round(80 * k),
 	});
 });
+
+import { introShots } from '../lib/film.mjs';
+
+const introInput = () => ({
+	intro: [
+		{ cue: 'Kasse', scene: 's1', shot: 'liste', offset: 0.5 },
+		{ cue: 'Beiträge', scene: 's2', shot: 'a', offset: 0 },
+		{ cue: 'Verein', scene: 's1', shot: 'start', offset: 1 },
+	],
+	titleCue: 'trotzdem',
+	at: (w) => ({ Kasse: 0, 'Beiträge': 1.2, Verein: 6.5, trotzdem: 10 })[w],
+	manifests: { s1: { shots: [{ id: 'start', t: 0 }, { id: 'liste', t: 20 }] }, s2: { shots: [{ id: 'a', t: 3 }] } },
+	head: 0.55,
+});
+
+test('introShots: erster Schnitt bei 0, weitere kurz vor ihrem Stichwort, letzter bis unter die Titelkarte', () => {
+	const r = introShots(introInput());
+	assert.equal(r.titleAt, 10.4);
+	assert.deepEqual(r.shots.map((s) => [s.scene, s.start, s.duration, s.mediaStart]), [
+		['s1', 0, 1.6, 20.5],
+		['s2', 1.6, 5.3, 3],
+		['s1', 6.9, 4.1, 1],
+	]);
+});
+
+test('introShots: unbekannter Shot wirft mit Namen', () => {
+	const input = introInput();
+	input.intro[1].shot = 'fehlt';
+	assert.throws(() => introShots(input), /s2.*fehlt/);
+});
