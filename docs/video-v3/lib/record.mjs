@@ -15,6 +15,8 @@
 //   prepare(ctx), record(ctx)      Vorbereitung (nicht im Bild) und Aufnahme
 //   needsFreshData = true          vorher Demobestand wiederherstellen (snapshot.mjs)
 //   needsMember = true             zweiter Browser als Mitglied mia (ctx.member)
+//   needsEmptyData = true          vorher Bestand leeren, danach (ausserhalb der
+//                                  Aufnahme) Demobestand wiederherstellen
 //   duration = <s>                 nur fuer Szenen ohne Sprachspur (Probe)
 
 import { createRequire } from 'node:module';
@@ -28,7 +30,7 @@ import { loadCues } from './cue.mjs';
 import { demoPass, login, openApp } from './session.mjs';
 import { createManifest, addClip, writeManifest } from './manifest.mjs';
 import { createClient } from './ncapi.mjs';
-import { restore } from './snapshot.mjs';
+import { restore, wipe } from './snapshot.mjs';
 import * as ffmpeg from './ffmpeg.mjs';
 
 const require = createRequire(import.meta.url);
@@ -171,6 +173,10 @@ async function recordScene({ tab, scene, module_, lang, content, clipsDir, keepF
 		await openApp(tab, URL_BASE);
 		if (memberTab) await openApp(memberTab, URL_BASE);
 	}
+	if (module_.needsEmptyData) {
+		await wipe(createClient({ url: URL_BASE, user: USER, pass: PASS }));
+		await openApp(tab, URL_BASE);
+	}
 
 	const manifest = createManifest({ sceneId: scene.id, lang, head: HEAD, duration, scale: SCALE });
 	const clock = makeClock();
@@ -220,6 +226,11 @@ async function recordScene({ tab, scene, module_, lang, content, clipsDir, keepF
 		await ctx.stopRecording().catch(() => {});
 		if (member) await member.stopRecording().catch(() => {});
 		throw err;
+	}
+
+	if (module_.needsEmptyData) {
+		// Andere Szenen sollen danach wieder den Demobestand vorfinden.
+		await restore(createClient({ url: URL_BASE, user: USER, pass: PASS }), lang, { container: CONTAINER });
 	}
 
 	const clockStart = clock.epoch();

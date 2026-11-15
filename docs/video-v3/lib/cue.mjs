@@ -30,7 +30,7 @@ function normalize(text) {
 
 /**
  * @param {string} lang
- * @param {string} sceneId  z. B. "03-bank"
+ * @param {string} sceneId  z. B. "03-beitraege"
  */
 export function loadCues(lang, sceneId, { dir = root } = {}) {
 	const path = join(dir, 'build', lang, 'vo', `${sceneId}.words.json`);
