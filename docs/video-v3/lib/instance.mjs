@@ -13,6 +13,7 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { demoPass } from './session.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, '..');
@@ -25,6 +26,7 @@ function arg(name, fallback = null) {
 const LANG = arg('lang', 'de');
 const CONTAINER = arg('container', 'vbh-demo');
 const CHECK = process.argv.includes('--check');
+const URL_BASE = arg('url', 'http://localhost:8082');
 
 function occ(...args) {
 	return execFileSync('docker', ['exec', '-u', 'www-data', CONTAINER, 'php', 'occ', ...args], { encoding: 'utf8' }).trim();
@@ -42,14 +44,31 @@ if (CHECK) {
 	process.exit(0);
 }
 
+async function setDisplayName(uid, name) {
+	const res = await fetch(`${URL_BASE}/ocs/v2.php/cloud/users/${encodeURIComponent(uid)}?format=json`, {
+		method: 'PUT',
+		headers: {
+			Authorization: 'Basic ' + Buffer.from(`andrea:${demoPass()}`).toString('base64'),
+			'OCS-APIREQUEST': 'true',
+			'Content-Type': 'application/x-www-form-urlencoded',
+		},
+		body: new URLSearchParams({ key: 'displayname', value: name }),
+	});
+	const body = await res.json().catch(() => null);
+	if (!res.ok || body?.ocs?.meta?.statuscode !== 200) {
+		throw new Error(`Anzeigename ${uid}: HTTP ${res.status} ${JSON.stringify(body?.ocs?.meta ?? null)}`);
+	}
+}
+
 console.log(`Instanz ${CONTAINER} auf "${LANG}" umstellen (${content.club.name})`);
 for (const u of users) {
 	occ('user:setting', u.uid, 'core', 'lang', LANG);
 	// Der Anzeigename steht im Avatar und in der Rechteliste - er muss zur
 	// Sprachfassung passen, sonst steht im englischen Video ein deutscher Name.
-	// (occ user:modify gibt es in Nextcloud 34 nicht mehr; der Anzeigename ist
-	// eine Kontoeinstellung.)
-	occ('user:setting', u.uid, 'settings', 'displayname', u.displayName);
+	// Weder "occ user:setting ... displayname" noch "occ user:profile" aendern in
+	// Nextcloud 34 den Namen im Benutzer-Backend (occ user:info zeigt weiter den
+	// alten). Die Provisioning-API ruft setDisplayName() auf - der wirkt.
+	await setDisplayName(u.uid, u.displayName);
 	console.log(`  ${u.uid}: lang=${LANG}, Anzeigename "${u.displayName}"`);
 }
 

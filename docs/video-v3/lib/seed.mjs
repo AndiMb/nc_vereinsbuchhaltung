@@ -312,12 +312,15 @@ async function main() {
 	step('Rechnungen');
 	await admin.api('POST', '/settings', {
 		invoice_module_active: '1', invoice_account_id: accountId[content.sepa.bankAccount], invoice_tax_mode: 'kleinunternehmer',
+		// Ansprechpartner fuer die XRechnung - sonst meldet die Rechnung "fehlt noch".
+		club_phone: content.club.phone, club_email: content.club.email,
 	});
 	const invoiceIds = {};
 	for (const [key, inv] of Object.entries(data.invoices)) {
 		const debtor = await admin.api('POST', '/debtors', inv.debtor);
 		const draft = await admin.api('POST', '/invoices', {
 			debtorId: idOf(debtor), issueDate: inv.issueDate, deliveryDate: inv.deliveryDate, dueDate: inv.dueDate,
+			...(content.invoices[key]?.buyerReference ? { buyerReference: content.invoices[key].buyerReference } : {}),
 			lines: [{ name: inv.line.name, quantity: 1, unitCode: 'LS', unitPrice: inv.line.amount, accountId: accountId[inv.line.account] }],
 		});
 		invoiceIds[key] = idOf(draft);

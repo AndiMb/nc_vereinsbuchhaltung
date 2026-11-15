@@ -780,7 +780,7 @@ export async function createContext(tab, { lang, sceneId, framesDir, clock = mak
 		 * trifft zuverlaessig den falschen - der Dialog zeigt dann weiter
 		 * "0 Zeilen" und niemand sieht, warum.
 		 */
-		async setFile(filePath) {
+		async setFile(filePath, { type = null } = {}) {
 			// Der Inhalt wandert als Text in die Seite, dort entsteht ein echtes
 			// File-Objekt und wird ueber ein DataTransfer in das Feld gelegt.
 			//
@@ -791,8 +791,15 @@ export async function createContext(tab, { lang, sceneId, framesDir, clock = mak
 			// Aufruf. Der Weg ueber die Seite ist von dieser Eigenheit unabhaengig
 			// und loest zusaetzlich das change-Ereignis genauso aus wie eine echte
 			// Auswahl.
-			const inhalt = readFileSync(filePath, 'utf8');
+			// Text (CSV) geht als Zeichenkette, alles andere (PDF, Bilder) als
+			// Base64 - eine utf8-Zeichenkette wuerde Binaerdaten zerstoeren.
 			const name = filePath.replace(/\\/g, '/').split('/').pop();
+			const mime = type ?? (/\.pdf$/i.test(name) ? 'application/pdf' : /\.png$/i.test(name) ? 'image/png' : /\.jpe?g$/i.test(name) ? 'image/jpeg' : 'text/csv');
+			const binaer = mime !== 'text/csv';
+			const inhalt = binaer ? readFileSync(filePath).toString('base64') : readFileSync(filePath, 'utf8');
+			const teil = binaer
+				? `Uint8Array.from(atob(${JSON.stringify(inhalt)}), (c) => c.charCodeAt(0))`
+				: JSON.stringify(inhalt);
 			const ok = await evaluate(`(() => {
 				const modal = Array.from(document.querySelectorAll('.modal-container'))
 					.filter(e => e.getClientRects().length > 0)[0];
@@ -800,7 +807,7 @@ export async function createContext(tab, { lang, sceneId, framesDir, clock = mak
 				const input = modal.querySelector('input[type=file]');
 				if (!input) throw new Error('Kein Datei-Feld im sichtbaren Dialog');
 				const daten = new DataTransfer();
-				daten.items.add(new File([${JSON.stringify(inhalt)}], ${JSON.stringify(name)}, { type: 'text/csv' }));
+				daten.items.add(new File([${teil}], ${JSON.stringify(name)}, { type: ${JSON.stringify(mime)} }));
 				input.files = daten.files;
 				// Erst pruefen, dann melden: manche Handler leeren das Feld beim
 				// change-Ereignis wieder (sie merken sich die Datei selbst). Eine
@@ -827,7 +834,9 @@ export async function createContext(tab, { lang, sceneId, framesDir, clock = mak
 				if (!modal) return null;
 				const schliessen = Array.from(modal.querySelectorAll('button'))
 					.filter(e => e.getClientRects().length > 0)
-					.find(e => /Schließen|Close|Abbrechen|Cancel|Fertig|Done/i.test(e.textContent || ''));
+					// Exakt, nicht als Teiltext: "Cancel …" im Rechnungsdialog heisst
+					// "Rechnung stornieren" - ein Teiltreffer oeffnete den Storno-Dialog.
+					.find(e => /^(Schließen|Close|Abbrechen|Cancel|Fertig|Done)$/i.test((e.textContent || '').trim()));
 				if (schliessen) return schliessen;
 				// Das X des Dialogs sitzt ausserhalb von .modal-container, aber im
 				// selben .modal-wrapper. Nur sichtbare nehmen: die verlassenen

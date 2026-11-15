@@ -8,7 +8,9 @@
 		"street": "4 Church Lane",
 		"postalCode": "79199",
 		"city": "Riverside",
-		"taxNumber": "06/123/45678"
+		"taxNumber": "06/123/45678",
+		"phone": "+44 1632 960 715",
+		"email": "board@riverside-choir.example"
 	},
 	"sepa": {
 		"creditorId": "DE98ZZZ09999999999",
@@ -748,7 +750,8 @@
 				"name": "Choir performance, company anniversary",
 				"amount": 450,
 				"account": "4300"
-			}
+			},
+			"buyerReference": "PO 2026-118"
 		},
 		"overdue": {
 			"debtor": {

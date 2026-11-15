@@ -8,7 +8,9 @@
 		"street": "Kirchgasse 4",
 		"postalCode": "79199",
 		"city": "Waldbach",
-		"taxNumber": "06/123/45678"
+		"taxNumber": "06/123/45678",
+		"phone": "07641 93 27 15",
+		"email": "vorstand@chor-waldbach.example"
 	},
 	"sepa": {
 		"creditorId": "DE98ZZZ09999999999",
@@ -748,7 +750,8 @@
 				"name": "Chorauftritt zum Firmenjubiläum",
 				"amount": 450,
 				"account": "4300"
-			}
+			},
+			"buyerReference": "Bestellung 2026-118"
 		},
 		"overdue": {
 			"debtor": {
