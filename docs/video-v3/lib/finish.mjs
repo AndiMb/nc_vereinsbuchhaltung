@@ -54,7 +54,11 @@ export function render(lang) {
 export function loudnorm(input, output, { I = -14, TP = -1.5, LRA = 11 } = {}) {
 	const m = lautheit(input);
 	const filter = `loudnorm=I=${I}:TP=${TP}:LRA=${LRA}:measured_I=${m.input_i}:measured_TP=${m.input_tp}`
-		+ `:measured_LRA=${m.input_lra}:measured_thresh=${m.input_thresh}:offset=${m.target_offset}:linear=true`;
+		+ `:measured_LRA=${m.input_lra}:measured_thresh=${m.input_thresh}:offset=${m.target_offset}:linear=true`
+		// Muss loudnorm stark anheben (DE: +6 dB), haelt es den True Peak nicht:
+		// gemessen -0,4 dBTP. Der Begrenzer bei -2 dBFS (ueberabgetastet) faengt
+		// das ab, bevor AAC die Spitzen wieder etwas anhebt.
+		+ ',aresample=192000,alimiter=limit=0.794:level=false:attack=1:release=60,aresample=48000';
 	ffmpeg.run(['-y', '-i', input, '-map', '0:v:0', '-map', '0:a:0', '-c:v', 'copy', '-af', filter,
 		'-c:a', 'aac', '-b:a', '192k', '-ar', '48000', '-ac', '2', '-movflags', '+faststart', output], { label: 'loudnorm' });
 	return { vorher: Number(m.input_i), output };

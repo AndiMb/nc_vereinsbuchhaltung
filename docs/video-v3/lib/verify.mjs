@@ -11,7 +11,7 @@
 //
 // Zusaetzlich geprueft: Laufzeit (gegen die Zeitleiste und 120-180 s),
 // Bildgroesse, Pixelseitenverhaeltnis, Bildrate, Tonkanaele, Lautheit
-// (-14 +-1 LUFS) und ob die Untertitel innerhalb der Laufzeit enden.
+// (-14 +-1 LUFS), True Peak (<= -1 dBTP) und ob die Untertitel innerhalb der Laufzeit enden.
 
 import { readFileSync, existsSync, mkdtempSync, rmSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -34,6 +34,8 @@ const FENSTER = 0.25;   // Sekunden je Messpunkt
 /** Der freigegebene Film ist ~2:47 lang; die Spanne faengt grobe Montagefehler. */
 const LAENGE = { min: 120, max: 180 };
 const LUFS = { ziel: -14, toleranz: 1 };
+/** YouTube empfiehlt hoechstens -1 dBTP; darueber verzerrt die Umkodierung. */
+const TRUE_PEAK_MAX = -1;
 const KORRELATION_MIN = 0.75;
 
 /** Mono-PCM einer Datei als Int16Array. */
@@ -136,6 +138,8 @@ export function verify(lang, { video = join(root, 'build', lang, `vereinsbuchhal
 	for (const b of bloecke) if (b.r < KORRELATION_MIN) befunde.push(`Sprachspur ${b.id} passt nicht an ihre Stelle (Korrelation ${b.r.toFixed(2)})`);
 	const lufs = Number(laut.input_i);
 	if (Math.abs(lufs - LUFS.ziel) > LUFS.toleranz) befunde.push(`Lautheit ${lufs.toFixed(1)} LUFS statt ${LUFS.ziel} +-${LUFS.toleranz}`);
+	const tp = Number(laut.input_tp);
+	if (tp > TRUE_PEAK_MAX) befunde.push(`True Peak ${tp.toFixed(1)} dBTP ueber ${TRUE_PEAK_MAX} dBTP`);
 	if (letzterUntertitel !== null && letzterUntertitel > dauer) befunde.push(`Untertitel enden bei ${letzterUntertitel.toFixed(1)} s, Video bei ${dauer.toFixed(1)} s`);
 
 	return { video, dauer, erwartet: timeline.total, bild, ton, bloecke, lufs, truePeak: Number(laut.input_tp), letzterUntertitel, befunde };
