@@ -1,0 +1,79 @@
+<!-- Titelkarte (lib/film.mjs fuellt die {{…}}-Platzhalter). Logo, Titel,
+     Untertitel auf dunklem Grund; langsame Fahrt, damit das Bild unter dem
+     Sprechtext lebt. -->
+<template>
+  <style>
+    @font-face {
+      font-family: "Noto Sans";
+      font-weight: 400;
+      src: url("assets/fonts/NotoSans-Regular-latin.woff2") format("woff2");
+    }
+    @font-face {
+      font-family: "Noto Sans";
+      font-weight: 700;
+      src: url("assets/fonts/NotoSans-Bold-latin.woff2") format("woff2");
+    }
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      font-family: "Noto Sans", sans-serif;
+      color: #fff;
+    }
+    #a00-bg {
+      position: absolute;
+      inset: -60px;
+      background: radial-gradient(ellipse at 50% 40%, #123457 0%, #0a1626 68%);
+    }
+    #a00-body {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 30px;
+      text-align: center;
+    }
+    #a00-logo {
+      width: 150px;
+      height: 150px;
+      padding: 26px;
+      border-radius: 34px;
+      background: #0082c9;
+      box-shadow: 0 24px 60px rgba(0, 130, 201, 0.35);
+    }
+    #a00-title {
+      font-size: 105px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1.05;
+    }
+    #a00-sub {
+      font-size: 44px;
+      color: #c9d8e8;
+    }
+  </style>
+  <div id="root" data-composition-id="a00" data-width="1920" data-height="1080" data-duration="{{DURATION}}">
+    <div id="a00-bg"></div>
+    <div id="a00-body">
+      <img id="a00-logo" src="assets/app.svg" alt="" />
+      <div id="a00-title">{{TITLE}}</div>
+      <div id="a00-sub">{{SUBTITLE}}</div>
+    </div>
+  </div>
+  <script>
+    (function () {
+      const D = {{DATA}};
+      const tl = gsap.timeline({ paused: true });
+      tl.fromTo("#a00-bg", { scale: 1 }, { scale: 1.08, duration: D.duration, ease: "none" }, 0);
+      // Logo und Titel stehen ab dem ersten Bild (Vorschaubild der Player).
+      tl.fromTo("#a00-logo", { scale: 0.94 }, { scale: 1, duration: 1.2, ease: "power2.out" }, 0);
+      tl.fromTo("#a00-title", { y: 14 }, { y: 0, duration: 1.2, ease: "power2.out" }, 0);
+      tl.fromTo("#a00-sub", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.6, ease: "power2.out" }, D.subAt);
+      tl.fromTo("#a00-body", { scale: 1 }, { scale: 1.03, duration: D.duration, ease: "none" }, 0);
+      tl.to("#a00-body", { opacity: 0, filter: "blur(14px)", duration: D.xfade, ease: "power2.in" }, D.duration - D.xfade);
+      window.__timelines["a00"] = tl;
+    })();
+  </script>
+</template>

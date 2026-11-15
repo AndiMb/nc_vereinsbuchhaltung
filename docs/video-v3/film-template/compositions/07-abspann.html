@@ -1,0 +1,72 @@
+<!-- Zusatz fuer Block 07 (lib/film.mjs setzt die Teile in block.html ein):
+     nach dem Klick auf "Beispielverein" legt sich die Endkarte ueber den Clip -
+     Logo, Titel, Zeilen, Repo-Adresse, zuletzt der Claim. -->
+<!--CSS-->
+    #{{P}}-end {
+      position: absolute;
+      inset: 0;
+      color: #fff;
+      text-align: center;
+    }
+    #{{P}}-end-bg {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at 50% 38%, #123457 0%, #0a1626 70%);
+    }
+    #{{P}}-end-body {
+      position: absolute;
+      inset: 0;
+      justify-content: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 26px;
+    }
+    #{{P}}-logo {
+      width: 132px;
+      height: 132px;
+      padding: 22px;
+      border-radius: 30px;
+      background: #0082c9;
+    }
+    #{{P}}-end-title {
+      font-size: 105px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1.05;
+    }
+    .{{P}}-end-line {
+      font-size: 40px;
+      color: #c9d8e8;
+    }
+    #{{P}}-end-url {
+      margin-top: 8px;
+      font-size: 34px;
+      color: #6fc1f0;
+    }
+    #{{P}}-claim {
+      margin-top: 28px;
+      font-size: 64px;
+      font-weight: 700;
+      color: #fff;
+    }
+<!--HTML-->
+    <div id="{{P}}-end" class="clip" data-start="{{END_AT}}" data-duration="{{END_DURATION}}" data-track-index="5">
+      <div id="{{P}}-end-bg"></div>
+      <div id="{{P}}-end-body">
+        <img id="{{P}}-logo" src="assets/app.svg" alt="" />
+        <div id="{{P}}-end-title">{{TITLE}}</div>
+{{LINES}}
+        <div id="{{P}}-end-url">{{URL}}</div>
+        <div id="{{P}}-claim">{{CLAIM}}</div>
+      </div>
+    </div>
+<!--JS-->
+      tl.fromTo(q("end-bg"), { opacity: 0 }, { opacity: 1, duration: 0.6, ease: "power1.out" }, D.endAt);
+      tl.fromTo(q("logo"), { opacity: 0, scale: 0.8 }, { opacity: 1, scale: 1, duration: 0.5, ease: "back.out(1.6)" }, D.endAt + 0.25);
+      tl.fromTo(q("end-title"), { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.55, ease: "power3.out" }, D.endAt + 0.4);
+      document.querySelectorAll("." + P + "-end-line").forEach((el, i) => {
+        tl.fromTo(el, { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.45, ease: "power2.out" }, D.endAt + 0.9 + i * 0.35);
+      });
+      tl.fromTo(q("end-url"), { opacity: 0 }, { opacity: 1, duration: 0.45 }, D.endAt + 1.7);
+      tl.fromTo(q("claim"), { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" }, D.claimAt);

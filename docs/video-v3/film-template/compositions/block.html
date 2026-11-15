@@ -1,0 +1,188 @@
+<!-- Vorlage der Bloecke 01-07 (lib/film.mjs fuellt die {{…}}-Platzhalter).
+     Clip des Vorstandsbrowsers, optional das Mitgliederfenster rechts,
+     Lower Third, Callouts, Zooms; Blockblende 0,45 s ("blur through" aus der
+     Registry, transitions-blur). -->
+<template>
+  <style>
+    @font-face {
+      font-family: "Noto Sans";
+      font-weight: 400;
+      src: url("assets/fonts/NotoSans-Regular-latin.woff2") format("woff2");
+    }
+    @font-face {
+      font-family: "Noto Sans";
+      font-weight: 700;
+      src: url("assets/fonts/NotoSans-Bold-latin.woff2") format("woff2");
+    }
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      /* Kein eigener Grund: waehrend der Blende muss der vorige Block durchscheinen. */
+      font-family: "Noto Sans", sans-serif;
+    }
+    #{{P}}-fade,
+    #{{P}}-stage {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 1920px;
+      height: 1080px;
+      transform-origin: 0 0;
+    }
+    #{{P}}-board {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 1920px;
+      height: 1080px;
+      object-fit: contain;
+    }
+    #{{P}}-dim {
+      position: absolute;
+      inset: 0;
+      background: #0a1626;
+      opacity: 0;
+    }
+    #{{P}}-mwin {
+      position: absolute;
+      left: {{MW_X}}px;
+      top: {{MW_Y}}px;
+      width: {{MW_W}}px;
+      height: {{MW_H}}px;
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 0 0 3px #0082c9, 0 30px 80px rgba(0, 0, 0, 0.55);
+      opacity: 0;
+    }
+    #{{P}}-member {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+    #{{P}}-mlabel {
+      position: absolute;
+      left: {{MW_X}}px;
+      top: {{MW_LABEL_Y}}px;
+      padding: 6px 18px;
+      border-radius: 8px;
+      background: #0082c9;
+      color: #fff;
+      font-size: 30px;
+      font-weight: 700;
+      opacity: 0;
+    }
+    .{{P}}-lt {
+      position: absolute;
+      left: 192px;
+      bottom: 150px;
+    }
+    .{{P}}-lt-in {
+      display: inline-block;
+      padding: 16px 30px 18px 26px;
+      border-left: 8px solid #0082c9;
+      border-radius: 6px;
+      background: rgba(10, 22, 38, 0.9);
+      color: #fff;
+      font-size: 42px;
+      font-weight: 700;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+    }
+    .{{P}}-co {
+      position: absolute;
+      right: 192px;
+      top: 150px;
+    }
+    .{{P}}-co-in {
+      display: inline-block;
+      padding: 14px 26px;
+      border-radius: 10px;
+      background: #0082c9;
+      color: #fff;
+      font-size: 34px;
+      font-weight: 700;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+    }
+{{EXTRA_CSS}}
+  </style>
+  <div id="root" data-composition-id="{{P}}" data-width="1920" data-height="1080" data-duration="{{DURATION}}">
+    <div id="{{P}}-fade">
+      <div id="{{P}}-stage">
+        <video
+          id="{{P}}-board"
+          class="clip"
+          src="assets/clips/{{ID}}.mp4"
+          muted
+          playsinline
+          data-start="0"
+          data-duration="{{DURATION}}"
+          data-track-index="1"
+        ></video>
+        <div id="{{P}}-dim" data-layout-ignore></div>
+{{MEMBER}}
+      </div>
+    </div>
+{{LOWER_THIRD}}
+{{CALLOUTS}}
+{{EXTRA_HTML}}
+  </div>
+  <script>
+    (function () {
+      const P = "{{P}}";
+      const D = {{DATA}};
+      const tl = gsap.timeline({ paused: true });
+      const q = (s) => "#" + P + "-" + s;
+
+      // Blockblende: der neue Block kommt aus der Unschaerfe (Registry
+      // transitions-blur "blur through"), der alte wird unscharf, waehrend der
+      // neue ihn ueberdeckt. Der Auftakt davor blendet weich (dissolve).
+      if (D.fadeIn) {
+        tl.fromTo(q("fade"), { opacity: 0, filter: "blur(14px)", scale: 0.97 },
+          { opacity: 1, filter: "blur(0px)", scale: 1, duration: D.xfade, ease: "power2.out" }, 0);
+      }
+      if (D.fadeOut) {
+        tl.fromTo(q("fade"), { filter: "blur(0px)", scale: 1 },
+          { filter: "blur(14px)", scale: 1.03, duration: D.xfade, ease: "power2.in" }, D.duration - D.xfade);
+      }
+
+      // Mitgliederfenster: schiebt sich rechts herein, der Vorstandsclip wird gedimmt.
+      D.memberWindows.forEach((w) => {
+        tl.fromTo(q("mwin"), { opacity: 0, x: 80 }, { opacity: 1, x: 0, duration: 0.45, ease: "power3.out" }, w.start);
+        tl.fromTo(q("mlabel"), { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.35, ease: "power2.out" }, w.start + 0.15);
+        tl.fromTo(q("dim"), { opacity: 0 }, { opacity: 0.55, duration: 0.45, ease: "power1.out" }, w.start);
+        if (w.end < D.duration - 0.05) {
+          tl.to(q("mwin"), { opacity: 0, x: 80, duration: 0.35, ease: "power2.in" }, w.end - 0.35);
+          tl.to(q("mlabel"), { opacity: 0, duration: 0.25 }, w.end - 0.35);
+          tl.to(q("dim"), { opacity: 0, duration: 0.35 }, w.end - 0.35);
+        }
+      });
+
+      // Zooms: Fahrt 0,5 s auf das Ziel, halten, Rueckfahrt.
+      D.zooms.forEach((z) => {
+        tl.fromTo(q("stage"), { x: 0, y: 0, scale: 1 },
+          { x: z.x, y: z.y, scale: z.scale, duration: 0.5, ease: "power2.inOut" }, z.t);
+        tl.to(q("stage"), { x: 0, y: 0, scale: 1, duration: 0.5, ease: "power2.inOut" }, z.t + 0.5 + z.hold);
+      });
+
+      // Lower Third und Callouts: kurzer Auftritt von links bzw. oben.
+      document.querySelectorAll("." + P + "-lt-in").forEach((el) => {
+        const start = Number(el.parentElement.dataset.start);
+        const dur = Number(el.parentElement.dataset.duration);
+        tl.fromTo(el, { opacity: 0, x: -40 }, { opacity: 1, x: 0, duration: 0.45, ease: "power3.out" }, start);
+        tl.to(el, { opacity: 0, x: -20, duration: 0.35, ease: "power2.in" }, start + dur - 0.4);
+      });
+      document.querySelectorAll("." + P + "-co-in").forEach((el) => {
+        const start = Number(el.parentElement.dataset.start);
+        const dur = Number(el.parentElement.dataset.duration);
+        tl.fromTo(el, { opacity: 0, y: -24 }, { opacity: 1, y: 0, duration: 0.4, ease: "power3.out" }, start);
+        tl.to(el, { opacity: 0, y: -12, duration: 0.3, ease: "power2.in" }, start + dur - 0.35);
+      });
+
+{{EXTRA_JS}}
+      window.__timelines[P] = tl;
+    })();
+  </script>
+</template>

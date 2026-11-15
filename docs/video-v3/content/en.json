@@ -14,7 +14,10 @@
 		"outroLines": [
 			"Free and open source in the Nextcloud App Store",
 			"Sample club in one click"
-		]
+		],
+		"endCardCue": "Vereinsbuchhaltung",
+		"claimCue": "data",
+		"repoUrl": "github.com/AndiMb/nc_vereinsbuchhaltung"
 	},
 	"scenes": [
 		{

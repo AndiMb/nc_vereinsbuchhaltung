@@ -14,7 +14,10 @@
 		"outroLines": [
 			"Kostenlos und quelloffen im Nextcloud App Store",
 			"Beispielverein mit einem Klick"
-		]
+		],
+		"endCardCue": "Vereinsbuchhaltung",
+		"claimCue": "Daten",
+		"repoUrl": "github.com/AndiMb/nc_vereinsbuchhaltung"
 	},
 	"scenes": [
 		{
