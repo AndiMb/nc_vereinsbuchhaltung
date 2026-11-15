@@ -17,6 +17,7 @@
 import { createRequire } from 'node:module';
 import { mkdirSync, writeFileSync, readFileSync, rmSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
+import { addShot, addTarget } from './manifest.mjs';
 
 const require = createRequire(import.meta.url);
 const cdp = require('./cdp.cjs');
@@ -27,6 +28,11 @@ const cdp = require('./cdp.cjs');
 // Teil des Fensters, CSS-Zoom verschiebt die Koordinaten der Einblendungen
 // gegenueber dem Bild.
 export const VIEWPORT = { width: 1920, height: 1080, scale: 1 };
+
+/** Geraetefaktor der Aufnahme: 2 ergibt 3840x2160-Rohbilder bei gleichem Layout. */
+export function setScale(scale) {
+	VIEWPORT.scale = scale;
+}
 export const FPS = 30;
 
 /** Nextcloud-Blau und der dunkle Deckblatt-Ton aus dem Konzept. */
@@ -138,10 +144,17 @@ const OVERLAY_SETUP = `(() => {
 	return true;
 })()`;
 
-/** Wartet, bis die Szenenuhr bei `seconds` steht. */
-function makeClock() {
-	const t0 = Date.now();
+/**
+ * Szenenuhr. Laeuft ab reset() - das ruft startRecording() auf, damit die Zeit
+ * fuer prepare() nicht in den Bildtakt rutscht. Zwei Browser einer Szene teilen
+ * sich eine Uhr (makeClock einmal, an beide createContext uebergeben).
+ */
+export function makeClock() {
+	let t0 = Date.now();
 	return {
+		reset() { t0 = Date.now(); },
+		/** Startzeit in Sekunden seit 1970 - Bezug fuer die Screencast-Zeitstempel. */
+		epoch: () => t0 / 1000,
 		now: () => (Date.now() - t0) / 1000,
 		async until(seconds) {
 			const rest = seconds * 1000 - (Date.now() - t0);
@@ -159,10 +172,9 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
  * @param {object} tab      offener CDP-Tab
  * @param {object} opts     { lang, sceneId, framesDir }
  */
-export async function createContext(tab, { lang, sceneId, framesDir }) {
+export async function createContext(tab, { lang, sceneId, framesDir, clock = makeClock(), manifest = null, source = 'board', ownsClock = true }) {
 	await cdp.evaluate(tab, OVERLAY_SETUP);
 
-	const clock = makeClock();
 	const frames = [];
 	let capturing = false;
 	let frameIndex = 0;
@@ -192,9 +204,31 @@ export async function createContext(tab, { lang, sceneId, framesDir }) {
 		sleep,
 		evaluate,
 
-		/** Aufnahme starten. Ab hier laeuft die Szenenuhr. */
+		source,
+		manifest,
+
+		/** Einstellungsgrenze zur aktuellen Szenenzeit (Schnittpunkt im Film). */
+		shot(id) {
+			if (manifest) addShot(manifest, { id, t: clock.now(), source });
+		},
+
+		/** Zoomziel: Rechteck des sichtbaren Elements zur aktuellen Szenenzeit. */
+		async mark(name, selector) {
+			const rect = await evaluate(`(() => {
+				const el = ${selectorExpression(selector)};
+				if (!el) return null;
+				const r = el.getBoundingClientRect();
+				return { x: r.left, y: r.top, width: r.width, height: r.height };
+			})()`);
+			if (!rect) throw new Error(`mark("${name}"): Element nicht gefunden: ${JSON.stringify(selector)}`);
+			if (manifest) addTarget(manifest, { name, t: clock.now(), rect, source });
+			return rect;
+		},
+
+		/** Aufnahme starten. Ab hier laeuft die Szenenuhr (bei geteilter Uhr setzt sie der Erste). */
 		async startRecording() {
 			mkdirSync(framesDir, { recursive: true });
+			if (ownsClock) clock.reset();
 			capturing = true;
 			// Der Handler wird gemerkt, damit stopRecording ihn wieder abmelden kann.
 			// Bricht eine Szene ab und wird wiederholt, schriebe ein liegengebliebener
@@ -217,7 +251,6 @@ export async function createContext(tab, { lang, sceneId, framesDir }) {
 				maxHeight: VIEWPORT.height * VIEWPORT.scale,
 				everyNthFrame: 1,
 			});
-			clock.now();
 		},
 
 		async stopRecording() {
