@@ -39,7 +39,7 @@ function arg(name, fallback = null) {
 const flag = (name) => process.argv.includes(`--${name}`);
 
 const LANG = arg('lang', 'de');
-const URL_BASE = arg('url', 'http://localhost:8081').replace(/\/$/, '');
+const URL_BASE = arg('url', 'http://localhost:8082').replace(/\/$/, '');
 const USER = arg('user', 'andrea');
 const PASS = demoPass(arg('pass'));
 // Eigener Port, damit die Aufnahme nicht das Chrome des Seeds erbt: dort ist

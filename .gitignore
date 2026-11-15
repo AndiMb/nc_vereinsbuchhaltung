@@ -25,6 +25,8 @@
 # Versioniert sind nur die Skripte der aktuellen Pipeline (docs/video-v3/),
 # deren Ergebnisse liegen dort unter build/ und sind ebenfalls ausgenommen.
 /docs/video/
+# Aus film-template/ erzeugte HyperFrames-Projekte je Sprache (lib/film.mjs)
+/docs/video-v3/film/
 # Lokales Composer-Binary - nicht versionieren
 composer.phar
 # Planungsnotizen aus der Arbeit an einzelnen Issues (Anforderungen,

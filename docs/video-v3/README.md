@@ -56,39 +56,59 @@ Eigener Container, damit der Entwicklungsstand in `nextcloud-test` unberührt
 bleibt — die App hat **einen gemeinsamen Datenbestand je Instanz**, ein Seed
 würde dort alles überschreiben.
 
-Das Passwort der Instanz steht **nicht** im Repository. Einmal setzen – die
-Skripte lesen es aus `VBH_DEMO_PASS` (oder aus `--pass <wort>`):
+Das Passwort der Instanz steht **nicht** im Repository. Die Skripte lesen es
+aus `--pass <wort>`, sonst aus `VBH_DEMO_PASS`, sonst aus der unversionierten
+Datei `build/.demo-pass` (eine Zeile). Am einfachsten einmal anlegen:
 
 ```bash
-export VBH_DEMO_PASS='<selbst waehlen>'   # PowerShell: $env:VBH_DEMO_PASS = '...'
+python -c "import secrets;print('Vbh-'+secrets.token_urlsafe(12))" > build/.demo-pass
 ```
+
+**Port 8082**, nicht 8081: 8081 ist auf diesem Rechner von einem anderen
+Projekt belegt, 8080 gehört `nextcloud-test` bzw. der E2E-Suite.
 
 Der Bind-Mount zeigt auf dieses Repository – `docker run` deshalb in dessen
 Wurzelverzeichnis ausführen (unter Windows den Pfad in Docker-Schreibweise
 angeben, etwa `//c/pfad/zum/repo`).
 
 ```bash
-docker run -d --name vbh-demo -p 8081:80 \
+docker run -d --name vbh-demo -p 8082:80 \
   -e NEXTCLOUD_ADMIN_USER=admin -e NEXTCLOUD_ADMIN_PASSWORD="$VBH_DEMO_PASS" \
   -e SQLITE_DATABASE=nextcloud -e NEXTCLOUD_TRUSTED_DOMAINS='localhost 127.0.0.1' \
   -v vbh-demo-html:/var/www/html \
   -v "$PWD:/var/www/html/custom_apps/vereinsbuchhaltung" \
-  nextcloud:34.0.0
+  nextcloud:34
 
 docker exec -u www-data vbh-demo php occ app:enable vereinsbuchhaltung
 docker exec -u www-data vbh-demo php occ app:disable firstrunwizard
+
+# Mails laufen in einen Mailpit-Container, damit Mailaktionen (Mandatslink,
+# Rechnungsversand) weder haengen noch Fehlermeldungen ins Bild bringen.
+docker run -d --name vbh-demo-mail axllent/mailpit
+docker network create vbh-demo-net
+docker network connect vbh-demo-net vbh-demo
+docker network connect vbh-demo-net vbh-demo-mail
+for kv in "mail_smtpmode smtp" "mail_smtphost vbh-demo-mail" "mail_smtpport 1025"           "mail_from_address verein" "mail_domain example.org"; do
+  set -- $kv; docker exec -u www-data vbh-demo php occ config:system:set $1 --value=$2
+done
 ```
 
-Demokonten (Passwort für alle: das aus `VBH_DEMO_PASS`):
+Danach prüft `node lib/doctor.mjs` alles, was ein Sprachlauf braucht
+(edge-tts ≥ 7.3.1, ffmpeg ≥ 7, Chromium, Instanz, App, Konten, Passwort,
+Musik, abgeschaltete HyperFrames-Telemetrie). **edge-tts 7.2.8 bekommt seit
+November 2026 ein `403`** vom Dienst; 7.3.1 behebt das.
+
+Demokonten (Passwort für alle: das der Instanz):
 
 | Konto | Anzeigename (de/en) | Rolle in der App |
 |---|---|---|
 | `andrea` | Andrea Falk | Verwalterin (Gruppe `admin`) — das ist der Aufnahme-Nutzer |
 | `jens` | Jens Wieland / James Wieland | Buchhalter |
 | `karla` | Karla Riedel / Carla Reed | Revisorin (Kassenprüfung, Szene 06) |
+| `mia` | Mia Brandt / Mia Brant | Mitglied mit verknüpftem Konto: „Mein Beitrag“ und Auslage einreichen (zweiter Browser) |
 
 Angelegt mit
-`docker exec -u www-data -e OC_PASS="$VBH_DEMO_PASS" vbh-demo php occ user:add --password-from-env --display-name "<Name>" [--group admin] <uid>`.
+`docker exec -u www-data -e OC_PASS="$(cat docs/video-v3/build/.demo-pass)" vbh-demo php occ user:add --password-from-env --display-name "<Name>" [--group admin] <uid>`.
 Der Anzeigename wird später je Sprachlauf von `instance.mjs` überschrieben
 (`occ user:setting <uid> settings displayname` — `user:modify` gibt es in
 Nextcloud 34 nicht mehr).
@@ -98,7 +118,7 @@ Nextcloud 34 nicht mehr).
 ```bash
 cd docs/video-v3
 node lib/instance.mjs --lang de          # Nextcloud-Sprache + Anzeigenamen
-node lib/seed.mjs     --lang de          # Datenbestand (Standard-URL: http://localhost:8081)
+node lib/seed.mjs     --lang de          # Datenbestand (Standard-URL: http://localhost:8082)
 
 node lib/instance.mjs --lang en
 node lib/seed.mjs     --lang en

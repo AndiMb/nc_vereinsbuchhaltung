@@ -3,7 +3,7 @@
 // SEPA-Mandaten, ein abgerechneter Sammeleinzug und faellige Beitraege.
 //
 //   node lib/seed.mjs --lang de
-//   node lib/seed.mjs --lang en --url http://localhost:8081
+//   node lib/seed.mjs --lang en --url http://localhost:8082
 //
 // Warum ueber den Browser und nicht per curl: die App-Endpunkte haengen an einer
 // Nextcloud-Sitzung samt CSRF-Token. Aus einer eingeloggten Seite heraus ist
@@ -31,7 +31,7 @@ function arg(name, fallback = null) {
 const flag = (name) => process.argv.includes(`--${name}`);
 
 const LANG = arg('lang', 'de');
-const URL_BASE = arg('url', 'http://localhost:8081').replace(/\/$/, '');
+const URL_BASE = arg('url', 'http://localhost:8082').replace(/\/$/, '');
 const USER = arg('user', 'andrea');
 const PASS = demoPass(arg('pass'));
 const PORT = Number(arg('port', '9444'));
