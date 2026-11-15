@@ -34,14 +34,13 @@
 				{
 					"cue": "role",
 					"text": "Board · Treasurer · Auditors"
-				}
-			],
-			"zooms": [
+				},
 				{
 					"cue": "backup",
-					"target": "sicherung"
+					"text": "One backup – everything included"
 				}
 			],
+			"zooms": [],
 			"vo": "Vereinsbuchhaltung runs in your own Nextcloud. No subscription, no outside provider, the data stays with your club. Still, the board, the treasurer and the auditors work from anywhere on the same figures, even on a phone. Each role sees what it needs. And if you ever move, you take everything along in a single backup."
 		},
 		{

@@ -184,6 +184,8 @@ export async function createContext(tab, { lang, sceneId, framesDir, clock = mak
 
 	/** Mittelpunkt eines Elements in CSS-Pixeln - dorthin faehrt der Cursor. */
 	async function center(selector) {
+		// Feste Koordinaten (z. B. die Dateikarte von dragFile) direkt.
+		if (selector && typeof selector.x === 'number' && typeof selector.y === 'number') return { x: selector.x, y: selector.y };
 		const box = await evaluate(`(() => {
 			const el = ${selectorExpression(selector)};
 			if (!el) return null;
@@ -823,6 +825,106 @@ export async function createContext(tab, { lang, sceneId, framesDir, clock = mak
 		},
 
 		/**
+		 * Datei sichtbar hineinziehen: eine Dateikarte (Symbol + Name) gleitet
+		 * vom rechten Bildrand herein, der Cursor greift sie und zieht sie auf
+		 * das Ziel. Dort laufen dragenter/dragover (die Ablageflaeche hebt sich
+		 * hervor) und drop mit einem echten File im DataTransfer - die App
+		 * verarbeitet die Datei genau wie beim echten Ziehen.
+		 */
+		async dragFile(filePath, target, { label = null, duration = 1300 } = {}) {
+			// Die App zeigt den Dateinamen an - er soll zur Karte passen.
+			const name = label ?? filePath.replace(/\\/g, '/').split('/').pop();
+			const mime = /\.pdf$/i.test(name) ? 'application/pdf' : /\.png$/i.test(name) ? 'image/png' : /\.jpe?g$/i.test(name) ? 'image/jpeg' : 'text/csv';
+			const binaer = mime !== 'text/csv';
+			const inhalt = binaer ? readFileSync(filePath).toString('base64') : readFileSync(filePath, 'utf8');
+			const teil = binaer
+				? `Uint8Array.from(atob(${JSON.stringify(inhalt)}), (c) => c.charCodeAt(0))`
+				: JSON.stringify(inhalt);
+			const ziel = await center(target);
+			const vp = await evaluate('({ w: window.innerWidth, h: window.innerHeight })');
+			// Weit genug links, dass auch ein langer Dateiname ganz im Bild ist.
+			const start = { x: vp.w - 560, y: Math.round(vp.h * 0.72) };
+			const anzeige = name;
+			const farbe = mime === 'application/pdf' ? '#d93025' : '#1e8e3e';
+			const kuerzel = (name.split('.').pop() || '').toUpperCase();
+
+			// Karte am rechten Rand einblenden.
+			await evaluate(`(() => {
+				const o = window.__vbhOverlay;
+				const alt = document.getElementById('vbh-video-dragchip');
+				if (alt) alt.remove();
+				const chip = document.createElement('div');
+				chip.id = 'vbh-video-dragchip';
+				Object.assign(chip.style, {
+					position: 'absolute', left: '0', top: '0', display: 'flex', alignItems: 'center', gap: '14px',
+					padding: '14px 22px 14px 16px', background: '#fff', borderRadius: '10px',
+					boxShadow: '0 18px 40px rgba(0,0,0,.35)', border: '1px solid rgba(0,0,0,.08)',
+					font: '600 22px var(--font-face, "Noto Sans", "Segoe UI", sans-serif)', color: '#222',
+					transform: 'translate(${vp.w + 40}px, ${start.y - 34}px)', opacity: '0',
+					transition: 'transform 600ms cubic-bezier(.22,.61,.36,1), opacity 300ms ease-out',
+					willChange: 'transform', whiteSpace: 'nowrap',
+				});
+				chip.innerHTML = '<div style="width:44px;height:54px;border-radius:5px;background:${farbe};color:#fff;'
+					+ 'display:flex;align-items:flex-end;justify-content:center;padding-bottom:7px;box-sizing:border-box;'
+					+ 'font:700 12px sans-serif;letter-spacing:.5px">${kuerzel}</div>'
+					+ '<span>' + ${JSON.stringify(anzeige)}.replace(/[<&]/g, (c) => c === '<' ? '&lt;' : '&amp;') + '</span>';
+				o.root.insertBefore(chip, o.cursor);
+				requestAnimationFrame(() => {
+					chip.style.opacity = '1';
+					chip.style.transform = 'translate(${start.x - 20}px, ${start.y - 34}px)';
+				});
+				return true;
+			})()`);
+			await sleep(650);
+
+			// Greifen.
+			await ctx.moveTo({ x: start.x + 30, y: start.y }, { duration: 500 });
+			await ctx.pulse();
+			await sleep(200);
+
+			// Ziehen: Karte und Cursor gemeinsam, die Karte leicht gekippt.
+			await evaluate(`(() => {
+				const o = window.__vbhOverlay;
+				const chip = document.getElementById('vbh-video-dragchip');
+				const ease = 'cubic-bezier(.45,.05,.35,1)';
+				chip.style.transition = 'transform ${duration}ms ' + ease + ', box-shadow 300ms';
+				chip.style.boxShadow = '0 26px 60px rgba(0,0,0,.45)';
+				chip.style.transform = 'translate(${ziel.x - 50}px, ${ziel.y - 34}px) rotate(-3deg)';
+				o.cursor.style.transition = 'transform ${duration}ms ' + ease;
+				o.cursor.style.transform = 'translate(${ziel.x}px, ${ziel.y}px)';
+				return true;
+			})()`);
+			await sleep(Math.round(duration * 0.7));
+			const ok = await evaluate(`(() => {
+				const el = ${selectorExpression(target)};
+				if (!el) return false;
+				const dt = new DataTransfer();
+				dt.items.add(new File([${teil}], ${JSON.stringify(name)}, { type: ${JSON.stringify(mime)} }));
+				window.__vbhDrag = { el, dt };
+				for (const typ of ['dragenter', 'dragover']) {
+					el.dispatchEvent(new DragEvent(typ, { bubbles: true, cancelable: true, dataTransfer: dt }));
+				}
+				return true;
+			})()`);
+			if (!ok) throw new Error(`Ablageziel nicht gefunden: ${JSON.stringify(target)}`);
+			await sleep(Math.round(duration * 0.3) + 450);
+
+			// Loslassen: Karte schrumpft ins Ziel, dann drop.
+			await evaluate(`(() => {
+				const chip = document.getElementById('vbh-video-dragchip');
+				chip.style.transition = 'transform 280ms ease-in, opacity 280ms ease-in';
+				chip.style.transform = 'translate(${ziel.x - 50}px, ${ziel.y - 34}px) scale(.6)';
+				chip.style.opacity = '0';
+				setTimeout(() => chip.remove(), 400);
+				const { el, dt } = window.__vbhDrag;
+				el.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: dt }));
+				delete window.__vbhDrag;
+				return true;
+			})()`);
+			await sleep(500);
+		},
+
+		/**
 		 * Sichtbaren Dialog schliessen. Der Import-Dialog bleibt nach dem
 		 * Uebernehmen absichtlich mit seinem Ergebnis stehen - ohne diesen
 		 * Schritt wartet die Szene ewig darauf, dass er von selbst verschwindet.
@@ -907,7 +1009,7 @@ export async function createContext(tab, { lang, sceneId, framesDir, clock = mak
 		 * unterbrechen und das Overlay verlieren. Der Rahmen ist gleiche
 		 * Herkunft, also voll steuerbar (contentDocument).
 		 */
-		async showFrame(url, { mode = 'page', width = 390, height = 844, inline = false } = {}) {
+		async showFrame(url, { mode = 'page', width = 390, height = 844, inline = false, ready = null } = {}) {
 			// Die Druckseiten (Kassenbericht, Prüfleitfaden) senden
 			// "frame-ancestors 'none'" - sie lassen sich also gar nicht einbetten.
 			// Dann wird der Inhalt geholt und als srcdoc gesetzt: das ist kein
@@ -939,7 +1041,10 @@ export async function createContext(tab, { lang, sceneId, framesDir, clock = mak
 				const geraet = document.createElement('div');
 				Object.assign(geraet.style, {
 					width: '${width + 24}px', height: '${height + 24}px', borderRadius: '52px',
-					background: '#0d1117', padding: '12px',
+					// border-box: sonst kommt die Polsterung zur Breite hinzu, und
+					// der Rahmen steht rechts und unten 24 px ueber das Bild hinaus.
+					background: '#0d1117', padding: '12px', boxSizing: 'border-box',
+					flex: 'none',
 					boxShadow: '0 40px 90px rgba(0,0,0,.55), inset 0 0 0 2px #2b3a4a',
 					transform: 'scale(1)', transformOrigin: 'center',
 				});
@@ -958,7 +1063,6 @@ export async function createContext(tab, { lang, sceneId, framesDir, clock = mak
 				`}
 
 				document.body.appendChild(huelle);
-				requestAnimationFrame(() => { huelle.style.opacity = '1'; });
 				return true;
 			})()`);
 			// Auf den Inhalt warten, nicht auf eine feste Zeit.
@@ -966,6 +1070,17 @@ export async function createContext(tab, { lang, sceneId, framesDir, clock = mak
 				const f = document.getElementById('vbh-video-iframe');
 				return !!(f && f.contentDocument && f.contentDocument.body && f.contentDocument.body.children.length > 0);
 			})()`, 20000);
+			// Mit "ready" (Ausdruck ueber doc = Dokument im Rahmen) erst
+			// einblenden, wenn der Inhalt wirklich steht - sonst zeigt der Rahmen
+			// zuerst das leere Ladebild.
+			if (ready) {
+				await cdp.waitFor(tab, `(() => {
+					const doc = document.getElementById('vbh-video-iframe').contentDocument;
+					return !!(${ready});
+				})()`, 20000);
+				await sleep(300);
+			}
+			await evaluate(`(() => { document.getElementById('vbh-video-frame').style.opacity = '1'; return true; })()`);
 
 			// Nach dem Einfuegen nachmessen statt der gerechneten Skalierung zu
 			// vertrauen. Gemessen wird die *unskalierte* Hoehe: die Polsterung des
@@ -994,14 +1109,22 @@ export async function createContext(tab, { lang, sceneId, framesDir, clock = mak
 		async scrollFrame(y, { duration = 2200 } = {}) {
 			await evaluate(`(() => {
 				const doc = document.getElementById('vbh-video-iframe').contentDocument;
-				const start = doc.documentElement.scrollTop || doc.body.scrollTop || 0;
+				// Die App scrollt nicht im Dokument, sondern in einem eigenen
+				// Container (Nextcloud-Inhaltsbereich). Den groessten sichtbaren
+				// scrollbaren Bereich nehmen; Druckseiten scrollen im Dokument.
+				const kandidaten = Array.from(doc.querySelectorAll('*')).filter((e) => {
+					if (e.scrollHeight <= e.clientHeight + 4 || e.clientHeight < 200) return false;
+					const o = doc.defaultView.getComputedStyle(e).overflowY;
+					return o === 'auto' || o === 'scroll';
+				}).sort((a, b) => b.clientHeight * b.clientWidth - a.clientHeight * a.clientWidth);
+				const el = kandidaten[0] || doc.scrollingElement || doc.documentElement;
+				const start = el.scrollTop || 0;
 				const distanz = ${y} - start;
 				const t0 = performance.now();
 				function schritt(now) {
 					const p = Math.min(1, (now - t0) / ${duration});
 					const eased = p < .5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
-					doc.documentElement.scrollTop = start + distanz * eased;
-					doc.body.scrollTop = start + distanz * eased;
+					el.scrollTop = start + distanz * eased;
 					if (p < 1) requestAnimationFrame(schritt);
 				}
 				requestAnimationFrame(schritt);

@@ -34,6 +34,7 @@ const T = {
 		auslage: { betrag: '18,50', nummer: 'MW-55120', laden: 'Musikhaus Weber', zweck: 'Stimmgabel für die Probenarbeit' },
 		beleg: ['Musikhaus Weber', 'Rechnung MW-55120', 'Stimmgabel a1 440 Hz', 'Summe 18,50 EUR', 'Bar bezahlt'],
 		cueERechnung: 'E-Rechnung', cueGiroCode: 'GiroCode', cueMahnung: 'Mahnung', cueUmgekehrt: 'Umgekehrt',
+		belegName: 'Quittung_Musikhaus_Weber.pdf',
 		cueBeleg: 'Beleg', cueEin: 'selbst', cueVorstand: 'Vorstand', cueFrei: 'frei', cueErstattet: 'erstattet', cueBuchung: 'Buchung',
 	},
 	en: {
@@ -44,6 +45,7 @@ const T = {
 		auslage: { betrag: '18.50', nummer: 'MW-55120', laden: 'Weber Music Shop', zweck: 'Tuning fork for rehearsals' },
 		beleg: ['Weber Music Shop', 'Invoice MW-55120', 'Tuning fork A 440 Hz', 'Total 18.50 EUR', 'Paid in cash'],
 		cueERechnung: 'e-invoicing', cueGiroCode: 'GiroCode', cueMahnung: 'reminder', cueUmgekehrt: 'other',
+		belegName: 'receipt_weber_music.pdf',
 		cueBeleg: 'receipt', cueEin: 'themselves', cueVorstand: 'board', cueFrei: 'approves', cueErstattet: 'reimburses', cueBuchung: 'entry',
 	},
 };
@@ -176,8 +178,9 @@ export async function record(ctx) {
 	// braucht eine Server-Runde, und der Vorstand soll die Auslage zur Zeile
 	// "Der Vorstand ..." schon in der Liste haben.
 	await m.sleep(250);
-	await m.setFile(ctx.belegDatei);
-	await m.waitFor(`/beleg-auslage/.test(__vbhVisibleText('.modal-container'))`, 10000);
+	// Den Beleg sichtbar in das Formular ziehen (kuerzer als im Import).
+	await m.dragFile(ctx.belegDatei, '.modal-container .vbh-receipts-drop', { label: t.belegName, duration: 900 });
+	await m.waitFor(`__vbhVisibleText('.modal-container').includes(${JSON.stringify(t.belegName)})`, 10000);
 	await m.evaluate(`(() => { const c = document.querySelector('.modal-container input[type=checkbox]'); c.scrollIntoView({ block: 'center', behavior: 'smooth' }); return true; })()`);
 	await m.sleep(500);
 	await m.click('.modal-container input[type=checkbox]', { settle: 300 });

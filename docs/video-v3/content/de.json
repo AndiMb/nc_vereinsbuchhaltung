@@ -34,14 +34,13 @@
 				{
 					"cue": "Rolle",
 					"text": "Vorstand · Kasse · Kassenprüfung"
-				}
-			],
-			"zooms": [
+				},
 				{
 					"cue": "Sicherung",
-					"target": "sicherung"
+					"text": "Eine Sicherung – der ganze Bestand"
 				}
 			],
+			"zooms": [],
 			"vo": "Die Vereinsbuchhaltung läuft in eurer eigenen Nextcloud. Kein Abo, kein fremder Anbieter, die Daten bleiben beim Verein. Trotzdem arbeiten Vorstand, Kasse und Prüfung von überall auf demselben Stand, auch am Handy. Jede Rolle sieht, was sie braucht. Und wollt ihr einmal umziehen, nehmt ihr alles in einer einzigen Sicherung mit."
 		},
 		{

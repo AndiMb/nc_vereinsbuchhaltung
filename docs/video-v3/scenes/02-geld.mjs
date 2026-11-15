@@ -17,12 +17,14 @@ const T = {
 	de: {
 		tab: 'Buchungen', alle: 'Alle Buchungen', importieren: 'Umsätze importieren', dubletten: 'Dubletten',
 		uebernehmen: 'Buchungen importieren', kostenstelle: 'Kostenstelle', speichern: 'Speichern',
+		datei: 'Umsaetze_Girokonto_2026-11.csv',
 		cueAuszug: 'Kontoauszug', cueHinein: 'hinein', cueUeberspringt: 'überspringt', cueRegeln: 'Regeln',
 		cueMehrere: 'mehrere', cueRechnung: 'Rechnung', cueKostenstelle: 'Kostenstelle',
 	},
 	en: {
 		tab: 'Entries', alle: 'All entries', importieren: 'Import transactions', dubletten: 'duplicates',
 		uebernehmen: 'Import', kostenstelle: 'Cost centre', speichern: 'Save',
+		datei: 'transactions_checking_2026-11.csv',
 		cueAuszug: 'drop', cueHinein: 'statement', cueUeberspringt: 'skips', cueRegeln: 'Rules',
 		cueMehrere: 'several', cueRechnung: 'invoice', cueKostenstelle: 'cost',
 	},
@@ -39,11 +41,13 @@ export async function record(ctx) {
 	ctx.shot('import');
 
 	// Kontoauszug hineinziehen.
-	await ctx.until(ctx.cueAt(t.cueAuszug) - 0.6);
+	// Frueh oeffnen: das Ziehen selbst dauert gut drei Sekunden und soll zu
+	// "hinein" / "statement" auf der Ablageflaeche landen.
+	await ctx.until(ctx.cueAt(t.cueAuszug) - 1.2);
 	await ctx.click({ text: t.importieren, tag: 'button' });
 	await ctx.waitFor(`__vbhVisible('.modal-container input[type=file]').length > 0 || document.querySelector('.modal-container input[type=file]') !== null`);
-	await ctx.until(ctx.cueAt(t.cueHinein));
-	await ctx.setFile(join(root, 'build', ctx.lang, 'kontoauszug.csv'));
+	// Sichtbar hineinziehen: Dateikarte vom Bildrand auf die Ablageflaeche.
+	await ctx.dragFile(join(root, 'build', ctx.lang, 'kontoauszug.csv'), '.modal-container .vbh-dropzone', { label: t.datei });
 	await ctx.waitFor(`__vbhVisibleText('.modal-container').toLowerCase().includes(${JSON.stringify('3 ' + t.dubletten.toLowerCase())})`, 15000);
 
 	// Bereits Gebuchtes ueberspringt sie: die Zaehler "neu / Dubletten / gesamt".
