@@ -128,5 +128,47 @@
 			],
 			"vo": "Probiert es aus: Ein Klick legt einen Beispielverein an. Die Vereinsbuchhaltung gibt es kostenlos und quelloffen im Nextcloud App Store. Eure Daten, eure Cloud."
 		}
-	]
+	],
+	"publish": {
+		"badge": "Eure Daten, eure Cloud",
+		"zeile1": "Vereins&shy;buchhaltung",
+		"zeile2": "in eurer Nextcloud",
+		"fuss": "Kasse · Beiträge per SEPA · Rechnungen · Kassenprüfung",
+		"titel": "Vereinsbuchhaltung für Nextcloud – die Vereinsfinanzen in der eigenen Cloud",
+		"einleitung": [
+			"Für Vorstände, Kassenwarte und Kassenprüfer: die Vereinsbuchhaltung läuft in eurer eigenen Nextcloud – ohne Abo und ohne fremden Anbieter. Kontoauszüge importieren, Beiträge per SEPA einziehen, Rechnungen mit E-Rechnung und GiroCode schreiben, Auslagen erstatten, Finanzplan und Sphären im Blick behalten und den Kassenbericht für die Mitgliederversammlung auf Knopfdruck erzeugen.",
+			"",
+			"Im Video:"
+		],
+		"kapitel": {
+			"00-auftakt": "Worum es geht",
+			"01-souveraen": "In der eigenen Nextcloud",
+			"02-geld": "Kontoauszug, Regeln, Belege",
+			"03-beitraege": "Mitgliedsbeiträge und SEPA-Lastschrift",
+			"04-rechnungen": "Rechnungen und Auslagen",
+			"05-steuern": "Finanzplan, Kostenstellen, Sphären",
+			"06-pruefung": "Kassenbericht, Kassenprüfung, Jahresabschluss",
+			"07-abspann": "Ausprobieren"
+		},
+		"schluss": [
+			"",
+			"Die App ist kostenlos und quelloffen (AGPL) und liegt im Nextcloud App Store.",
+			"Quellcode: https://github.com/AndiMb/nc_vereinsbuchhaltung",
+			"",
+			"Alle im Video gezeigten Daten sind erfunden: ein Beispielchor, erfundene Namen, IBANs aus dem Testbereich."
+		],
+		"schlagworte": [
+			"Nextcloud",
+			"Vereinsbuchhaltung",
+			"Verein",
+			"Vorstand",
+			"Kassenwart",
+			"SEPA",
+			"E-Rechnung",
+			"Kassenbericht",
+			"Digitale Souveränität",
+			"Open Source",
+			"Selfhosting"
+		]
+	}
 }

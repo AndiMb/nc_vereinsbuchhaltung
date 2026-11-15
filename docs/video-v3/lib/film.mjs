@@ -13,6 +13,8 @@ import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync, existsSync, mkdirSync, cpSync, readdirSync, statSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { computeTimeline } from './timeline.mjs';
+import { loadCues } from './cue.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, '..');
@@ -173,11 +175,8 @@ export function musicPlan({ total, musicSeconds, voices, duck = 0.5, ramp = 0.35
 	return { start, duration, automation: { version: 1, lanes: [{ target: 'volume', points: sorted }] } };
 }
 
-/** Alle Dateien des Films als Map fuer writeGenerated. */
-export async function buildFilm(lang, { templateDir = join(root, 'film-template'), buildDir = join(root, 'build', lang), musicFile = join(root, '..', '..', 'lvymusic-calm-background-for-video-121519.mp3') } = {}) {
-	const { computeTimeline } = await import('./timeline.mjs');
-	const { loadCues } = await import('./cue.mjs');
-	const { duration: probeDuration } = await import('./ffmpeg.mjs');
+/** Zeitleiste einer Sprache aus Inhalt, Vertonung und Manifesten (fuer Film, Untertitel, Pruefung). */
+export function loadFilmInputs(lang, { buildDir = join(root, 'build', lang) } = {}) {
 	const content = JSON.parse(readFileSync(join(root, 'content', `${lang}.json`), 'utf8'));
 	const timing = JSON.parse(readFileSync(join(buildDir, 'vo', 'timing.json'), 'utf8'));
 	const manifests = {};
@@ -187,7 +186,16 @@ export async function buildFilm(lang, { templateDir = join(root, 'film-template'
 		if (existsSync(mf)) manifests[s.id] = JSON.parse(readFileSync(mf, 'utf8'));
 		cues[s.id] = loadCues(lang, s.id);
 	}
-	const tl = computeTimeline({ scenes: content.scenes, timing, manifests, cues });
+	const timeline = computeTimeline({ scenes: content.scenes, timing, manifests, cues });
+	return { content, timing, manifests, cues, timeline };
+}
+
+export const buildTimeline = (lang, opts) => loadFilmInputs(lang, opts).timeline;
+
+/** Alle Dateien des Films als Map fuer writeGenerated. */
+export async function buildFilm(lang, { templateDir = join(root, 'film-template'), buildDir = join(root, 'build', lang), musicFile = join(root, '..', '..', 'lvymusic-calm-background-for-video-121519.mp3') } = {}) {
+	const { duration: probeDuration } = await import('./ffmpeg.mjs');
+	const { content, timing, manifests, cues, timeline: tl } = loadFilmInputs(lang, { buildDir });
 
 	const files = {};
 	const tplBlock = readFileSync(join(templateDir, 'compositions', 'block.html'), 'utf8');

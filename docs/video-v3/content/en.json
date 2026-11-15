@@ -128,5 +128,46 @@
 			],
 			"vo": "Try it out: one click creates a sample club. Vereinsbuchhaltung is free and open source in the Nextcloud App Store. Your data, your cloud."
 		}
-	]
+	],
+	"publish": {
+		"badge": "Your data, your cloud",
+		"zeile1": "Club accounting",
+		"zeile2": "in your Nextcloud",
+		"fuss": "Cash book · SEPA fees · invoices · audit",
+		"titel": "Club accounting in your own Nextcloud – the Vereinsbuchhaltung app",
+		"einleitung": [
+			"For club boards, treasurers and auditors: Vereinsbuchhaltung runs inside your own Nextcloud – no subscription, no third-party provider. Import bank statements, collect membership fees by SEPA direct debit, write invoices with e-invoicing and GiroCode, reimburse expenses, keep an eye on budget and tax spheres, and create the treasurer’s report for the general meeting in one click.",
+			"",
+			"In this video:"
+		],
+		"kapitel": {
+			"00-auftakt": "What it is about",
+			"01-souveraen": "In your own Nextcloud",
+			"02-geld": "Bank statements, rules, receipts",
+			"03-beitraege": "Membership fees and SEPA direct debit",
+			"04-rechnungen": "Invoices and expenses",
+			"05-steuern": "Budget, cost centres, tax spheres",
+			"06-pruefung": "Treasurer’s report, audit, year-end closing",
+			"07-abspann": "Try it out"
+		},
+		"schluss": [
+			"",
+			"The app is free and open source (AGPL) and available in the Nextcloud App Store.",
+			"Source code: https://github.com/AndiMb/nc_vereinsbuchhaltung",
+			"",
+			"All data shown is invented: a sample choir, made-up names, IBANs from the documented test range."
+		],
+		"schlagworte": [
+			"Nextcloud",
+			"club accounting",
+			"nonprofit",
+			"board",
+			"treasurer",
+			"SEPA",
+			"e-invoicing",
+			"digital sovereignty",
+			"open source",
+			"selfhosted"
+		]
+	}
 }
