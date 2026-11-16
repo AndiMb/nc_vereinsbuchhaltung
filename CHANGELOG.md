@@ -70,6 +70,11 @@ verwenden, z. B. `**Neu:**`.
   CAMT.053 anbieten. Kontoauszüge als ZIP-Archiv, etwa eine Datei je Tag,
   lassen sich direkt importieren oder in den Wachordner legen; die App liest
   jede Datei darin. Handbuch Kapitel 3.2.
+- **Auslagen als Entwurf speichern** (#356): Unter *Mein Bereich → Auslagen*
+  speichert **Als Entwurf speichern** einen unvollständigen Antrag, auch ohne
+  Betrag, Beleg oder Erklärung, damit er sich später ergänzen und einreichen
+  lässt. Entwürfe sieht nur das Mitglied; die Verwalter erfahren erst beim
+  Einreichen davon. Handbuch Kapitel 4.6.
 
 **Behoben:**
 - Nach dem Import eines Kontoauszugs zeigt *Buchungen → Alle Buchungen*

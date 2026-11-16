@@ -16,6 +16,23 @@
 					{{ t('Neue Auslagen lassen sich derzeit nicht einreichen. Ihre bisherigen Anträge sehen Sie weiterhin.') }}
 				</p>
 
+				<section v-if="drafts.length" class="vbh-reimb-drafts" :aria-label="t('Entwürfe')">
+					<h5 class="vbh-reimb-drafts-title">
+						{{ t('Entwürfe') }}
+					</h5>
+					<p class="vbh-reimb-help">
+						{{ t('Nur Sie sehen Ihre Entwürfe. Erst mit „Einreichen“ geht der Antrag an die Verwalter.') }}
+					</p>
+					<ul class="vbh-reimb-draft-list">
+						<li v-for="draft in drafts" :key="draft.id">
+							<button type="button" class="vbh-reimb-draft" @click="openDraft(draft)">
+								<span class="vbh-reimb-draft-purpose">{{ draft.purpose || t('Ohne Zweck') }}</span>
+								<span class="vbh-reimb-draft-meta">{{ draftMeta(draft) }}</span>
+							</button>
+						</li>
+					</ul>
+				</section>
+
 				<div v-if="items.length" class="vbh-tablecard">
 					<table class="vbh-table vbh-stack vbh-reimb-table">
 						<thead>
@@ -58,7 +75,7 @@
 					</table>
 				</div>
 				<NcEmptyContent
-					v-else
+					v-else-if="!drafts.length"
 					:name="t('Noch keine Auslagen')"
 					:description="canSubmit ? t('Mit „Auslage einreichen“ legen Sie den ersten Antrag an.') : ''" />
 			</div>
@@ -75,13 +92,16 @@
 			@update:show="submitOpen = $event">
 			<div class="vbh-modal-inner vbh-reimb-dialog">
 				<h2 id="vbh-modal-title-reimb-submit" class="vbh-modal-title">
-					{{ t('Auslage einreichen') }}
+					{{ draftId ? t('Entwurf bearbeiten') : t('Auslage einreichen') }}
 				</h2>
 				<p class="vbh-reimb-intro">
 					{{ t('Laden Sie den Beleg hoch und nennen Sie den Betrag. Die Verwalter prüfen den Antrag, danach überweist der Verein.') }}
 				</p>
 				<p class="vbh-reimb-help vbh-reimb-intro-more">
 					{{ t('Mehrere Rechnungen? Reichen Sie jede als eigenen Antrag ein. Mit „Einreichen und weitere erfassen“ bleiben Kontoverbindung und Erklärung ausgefüllt.') }}
+				</p>
+				<p class="vbh-reimb-help vbh-reimb-intro-more">
+					{{ t('Noch nicht alles beisammen? Mit „Als Entwurf speichern“ sichern Sie den Stand und reichen später ein. Den Entwurf sehen nur Sie.') }}
 				</p>
 
 				<form class="vbh-reimb-form" novalidate @submit.prevent="submit">
@@ -119,6 +139,18 @@
 
 					<div class="vbh-reimb-field">
 						<span class="vbh-reimb-label">{{ t('Belege') }}</span>
+						<ul v-if="form.draftFiles.length" class="vbh-reimb-draft-files">
+							<li v-for="file in form.draftFiles" :key="file.id">
+								<a :href="draftFileUrl(file)" target="_blank" rel="noopener noreferrer">{{ file.fileName }}</a>
+								<span class="vbh-reimb-help">{{ formatFileSize(file.fileSize) }}</span>
+								<NcButton
+									variant="tertiary"
+									:aria-label="tRaw('Beleg „{name}“ entfernen', { name: file.fileName })"
+									@click="removeDraftFile(file)">
+									{{ t('Entfernen') }}
+								</NcButton>
+							</li>
+						</ul>
 						<ReimbursementReceiptPicker v-model="form.files" />
 					</div>
 
@@ -168,10 +200,25 @@
 				</p>
 				<div class="vbh-modal-actions vbh-reimb-actions">
 					<span v-if="missing.length" class="vbh-reimb-missing">{{ t('Noch nötig: {fields}', { fields: missing.join(', ') }) }}</span>
+					<NcButton
+						v-if="draftId"
+						variant="tertiary"
+						class="vbh-reimb-delete-draft"
+						:disabled="busy"
+						@click="deleteDraft">
+						{{ confirmDelete ? t('Entwurf wirklich löschen') : t('Entwurf löschen') }}
+					</NcButton>
 					<NcButton variant="tertiary" @click="closeSubmit">
 						{{ t('Abbrechen') }}
 					</NcButton>
-					<NcButton variant="secondary" :disabled="busy || missing.length > 0" @click="submitAndAddAnother">
+					<NcButton variant="secondary" :disabled="busy || !hasContent" @click="saveDraft">
+						{{ t('Als Entwurf speichern') }}
+					</NcButton>
+					<NcButton
+						v-if="!draftId"
+						variant="secondary"
+						:disabled="busy || missing.length > 0"
+						@click="submitAndAddAnother">
 						{{ t('Einreichen und weitere erfassen') }}
 					</NcButton>
 					<NcButton variant="primary" :disabled="busy || missing.length > 0" @click="submit">
@@ -310,7 +357,7 @@ import { formatIban, ibanState, normalizeIban } from '../lib/iban.js'
 import { todayIso } from '../lib/invoices.js'
 import { focusOnOpen } from '../lib/modalFocus.js'
 import { RECEIPT_ACCEPT } from '../lib/reimbursementFiles.js'
-import { emptyReimbursementForm, emptyReimbursementInvoice, missingReimbursementFields, reimbursementProgressText } from '../lib/reimbursements.js'
+import { emptyReimbursementForm, emptyReimbursementInvoice, missingReimbursementFields, reimbursementDraftForm, reimbursementFormHasContent, reimbursementProgressText } from '../lib/reimbursements.js'
 
 /**
  * „Mein Bereich → Auslagen“ (docs/reimbursement-design.md): die eigenen
@@ -329,6 +376,9 @@ export default {
 			suggestedAccountHolder: '',
 			declarationText: '',
 			items: [],
+			drafts: [],
+			draftId: null,
+			confirmDelete: false,
 			mdiPlus,
 			receiptAccept: RECEIPT_ACCEPT,
 			submitOpen: false,
@@ -348,6 +398,9 @@ export default {
 
 		/** Was zum Einreichen noch fehlt, als Liste von Feldnamen – steht neben dem Knopf. */
 		missing() { return missingReimbursementFields(this.form) },
+
+		/** Ein ganz leeres Formular lohnt keinen Entwurf. */
+		hasContent() { return reimbursementFormHasContent(this.form) },
 	},
 
 	async mounted() {
@@ -376,6 +429,7 @@ export default {
 				this.suggestedAccountHolder = data.suggestedAccountHolder || ''
 				this.declarationText = data.declarationText || ''
 				this.items = data.items
+				this.drafts = data.drafts || []
 			} catch (e) {
 				showError(errMsg(e, this.t('Die Auslagen konnten nicht geladen werden.')))
 			} finally {
@@ -385,6 +439,20 @@ export default {
 
 		openSubmit() {
 			this.form = this.emptyForm()
+			this.draftId = null
+			this.confirmDelete = false
+			this.error = ''
+			this.submitOpen = true
+			focusOnOpen(this, () => this.$refs.purpose)
+		},
+
+		/** Öffnet einen gespeicherten Entwurf im selben Formular. */
+		openDraft(draft) {
+			const form = reimbursementDraftForm(draft, { accountHolder: this.suggestedAccountHolder, iban: this.suggestedIban })
+			form.iban = formatIban(form.iban)
+			this.form = form
+			this.draftId = draft.id
+			this.confirmDelete = false
 			this.error = ''
 			this.submitOpen = true
 			focusOnOpen(this, () => this.$refs.purpose)
@@ -392,23 +460,35 @@ export default {
 
 		closeSubmit() { this.submitOpen = false },
 
+		/** Die Formularfelder; ohne Betrag bleibt `amount` leer (für Entwürfe). */
+		formData() {
+			const data = new FormData()
+			data.append('amount', Number(this.form.amount) > 0 ? String(roundCents(this.form.amount)) : '')
+			data.append('expenseDate', this.form.expenseDate || '')
+			data.append('purpose', this.form.purpose.trim())
+			data.append('invoiceNumber', this.form.invoiceNumber.trim())
+			data.append('supplier', this.form.supplier.trim())
+			data.append('iban', this.form.iban.trim())
+			data.append('accountHolder', this.form.accountHolder.trim())
+			for (const file of this.form.files) { data.append('files[]', file) }
+			for (const file of this.form.draftFiles) { data.append('keepFileIds[]', String(file.id)) }
+			return data
+		},
+
 		/** Sendet den Antrag; `true`, wenn er eingereicht wurde. */
 		async send() {
 			if (this.busy || this.missing.length > 0) { return false }
 			this.busy = true
 			this.error = ''
 			try {
-				const data = new FormData()
-				data.append('amount', String(roundCents(this.form.amount)))
-				data.append('expenseDate', this.form.expenseDate)
-				data.append('purpose', this.form.purpose.trim())
-				data.append('invoiceNumber', this.form.invoiceNumber.trim())
-				data.append('supplier', this.form.supplier.trim())
-				data.append('iban', this.form.iban.trim())
-				data.append('accountHolder', this.form.accountHolder.trim())
+				const data = this.formData()
 				data.append('declaration', this.form.declaration ? '1' : '0')
-				for (const file of this.form.files) { data.append('files[]', file) }
-				await api.selfSubmitReimbursement(data)
+				if (this.draftId) {
+					await api.selfSubmitReimbursementDraft(this.draftId, data)
+					this.draftId = null
+				} else {
+					await api.selfSubmitReimbursement(data)
+				}
 				showSuccess(this.t('Die Auslage wurde eingereicht.'))
 				return true
 			} catch (e) {
@@ -436,6 +516,63 @@ export default {
 				focusOnOpen(this, () => this.$refs.purpose)
 				this.load()
 			}
+		},
+
+		/** Speichert den Stand als Entwurf; Pflichtangaben und Erklärung braucht es dafür nicht. */
+		async saveDraft() {
+			if (this.busy || !this.hasContent) { return }
+			this.busy = true
+			this.error = ''
+			try {
+				const data = this.formData()
+				if (this.draftId) {
+					await api.selfUpdateReimbursementDraft(this.draftId, data)
+				} else {
+					await api.selfCreateReimbursementDraft(data)
+				}
+				showSuccess(this.t('Der Entwurf wurde gespeichert. Nur Sie sehen ihn.'))
+				this.submitOpen = false
+				await this.load()
+			} catch (e) {
+				this.error = errMsg(e, this.t('Der Entwurf konnte nicht gespeichert werden.'))
+			} finally {
+				this.busy = false
+			}
+		},
+
+		/** Erst der zweite Klick löscht – ein Versehen kostet sonst die Vorarbeit. */
+		async deleteDraft() {
+			if (!this.confirmDelete) {
+				this.confirmDelete = true
+				return
+			}
+			this.busy = true
+			this.error = ''
+			try {
+				await api.selfDeleteReimbursementDraft(this.draftId)
+				showSuccess(this.t('Der Entwurf wurde gelöscht.'))
+				this.submitOpen = false
+				this.draftId = null
+				await this.load()
+			} catch (e) {
+				this.error = errMsg(e, this.t('Der Entwurf konnte nicht gelöscht werden.'))
+			} finally {
+				this.busy = false
+			}
+		},
+
+		removeDraftFile(file) {
+			this.form.draftFiles = this.form.draftFiles.filter((f) => f.id !== file.id)
+		},
+
+		draftFileUrl(file) { return api.selfReimbursementDraftFileUrl(this.draftId, file.id) },
+
+		/** Kurzinfo in der Entwurfsliste: Betrag, Belege, zuletzt gespeichert. */
+		draftMeta(draft) {
+			const parts = [draft.amountCents !== null ? formatMoney(draft.amountCents / 100) : this.t('ohne Betrag')]
+			parts.push(this.n('%n Beleg', '%n Belege', draft.files.length))
+			parts.push(this.t('gespeichert am {date}', { date: formatDate(draft.updatedAt.slice(0, 10)) }))
+			return parts.join(' · ')
 		},
 
 		async openDetail(id) {
@@ -509,6 +646,73 @@ export default {
 
 .vbh-reimb-row {
 	cursor: pointer;
+}
+
+.vbh-reimb-drafts {
+	margin-block: 12px 16px;
+}
+
+.vbh-reimb-drafts-title {
+	margin: 0 0 4px;
+	font-weight: bold;
+}
+
+.vbh-reimb-draft-list {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	margin-top: 8px;
+}
+
+.vbh-reimb-draft {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 2px;
+	width: 100%;
+	min-height: 44px;
+	margin: 0;
+	padding: 8px 12px;
+	border: 1px dashed var(--color-border-dark);
+	border-radius: var(--border-radius-large);
+	background: var(--color-main-background);
+	color: var(--color-main-text);
+	font-weight: normal;
+	text-align: start;
+	cursor: pointer;
+}
+
+.vbh-reimb-draft:hover,
+.vbh-reimb-draft:focus-visible {
+	background: var(--color-background-hover);
+}
+
+.vbh-reimb-draft-purpose {
+	font-weight: bold;
+}
+
+.vbh-reimb-draft-meta {
+	color: var(--color-text-maxcontrast);
+	font-size: 0.9em;
+}
+
+.vbh-reimb-draft-files {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	margin-bottom: 8px;
+}
+
+.vbh-reimb-draft-files li {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 4px 12px;
+}
+
+.vbh-reimb-draft-files a {
+	overflow-wrap: anywhere;
+	text-decoration: underline;
 }
 
 .vbh-reimb-status {

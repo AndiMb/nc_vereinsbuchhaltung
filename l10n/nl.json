@@ -4769,7 +4769,22 @@
         "Das ZIP-Archiv enthält keine Buchungen.": "Het ZIP-archief bevat geen boekingen.",
         "Das ZIP-Archiv ist beschädigt und lässt sich nicht öffnen.": "Het ZIP-archief is beschadigd en kan niet worden geopend.",
         "Das ZIP-Archiv enthält zu viele Dateien.": "Het ZIP-archief bevat te veel bestanden.",
-        "Das ZIP-Archiv ist entpackt zu groß (höchstens 20 MB).": "Het ZIP-archief is uitgepakt te groot (maximaal 20 MB)."
+        "Das ZIP-Archiv ist entpackt zu groß (höchstens 20 MB).": "Het ZIP-archief is uitgepakt te groot (maximaal 20 MB).",
+        "Nur Sie sehen Ihre Entwürfe. Erst mit „Einreichen“ geht der Antrag an die Verwalter.": "Alleen u ziet uw concepten. Pas met „Indienen” gaat de aanvraag naar de beheerders.",
+        "Ohne Zweck": "Zonder doel",
+        "Noch nicht alles beisammen? Mit „Als Entwurf speichern“ sichern Sie den Stand und reichen später ein. Den Entwurf sehen nur Sie.": "Nog niet alles bij elkaar? Met „Opslaan als concept” bewaart u wat u hebt ingevuld en dient u later in. Alleen u ziet het concept.",
+        "Entwurf wirklich löschen": "Concept echt verwijderen",
+        "Entwurf löschen": "Concept verwijderen",
+        "Als Entwurf speichern": "Opslaan als concept",
+        "Der Entwurf wurde gespeichert. Nur Sie sehen ihn.": "Het concept is opgeslagen. Alleen u ziet het.",
+        "Der Entwurf wurde gelöscht.": "Het concept is verwijderd.",
+        "ohne Betrag": "zonder bedrag",
+        "_%n Beleg_::_%n Belege_": [
+            "%n bon",
+            "%n bonnen"
+        ],
+        "gespeichert am {date}": "opgeslagen op {date}",
+        "Eine Angabe ist zu lang (höchstens %d Zeichen).": "Een gegeven is te lang (hoogstens %d tekens)."
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

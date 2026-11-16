@@ -780,6 +780,20 @@ Mitglied **Auslage einreichen**. Der Dialog folgt dem früheren Papierformular:
 ausgefüllt, nur die Rechnung ist wieder leer. Jeder Antrag wird einzeln
 freigegeben oder abgelehnt und einzeln ausgezahlt.
 
+**Entwürfe.** Fehlt noch etwas – die Rechnung ist unterwegs, die IBAN liegt
+zu Hause –, speichert **Als Entwurf speichern** den Stand, auch ohne Betrag,
+Beleg oder Erklärung. Entwürfe stehen unter *Mein Bereich → Auslagen* über
+der Liste der Anträge; ein Klick öffnet den Entwurf wieder im selben Dialog.
+Dort lässt er sich ergänzen, erneut speichern, löschen (zweimal klicken) oder
+einreichen. Die Erklärung wird erst beim Einreichen bestätigt, sie wird nie
+mit dem Entwurf gespeichert. Einen Entwurf sieht nur das Mitglied selbst:
+Verwalter finden ihn weder in *Buchungen → Auslagen* noch in einer Zahl, er
+hat keine Auslagennummer, und seine Belege liegen in der App-Ablage, nicht im
+Wächter-Ordner. Erst mit **Einreichen** entsteht daraus ein gewöhnlicher
+Antrag mit Nummer, Erklärung und Benachrichtigung der Verwalter. Entwürfe
+gehören nicht zum Bestand des Vereins: Sie sind nicht in der Sicherung
+enthalten und verschwinden, wenn das Mitglied gelöscht oder anonymisiert wird.
+
 Die Belege landen in der Belegablage: im Wächter-Ordner
 unter `<Ordner>/<Ausgabejahr>/`, sonst in der App-Ablage. Das Mitglied sieht den
 Wächter-Ordner nie. Solange noch keine Freigabe vorliegt, kann es Belege
@@ -1895,6 +1909,8 @@ Gliederungsberichts (danach stehen wieder die beiden Standardvorlagen bereit)
 und die Zeiträume samt ihrer Festschreibung. **Das Änderungsprotokoll bleibt erhalten.** Mitglieder,
 Mandate, Beitragsgruppen und Zuweisungen (Kapitel 13) gehören nicht zum
 Buchungsbestand und bleiben unberührt (der Einzug wird mitgeräumt, siehe unten).
+Ebenso bleiben die **Entwürfe von Auslagen**, die Mitglieder noch nicht
+eingereicht haben (4.6) – sie gehören den Mitgliedern, nicht der Buchhaltung.
 Gleiches gilt für den Reset-Modus beim xbuc-Import. Beides ist
 unwiderruflich – also nur nach Rücksprache und nie aus Versehen. Wer wirklich
 alles entfernen will, auch Mitglieder, Mandate und Einstellungen – etwa um

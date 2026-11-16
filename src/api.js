@@ -474,6 +474,12 @@ export default {
 	selfAddReimbursementReceipt: (id, formData) => axios.post(url(`/self/reimbursements/${id}/receipts`), formData),
 	selfRemoveReimbursementReceipt: (id, fileId) => axios.delete(url(`/self/reimbursements/${id}/receipts/${fileId}`)),
 	selfReimbursementReceiptUrl: (id, fileId) => generateUrl(`${base}/self/reimbursements/${id}/receipts/${fileId}/view`),
+	// Entwürfe (#356): nur für das Mitglied selbst.
+	selfCreateReimbursementDraft: (formData) => axios.post(url('/self/reimbursement-drafts'), formData),
+	selfUpdateReimbursementDraft: (id, formData) => axios.post(url(`/self/reimbursement-drafts/${id}`), formData),
+	selfDeleteReimbursementDraft: (id) => axios.delete(url(`/self/reimbursement-drafts/${id}`)),
+	selfSubmitReimbursementDraft: (id, formData) => axios.post(url(`/self/reimbursement-drafts/${id}/submit`), formData),
+	selfReimbursementDraftFileUrl: (id, fileId) => generateUrl(`${base}/self/reimbursement-drafts/${id}/files/${fileId}/view`),
 	// Verwaltung (Buchungen -> Auslagen)
 	reimbursements: () => axios.get(url('/reimbursements')),
 	reimbursementsSummary: () => axios.get(url('/reimbursements/summary')),

@@ -105,7 +105,10 @@
         "Ihr Monatsbeitrag wurde von %1$s auf %2$s geändert.": "Dein Monatsbeitrag wurde von %1$s auf %2$s geändert.",
         "Der Vorstand hat Ihren Monatsbeitrag von %1$s auf %2$s geändert.": "Der Vorstand hat deinen Monatsbeitrag von %1$s auf %2$s geändert.",
         "Ihr Jahresbeitrag wurde von %1$s auf %2$s geändert.": "Dein Jahresbeitrag wurde von %1$s auf %2$s geändert.",
-        "Der Vorstand hat Ihren Jahresbeitrag von %1$s auf %2$s geändert.": "Der Vorstand hat deinen Jahresbeitrag von %1$s auf %2$s geändert."
+        "Der Vorstand hat Ihren Jahresbeitrag von %1$s auf %2$s geändert.": "Der Vorstand hat deinen Jahresbeitrag von %1$s auf %2$s geändert.",
+        "Nur Sie sehen Ihre Entwürfe. Erst mit „Einreichen“ geht der Antrag an die Verwalter.": "Nur du siehst deine Entwürfe. Erst mit „Einreichen“ geht der Antrag an die Verwalter.",
+        "Noch nicht alles beisammen? Mit „Als Entwurf speichern“ sichern Sie den Stand und reichen später ein. Den Entwurf sehen nur Sie.": "Noch nicht alles beisammen? Mit „Als Entwurf speichern“ sicherst du den Stand und reichst später ein. Den Entwurf siehst nur du.",
+        "Der Entwurf wurde gespeichert. Nur Sie sehen ihn.": "Der Entwurf wurde gespeichert. Nur du siehst ihn."
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

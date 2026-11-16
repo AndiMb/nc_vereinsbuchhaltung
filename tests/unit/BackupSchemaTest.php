@@ -75,6 +75,10 @@ class BackupSchemaTest extends TestCase {
 				continue;
 			}
 			$this->assertSame(1, preg_match("/'(vbh_[a-z0-9_]+)'/", (string)file_get_contents($file), $m), $class . ': Tabellenname nicht gefunden');
+			if (in_array($m[1], BackupSchema::excludedTables(), true)) {
+				// Ausdrücklich nicht gesichert (z. B. Entwürfe von Auslagen, #356).
+				continue;
+			}
 			$reflection = new \ReflectionClass($class);
 			$method = $reflection->getMethod('encryptedProperties');
 			$method->setAccessible(true);

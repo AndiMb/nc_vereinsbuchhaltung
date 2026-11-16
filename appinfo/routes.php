@@ -269,6 +269,12 @@ return [
 		['name' => 'selfReimbursement#addReceipt', 'url' => '/api/self/reimbursements/{id}/receipts', 'verb' => 'POST'],
 		['name' => 'selfReimbursement#removeReceipt', 'url' => '/api/self/reimbursements/{id}/receipts/{fileId}', 'verb' => 'DELETE'],
 		['name' => 'selfReimbursement#receipt', 'url' => '/api/self/reimbursements/{id}/receipts/{fileId}/view', 'verb' => 'GET'],
+		// Entwürfe (Issue #356): nur das eigene Mitglied, Verwalter sehen sie nie.
+		['name' => 'selfReimbursement#createDraft', 'url' => '/api/self/reimbursement-drafts', 'verb' => 'POST'],
+		['name' => 'selfReimbursement#updateDraft', 'url' => '/api/self/reimbursement-drafts/{id}', 'verb' => 'POST'],
+		['name' => 'selfReimbursement#deleteDraft', 'url' => '/api/self/reimbursement-drafts/{id}', 'verb' => 'DELETE'],
+		['name' => 'selfReimbursement#submitDraft', 'url' => '/api/self/reimbursement-drafts/{id}/submit', 'verb' => 'POST'],
+		['name' => 'selfReimbursement#draftFile', 'url' => '/api/self/reimbursement-drafts/{id}/files/{fileId}/view', 'verb' => 'GET'],
 		['name' => 'reimbursement#index', 'url' => '/api/reimbursements', 'verb' => 'GET'],
 		['name' => 'reimbursement#summary', 'url' => '/api/reimbursements/summary', 'verb' => 'GET'],
 		['name' => 'reimbursement#suggestions', 'url' => '/api/reimbursements/suggestions', 'verb' => 'GET'],

@@ -108,9 +108,12 @@ export function reimbursementBookingPrefill(item, today) {
 
 // --- Antragsformular (Rechnung, Kontoverbindung, Erklärung) --------------------
 
-/** Die Felder, die jeder Antrag neu braucht - Kontoverbindung und Erklärung bleiben beim nächsten stehen. */
+/**
+ * Die Felder, die jeder Antrag neu braucht - Kontoverbindung und Erklärung bleiben beim nächsten stehen.
+ * `files` sind neu gewählte Dateien, `draftFiles` die schon in einem Entwurf gespeicherten Belege (#356).
+ */
 export function emptyReimbursementInvoice(date) {
-	return { amount: '', expenseDate: date, invoiceNumber: '', supplier: '', purpose: '', files: [] }
+	return { amount: '', expenseDate: date, invoiceNumber: '', supplier: '', purpose: '', files: [], draftFiles: [] }
 }
 
 /** Ein leeres Formular; `account` (accountHolder, iban) belegt die Kontoverbindung vor. */
@@ -123,6 +126,36 @@ export function emptyReimbursementForm(date, account = {}) {
 	}
 }
 
+/**
+ * Das Formular zu einem gespeicherten Entwurf (#356). Leere Felder des Entwurfs
+ * bleiben leer; nur die Kontoverbindung fällt auf den Vorschlag zurück. Die
+ * Erklärung ist nie gespeichert - sie wird beim Einreichen bestätigt.
+ */
+export function reimbursementDraftForm(draft, account = {}) {
+	return {
+		amount: draft.amountCents !== null && draft.amountCents !== undefined ? draft.amountCents / 100 : '',
+		expenseDate: draft.expenseDate || '',
+		invoiceNumber: draft.invoiceNumber || '',
+		supplier: draft.supplier || '',
+		purpose: draft.purpose || '',
+		files: [],
+		draftFiles: [...(draft.files || [])],
+		accountHolder: draft.accountHolder || account.accountHolder || '',
+		iban: draft.iban || account.iban || '',
+		declaration: false,
+	}
+}
+
+/** Hat das Formular überhaupt eine Angabe? Ein ganz leerer Entwurf lohnt das Speichern nicht. */
+export function reimbursementFormHasContent(form) {
+	return Number(form.amount) > 0
+		|| form.purpose.trim() !== ''
+		|| form.invoiceNumber.trim() !== ''
+		|| form.supplier.trim() !== ''
+		|| form.files.length > 0
+		|| (form.draftFiles || []).length > 0
+}
+
 /** Was zum Einreichen noch fehlt, als Liste von Feldnamen - sie steht neben dem Knopf. */
 export function missingReimbursementFields(form) {
 	const missing = []
@@ -131,7 +164,7 @@ export function missingReimbursementFields(form) {
 	if (form.purpose.trim() === '') { missing.push(t('Zweck')) }
 	if (form.accountHolder.trim() === '') { missing.push(t('Kontoinhaber')) }
 	if (normalizeIban(form.iban).length < 15) { missing.push(t('IBAN')) }
-	if (form.files.length === 0) { missing.push(t('Beleg')) }
+	if (form.files.length + (form.draftFiles || []).length === 0) { missing.push(t('Beleg')) }
 	if (!form.declaration) { missing.push(t('Erklärung')) }
 	return missing
 }

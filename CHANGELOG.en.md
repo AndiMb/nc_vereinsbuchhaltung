@@ -66,6 +66,11 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   instead of CAMT.053. Statements bundled as a ZIP archive, e.g. one file per
   day, can be imported directly or dropped into the watch folder; the app
   reads every file in it. Manual chapter 3.2.
+- **Save expense claims as drafts** (#356): under *My area → Expenses*,
+  **Save as draft** keeps an incomplete claim, even without an amount,
+  receipt or declaration, so it can be completed and submitted later. Only
+  the member sees drafts; administrators learn about a claim only once it is
+  submitted. Manual chapter 4.6.
 
 **Fixed:**
 - After importing a bank statement, *Entries → All entries* shows the

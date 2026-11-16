@@ -115,6 +115,10 @@ final class BackupSchema {
 			'vbh_receipt_index',
 			// Offene Aktivierungslinks zeigen auf die Quellinstanz.
 			'vbh_mandate_activation_tokens',
+			// Entwürfe von Auslagen (#356): private Vorarbeit der Mitglieder, kein Bestand des Vereins.
+			// Die Dateien liegen nicht in BackupSchema::FILE_KINDS und würden ohnehin fehlen.
+			'vbh_reimb_drafts',
+			'vbh_reimb_draft_files',
 			// Alttabellen, die die App nicht mehr liest (bleiben nur stehen, wo sie Daten hatten).
 			'vbh_sepa_batch_items',
 			'vbh_sepa_batches',

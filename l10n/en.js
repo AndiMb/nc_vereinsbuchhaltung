@@ -4768,5 +4768,20 @@ OC.L10N.register("vereinsbuchhaltung", {
 	"Das ZIP-Archiv enthält keine Buchungen.": "The ZIP archive contains no entries.",
 	"Das ZIP-Archiv ist beschädigt und lässt sich nicht öffnen.": "The ZIP archive is damaged and cannot be opened.",
 	"Das ZIP-Archiv enthält zu viele Dateien.": "The ZIP archive contains too many files.",
-	"Das ZIP-Archiv ist entpackt zu groß (höchstens 20 MB).": "The ZIP archive is too large when unpacked (20 MB at most)."
+	"Das ZIP-Archiv ist entpackt zu groß (höchstens 20 MB).": "The ZIP archive is too large when unpacked (20 MB at most).",
+	"Nur Sie sehen Ihre Entwürfe. Erst mit „Einreichen“ geht der Antrag an die Verwalter.": "Only you can see your drafts. The claim goes to the administrators only when you click “Submit”.",
+	"Ohne Zweck": "No purpose",
+	"Noch nicht alles beisammen? Mit „Als Entwurf speichern“ sichern Sie den Stand und reichen später ein. Den Entwurf sehen nur Sie.": "Don't have everything yet? “Save as draft” keeps what you have entered so you can submit later. Only you can see the draft.",
+	"Entwurf wirklich löschen": "Really delete draft",
+	"Entwurf löschen": "Delete draft",
+	"Als Entwurf speichern": "Save as draft",
+	"Der Entwurf wurde gespeichert. Nur Sie sehen ihn.": "The draft has been saved. Only you can see it.",
+	"Der Entwurf wurde gelöscht.": "The draft has been deleted.",
+	"ohne Betrag": "no amount",
+	"_%n Beleg_::_%n Belege_": [
+		"%n receipt",
+		"%n receipts"
+	],
+	"gespeichert am {date}": "saved on {date}",
+	"Eine Angabe ist zu lang (höchstens %d Zeichen).": "An entry is too long (at most %d characters)."
 }, "nplurals=2; plural=(n != 1);");
