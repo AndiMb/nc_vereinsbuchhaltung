@@ -81,12 +81,17 @@ class KassenberichtRenderer {
 		if ($hasPlan) {
 			$h .= $this->planSection($budget);
 		}
+		// Vollständigkeit und Unterschriften bilden einen Schlussblock, den der
+		// Druck nicht trennt: sonst landete die Unterschriftszeile allein auf
+		// einer neuen Seite, ohne Bezug zum Bericht darüber (#361).
+		$h .= '<div class="closing">';
 		$h .= '<section><h2>' . $this->l10n->t('Vollständigkeit') . '</h2><p>'
 			. PrintableReportPage::escape($this->numberingNote($userId, $period, $from, $to))
 			. '</p></section>';
 		$h .= $this->signatureSection();
+		$h .= '</div>';
 
-		return PrintableReportPage::document($title, $h);
+		return PrintableReportPage::document($title, $h, pageNumbers: $this->l10n->t('Seite {page} von {pages}'));
 	}
 
 	/**

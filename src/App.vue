@@ -2110,7 +2110,13 @@ export default {
 			this.bookingView = 'unassigned'
 		},
 
-		async onImported() { await Promise.all([this.loadBalances(), this.loadTransactions(this.selectedPeriodId)]) },
+		// Importregeln legen beim Import Buchungen an (auch aufgeteilte, mit
+		// Kostenstellen) – deshalb wie nach anderen eigenen Journal-Schreibvorgängen
+		// Journal, Sphären, offene Posten, Kontoauszug und Belegvorschläge nachladen (#358).
+		async onImported() {
+			this.afterOwnJournalWrite(this.attachmentsRevision)
+			await Promise.all([this.loadBalances(), this.loadTransactions(this.selectedPeriodId), this.loadJournal(), this.loadSphereReport(), this.loadOpenItems(), this.reloadStatement()])
+		},
 
 		// Zahlungen zu Rechnungen buchen und lösen Bankumsätze, Buchungen und Salden (Epic #168).
 		// `info.bookings`: der Server hat dabei eine Buchung angelegt oder zurückgenommen
