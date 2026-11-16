@@ -65,6 +65,11 @@ verwenden, z. B. `**Neu:**`.
   bleibt er unzugeordnet und wird gemeldet, statt falsch gebucht zu werden.
   Der Vorschlag in *Zuzuordnen* öffnet bei solchen Regeln den Dialog
   *Umsatz aufteilen* fertig vorbelegt. Handbuch Kapitel 4.1.
+- **CAMT.052 und ZIP-Archive beim Kontoauszug-Import** (#359): Neben CAMT.053
+  liest der Import jetzt auch CAMT.052-Reports, wie sie manche Institute statt
+  CAMT.053 anbieten. Kontoauszüge als ZIP-Archiv, etwa eine Datei je Tag,
+  lassen sich direkt importieren oder in den Wachordner legen; die App liest
+  jede Datei darin. Handbuch Kapitel 3.2.
 
 **Behoben:**
 - Nach dem Import eines Kontoauszugs zeigt *Buchungen → Alle Buchungen*

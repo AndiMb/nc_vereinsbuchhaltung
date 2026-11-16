@@ -31,9 +31,10 @@ Eine schlanke Buchhaltungs-App für Vereine, direkt in Nextcloud integriert. Kon
   - **Anfangsbestände**: werden beim Mehrjahres-Import erkannt und übersprungen, wenn sie durch Vorjahresbuchungen abgedeckt sind (mit Abweichungswarnung)
   - Buchungen ohne Gegenkonto landen als offene Bankbuchungen im Tab „Zuzuordnen"
   - Reset-Modus (nur Verwalter): alle Daten werden vorher gelöscht
-- **Kontoauszüge** in drei Formaten – das Format wird am **Inhalt** erkannt, die Dateiendung spielt keine Rolle:
+- **Kontoauszüge** in vier Formaten, einzeln oder gebündelt als **ZIP-Archiv** – das Format wird am **Inhalt** erkannt, die Dateiendung spielt keine Rolle:
   - **CSV-CAMT** (Sparkasse, Volksbank/VR-NetWorld, …): automatische Erkennung von Trennzeichen und Zeichensatz, deutsches Zahlen- und Datumsformat
   - **CAMT.053 (XML)**: das ISO-20022-Standardformat – Vorzeichen, Datum und Zahlungsbeteiligte sind eindeutig ausgezeichnet statt geraten; vorgemerkte Umsätze (`PDNG`) werden übersprungen, Sammelbuchungen bleiben eine Zeile mit Posten-Hinweis
+  - **CAMT.052 (XML)**: Umsatz- bzw. Tagesreports, wie sie manche Institute statt CAMT.053 anbieten – gleich aufgebaut, gleich behandelt
   - **MT940** (SWIFT, oft als `.sta`): mehrteilige Verwendungszwecke und Namen werden zusammengesetzt, Storni (`RC`/`RD`) kehren die Richtung um
   - **Dublettenerkennung** per SHA-256-Hash, zusätzlich gegen bereits per xbuc importierte Buchungen und – formatübergreifend – gegen vorhandene Bankbuchungen über Datum/Betrag/Text (auch bei abweichendem Valutadatum). Derselbe Auszug lässt sich also gefahrlos in einem anderen Format erneut einlesen
   - 0-€-Buchungen (z. B. ABSCHLUSS) werden übersprungen; bank-interne Buchungen ohne Zahlungsbeteiligten (ENTGELTABSCHLUSS …) bleiben buchbar

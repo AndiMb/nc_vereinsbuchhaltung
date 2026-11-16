@@ -31,9 +31,10 @@ A lightweight accounting app for nonprofit clubs, integrated directly into Nextc
   - **Opening balances**: recognized and skipped during a multi-year import when they are already covered by prior-year postings (with a deviation warning)
   - Postings without a counter-account end up as open bank transactions in the "to assign" tab
   - Reset mode (administrators only): deletes all data beforehand
-- **Bank statements** in three formats – the format is detected from the **content**, the file extension doesn't matter:
+- **Bank statements** in four formats, single or bundled as a **ZIP archive** – the format is detected from the **content**, the file extension doesn't matter:
   - **CSV-CAMT** (Sparkasse, Volksbank/VR-NetWorld, …): automatic detection of delimiter and character set, German number and date format
   - **CAMT.053 (XML)**: the ISO 20022 standard format – sign, date and payment parties are explicitly tagged instead of guessed; pending transactions (`PDNG`) are skipped, batch postings stay a single line with an item-count note
+  - **CAMT.052 (XML)**: account and daily reports, which some banks offer instead of CAMT.053 – same structure, same handling
   - **MT940** (SWIFT, often as `.sta`): multi-part purpose lines and names are assembled, reversals (`RC`/`RD`) flip the direction
   - **Duplicate detection** via SHA-256 hash, additionally against postings already imported via xbuc and – across formats – against existing bank transactions by date/amount/text (even with a differing value date). The same statement can therefore be safely re-imported in a different format
   - Zero-amount postings (e.g. ABSCHLUSS) are skipped; bank-internal postings without a payment party (ENTGELTABSCHLUSS …) remain bookable

@@ -325,14 +325,27 @@ only the spelling was changed.
 For ongoing transactions: **Bookings** tab → *Import transactions* → drag
 the bank's file here or choose it.
 
-**Which format?** The app recognizes three and determines the format from
+**Which format?** The app recognizes four and determines the format from
 the content – it doesn't care about the file extension:
 
 | Format | Usually named like this in online banking | Recommendation |
 |---|---|---|
 | **CSV-CAMT** | "CSV-CAMT format", "transactions as CSV" | works, but every bank builds the columns differently |
 | **CAMT.053** (XML) | "CAMT", "ISO 20022", "XML" | **best choice**, if offered |
+| **CAMT.052** (XML) | "CAMT.052", "account report", "daily report" | good if there is no CAMT.053 |
 | **MT940** | "MT940", "SWIFT", file often ends in `.sta` | also good |
+
+**ZIP archives:** If your bank delivers its statements bundled as a ZIP, for
+example one CAMT file per day, simply use the ZIP: the app reads every file
+in it. All files in the archive must have the same format; days without
+transactions and macOS extras (`__MACOSX`, `.DS_Store`) don't matter.
+Limits: at most 400 files and at most 20 MB unpacked. This also applies to
+the watch folder (section 3.3).
+
+CAMT.052 entries are structured exactly like CAMT.053. Intraday reports
+often still contain pending transactions; as with CAMT.053, the app only
+takes them over once a later report shows them as booked. Entries reported
+twice are caught by the duplicate check.
 
 Why CAMT.053 is the best choice: sign, date and payment parties are
 explicitly tagged there. With CSV, the app has to guess the columns from

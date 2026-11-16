@@ -9,7 +9,8 @@ use OCA\Vereinsbuchhaltung\Service\Text\SafeXml;
 use OCP\IL10N;
 
 /**
- * Parser für CAMT.053 (ISO 20022, „Bank to Customer Statement").
+ * Parser für CAMT.053 (ISO 20022, „Bank to Customer Statement") und
+ * CAMT.052 („Bank to Customer Account Report").
  *
  * Das ist das eigentliche Standardformat für Kontoauszüge – im Gegensatz zur
  * CSV, deren Spalten jede Bank anders benennt. Wer die Wahl hat, sollte diesen
@@ -18,6 +19,12 @@ use OCP\IL10N;
  *
  * Unterstützt werden die gängigen Fassungen camt.053.001.02 bis .08; sie
  * unterscheiden sich in den hier genutzten Elementen nicht.
+ *
+ * CAMT.052 (Issue #359) bieten manche Institute statt CAMT.053 an, etwa als
+ * Tagesreport. Die Buchungen (<Ntry>) sind gleich aufgebaut, sie stehen nur in
+ * <Rpt> statt <Stmt>. Untertägige Reports enthalten oft vorgemerkte Posten;
+ * die überspringt buildRow() wie bei CAMT.053, die gebuchte Fassung kommt mit
+ * einem späteren Report.
  */
 class Camt053Parser implements StatementParser, StatementBalanceReader {
 
@@ -45,18 +52,30 @@ class Camt053Parser implements StatementParser, StatementBalanceReader {
 		$head = substr(ltrim($content), 0, 2048);
 		return str_contains($head, '<')
 			&& (stripos($head, 'camt.053') !== false
-				|| (stripos($head, 'BkToCstmrStmt') !== false));
+				|| stripos($head, 'camt.052') !== false
+				|| stripos($head, 'BkToCstmrStmt') !== false
+				|| stripos($head, 'BkToCstmrAcctRpt') !== false);
 	}
 
 	/**
 	 * @return array<int, array<string, mixed>>
 	 */
 	public function parse(string $content): array {
-		$entries = $this->entries($content);
-		if ($entries === []) {
+		if ($this->entries($content) === []) {
 			throw new UserFacingException($this->msg('Die CAMT-Datei enthält keine Buchungen (<Ntry>).'));
 		}
+		return $this->rows($content);
+	}
 
+	/**
+	 * Wie parse(), aber eine Datei ohne Buchungen ist kein Fehler: ein
+	 * Tagesreport aus einem ZIP-Archiv kann leer sein, weil an dem Tag nichts
+	 * gebucht wurde (siehe StatementParserRegistry).
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function rows(string $content): array {
+		$entries = $this->entries($content);
 		$rows = [];
 		foreach ($entries as [$ntry, $ownAccount]) {
 			$row = $this->buildRow($ntry, $ownAccount);
@@ -180,7 +199,8 @@ class Camt053Parser implements StatementParser, StatementBalanceReader {
 			$prefix = 'c:';
 		}
 
-		$statements = array_values($xml->xpath('//' . $prefix . 'Stmt') ?: []);
+		// <Stmt> in CAMT.053, <Rpt> in CAMT.052 – darunter ist alles gleich.
+		$statements = array_values($xml->xpath('//' . $prefix . 'Stmt | //' . $prefix . 'Rpt') ?: []);
 		foreach ($statements as $stmt) {
 			if ($default !== null && $default !== '') {
 				$stmt->registerXPathNamespace('c', $default);
