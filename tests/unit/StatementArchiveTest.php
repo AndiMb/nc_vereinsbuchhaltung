@@ -34,7 +34,7 @@ class StatementArchiveTest extends TestCase {
 	private function ntry(string $date, string $amount, string $ind, string $purpose, string $status = 'BOOK'): string {
 		return "<Ntry><Amt Ccy=\"EUR\">{$amount}</Amt><CdtDbtInd>{$ind}</CdtDbtInd><Sts><Cd>{$status}</Cd></Sts>"
 			. "<BookgDt><Dt>{$date}</Dt></BookgDt><ValDt><Dt>{$date}</Dt></ValDt>"
-			. "<NtryDtls><TxDtls><RltdPties><Dbtr><Nm>Max Mustermann</Nm></Dbtr></RltdPties>"
+			. '<NtryDtls><TxDtls><RltdPties><Dbtr><Nm>Max Mustermann</Nm></Dbtr></RltdPties>'
 			. "<RmtInf><Ustrd>{$purpose}</Ustrd></RmtInf></TxDtls></NtryDtls></Ntry>";
 	}
 
