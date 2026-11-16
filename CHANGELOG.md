@@ -66,6 +66,19 @@ verwenden, z. B. `**Neu:**`.
   Der Vorschlag in *Zuzuordnen* öffnet bei solchen Regeln den Dialog
   *Umsatz aufteilen* fertig vorbelegt. Handbuch Kapitel 4.1.
 
+**Behoben:**
+- Nach dem Import eines Kontoauszugs zeigt *Buchungen → Alle Buchungen*
+  die von Importregeln angelegten Buchungen sofort an, samt Aufteilungen und
+  Kostenstellen; vorher erschienen sie erst nach einem Reiterwechsel (#358).
+- Kassenbericht: Die Unterschriftszeilen stehen nicht mehr allein auf einer
+  neuen Seite, sondern rutschen zusammen mit dem Abschnitt *Vollständigkeit*
+  um (#361).
+
+**Geändert:**
+- Kassenbericht: Jede gedruckte Seite trägt unten „Seite n von m“ (#362).
+  Das setzen Chrome und Edge um; Firefox und Safari drucken den Bericht
+  weiterhin ohne Seitenzahl.
+
 ## [0.53.0] – 2026-11-12
 
 **Neu:**

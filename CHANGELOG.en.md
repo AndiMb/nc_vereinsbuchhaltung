@@ -62,6 +62,18 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   wrongly. For such rules, the suggestion under *To assign* opens the
   *Split transaction* dialog already filled in. Manual chapter 4.1.
 
+**Fixed:**
+- After importing a bank statement, *Entries → All entries* shows the
+  entries booked by import rules right away, including splits and cost
+  centres; before, they only appeared after switching tabs (#358).
+- Treasurer's report: the signature lines no longer end up alone on a new page;
+  they move together with the *Completeness* section (#361).
+
+**Changed:**
+- Treasurer's report: every printed page shows "Page n of m" at the bottom (#362).
+  Chrome and Edge support this; Firefox and Safari still print the report
+  without page numbers.
+
 ## [0.53.0] – 2026-11-12
 
 **New:**
