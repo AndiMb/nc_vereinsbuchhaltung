@@ -763,6 +763,20 @@ add another** the bank details and the declaration stay filled in, only the
 invoice is empty again. Each request is approved or rejected and paid out on its
 own.
 
+**Drafts.** If something is still missing – the invoice is on its way, the
+IBAN is at home –, **Save as draft** keeps what has been entered, even without
+an amount, receipt or declaration. Drafts are listed under *My area → Expenses*
+above the list of requests; a click opens the draft again in the same dialog.
+There it can be completed, saved again, deleted (click twice) or submitted.
+The declaration is confirmed only when submitting; it is never stored with the
+draft. Only the member can see a draft: administrators find it neither under
+*Bookings → Expenses* nor in any count, it has no expense number, and its
+receipts are kept in the app storage, not in the watch folder. Only
+**Submit** turns it into an ordinary request with a number, the declaration
+and a notification to the administrators. Drafts are not part of the club's
+records: they are not included in backups and disappear when the member is
+deleted or anonymised.
+
 The receipts go to the receipt storage: into `<folder>/<expense year>/` of the watch
 folder, otherwise into the app storage. The member never sees the watch folder.
 As long as no approval exists, they can add receipts, remove them (one stays) or

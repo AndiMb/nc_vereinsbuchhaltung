@@ -115,6 +115,7 @@ class MemberAnonymizationService {
 		private ITimeFactory $time,
 		private IL10N $l10n,
 		private DebtorMapper $debtors,
+		private ?ReimbursementDraftCleaner $drafts = null,
 	) {
 	}
 
@@ -137,6 +138,8 @@ class MemberAnonymizationService {
 			$this->redactMandates($memberId, $now);
 			$this->redactClaims($memberId);
 			$this->redactReimbursements($memberId);
+			// Entwürfe (#356) wurden nie eingereicht: nichts davon ist aufzubewahren.
+			$this->drafts?->deleteAllForMember($memberId);
 			$this->redactAssignments($memberId);
 			$this->redactDebtors($memberId, $now);
 			$this->redactMember($member, $now);

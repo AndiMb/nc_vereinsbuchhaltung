@@ -9,6 +9,7 @@ use OCA\Vereinsbuchhaltung\Db\AttachmentMapper;
 use OCA\Vereinsbuchhaltung\Db\ReimbursementFileMapper;
 use OCA\Vereinsbuchhaltung\Service\AttachmentStorageService;
 use OCA\Vereinsbuchhaltung\Service\Invoice\InvoiceDocumentStorage;
+use OCA\Vereinsbuchhaltung\Service\ReimbursementDraftCleaner;
 use OCP\Files\AppData\IAppDataFactory;
 use OCP\Files\IAppData;
 use OCP\Files\SimpleFS\ISimpleFolder;
@@ -60,7 +61,8 @@ class BackupFileSink {
 	 * eingespielten Datensatzes mit derselben ID.
 	 */
 	public function clearAppData(): void {
-		foreach (BackupSchema::FILE_KINDS as $kind) {
+		// Dazu die Belege von Auslagen-Entwürfen (#356): ihre Tabellen sind nicht gesichert und werden geleert.
+		foreach ([...BackupSchema::FILE_KINDS, ReimbursementDraftCleaner::FOLDER] as $kind) {
 			try {
 				$this->appData->getFolder($kind)->delete();
 			} catch (\Throwable) {
