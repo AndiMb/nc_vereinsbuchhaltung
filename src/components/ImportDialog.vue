@@ -5,6 +5,7 @@
 		labelId="vbh-modal-title-import"
 		size="normal"
 		:closeOnClickOutside="true"
+		:noClose="committing"
 		@close="$emit('close')"
 		@update:show="$emit('update:show', $event)">
 		<div class="vbh-modal-inner">
@@ -129,6 +130,10 @@ export default {
 			previewResult: null,
 			importDragging: false,
 			importDone: null,
+			// Während der Übernahme lässt sich der Dialog nicht schließen: das
+			// Aushängen (v-if im Elternteil) verwürfe die Ereignisse danach –
+			// die App lüde nicht neu und bliebe auf "busy" stehen (#358).
+			committing: false,
 		}
 	},
 
@@ -163,6 +168,7 @@ export default {
 
 		async commit() {
 			if (!this.selectedFile) { return }
+			this.committing = true
 			this.$emit('update:busy', true)
 			try {
 				const fd = new FormData(); fd.append('file', this.selectedFile); fd.append('applyRules', this.applyRules ? '1' : '0')
@@ -172,7 +178,7 @@ export default {
 				this.previewResult = null; this.selectedFile = null
 				if (this.$refs.fileInput) { this.$refs.fileInput.value = '' }
 				this.$emit('imported')
-			} catch (e) { showError(this.errMsg(e, this.t('Import fehlgeschlagen'))) } finally { this.$emit('update:busy', false) }
+			} catch (e) { showError(this.errMsg(e, this.t('Import fehlgeschlagen'))) } finally { this.committing = false; this.$emit('update:busy', false) }
 		},
 	},
 }
