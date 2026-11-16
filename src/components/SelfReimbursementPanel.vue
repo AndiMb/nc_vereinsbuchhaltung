@@ -246,7 +246,12 @@
 						<dd>{{ detail.number }}</dd>
 					</template>
 					<dt>{{ t('Betrag') }}</dt>
-					<dd>{{ formatMoney(detail.amountCents / 100) }}</dd>
+					<dd>
+						{{ formatMoney(detail.amountCents / 100) }}
+						<span v-if="detail.originalAmountCents !== null && detail.originalAmountCents !== undefined" class="vbh-reimb-original">
+							{{ t('(beantragt: {amount}, von der Verwaltung korrigiert)', { amount: formatMoney(detail.originalAmountCents / 100) }) }}
+						</span>
+					</dd>
 					<template v-if="detail.invoiceNumber">
 						<dt>{{ t('Rechnungsnummer') }}</dt>
 						<dd>{{ detail.invoiceNumber }}</dd>
@@ -637,6 +642,11 @@ export default {
 </script>
 
 <style scoped>
+.vbh-reimb-original {
+	margin-inline-start: 6px;
+	color: var(--color-text-maxcontrast);
+}
+
 .vbh-selfservice-card-header {
 	display: flex;
 	align-items: center;

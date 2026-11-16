@@ -812,6 +812,15 @@ Wer wann freigegeben hat, steht im Verlauf):
 - **Ablehnen:** mit Pflichtbegründung. Eine Ablehnung gilt **sofort und
   endgültig** und braucht keine zweite Stimme; das Mitglied erfährt den Grund
   per Mail. Es reicht bei Bedarf einen neuen Antrag ein.
+- **Betrag korrigieren:** mit Pflichtbegründung, solange der Antrag noch nicht
+  vollständig freigegeben ist – etwa wenn der Beleg weniger ausweist als
+  beantragt oder ein Posten nicht erstattungsfähig ist. Der ursprüngliche und
+  der neue Betrag stehen samt Begründung im Verlauf, die Einzelansicht zeigt
+  „beantragt: …, korrigiert“, und das Mitglied bekommt eine Mail. **Bereits
+  erteilte Freigaben verfallen**, denn sie galten dem alten Betrag: Der Antrag
+  steht wieder auf *Eingereicht* und braucht alle Freigaben neu – auch Ihre,
+  die Korrektur selbst ist keine Freigabe. Ist das Mitglied nicht
+  einverstanden, kann es den Antrag zurückziehen.
 - **Den eigenen Antrag** (wenn Sie als Verwalter selbst Auslagen einreichen)
   können Sie nicht freigeben oder ablehnen.
 

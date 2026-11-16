@@ -195,6 +195,20 @@ class ReimbursementMailServiceTest extends TestCase {
 		$this->assertStringContainsString('02.11.2026', $text, 'Die Auszahlung nennt das Datum');
 	}
 
+	public function testKorrekturNenntAltenUndNeuenBetragUndDieBegruendung(): void {
+		$this->members->method('find')->willReturn($this->member());
+		$r = $this->reimbursement();
+		$r->setAmountCents(980);
+
+		$this->service()->corrected($r, 1250, 'Pfand nicht erstattungsfähig');
+
+		$this->assertSame(['Ihre Auslage wurde korrigiert'], $this->subjects);
+		$text = implode(' ', $this->bodies);
+		$this->assertStringContainsString('12,50', $text, 'Der ursprüngliche Betrag steht in der Mail');
+		$this->assertStringContainsString('9,80', $text, 'Der korrigierte Betrag steht in der Mail');
+		$this->assertStringContainsString('Pfand nicht erstattungsfähig', $text);
+	}
+
 	public function testBetraegeStehenInDerSchreibweiseDerMailsprache(): void {
 		$this->members->method('find')->willReturn($this->member());
 		$r = $this->reimbursement();

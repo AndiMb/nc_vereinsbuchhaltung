@@ -283,6 +283,7 @@ return [
 		['name' => 'reimbursement#show', 'url' => '/api/reimbursements/{id}', 'verb' => 'GET'],
 		['name' => 'reimbursement#approve', 'url' => '/api/reimbursements/{id}/approve', 'verb' => 'POST'],
 		['name' => 'reimbursement#reject', 'url' => '/api/reimbursements/{id}/reject', 'verb' => 'POST'],
+		['name' => 'reimbursement#correct', 'url' => '/api/reimbursements/{id}/correct', 'verb' => 'POST'],
 		['name' => 'reimbursement#transfer', 'url' => '/api/reimbursements/{id}/transfer', 'verb' => 'GET'],
 		['name' => 'reimbursement#transferred', 'url' => '/api/reimbursements/{id}/transferred', 'verb' => 'POST'],
 		['name' => 'reimbursement#notTransferred', 'url' => '/api/reimbursements/{id}/transferred', 'verb' => 'DELETE'],

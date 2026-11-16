@@ -143,6 +143,22 @@ class ReimbursementController extends Controller {
 	}
 
 	/**
+	 * Betrag bei der Prüfung korrigieren (#353): `amount` in Euro ("12,50"
+	 * oder "12.50"), `reason` Pflicht. Wer freigeben darf, darf korrigieren.
+	 */
+	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_ADMIN)]
+	public function correct(int $id, string $amount = '', string $reason = ''): DataResponse {
+		return $this->decide(function () use ($id, $amount, $reason) {
+			$normalized = str_replace(',', '.', trim($amount));
+			if (!preg_match('/^\d{1,9}(\.\d{1,2})?$/', $normalized)) {
+				throw new \InvalidArgumentException($this->l10n->t('Bitte einen gültigen Betrag angeben, z. B. 12,50.'));
+			}
+			return $this->service->correctAmount($id, $this->uid(), (int)round(((float)$normalized) * 100), $reason);
+		});
+	}
+
+	/**
 	 * Überweisungsdaten mit GiroCode für eine freigegebene Auslage. Nur für
 	 * Buchhalter und Verwalter wie die Auszahlung selbst: die Antwort trägt die
 	 * volle IBAN.

@@ -75,6 +75,11 @@ verwenden, z. B. `**Neu:**`.
   Betrag, Beleg oder Erklärung, damit er sich später ergänzen und einreichen
   lässt. Entwürfe sieht nur das Mitglied; die Verwalter erfahren erst beim
   Einreichen davon. Handbuch Kapitel 4.6.
+- **Auslagen bei der Prüfung korrigieren** (#353): Verwalter können den
+  Betrag eines Antrags vor der vollständigen Freigabe mit Begründung
+  korrigieren. Ursprünglicher und neuer Betrag bleiben im Verlauf
+  nachvollziehbar, das Mitglied wird per Mail benachrichtigt, und bereits
+  erteilte Freigaben verfallen. Handbuch Kapitel 4.6.
 
 **Behoben:**
 - Nach dem Import eines Kontoauszugs zeigt *Buchungen → Alle Buchungen*

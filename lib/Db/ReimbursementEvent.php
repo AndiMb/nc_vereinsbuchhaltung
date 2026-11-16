@@ -59,6 +59,8 @@ class ReimbursementEvent extends Entity implements \JsonSerializable {
 	public const ACTION_RECEIPT_ADDED = 'receipt_added';
 	public const ACTION_RECEIPT_REMOVED = 'receipt_removed';
 	public const ACTION_DUPLICATE_HINT = 'duplicate_hint';
+	/** Ein Verwalter hat den Betrag korrigiert (#353); data: from, to (Cent), comment: Begründung. Frühere Freigaben verfallen. */
+	public const ACTION_AMOUNT_CORRECTED = 'amount_corrected';
 
 	/** Wer gehandelt hat: das Mitglied selbst oder jemand aus der Verwaltung. */
 	public const ROLE_MEMBER = 'member';
