@@ -88,7 +88,12 @@
 				</h2>
 				<dl class="vbh-selfservice-fields">
 					<dt>{{ t('Betrag') }}</dt>
-					<dd>{{ formatMoney(detail.amountCents / 100) }}</dd>
+					<dd>
+						{{ formatMoney(detail.amountCents / 100) }}
+						<span v-if="detail.originalAmountCents !== null && detail.originalAmountCents !== undefined" class="vbh-reimb-original">
+							{{ t('(beantragt: {amount}, korrigiert)', { amount: formatMoney(detail.originalAmountCents / 100) }) }}
+						</span>
+					</dd>
 					<dt>{{ t('Rechnungsdatum') }}</dt>
 					<dd>{{ formatDate(detail.expenseDate) }}</dd>
 					<template v-if="detail.invoiceNumber">
@@ -160,6 +165,13 @@
 						{{ t('Schließen') }}
 					</NcButton>
 					<NcButton
+						v-if="detail.canCorrect"
+						variant="secondary"
+						:disabled="busy"
+						@click="openCorrect">
+						{{ t('Betrag korrigieren') }}
+					</NcButton>
+					<NcButton
 						v-if="detail.canReject"
 						variant="error"
 						:disabled="busy"
@@ -214,6 +226,46 @@
 			@close="transferOpen = false"
 			@done="markTransferred" />
 
+		<!-- Betrag korrigieren (#353) -->
+		<NcModal
+			v-if="correctOpen"
+			:show="correctOpen"
+			labelId="vbh-modal-title-reimb-correct"
+			size="normal"
+			:closeOnClickOutside="false"
+			@close="correctOpen = false"
+			@update:show="correctOpen = $event">
+			<div class="vbh-modal-inner">
+				<h2 id="vbh-modal-title-reimb-correct" class="vbh-modal-title">
+					{{ t('Betrag korrigieren') }}
+				</h2>
+				<p class="vbh-hint vbh-hint--info">
+					{{ t('Beantragt sind {amount}. Der bisherige Betrag, der neue und Ihre Begründung bleiben im Verlauf sichtbar; das Mitglied bekommt sie per Mail. Bereits erteilte Freigaben verfallen, der Antrag muss neu freigegeben werden.', { amount: formatMoney(detail.amountCents / 100) }) }}
+				</p>
+				<label class="vbh-reimb-correct-field">{{ t('Neuer Betrag') }}
+					<AmountInput ref="correctAmount" v-model="correctAmount" />
+				</label>
+				<label class="vbh-reimb-correct-field">{{ t('Begründung (Pflicht)') }}
+					<textarea
+						v-model="reason"
+						class="vbh-note-textarea"
+						rows="3"
+						maxlength="500" />
+				</label>
+				<p v-if="error" class="vbh-hint vbh-hint--error" role="alert">
+					{{ error }}
+				</p>
+				<div class="vbh-modal-actions">
+					<NcButton variant="tertiary" @click="correctOpen = false">
+						{{ t('Abbrechen') }}
+					</NcButton>
+					<NcButton variant="primary" :disabled="busy || !canSubmitCorrection" @click="correct">
+						{{ t('Korrigieren') }}
+					</NcButton>
+				</div>
+			</div>
+		</NcModal>
+
 		<!-- Ablehnen -->
 		<NcModal
 			v-if="rejectOpen"
@@ -257,6 +309,7 @@ import NcButton from '@nextcloud/vue/components/NcButton'
 import NcEmptyContent from '@nextcloud/vue/components/NcEmptyContent'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import NcModal from '@nextcloud/vue/components/NcModal'
+import AmountInput from './AmountInput.vue'
 import ReimbursementHistory from './ReimbursementHistory.vue'
 import ReimbursementStatusTag from './ReimbursementStatusTag.vue'
 import ReimbursementTransferDialog from './ReimbursementTransferDialog.vue'
@@ -283,7 +336,7 @@ import {
  */
 export default {
 	name: 'ReimbursementsPanel',
-	components: { NcButton, NcEmptyContent, NcLoadingIcon, NcModal, ReimbursementHistory, ReimbursementStatusTag, ReimbursementTransferDialog },
+	components: { NcButton, NcEmptyContent, NcLoadingIcon, NcModal, AmountInput, ReimbursementHistory, ReimbursementStatusTag, ReimbursementTransferDialog },
 
 	props: {
 		canWrite: { type: Boolean, default: false },
@@ -308,6 +361,8 @@ export default {
 			busy: false,
 			error: '',
 			rejectOpen: false,
+			correctOpen: false,
+			correctAmount: '',
 			reason: '',
 		}
 	},
@@ -321,6 +376,12 @@ export default {
 				{ key: 'all', label: this.t('Alle'), count: this.items.length },
 				...REIMBURSEMENT_STATUSES.map((status) => ({ key: status, label: reimbursementStatusLabel(status), count: counts[status] || 0 })),
 			]
+		},
+
+		/** Ein neuer, anderer Betrag über 0 und eine Begründung. */
+		canSubmitCorrection() {
+			const cents = Math.round(Number(this.correctAmount) * 100)
+			return cents > 0 && cents !== this.detail?.amountCents && this.reason.trim().length >= 3
 		},
 
 		filteredItems() {
@@ -401,6 +462,20 @@ export default {
 			return this.decide(() => api.approveReimbursement(this.detail.id), this.t('Freigabe erteilt.'), this.t('Die Freigabe war nicht möglich.'))
 		},
 
+		openCorrect() {
+			this.correctAmount = this.detail.amountCents / 100
+			this.reason = ''
+			this.error = ''
+			this.correctOpen = true
+			focusOnOpen(this, () => this.$refs.correctAmount?.$el)
+		},
+
+		async correct() {
+			const amount = (Math.round(Number(this.correctAmount) * 100) / 100).toFixed(2)
+			const done = await this.decide(() => api.correctReimbursement(this.detail.id, amount, this.reason.trim()), this.t('Betrag korrigiert. Der Antrag braucht neue Freigaben.'), this.t('Die Korrektur war nicht möglich.'))
+			if (done) { this.correctOpen = false }
+		},
+
 		openReject() {
 			this.reason = ''
 			this.rejectOpen = true
@@ -442,6 +517,18 @@ export default {
 </script>
 
 <style scoped>
+.vbh-reimb-original {
+	margin-inline-start: 6px;
+	color: var(--color-text-maxcontrast);
+}
+
+.vbh-reimb-correct-field {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	margin-block: 8px;
+}
+
 .vbh-reimb-search {
 	margin: 12px 0 0;
 }

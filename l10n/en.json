@@ -4784,7 +4784,23 @@
             "%n receipts"
         ],
         "gespeichert am {date}": "saved on {date}",
-        "Eine Angabe ist zu lang (höchstens %d Zeichen).": "An entry is too long (at most %d characters)."
+        "Eine Angabe ist zu lang (höchstens %d Zeichen).": "An entry is too long (at most %d characters).",
+        "(beantragt: {amount}, korrigiert)": "(claimed: {amount}, corrected)",
+        "Betrag korrigieren": "Correct amount",
+        "Beantragt sind {amount}. Der bisherige Betrag, der neue und Ihre Begründung bleiben im Verlauf sichtbar; das Mitglied bekommt sie per Mail. Bereits erteilte Freigaben verfallen, der Antrag muss neu freigegeben werden.": "The claim is for {amount}. The previous amount, the new one and your reason remain visible in the history; the member receives them by email. Approvals already given lapse, and the claim has to be approved again.",
+        "Neuer Betrag": "New amount",
+        "Korrigieren": "Correct",
+        "Betrag korrigiert. Der Antrag braucht neue Freigaben.": "Amount corrected. The claim needs new approvals.",
+        "Die Korrektur war nicht möglich.": "The correction was not possible.",
+        "(beantragt: {amount}, von der Verwaltung korrigiert)": "(claimed: {amount}, corrected by the administration)",
+        "{name} hat den Betrag von {from} auf {to} korrigiert": "{name} corrected the amount from {from} to {to}",
+        "Betrag durch einen Verwalter korrigiert: {from} → {to}": "Amount corrected by an administrator: {from} → {to}",
+        "Ihre Auslage wurde korrigiert": "Your expense claim has been corrected",
+        "Bei der Prüfung Ihres Antrags „%1$s“ wurde der Betrag von %2$s auf %3$s korrigiert.": "While reviewing your claim “%1$s”, the amount was corrected from %2$s to %3$s.",
+        "Ihre ursprünglichen Angaben bleiben im Verlauf des Antrags sichtbar. Sind Sie mit der Korrektur nicht einverstanden, wenden Sie sich bitte an den Vorstand oder ziehen den Antrag unter „Mein Bereich → Auslagen“ zurück.": "Your original details remain visible in the history of the claim. If you do not agree with the correction, please contact the board or withdraw the claim under “My area → Expenses”.",
+        "Bitte eine Begründung für die Korrektur angeben.": "Please give a reason for the correction.",
+        "Die Begründung ist zu lang (höchstens %d Zeichen).": "The reason is too long (at most %d characters).",
+        "Der Betrag ist unverändert.": "The amount is unchanged."
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

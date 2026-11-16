@@ -157,7 +157,12 @@ class ReimbursementServiceTest extends TestCase {
 		$eventMapper->method('approverUids')->willReturnCallback(function (int $id): array {
 			$uids = [];
 			foreach ($this->events as $e) {
-				if ($e->getReimbursementId() === $id && $e->getAction() === ReimbursementEvent::ACTION_APPROVED) {
+				if ($e->getReimbursementId() !== $id) {
+					continue;
+				}
+				if ($e->getAction() === ReimbursementEvent::ACTION_AMOUNT_CORRECTED) {
+					$uids = [];
+				} elseif ($e->getAction() === ReimbursementEvent::ACTION_APPROVED) {
 					$uids[] = $e->getActorUid();
 				}
 			}
@@ -483,6 +488,73 @@ class ReimbursementServiceTest extends TestCase {
 		$this->assertSame(['count' => 1, 'required' => 2, 'final' => false], $approvals[0]->decodedData());
 		$this->assertSame(['count' => 2, 'required' => 2, 'final' => true], $approvals[1]->decodedData());
 		$this->assertSame('vera', $approvals[0]->getActorUid());
+	}
+
+	// --- Korrigieren (#353) ----------------------------------------------------
+
+	public function testEinVerwalterKorrigiertDenBetragMitBegruendung(): void {
+		$service = $this->service();
+		$r = $this->submit($service);
+		$this->mail->expects($this->once())->method('corrected')->with($this->anything(), 1250, 'Beleg weist 9,80 € aus');
+
+		$r = $service->correctAmount($r->getId(), 'vera', 980, '  Beleg weist 9,80 € aus ');
+
+		$this->assertSame(980, $r->getAmountCents());
+		$this->assertSame(Reimbursement::STATUS_SUBMITTED, $r->getStatus());
+		$last = $service->history($r->getId())[count($service->history($r->getId())) - 1];
+		$this->assertSame(ReimbursementEvent::ACTION_AMOUNT_CORRECTED, $last->getAction());
+		$this->assertSame(['from' => 1250, 'to' => 980], $last->decodedData());
+		$this->assertSame('Beleg weist 9,80 € aus', $last->getComment());
+		$this->assertChainIsValid($service, $r->getId());
+	}
+
+	public function testEineKorrekturLaesstFruehereFreigabenVerfallen(): void {
+		$service = $this->service();
+		$r = $this->submit($service);
+		$service->approve($r->getId(), 'vera');
+
+		$r = $service->correctAmount($r->getId(), 'viktor', 1000, 'Pfand nicht erstattungsfähig');
+
+		$this->assertSame(Reimbursement::STATUS_SUBMITTED, $r->getStatus());
+		$this->assertSame(['approved' => 0, 'required' => 2], $service->progress($r));
+		// vera darf (und muss) den korrigierten Antrag erneut freigeben.
+		$service->approve($r->getId(), 'vera');
+		$r = $service->approve($r->getId(), 'viktor');
+		$this->assertSame(Reimbursement::STATUS_APPROVED, $r->getStatus());
+		$this->assertSame(1000, $this->openItems[$r->getOpenItemId()]->getAmountCents());
+	}
+
+	/** @return array<string, array{0: int, 1: string}> */
+	public static function ungueltigeKorrekturen(): array {
+		return [
+			'ohne Begründung' => [980, '   '],
+			'unveränderter Betrag' => [1250, 'gleich'],
+			'Betrag null' => [0, 'nichts'],
+		];
+	}
+
+	#[\PHPUnit\Framework\Attributes\DataProvider('ungueltigeKorrekturen')]
+	public function testUngueltigeKorrekturWirdAbgelehnt(int $amount, string $reason): void {
+		$service = $this->service();
+		$r = $this->submit($service);
+		$this->expectException(\InvalidArgumentException::class);
+		$service->correctAmount($r->getId(), 'vera', $amount, $reason);
+	}
+
+	public function testDenEigenenAntragKorrigiertNiemand(): void {
+		$service = $this->service();
+		$r = $this->submit($service, 'vera');
+		$this->expectException(ForbiddenException::class);
+		$service->correctAmount($r->getId(), 'vera', 900, 'selbst');
+	}
+
+	public function testNachDerFreigabeIstKeineKorrekturMehrMoeglich(): void {
+		$service = $this->service();
+		$r = $this->submit($service);
+		$service->approve($r->getId(), 'vera');
+		$service->approve($r->getId(), 'viktor');
+		$this->expectException(\InvalidArgumentException::class);
+		$service->correctAmount($r->getId(), 'vera', 900, 'zu spät');
 	}
 
 	// --- Ablehnen -------------------------------------------------------------

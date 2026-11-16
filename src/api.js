@@ -486,6 +486,7 @@ export default {
 	reimbursement: (id) => axios.get(url(`/reimbursements/${id}`)),
 	approveReimbursement: (id) => axios.post(url(`/reimbursements/${id}/approve`)),
 	rejectReimbursement: (id, reason) => axios.post(url(`/reimbursements/${id}/reject`), { reason }),
+	correctReimbursement: (id, amount, reason) => axios.post(url(`/reimbursements/${id}/correct`), { amount, reason }),
 	reimbursementTransfer: (id) => axios.get(url(`/reimbursements/${id}/transfer`)),
 	reimbursementNumberRange: () => axios.get(url('/reimbursements/number-range')),
 	saveReimbursementNumberRange: (data) => axios.put(url('/reimbursements/number-range'), data),

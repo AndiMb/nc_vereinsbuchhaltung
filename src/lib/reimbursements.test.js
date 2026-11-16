@@ -53,6 +53,15 @@ describe('reimbursements', () => {
 		expect(reimbursementEventText({ action: 'unbekannt' }, false)).toBe('unbekannt')
 	})
 
+	it('beschreibt eine Korrektur des Betrags mit beiden Beträgen (#353)', () => {
+		const event = { action: 'amount_corrected', actorName: 'Vera', data: { from: 1250, to: 980 } }
+		const staff = reimbursementEventText(event, true)
+		expect(staff).toMatch(/^Vera hat den Betrag von 12,50\s€ auf 9,80\s€ korrigiert$/)
+		const member = reimbursementEventText(event, false)
+		expect(member).toMatch(/^Betrag durch einen Verwalter korrigiert: 12,50\s€ → 9,80\s€$/)
+		expect(member).not.toContain('Vera')
+	})
+
 	it('zählt Anträge je Status', () => {
 		expect(countByStatus([{ status: 'paid' }, { status: 'paid' }, { status: 'submitted' }])).toEqual({ paid: 2, submitted: 1 })
 	})

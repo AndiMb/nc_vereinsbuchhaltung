@@ -71,6 +71,10 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   receipt or declaration, so it can be completed and submitted later. Only
   the member sees drafts; administrators learn about a claim only once it is
   submitted. Manual chapter 4.6.
+- **Correct expense claims during review** (#353): administrators can correct
+  the amount of a claim, with a reason, before it is fully approved. The
+  original and the new amount stay traceable in the history, the member is
+  notified by email, and approvals already given lapse. Manual chapter 4.6.
 
 **Fixed:**
 - After importing a bank statement, *Entries → All entries* shows the

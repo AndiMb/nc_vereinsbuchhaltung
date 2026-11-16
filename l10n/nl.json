@@ -4784,7 +4784,23 @@
             "%n bonnen"
         ],
         "gespeichert am {date}": "opgeslagen op {date}",
-        "Eine Angabe ist zu lang (höchstens %d Zeichen).": "Een gegeven is te lang (hoogstens %d tekens)."
+        "Eine Angabe ist zu lang (höchstens %d Zeichen).": "Een gegeven is te lang (hoogstens %d tekens).",
+        "(beantragt: {amount}, korrigiert)": "(aangevraagd: {amount}, gecorrigeerd)",
+        "Betrag korrigieren": "Bedrag corrigeren",
+        "Beantragt sind {amount}. Der bisherige Betrag, der neue und Ihre Begründung bleiben im Verlauf sichtbar; das Mitglied bekommt sie per Mail. Bereits erteilte Freigaben verfallen, der Antrag muss neu freigegeben werden.": "Aangevraagd is {amount}. Het oude bedrag, het nieuwe en uw motivering blijven zichtbaar in het verloop; het lid ontvangt ze per e-mail. Reeds gegeven goedkeuringen vervallen, de aanvraag moet opnieuw worden goedgekeurd.",
+        "Neuer Betrag": "Nieuw bedrag",
+        "Korrigieren": "Corrigeren",
+        "Betrag korrigiert. Der Antrag braucht neue Freigaben.": "Bedrag gecorrigeerd. De aanvraag heeft nieuwe goedkeuringen nodig.",
+        "Die Korrektur war nicht möglich.": "De correctie was niet mogelijk.",
+        "(beantragt: {amount}, von der Verwaltung korrigiert)": "(aangevraagd: {amount}, gecorrigeerd door het bestuur)",
+        "{name} hat den Betrag von {from} auf {to} korrigiert": "{name} heeft het bedrag gecorrigeerd van {from} naar {to}",
+        "Betrag durch einen Verwalter korrigiert: {from} → {to}": "Bedrag gecorrigeerd door een beheerder: {from} → {to}",
+        "Ihre Auslage wurde korrigiert": "Uw onkostendeclaratie is gecorrigeerd",
+        "Bei der Prüfung Ihres Antrags „%1$s“ wurde der Betrag von %2$s auf %3$s korrigiert.": "Bij de controle van uw aanvraag „%1$s” is het bedrag gecorrigeerd van %2$s naar %3$s.",
+        "Ihre ursprünglichen Angaben bleiben im Verlauf des Antrags sichtbar. Sind Sie mit der Korrektur nicht einverstanden, wenden Sie sich bitte an den Vorstand oder ziehen den Antrag unter „Mein Bereich → Auslagen“ zurück.": "Uw oorspronkelijke gegevens blijven zichtbaar in het verloop van de aanvraag. Bent u het niet eens met de correctie, neem dan contact op met het bestuur of trek de aanvraag in onder „Mijn omgeving → Declaraties”.",
+        "Bitte eine Begründung für die Korrektur angeben.": "Geef een motivering voor de correctie op.",
+        "Die Begründung ist zu lang (höchstens %d Zeichen).": "De motivering is te lang (hoogstens %d tekens).",
+        "Der Betrag ist unverändert.": "Het bedrag is ongewijzigd."
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

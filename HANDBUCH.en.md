@@ -794,6 +794,15 @@ history and these buttons (the approvals replace the "factually correct" and
 - **Reject:** with a mandatory reason. A rejection takes effect **immediately and
   is final** and needs no second vote; the member receives the reason by email and
   can submit a new request.
+- **Correct amount:** with a mandatory reason, as long as the request is not
+  fully approved – for instance when the receipt shows less than claimed or an
+  item is not reimbursable. The original and the new amount are recorded in the
+  history together with the reason, the detail view shows "claimed: …,
+  corrected", and the member receives an email. **Approvals already given
+  lapse**, because they applied to the old amount: the request is back to
+  *Submitted* and needs all approvals again – including yours, as the
+  correction itself is not an approval. If the member disagrees, they can
+  withdraw the request.
 - **Your own request** (when you submit expense claims as an administrator) you
   can neither approve nor reject.
 

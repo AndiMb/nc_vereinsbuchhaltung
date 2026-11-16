@@ -71,11 +71,13 @@ class ReimbursementPresenter {
 			$data += $this->account($reimbursement);
 			$data['files'] = $this->files($reimbursement);
 			$data['history'] = [];
-			foreach ($this->service->history($reimbursement->getId()) as $event) {
+			$history = $this->service->history($reimbursement->getId());
+			foreach ($history as $event) {
 				if ($event->getAction() !== ReimbursementEvent::ACTION_DUPLICATE_HINT) {
 					$data['history'][] = $event->toArray(false);
 				}
 			}
+			$data['originalAmountCents'] = self::originalAmount($history);
 		}
 		return $data;
 	}
@@ -100,6 +102,7 @@ class ReimbursementPresenter {
 			'alreadyApproved' => in_array($actorUid, $approvers, true),
 			'canApprove' => $mayDecide && !in_array($actorUid, $approvers, true),
 			'canReject' => $mayDecide,
+			'canCorrect' => $mayDecide,
 			'canPay' => $reimbursement->getStatus() === Reimbursement::STATUS_APPROVED,
 		];
 		if ($fullIban) {
@@ -111,7 +114,9 @@ class ReimbursementPresenter {
 			$data['files'] = $this->files($reimbursement);
 			$data['history'] = [];
 			$data['duplicateHint'] = false;
-			foreach ($this->service->history($reimbursement->getId()) as $event) {
+			$history = $this->service->history($reimbursement->getId());
+			$data['originalAmountCents'] = self::originalAmount($history);
+			foreach ($history as $event) {
 				$entry = $event->toArray(true);
 				$entry['actorName'] = $this->userName($event->getActorUid());
 				$data['history'][] = $entry;
@@ -121,6 +126,21 @@ class ReimbursementPresenter {
 			}
 		}
 		return $data;
+	}
+
+	/**
+	 * Der ursprünglich beantragte Betrag, falls ihn ein Verwalter korrigiert hat (#353), sonst null.
+	 *
+	 * @param ReimbursementEvent[] $history
+	 */
+	private static function originalAmount(array $history): ?int {
+		foreach ($history as $event) {
+			if ($event->getAction() === ReimbursementEvent::ACTION_AMOUNT_CORRECTED) {
+				$from = $event->decodedData()['from'] ?? null;
+				return is_int($from) ? $from : null;
+			}
+		}
+		return null;
 	}
 
 	/** @return array<string,mixed> */

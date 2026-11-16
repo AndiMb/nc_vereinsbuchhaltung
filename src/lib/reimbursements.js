@@ -1,6 +1,7 @@
 // Auslagenerstattung (docs/reimbursement-design.md): zustandslose Helfer für
 // Status, Fortschritt und Historie - von der Mitglieder- und der
 // Verwaltungssicht gemeinsam genutzt.
+import { formatMoney } from './format.js'
 import { normalizeIban } from './iban.js'
 import { t, tRaw } from './l10n.js'
 import { parseAmountQuery } from './search.js'
@@ -69,6 +70,13 @@ export function reimbursementEventText(event, staff) {
 			return tRaw('Beleg entfernt: {file}', { file: data.file || '' })
 		case 'duplicate_hint':
 			return t('Hinweis: Ein Beleg liegt schon in einem anderen Antrag vor')
+		case 'amount_corrected': {
+			// #353: Begründung steht als Kommentar darunter; frühere Freigaben verfallen.
+			const amounts = { from: formatMoney((data.from || 0) / 100), to: formatMoney((data.to || 0) / 100) }
+			return staff
+				? tRaw('{name} hat den Betrag von {from} auf {to} korrigiert', { name: who, ...amounts })
+				: t('Betrag durch einen Verwalter korrigiert: {from} → {to}', amounts)
+		}
 		default:
 			return event.action
 	}
