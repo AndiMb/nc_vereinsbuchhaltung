@@ -331,14 +331,27 @@ Zeiträume – geändert wurde nur die Schreibweise.
 Für die laufenden Umsätze: Tab **Buchungen** → *Umsätze importieren* →
 Datei der Bank hierher ziehen oder wählen.
 
-**Welches Format?** Die App erkennt drei und bestimmt das Format am Inhalt –
+**Welches Format?** Die App erkennt vier und bestimmt das Format am Inhalt –
 die Dateiendung ist ihr egal:
 
 | Format | Im Onlinebanking meist so benannt | Empfehlung |
 |---|---|---|
 | **CSV-CAMT** | „CSV-CAMT-Format", „Umsätze als CSV" | funktioniert, aber jede Bank baut die Spalten anders |
 | **CAMT.053** (XML) | „CAMT", „ISO 20022", „XML" | **beste Wahl**, wenn angeboten |
+| **CAMT.052** (XML) | „CAMT.052", „Umsatzreport", „Tagesreport" | gut, wenn es kein CAMT.053 gibt |
 | **MT940** | „MT940", „SWIFT", Datei endet oft auf `.sta` | ebenfalls gut |
+
+**ZIP-Archive:** Liefert die Bank ihre Auszüge gebündelt als ZIP, etwa eine
+CAMT-Datei je Tag, nehmt einfach das ZIP: Die App liest jede Datei darin.
+Alle Dateien im Archiv müssen dasselbe Format haben; Tage ohne Umsatz und
+macOS-Beigaben (`__MACOSX`, `.DS_Store`) stören nicht. Grenzen: höchstens
+400 Dateien und entpackt höchstens 20 MB. Das gilt auch für den Wachordner
+(Abschnitt 3.3).
+
+CAMT.052 ist in den Buchungen gleich aufgebaut wie CAMT.053. Untertägige
+Reports enthalten oft noch vorgemerkte Umsätze; die übernimmt die App wie
+bei CAMT.053 erst, wenn ein späterer Report sie als gebucht meldet. Doppelt
+gemeldete Buchungen erkennt die Dublettenprüfung.
 
 Warum CAMT.053 die beste Wahl ist: dort sind Vorzeichen, Datum und
 Zahlungsbeteiligte eindeutig ausgezeichnet. Bei der CSV muss die App die

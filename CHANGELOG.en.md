@@ -61,6 +61,11 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   combined, it stays unassigned and is reported instead of being posted
   wrongly. For such rules, the suggestion under *To assign* opens the
   *Split transaction* dialog already filled in. Manual chapter 4.1.
+- **CAMT.052 and ZIP archives in the bank statement import** (#359): besides
+  CAMT.053, the import now also reads CAMT.052 reports, which some banks offer
+  instead of CAMT.053. Statements bundled as a ZIP archive, e.g. one file per
+  day, can be imported directly or dropped into the watch folder; the app
+  reads every file in it. Manual chapter 3.2.
 
 **Fixed:**
 - After importing a bank statement, *Entries → All entries* shows the

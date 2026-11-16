@@ -33,7 +33,7 @@
 					<input
 						ref="fileInput"
 						type="file"
-						accept=".csv,.xml,.sta,.txt,text/csv,text/xml,application/xml"
+						accept=".csv,.xml,.sta,.txt,.zip,text/csv,text/xml,application/xml,application/zip"
 						hidden
 						@change="onFileSelected">
 					<p v-if="selectedFile" class="vbh-filename">
@@ -41,7 +41,7 @@
 					</p>
 				</div>
 				<p class="vbh-hint">
-					{{ t('Erkannt werden CSV-CAMT, CAMT.053 (XML) und MT940 – das Format wird am Inhalt bestimmt, die Dateiendung spielt keine Rolle. Nur neue Buchungen werden übernommen; bereits importierte werden automatisch erkannt (Dublettenprüfung).') }}
+					{{ t('Erkannt werden CSV-CAMT, CAMT.052 und CAMT.053 (XML, auch als ZIP-Archiv) und MT940 – das Format wird am Inhalt bestimmt, die Dateiendung spielt keine Rolle. Nur neue Buchungen werden übernommen; bereits importierte werden automatisch erkannt (Dublettenprüfung).') }}
 				</p>
 				<NcCheckboxRadioSwitch v-model="applyRules">
 					{{ t('Auto-Zuordnungsregeln anwenden') }}

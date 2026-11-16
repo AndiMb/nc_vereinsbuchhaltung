@@ -63,7 +63,7 @@ OC.L10N.register("vereinsbuchhaltung", {
 	"Der Vereinsname trägt nicht den Zusatz „e. V.“, obwohl eine Registernummer angegeben ist": "De verenigingsnaam heeft niet de toevoeging “e. V.”, hoewel er een registernummer is opgegeven.",
 	"Löscht unwiderruflich alle Konten, Buchungen und Importe, alle Rechnungen samt PDF und E-Rechnung sowie den Einzug (Lastschrift-Läufe, Einzugsposten, Rücklastschriften, Mahnstufen). Mitglieder, Mandate, Beitragsgruppen und Zuweisungen bleiben bestehen. Rechnungen sind acht Jahre aufzubewahren: Sichern Sie sie vorher mit dem Beleg-ZIP (Berichte → Auswertung).": "Verwijdert onherroepelijk alle rekeningen, boekingen en imports, alle facturen inclusief PDF en e-factuur, en de incasso (incassoruns, incassoposten, gestorneerde incasso’s, aanmaningsniveaus). Leden, machtigingen, contributiegroepen en toewijzingen blijven behouden. Facturen moeten acht jaar worden bewaard: maak eerst een back-up met de ZIP met bewijsstukken (Rapporten → Analyse).",
 	"Wirklich ALLE Konten, Buchungen und Importe, alle Rechnungen samt PDF und E-Rechnung sowie den Einzug (Läufe, Rücklastschriften, Mahnstufen) löschen? Rechnungen sind acht Jahre aufzubewahren – haben Sie sie mit dem Beleg-ZIP gesichert? Mitglieder, Mandate, Beitragsgruppen und Zuweisungen bleiben bestehen.": "Echt ALLE rekeningen, boekingen en imports, alle facturen inclusief PDF en e-factuur, en de incasso (runs, gestorneerde incasso’s, aanmaningsniveaus) verwijderen? Facturen moeten acht jaar worden bewaard – heeft u er een back-up van gemaakt met de ZIP met bewijsstukken? Leden, machtigingen, contributiegroepen en toewijzingen blijven behouden.",
-	"Legt man den im Onlinebanking heruntergeladenen Kontoauszug in einen Ordner, liest die App ihn von allein ein – kein Hochladen mehr von Hand. Erkannt werden CSV-CAMT, CAMT.053 (XML) und MT940. Beim Ausschalten wird der Ordner nicht mehr geprüft.": "Als u het bij internetbankieren gedownloade bankafschrift in een map plaatst, leest de app het zelf in – geen handmatige uploads meer. CSV-CAMT, CAMT.053 (XML) en MT940 worden herkend. Als u dit uitschakelt, wordt de map niet meer gecontroleerd.",
+	"Legt man den im Onlinebanking heruntergeladenen Kontoauszug in einen Ordner, liest die App ihn von allein ein – kein Hochladen mehr von Hand. Erkannt werden CSV-CAMT, CAMT.052 und CAMT.053 (XML, auch als ZIP-Archiv) und MT940. Beim Ausschalten wird der Ordner nicht mehr geprüft.": "Als u het bij internetbankieren gedownloade bankafschrift in een map plaatst, leest de app het zelf in – geen handmatige uploads meer. CSV-CAMT, CAMT.052 en CAMT.053 (XML, ook als ZIP-archief) en MT940 worden herkend. Als u dit uitschakelt, wordt de map niet meer gecontroleerd.",
 	"Rechnungsmodul": "Factuurmodule",
 	"Rechnungen im Namen des Vereins schreiben, als offene Posten führen und beim Kontoauszug-Import ihrer Zahlung zuordnen.": "Facturen opstellen namens de vereniging, als openstaande posten bijhouden en bij het importeren van een bankafschrift aan de betaling koppelen.",
 	"Reiter „Rechnungen“ anzeigen": "Tabblad “Facturen” tonen",
@@ -308,7 +308,7 @@ OC.L10N.register("vereinsbuchhaltung", {
 	"Kontoauszug der Bank hierher ziehen": "Sleep het bankafschrift hierheen",
 	"oder": "of",
 	"Datei wählen": "Bestand kiezen",
-	"Erkannt werden CSV-CAMT, CAMT.053 (XML) und MT940 – das Format wird am Inhalt bestimmt, die Dateiendung spielt keine Rolle. Nur neue Buchungen werden übernommen; bereits importierte werden automatisch erkannt (Dublettenprüfung).": "CSV-CAMT, CAMT.053 (XML) en MT940 worden herkend – het formaat wordt bepaald aan de hand van de inhoud, de bestandsextensie maakt niet uit. Alleen nieuwe boekingen worden overgenomen; reeds geïmporteerde worden automatisch herkend (controle op dubbele boekingen).",
+	"Erkannt werden CSV-CAMT, CAMT.052 und CAMT.053 (XML, auch als ZIP-Archiv) und MT940 – das Format wird am Inhalt bestimmt, die Dateiendung spielt keine Rolle. Nur neue Buchungen werden übernommen; bereits importierte werden automatisch erkannt (Dublettenprüfung).": "CSV-CAMT, CAMT.052 en CAMT.053 (XML, ook als ZIP-archief) en MT940 worden herkend – het formaat wordt bepaald aan de hand van de inhoud, de bestandsextensie maakt niet uit. Alleen nieuwe boekingen worden overgenomen; reeds geïmporteerde worden automatisch herkend (controle op dubbele boekingen).",
 	"Auto-Zuordnungsregeln anwenden": "Regels voor automatische toewijzing toepassen",
 	"{n} neu": "{n} nieuw",
 	"{n} Dubletten": "{n} dubbel",
@@ -738,7 +738,7 @@ OC.L10N.register("vereinsbuchhaltung", {
 	"Die Datei ist kein gültiges XML": "Het bestand is geen geldig XML",
 	"Die MT940-Datei enthält keine lesbaren Buchungen (:61:).": "Het MT940-bestand bevat geen leesbare boekingen (:61:).",
 	"Die Datei ist leer.": "Het bestand is leeg.",
-	"Das Dateiformat wurde nicht erkannt. Unterstützt werden CSV-CAMT, CAMT.053 (XML) und MT940 – im Onlinebanking meist als „Umsätze exportieren\" auswählbar.": "Het bestandsformaat is niet herkend. Ondersteund worden CSV-CAMT, CAMT.053 (XML) en MT940 – bij internetbankieren meestal te vinden als “transacties exporteren”.",
+	"Das Dateiformat wurde nicht erkannt. Unterstützt werden CSV-CAMT, CAMT.052 und CAMT.053 (XML, auch als ZIP-Archiv) und MT940 – im Onlinebanking meist als „Umsätze exportieren\" auswählbar.": "Het bestandsformaat is niet herkend. Ondersteund worden CSV-CAMT, CAMT.052 en CAMT.053 (XML, ook als ZIP-archief) en MT940 – bij internetbankieren meestal te vinden als “transacties exporteren”.",
 	"Die Datei konnte nicht als XML gelesen werden.": "Het bestand kon niet als XML worden gelezen.",
 	"Kein <Projekt>-Element gefunden – ist das eine zero-Buchhaltung-Datei?": "Geen <Projekt>-element gevonden – is dit een bestand van “zero Buchhaltung”?",
 	"Konto nicht gefunden": "Rekening niet gevonden",
@@ -4763,5 +4763,10 @@ OC.L10N.register("vereinsbuchhaltung", {
 	"Ungültiger Anteil (Konto oder Betrag fehlt).": "Ongeldig aandeel (rekening of bedrag ontbreekt).",
 	"Aufteilung: {accounts}": "Verdeling: {accounts}",
 	"Jedes Konto darf in einer Regel nur einmal vorkommen.": "Elke rekening mag maar één keer in een regel voorkomen.",
-	"Eine Regel kann höchstens %d feste Anteile haben.": "Een regel kan hoogstens %d vaste aandelen hebben."
+	"Eine Regel kann höchstens %d feste Anteile haben.": "Een regel kan hoogstens %d vaste aandelen hebben.",
+	"Das ZIP-Archiv enthält Kontoauszüge in verschiedenen Formaten. Bitte jedes Format einzeln importieren.": "Het ZIP-archief bevat bankafschriften in verschillende formaten. Importeer elk formaat afzonderlijk.",
+	"Das ZIP-Archiv enthält keine Buchungen.": "Het ZIP-archief bevat geen boekingen.",
+	"Das ZIP-Archiv ist beschädigt und lässt sich nicht öffnen.": "Het ZIP-archief is beschadigd en kan niet worden geopend.",
+	"Das ZIP-Archiv enthält zu viele Dateien.": "Het ZIP-archief bevat te veel bestanden.",
+	"Das ZIP-Archiv ist entpackt zu groß (höchstens 20 MB).": "Het ZIP-archief is uitgepakt te groot (maximaal 20 MB)."
 }, "nplurals=2; plural=(n != 1);");

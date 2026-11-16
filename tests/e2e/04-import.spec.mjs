@@ -109,3 +109,30 @@ test.describe('Kontoauszug-Import mit Regeln', () => {
 		await expect(section.getByText('Mitgliedsbeitrag 2026 Max Mustermann').first()).toBeVisible()
 	})
 })
+
+// Issue #359: CAMT.052-Tagesreports, gebündelt als ZIP. Die Fixture enthält
+// denselben Auszug wie die CSV als CAMT.052-Report plus einen leeren
+// Tagesreport (erzeugt mit tests/fixtures/make-camt052-zip.php).
+test.describe('Kontoauszug-Import: CAMT.052 im ZIP-Archiv', () => {
+	test.beforeEach(async ({ request }) => {
+		await api.resetBook(request)
+		await api.seedDefaultAccounts(request)
+	})
+
+	test('ZIP über den Import-Dialog; derselbe Auszug als CSV ist danach eine Dublette', async ({ page, request }) => {
+		await openApp(page, USERS.verwalter)
+		await switchTab(page, 'Buchungen')
+		await visibleSection(page).getByRole('button', { name: 'Umsätze importieren' }).click()
+
+		const dialog = page.getByRole('dialog')
+		await dialog.locator('input[type="file"]').setInputFiles(join(FIXTURES_DIR, 'beispiel-camt052.zip'))
+		await expect(dialog.getByText(`${N} neu`)).toBeVisible()
+		await dialog.getByRole('button', { name: `${N} Buchungen importieren` }).click()
+		await expect(dialog.getByText(`${N} Buchungen importiert`)).toBeVisible()
+
+		expect(await api.listTransactions(request)).toHaveLength(N)
+		const csv = await api.importStatement(request, fixture(CAMT_STATEMENT.csv))
+		expect(csv.new).toBe(0)
+		expect(csv.duplicate).toBe(N)
+	})
+})
