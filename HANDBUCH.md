@@ -1909,6 +1909,8 @@ Gliederungsberichts (danach stehen wieder die beiden Standardvorlagen bereit)
 und die Zeiträume samt ihrer Festschreibung. **Das Änderungsprotokoll bleibt erhalten.** Mitglieder,
 Mandate, Beitragsgruppen und Zuweisungen (Kapitel 13) gehören nicht zum
 Buchungsbestand und bleiben unberührt (der Einzug wird mitgeräumt, siehe unten).
+Ebenso bleiben die **Entwürfe von Auslagen**, die Mitglieder noch nicht
+eingereicht haben (4.6) – sie gehören den Mitgliedern, nicht der Buchhaltung.
 Gleiches gilt für den Reset-Modus beim xbuc-Import. Beides ist
 unwiderruflich – also nur nach Rücksprache und nie aus Versehen. Wer wirklich
 alles entfernen will, auch Mitglieder, Mandate und Einstellungen – etwa um

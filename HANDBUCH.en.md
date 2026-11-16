@@ -1866,7 +1866,9 @@ structured report (afterwards the two standard templates are available
 again) and the year-end closing markers.
 **The change log is kept.** Members, mandates, contribution groups and
 assignments (chapter 13) are not part of the posting records and stay untouched
-(the collection is cleared with it, see below). The same applies to
+(the collection is cleared with it, see below). Likewise, the **expense claim
+drafts** that members have not submitted yet (4.6) stay – they belong to the
+members, not to the bookkeeping. The same applies to
 reset mode during the xbuc import. Both are irreversible – so only after
 checking with others, and never by accident. If you really want to remove
 everything, including members, mandates and settings – for instance to restore

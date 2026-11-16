@@ -142,6 +142,10 @@ class ResetServiceTest extends TestCase {
 		'vbh_receipt_hashes',
 		// Belegindex der Belegvorschläge: abgeleiteter Cache, wird neu gelesen.
 		'vbh_receipt_index',
+		// Entwürfe von Auslagen (#356): private Vorarbeit der Mitglieder, die
+		// bleiben; sie verweisen auf nichts, was der Reset löscht.
+		'vbh_reimb_drafts',
+		'vbh_reimb_draft_files',
 	];
 
 	/** @var list<string> Reihenfolge aller Wirkungen des Resets, siehe record() */
