@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { join } from 'path'
-import { api, CAMT_STATEMENT, fixture, FIXTURES_DIR, openApp, pickNcSelectOption, switchTab, USERS, visibleSection } from './fixtures/nextcloud.mjs'
+import { api, CAMT_STATEMENT, fixture, FIXTURES_DIR, INCOME_ACCOUNT, openApp, pickNcSelectOption, switchTab, USERS, visibleSection } from './fixtures/nextcloud.mjs'
 
 // Kontoauszug-Import: alle drei Formate, Dublettenerkennung (auch
 // formatübergreifend) und die Zuordnung eines Umsatzes über die Oberfläche.
@@ -76,5 +76,36 @@ test.describe('Kontoauszug-Import', () => {
 		await expect(visibleSection(page).getByText(`von ${N} Bankbuchungen zugeordnet`)).toContainText(`1 von ${N}`)
 		const assigned = await api.listTransactions(request, { status: 'assigned' })
 		expect(assigned.length).toBeGreaterThanOrEqual(1)
+	})
+})
+
+// Issue #358: Importregeln legen beim Import Buchungen an. Die Liste
+// *Alle Buchungen* hinter dem Import-Dialog muss sie sofort zeigen, ohne
+// Reiterwechsel oder Neuladen.
+test.describe('Kontoauszug-Import mit Regeln', () => {
+	test.beforeEach(async ({ request }) => {
+		await api.resetBook(request)
+		await api.seedDefaultAccounts(request)
+	})
+
+	test('von Regeln angelegte Buchungen stehen nach dem Import sofort in der Liste', async ({ page, request }) => {
+		const income = await api.accountByNumber(request, INCOME_ACCOUNT)
+		await api.createRule(request, { matchField: 'purpose', matchValue: 'Mitgliedsbeitrag', contraAccountId: income.id })
+
+		await openApp(page, USERS.verwalter)
+		await switchTab(page, 'Buchungen')
+		const section = visibleSection(page)
+		await expect(section.getByRole('button', { name: 'Umsätze importieren' })).toBeVisible()
+		await expect(section.getByText('Mitgliedsbeitrag 2026 Max Mustermann')).toHaveCount(0)
+
+		await section.getByRole('button', { name: 'Umsätze importieren' }).click()
+		const dialog = page.getByRole('dialog')
+		await dialog.locator('input[type="file"]').setInputFiles(join(FIXTURES_DIR, CAMT_STATEMENT.csv))
+		await expect(dialog.getByText(`${N} neu`)).toBeVisible()
+		await dialog.getByRole('button', { name: `${N} Buchungen importieren` }).click()
+		await dialog.getByRole('button', { name: 'Schließen' }).last().click()
+
+		// Kein Reiterwechsel, kein Neuladen: die Regelbuchung ist schon da.
+		await expect(section.getByText('Mitgliedsbeitrag 2026 Max Mustermann').first()).toBeVisible()
 	})
 })
