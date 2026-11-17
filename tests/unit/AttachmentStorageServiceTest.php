@@ -222,6 +222,7 @@ class AttachmentStorageServiceTest extends TestCase {
 		$home->method('get')->willReturnCallback(static fn (string $path): Folder => match ($path) {
 			self::NC_PATH => $watch,
 			\OCA\Vereinsbuchhaltung\Service\InvoiceSettings::DEFAULT_FOLDER => $invoices,
+			default => throw new \OCP\Files\NotFoundException($path),
 		});
 		$home->expects($this->never())->method('getFirstNodeById');
 		$this->rootFolder->method('getUserFolder')->with(self::NC_USER)->willReturn($home);
