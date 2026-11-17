@@ -17,6 +17,8 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 
 ## [Unreleased]
 
+## [0.54.0] – 2026-11-17
+
 **New:**
 - **Treasurer's report and contribution confirmation as PDF** (#364): besides
   the print view, both are now available as a finished PDF file (PDF/A) with

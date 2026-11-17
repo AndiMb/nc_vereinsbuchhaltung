@@ -4867,7 +4867,15 @@
         "Der Zeitraum ist abgeschlossen, aber der Kassenbericht wurde nicht abgelegt: {reason}": "De periode is afgesloten, maar het kasverslag is niet opgeslagen: {reason}",
         "Das PDF konnte nicht erzeugt werden.": "De pdf kon niet worden gemaakt.",
         "Der Kassenbericht konnte nicht als PDF abgelegt werden.": "Het kasverslag kon niet als pdf worden opgeslagen.",
-        "Berichtsordner": "Map voor rapporten"
+        "Berichtsordner": "Map voor rapporten",
+        "Neu: Sicherung und Umzug – der gesamte Bestand passwortverschlüsselt in einer Datei, einspielbar auch auf einer anderen Nextcloud (Zahnrad → Sicherung und Umzug).": "Nieuw: back-up en verhuizing – de volledige gegevens in één met een wachtwoord versleuteld bestand, ook terug te zetten op een andere Nextcloud (Tandwiel → Back-up en verhuizing).",
+        "Neu: Kassenbericht und Beitragsbestätigung als PDF-Datei. Auf Wunsch legt die App den Kassenbericht beim Jahresabschluss als PDF ab.": "Nieuw: kasverslag en contributiebevestiging als pdf-bestand. Desgewenst slaat de app het kasverslag bij het afsluiten van het jaar als pdf op.",
+        "Neu: Das Rechnungs-PDF hängt automatisch als Beleg an der Zahlungsbuchung.": "Nieuw: de factuur-pdf wordt automatisch als bewijsstuk aan de betalingsboeking gekoppeld.",
+        "Neu: Kontoabstimmung – einen Kontoauszug der Bank Zeile für Zeile mit dem Geldkonto vergleichen.": "Nieuw: rekeningafstemming – een bankafschrift regel voor regel vergelijken met de geldrekening.",
+        "Neu: Importregeln teilen Umsätze mit festen Anteilen auf mehrere Konten auf.": "Nieuw: importregels verdelen transacties met vaste aandelen over meerdere rekeningen.",
+        "Neu: Kontoauszüge auch als CAMT.052 und als ZIP-Archiv importieren.": "Nieuw: bankafschriften ook als CAMT.052 en als ZIP-archief importeren.",
+        "Neu: Beitragsgruppen mit Jahresbeitrag statt Monatsbetrag.": "Nieuw: contributiegroepen met jaarcontributie in plaats van een maandbedrag.",
+        "Neu: Auslagen als Entwurf speichern, den Betrag bei der Prüfung korrigieren und Reisekosten abrechnen.": "Nieuw: declaraties als concept opslaan, het bedrag bij de controle corrigeren en reiskosten declareren."
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

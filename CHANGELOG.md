@@ -19,6 +19,8 @@ verwenden, z. B. `**Neu:**`.
 
 ## [Unreleased]
 
+## [0.54.0] – 2026-11-17
+
 **Neu:**
 - **Kassenbericht und Beitragsbestätigung als PDF** (#364): Neben der
   Druckansicht gibt es beide jetzt als fertige PDF-Datei (PDF/A) mit

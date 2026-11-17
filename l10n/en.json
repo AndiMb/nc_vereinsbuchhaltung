@@ -4867,7 +4867,15 @@
         "Der Zeitraum ist abgeschlossen, aber der Kassenbericht wurde nicht abgelegt: {reason}": "The period is closed, but the treasurer's report was not saved: {reason}",
         "Das PDF konnte nicht erzeugt werden.": "The PDF could not be created.",
         "Der Kassenbericht konnte nicht als PDF abgelegt werden.": "The treasurer's report could not be saved as a PDF.",
-        "Berichtsordner": "Report folder"
+        "Berichtsordner": "Report folder",
+        "Neu: Sicherung und Umzug – der gesamte Bestand passwortverschlüsselt in einer Datei, einspielbar auch auf einer anderen Nextcloud (Zahnrad → Sicherung und Umzug).": "New: Backup and migration – the entire data set in a single password-encrypted file that can also be restored on another Nextcloud (gear icon → Backup and migration).",
+        "Neu: Kassenbericht und Beitragsbestätigung als PDF-Datei. Auf Wunsch legt die App den Kassenbericht beim Jahresabschluss als PDF ab.": "New: Treasurer's report and contribution confirmation as a PDF file. Optionally the app files the treasurer's report as a PDF when a year is closed.",
+        "Neu: Das Rechnungs-PDF hängt automatisch als Beleg an der Zahlungsbuchung.": "New: The invoice PDF is attached to the payment booking as its receipt automatically.",
+        "Neu: Kontoabstimmung – einen Kontoauszug der Bank Zeile für Zeile mit dem Geldkonto vergleichen.": "New: Account reconciliation – compare a bank statement line by line with the cash account.",
+        "Neu: Importregeln teilen Umsätze mit festen Anteilen auf mehrere Konten auf.": "New: Import rules split transactions across several accounts with fixed shares.",
+        "Neu: Kontoauszüge auch als CAMT.052 und als ZIP-Archiv importieren.": "New: Import bank statements as CAMT.052 and as ZIP archives too.",
+        "Neu: Beitragsgruppen mit Jahresbeitrag statt Monatsbetrag.": "New: Contribution groups with an annual fee instead of a monthly amount.",
+        "Neu: Auslagen als Entwurf speichern, den Betrag bei der Prüfung korrigieren und Reisekosten abrechnen.": "New: Save expense claims as drafts, correct the amount during review, and claim travel expenses."
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }
