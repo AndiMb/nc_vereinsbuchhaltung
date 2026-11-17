@@ -338,6 +338,42 @@ class SettingsControllerForeignHomeTest extends TestCase {
 		$this->assertSame('Rechnungen/Neu', $this->store['invoice_folder']);
 	}
 
+	/** Berichtsordner für den Kassenbericht beim Abschluss (#364): derselbe Schutz wie bei Rechnungen. */
+	public function testBerichtsOrdnerImFremdenHomeLaesstSichNichtUmstellen(): void {
+		$this->storeForeignStorage();
+
+		$this->assertRejected($this->update(['report_folder' => 'Privat', 'report_archive_on_close' => '1']));
+		$this->assertArrayNotHasKey('report_folder', $this->store);
+		$this->assertArrayNotHasKey('report_archive_on_close', $this->store);
+	}
+
+	public function testUnveraenderterBerichtsOrdnerImFremdenHomeBleibtSpeicherbar(): void {
+		$this->storeForeignStorage();
+
+		$response = $this->update(['report_folder' => '', 'report_archive_on_close' => '1']);
+
+		$this->assertSame(Http::STATUS_OK, $response->getStatus());
+		$this->assertSame('1', $this->store['report_archive_on_close']);
+		$this->assertSame('Vereinsbuchhaltung/Berichte', $this->store['report_folder']);
+	}
+
+	public function testBerichtsOrdnerImEigenenHomeWirdNormalisiertGespeichert(): void {
+		$this->store['storage_user'] = self::SELF;
+		$this->store['storage_mode'] = AttachmentStorageService::MODE_USER;
+
+		$this->assertSame(Http::STATUS_OK, $this->update(['report_folder' => '/Verein/Berichte/', 'report_archive_on_close' => '0'])->getStatus());
+		$this->assertSame('Verein/Berichte', $this->store['report_folder']);
+		$this->assertSame('0', $this->store['report_archive_on_close']);
+	}
+
+	public function testUngueltigerBerichtsOrdnerWirdAbgelehnt(): void {
+		$this->store['storage_user'] = self::SELF;
+		$this->store['storage_mode'] = AttachmentStorageService::MODE_USER;
+
+		$this->assertSame(Http::STATUS_BAD_REQUEST, $this->update(['report_folder' => '../ausserhalb'])->getStatus());
+		$this->assertArrayNotHasKey('report_folder', $this->store);
+	}
+
 	public function testAenderungDerBelegablageStehtImProtokoll(): void {
 		$this->store['storage_user'] = self::SELF;
 		$this->store['storage_path'] = 'Alt';

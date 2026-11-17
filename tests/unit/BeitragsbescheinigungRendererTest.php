@@ -11,8 +11,11 @@ use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
 use OCA\Vereinsbuchhaltung\Service\ClubClock;
 use OCA\Vereinsbuchhaltung\Service\ClubCurrency;
 use OCA\Vereinsbuchhaltung\Service\ContributionYearService;
+use OCA\Vereinsbuchhaltung\Service\Export\BeitragsbescheinigungPdfRenderer;
 use OCA\Vereinsbuchhaltung\Service\Export\BeitragsbescheinigungRenderer;
+use OCA\Vereinsbuchhaltung\Service\Pdf\ReportPdfFactory;
 use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubClockStub;
+use OCA\Vereinsbuchhaltung\Tests\Unit\Support\KeepPdf;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\IAppConfig;
 use OCP\IL10N;
@@ -253,5 +256,48 @@ class BeitragsbescheinigungRendererTest extends TestCase {
 		$expected = array_values(array_unique([self::clubYear(), 2025, 2023]));
 		rsort($expected);
 		$this->assertSame($expected, $years);
+	}
+
+	/** Die Daten für HTML und PDF kommen aus derselben Quelle (Issue #364). */
+	public function testCollectLiefertNurBezahlteBeitraegeUndSumme(): void {
+		$this->memberMapper->method('find')->willReturn($this->member());
+		$this->openItems->method('findByMember')->willReturn([
+			$this->claim(OpenItem::TYPE_CONTRIBUTION, 'paid', 1500, '2026-04-01', '2026-06-30', description: 'Q2'),
+			$this->claim(OpenItem::TYPE_CONTRIBUTION, 'paid', 1500, '2026-01-01', '2026-03-31', description: 'Q1'),
+			$this->claim(OpenItem::TYPE_FEE, 'paid', 5000, '2026-02-01', '2026-02-01'),
+		]);
+
+		$d = $this->renderer()->collect(1, 2026);
+
+		$this->assertSame(2026, $d['anchorYear']);
+		$this->assertSame(3000, $d['sumCents']);
+		$this->assertSame(['Q1', 'Q2'], array_map(static fn (OpenItem $i): ?string => $i->getDescription(), $d['rows']), 'nach Periode sortiert');
+		$this->assertSame(['Katrin Brunner', 'Musterstraße 1', '12345 Berlin'], $this->renderer()->recipientLines($d['member']));
+	}
+
+	public function testPdfFassungEntstehtMitDateinamenAusDerUeberschrift(): void {
+		\OCA\Vereinsbuchhaltung\AppInfo\Application::loadComposerAutoloader();
+		if (!class_exists(\TCPDF::class)) {
+			$this->markTestSkipped('TCPDF ist nicht installiert (composer install).');
+		}
+		$this->memberMapper->method('find')->willReturn($this->member());
+		$this->openItems->method('findByMember')->willReturn([
+			$this->claim(OpenItem::TYPE_CONTRIBUTION, 'paid', 1500, '2026-01-01', '2026-03-31', description: 'Quartalsbeitrag'),
+			$this->claim(OpenItem::TYPE_CONTRIBUTION, 'paid', 1500, '2026-04-01', '2026-06-30', description: 'Quartalsbeitrag'),
+		]);
+		$l10n = $this->createMock(IL10N::class);
+		$l10n->method('t')->willReturnCallback(static fn (string $text, array $parameters = []): string => vsprintf($text, $parameters));
+
+		$pdf = (new BeitragsbescheinigungPdfRenderer($this->renderer(), new ReportPdfFactory($this->config, $l10n), new ClubCurrency($this->config), $l10n))->render(1, 2026, false);
+		KeepPdf::to('beitragsbestaetigung.pdf', $pdf['content']);
+
+		$this->assertStringStartsWith('%PDF-', $pdf['content']);
+		$this->assertStringContainsString('<pdfaid:part>3</pdfaid:part>', $pdf['content']);
+		$this->assertSame('Beitragsbestätigung 2026.pdf', $pdf['fileName']);
+	}
+
+	public function testPdfDateinameOhneSchraegstrich(): void {
+		$renderer = new BeitragsbescheinigungPdfRenderer($this->renderer(), $this->createMock(ReportPdfFactory::class), new ClubCurrency($this->config), $this->createMock(IL10N::class));
+		$this->assertSame('Beitragsbestätigung 2025-26.pdf', $renderer->fileName('Beitragsbestätigung 2025/26'));
 	}
 }

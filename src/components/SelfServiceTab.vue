@@ -255,6 +255,12 @@
 						rel="noopener">
 						{{ t('Öffnen') }}
 					</NcButton>
+					<NcButton
+						variant="secondary"
+						:href="certificatePdfUrl"
+						:download="true">
+						{{ t('PDF') }}
+					</NcButton>
 				</div>
 			</div>
 
@@ -454,6 +460,11 @@ export default {
 		/** Druckfertige Live-Ansicht der Beitragsbestätigung (Issue #77) - öffnet in neuem Tab. */
 		certificateUrl() {
 			return api.selfCertificateUrl(this.certificateYear)
+		},
+
+		/** Dieselbe Bestätigung als PDF-Datei (Issue #364). */
+		certificatePdfUrl() {
+			return api.selfCertificatePdfUrl(this.certificateYear)
 		},
 
 		/** Druckfertige "Datenübersicht" (Art. 15 DSGVO, Issue #78) - öffnet in neuem Tab. */

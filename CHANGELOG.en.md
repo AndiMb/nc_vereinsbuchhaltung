@@ -18,6 +18,16 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 ## [Unreleased]
 
 **New:**
+- **Treasurer's report and contribution confirmation as PDF** (#364): besides
+  the print view, both are now available as a finished PDF file (PDF/A) with
+  page numbers, repeated table headers and – for the treasurer's report –
+  signature fields that stay together with the rest. The contribution
+  confirmation can thus be downloaded in the member record and under *My
+  contribution*. Optionally the app files the treasurer's report as a PDF in
+  the report folder of the receipt storage when a fiscal year is closed
+  (*gear icon → Fiscal year → File the treasurer's report*); if that fails,
+  the year is closed anyway. The shared PDF foundation will later also serve
+  the donation receipts.
 - **Backup and migration** (#111): under *gear icon → Backup and migration*,
   administrators save the entire data set – bookkeeping, members, mandates,
   contributions, invoices, expenses, roles, change log and settings,

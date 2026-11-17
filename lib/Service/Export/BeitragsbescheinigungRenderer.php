@@ -18,9 +18,10 @@ use OCP\IL10N;
 /**
  * Die informelle Beitragsbestätigung eines Mitglieds als druckfertige HTML-
  * Seite (Spec §3.7, Issue #77, T16) – nach demselben Muster wie
- * {@see KassenberichtRenderer}: kein Server-PDF, kein gespeichertes
- * Dokument, keine Sammellauf-Funktion, kein Zustellungs-Tracking. Reine
- * Live-Ansicht, jederzeit neu erzeugt aus dem aktuellen Datenbestand.
+ * {@see KassenberichtRenderer}: kein gespeichertes Dokument, keine
+ * Sammellauf-Funktion, kein Zustellungs-Tracking. Reine Live-Ansicht,
+ * jederzeit neu erzeugt aus dem aktuellen Datenbestand; denselben Inhalt gibt
+ * es als PDF ({@see BeitragsbescheinigungPdfRenderer}, Issue #364).
  *
  * **Ausdrücklich KEINE amtliche Zuwendungsbestätigung nach §10b EStG** – das
  * bleibt Sache des separaten Upstream-Issues
@@ -77,13 +78,15 @@ class BeitragsbescheinigungRenderer {
 	}
 
 	/**
-	 * Rendert die Beitragsbestätigung für ein Beitragsjahr.
+	 * Alles, was in der Beitragsbestätigung steht – für die HTML-Ansicht und das
+	 * PDF ({@see BeitragsbescheinigungPdfRenderer}, Issue #364).
 	 *
 	 * @param int|null $anchorYear Anker-Kalenderjahr des Beitragsjahres (siehe
 	 *                             {@see ContributionYearService::anchorYearFor()}), Standard: laufendes Jahr
+	 * @return array{member: Member, anchorYear: int, label: string, clubName: string, heading: string, meta: string, rows: list<OpenItem>, sumCents: int}
 	 * @throws \OCP\AppFramework\Db\DoesNotExistException wenn es das Mitglied nicht gibt
 	 */
-	public function render(int $memberId, ?int $anchorYear = null): string {
+	public function collect(int $memberId, ?int $anchorYear = null): array {
 		$member = $this->members->find($memberId);
 		$anchorYear ??= $this->contributionYear->currentAnchorYear();
 		$label = $this->contributionYear->yearLabel($anchorYear);
@@ -97,17 +100,34 @@ class BeitragsbescheinigungRenderer {
 			$a->getPeriodStart() ?? (string)$a->getDueDate(),
 			$b->getPeriodStart() ?? (string)$b->getDueDate(),
 		));
-		$sumCents = array_sum(array_map(static fn (OpenItem $i): int => $i->getAmountCents(), $rows));
 
-		$clubName = $this->config->getValueString(Application::APP_ID, 'club_name', '');
-		$heading = $this->l10n->t('Beitragsbestätigung %s', [$label]);
-		$title = ($clubName !== '' ? $clubName . ' – ' : '') . $heading;
-		$meta = $this->l10n->t('Beitragsjahr %s (%s–%s) · erstellt am %s', [
-			$label,
-			ReportFormat::date($from),
-			ReportFormat::date($to),
-			ReportFormat::date($this->clock->today()),
-		]);
+		return [
+			'member' => $member,
+			'anchorYear' => $anchorYear,
+			'label' => $label,
+			'clubName' => $this->config->getValueString(Application::APP_ID, 'club_name', ''),
+			'heading' => $this->l10n->t('Beitragsbestätigung %s', [$label]),
+			'meta' => $this->l10n->t('Beitragsjahr %s (%s–%s) · erstellt am %s', [
+				$label,
+				ReportFormat::date($from),
+				ReportFormat::date($to),
+				ReportFormat::date($this->clock->today()),
+			]),
+			'rows' => $rows,
+			'sumCents' => array_sum(array_map(static fn (OpenItem $i): int => $i->getAmountCents(), $rows)),
+		];
+	}
+
+	/**
+	 * Rendert die Beitragsbestätigung für ein Beitragsjahr.
+	 *
+	 * @param int|null $anchorYear siehe {@see collect()}
+	 * @throws \OCP\AppFramework\Db\DoesNotExistException wenn es das Mitglied nicht gibt
+	 */
+	public function render(int $memberId, ?int $anchorYear = null): string {
+		$d = $this->collect($memberId, $anchorYear);
+		$member = $d['member'];
+		$title = ($d['clubName'] !== '' ? $d['clubName'] . ' – ' : '') . $d['heading'];
 
 		$h = PrintableReportPage::printHint($this->l10n->t('Zum Drucken oder Als-PDF-Speichern: <strong>Strg+P</strong> (Mac: ⌘P) im Browser.'));
 		if (!$member->hasAddress()) {
@@ -117,12 +137,36 @@ class BeitragsbescheinigungRenderer {
 			// Empfänger der ausgedruckten Bestätigung.
 			$h .= PrintableReportPage::printHint($this->l10n->t('Adresse jetzt hinterlegen: Für eine Bestätigung mit vollständiger Anschrift fehlen noch Straße, PLZ oder Ort.'));
 		}
-		$h .= PrintableReportPage::header(null, $clubName, $heading, PrintableReportPage::escape($meta));
+		$h .= PrintableReportPage::header(null, $d['clubName'], $d['heading'], PrintableReportPage::escape($d['meta']));
 		$h .= $this->disclaimerSection();
 		$h .= $this->recipientSection($member);
-		$h .= $this->rowsSection($rows, $sumCents);
+		$h .= $this->rowsSection($d['rows'], $d['sumCents']);
 
 		return PrintableReportPage::document($title, $h);
+	}
+
+	/** Der Hinweis, dass dies keine Zuwendungsbestätigung ist. */
+	public function disclaimer(): string {
+		return $this->l10n->t(
+			'Diese Bestätigung ist ein informeller Beleg über gezahlte Mitgliedsbeiträge. Sie ist KEINE amtliche Zuwendungsbestätigung nach § 10b EStG und hat keine steuerliche Wirkung.',
+		);
+	}
+
+	/**
+	 * Anschriftzeilen des Mitglieds: Name, Straße und Ort (falls hinterlegt), Mitgliedsnummer.
+	 *
+	 * @return list<string>
+	 */
+	public function recipientLines(Member $member): array {
+		$lines = [$member->displayName()];
+		if ($member->hasAddress()) {
+			$lines[] = (string)$member->getStreet();
+			$lines[] = trim($member->getPostalCode() . ' ' . $member->getCity());
+		}
+		if ($member->getMemberNumber() !== null && $member->getMemberNumber() !== '') {
+			$lines[] = $this->l10n->t('Mitgliedsnummer %s', [(string)$member->getMemberNumber()]);
+		}
+		return $lines;
 	}
 
 	/**
@@ -151,19 +195,14 @@ class BeitragsbescheinigungRenderer {
 	}
 
 	private function disclaimerSection(): string {
-		return '<section><p>' . PrintableReportPage::escape($this->l10n->t(
-			'Diese Bestätigung ist ein informeller Beleg über gezahlte Mitgliedsbeiträge. Sie ist KEINE amtliche Zuwendungsbestätigung nach § 10b EStG und hat keine steuerliche Wirkung.',
-		)) . '</p></section>';
+		return '<section><p>' . PrintableReportPage::escape($this->disclaimer()) . '</p></section>';
 	}
 
 	private function recipientSection(Member $member): string {
-		$h = '<section><p><strong>' . PrintableReportPage::escape($member->displayName()) . '</strong>';
-		if ($member->hasAddress()) {
-			$h .= '<br>' . PrintableReportPage::escape((string)$member->getStreet())
-				. '<br>' . PrintableReportPage::escape(trim($member->getPostalCode() . ' ' . $member->getCity()));
-		}
-		if ($member->getMemberNumber() !== null && $member->getMemberNumber() !== '') {
-			$h .= '<br>' . PrintableReportPage::escape($this->l10n->t('Mitgliedsnummer %s', [(string)$member->getMemberNumber()]));
+		$lines = $this->recipientLines($member);
+		$h = '<section><p><strong>' . PrintableReportPage::escape(array_shift($lines)) . '</strong>';
+		foreach ($lines as $line) {
+			$h .= '<br>' . PrintableReportPage::escape($line);
 		}
 		return $h . '</p></section>';
 	}
@@ -185,7 +224,7 @@ class BeitragsbescheinigungRenderer {
 	}
 
 	/** Fälligkeitsperiode einer Zeile: der Periodenzeitraum, sonst (manuelle Forderung) das Fälligkeitsdatum allein. */
-	private function periodLabel(OpenItem $item): string {
+	public function periodLabel(OpenItem $item): string {
 		if ($item->getPeriodStart() !== null && $item->getPeriodEnd() !== null) {
 			return ReportFormat::date($item->getPeriodStart()) . '–' . ReportFormat::date($item->getPeriodEnd());
 		}

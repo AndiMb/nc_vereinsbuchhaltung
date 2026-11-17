@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Controller;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
+use OCA\Vereinsbuchhaltung\Exception\UserFacingException;
 use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
+use OCA\Vereinsbuchhaltung\Service\Export\KassenberichtArchive;
 use OCA\Vereinsbuchhaltung\Service\FrontendStateService;
 use OCA\Vereinsbuchhaltung\Service\PeriodRule;
 use OCA\Vereinsbuchhaltung\Service\PeriodService;
@@ -17,6 +19,7 @@ use OCP\AppFramework\Http\DataResponse;
 use OCP\IL10N;
 use OCP\IRequest;
 use OCP\IUserSession;
+use Psr\Log\LoggerInterface;
 
 /**
  * Geschäftsjahre: Liste, Regel, Grenzen, Festschreibung.
@@ -38,6 +41,8 @@ class PeriodController extends Controller {
 		private IUserSession $userSession,
 		private IL10N $l10n,
 		private FrontendStateService $frontendState,
+		private ?KassenberichtArchive $archive = null,
+		private ?LoggerInterface $logger = null,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -174,7 +179,26 @@ class PeriodController extends Controller {
 			return $denied;
 		}
 		$uid = $this->userSession->getUser()?->getUID() ?? '?';
-		return new DataResponse($this->periods->close($this->userId(), $id, $uid)->jsonSerialize(), Http::STATUS_CREATED);
+		$wasClosed = $this->periods->find($this->userId(), $id)->isClosed();
+		$period = $this->periods->close($this->userId(), $id, $uid);
+		$response = $period->jsonSerialize();
+		// Kassenbericht als PDF ablegen (Issue #364), nach der Festschreibung und außerhalb
+		// ihrer Transaktion: Scheitert die Ablage, bleibt das Jahr trotzdem abgeschlossen,
+		// und die Oberfläche nennt den Grund.
+		if (!$wasClosed && $this->archive !== null) {
+			try {
+				$file = $this->archive->storeOnClose($this->userId(), $period);
+				if ($file !== null) {
+					$response['reportFile'] = $file;
+				}
+			} catch (\Throwable $e) {
+				$this->logger?->error($e->getMessage(), ['exception' => $e, 'app' => Application::APP_ID]);
+				$response['reportError'] = $e instanceof UserFacingException
+					? $e->getMessage()
+					: $this->l10n->t('Der Kassenbericht konnte nicht als PDF abgelegt werden.');
+			}
+		}
+		return new DataResponse($response, Http::STATUS_CREATED);
 	}
 
 	#[NoAdminRequired]

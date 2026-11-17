@@ -165,6 +165,7 @@ final class BackupSchema {
 			'mandate_document_folder',
 			'xml_folder_enabled', 'xml_folder_path',
 			'invoice_folder',
+			'report_folder',
 			'data_revision',
 		];
 	}

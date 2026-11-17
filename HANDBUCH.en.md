@@ -1431,6 +1431,14 @@ period selected). Opens a dedicated, print-optimized page with:
 Print or "save as PDF" via the browser (**Ctrl+P** or **⌘+P** on Mac). This
 report is the document for the general assembly.
 
+Next to it, **"PDF"** downloads the same report as a finished PDF file (on a
+phone in the *More exports* menu as **"Treasurer's report (PDF)"**): with
+header and footer, "Page x of y", table headers repeated on every new page and
+signature fields ("Place, date") for the treasurer and the auditors that are
+never separated from the completeness note. The file is PDF/A and suitable for
+archiving. When a fiscal year is closed, the app can file it by itself
+(chapter 8.2).
+
 ### 7.3 Short report for board meetings (print-ready)
 
 **Reports → Evaluation** tab → **"Short report"** button. Unlike the
@@ -1713,6 +1721,19 @@ Gear icon → *Fiscal year* → *Periods* card (administrators only). Confirm
 "Close" as needed; the dialog names the label and the from–to dates so the
 wrong period doesn't get caught. The period is then marked with a 🔒 in the
 selector in the header.
+
+**Filing the treasurer's report.** In the same settings, card *File the
+treasurer's report*, the switch **"Save the treasurer's report as a PDF when
+closing"** files the treasurer's report (chapter 7.2) as a PDF on closing – in
+the home of the receipt storage user under the **storage folder for reports**
+(default `Vereinsbuchhaltung/Berichte`; a missing folder is created). This
+records the state of the closed year as a file; the change log notes the file
+and its checksum. After closing, a message names the path. If a year is
+reopened and closed again, another file is added ("… (2).pdf"); the earlier
+one is kept. Without receipt storage set up, no file is created. If filing
+fails, the period is closed anyway and the message names the reason. Only
+Nextcloud administrators may change the folder in another user's home (as with
+the invoice folder).
 
 ### 8.3 What's locked – and what isn't
 
@@ -2978,7 +2999,9 @@ under § 10b EStG** and has no tax effect – the page says so explicitly.
 contribution confirmation* (*Meine Beitragsbestätigung*, 13.11): choose the
 **contribution year**, **"Open"** (*Öffnen*). The board opens it in the
 record (13.2) in the **"Contribution confirmation"** (*Beitragsbestätigung*)
-section – the way for members without a Nextcloud account. There is no bulk run
+section – the way for members without a Nextcloud account. Next to
+**"Open"**, **"PDF"** downloads the same confirmation as a PDF file, for
+instance to forward it by mail. There is no bulk run
 for all members, no sending from the app and no link without signing in. The
 choice offers the years with at least one paid contribution and the current one.
 

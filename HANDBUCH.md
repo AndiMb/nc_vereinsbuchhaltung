@@ -1463,6 +1463,14 @@ Drucken oder „Als PDF speichern" über den Browser (**Strg+P** bzw. **⌘+P**
 auf dem Mac). Dieser Bericht ist das Dokument für die
 Mitgliederversammlung.
 
+Daneben lädt **„PDF"** denselben Bericht als fertige PDF-Datei herunter
+(auf dem Handy im Menü *Weitere Exporte* als **„Kassenbericht (PDF)"**):
+mit Kopf- und Fußzeile, „Seite x von y", Tabellenköpfen, die sich auf jeder
+neuen Seite wiederholen, und Unterschriftsfeldern („Ort, Datum") für
+Schatzmeister/in und Kassenprüfer/in, die nie vom Vollständigkeitshinweis
+getrennt werden. Die Datei ist PDF/A und eignet sich zum Ablegen. Beim
+Abschluss eines Geschäftsjahres kann die App sie selbst ablegen (Kapitel 8.2).
+
 ### 7.3 Kurzbericht für Vorstandssitzungen (druckfertig)
 
 Tab **Berichte → Auswertung** → Button **„Kurzbericht"**. Anders als der
@@ -1750,6 +1758,20 @@ Zahnrad → *Geschäftsjahr* → Karte *Zeiträume* (nur Verwalter). Bei Bedarf
 „Abschließen" bestätigen; der Dialog nennt Bezeichnung und Von–Bis, damit
 nicht der falsche Zeitraum erwischt wird. Der Zeitraum ist danach mit einem
 🔒 in der Auswahl in der Kopfzeile markiert.
+
+**Kassenbericht ablegen.** In derselben Einstellung, Karte *Kassenbericht
+ablegen*, legt der Schalter **„Beim Abschließen den Kassenbericht als PDF
+ablegen"** beim Abschluss den Kassenbericht (Kapitel 7.2) als PDF ab – im
+Home des Nutzers der Belegablage unter dem **Ablageordner für Berichte**
+(Standard `Vereinsbuchhaltung/Berichte`; ein fehlender Ordner wird angelegt).
+Damit ist der Stand des abgeschlossenen Jahres als Datei festgehalten; das
+Änderungsprotokoll vermerkt Datei und Prüfsumme. Nach dem Abschluss nennt eine
+Meldung den Pfad. Wird ein Jahr wiedereröffnet und erneut abgeschlossen, kommt
+eine weitere Datei hinzu („… (2).pdf"); die frühere bleibt liegen. Ohne
+eingerichtete Belegablage entsteht keine Datei. Scheitert das Ablegen, ist
+der Zeitraum trotzdem abgeschlossen; die Meldung nennt den Grund. Den
+Ordner in einem fremden Home umstellen dürfen nur Nextcloud-Administratoren
+(wie beim Rechnungsordner).
 
 ### 8.3 Was gesperrt ist – und was nicht
 
@@ -3015,7 +3037,9 @@ Seite sagt das ausdrücklich.
 **Wo.** Das Mitglied öffnet sie selbst unter *Mein Beitrag → Meine
 Beitragsbestätigung* (13.11): **Beitragsjahr** wählen, **„Öffnen"**. Der
 Vorstand öffnet sie in der Akte (13.2) im Abschnitt **„Beitragsbestätigung"**
-– der Weg für Mitglieder ohne Nextcloud-Konto. Einen Sammellauf für alle
+– der Weg für Mitglieder ohne Nextcloud-Konto. Neben **„Öffnen"** lädt
+**„PDF"** dieselbe Bestätigung als PDF-Datei herunter, etwa zum Weiterleiten
+per Mail. Einen Sammellauf für alle
 Mitglieder, einen Versand aus der App oder einen Link ohne Anmeldung gibt es
 nicht. Zur Wahl stehen die Jahre mit mindestens einem bezahlten Beitrag und das
 laufende.
