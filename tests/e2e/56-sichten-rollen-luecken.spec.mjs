@@ -329,7 +329,9 @@ test.describe('Sperrfenster nach der Vorabinfo (Protokoll 7.17, 11.3, 11.9)', ()
 		await expect(save).toBeEnabled()
 
 		// Der Turnus ist eine weitere Änderung: die alte Vorschau passt nicht mehr, Speichern ist wieder gesperrt.
-		await card.getByLabel('Turnus').selectOption('12')
+		// Gewählt ist der kürzere Turnus: er schließt an jede berechnete Periode lückenlos an. Ein längerer wird
+		// abgelehnt, wenn er Monate ohne Beitrag ließe (siehe 70-self-service-turnus-sperre).
+		await card.getByLabel('Turnus').selectOption('1')
 		await expect(save).toBeDisabled()
 		await card.getByRole('button', { name: 'Vorschau' }).click()
 		await expect(card.getByText(/Wirkt ab/)).toBeVisible()
@@ -357,13 +359,13 @@ test.describe('Sperrfenster nach der Vorabinfo (Protokoll 7.17, 11.3, 11.9)', ()
 		await expect(card.getByRole('button', { name: 'Speichern' })).toBeDisabled()
 
 		// Turnus: dieselbe Ablehnung (frisch geladene Seite, damit die Meldung oben nicht mitzählt).
-		const intervalPreview = await api.selfPreviewAssignment(request, assignment.id, { intervalMonths: 12, ...asMember })
+		const intervalPreview = await api.selfPreviewAssignment(request, assignment.id, { intervalMonths: 1, ...asMember })
 		expect(intervalPreview.status()).toBe(400)
 		const intervalMessage = (await intervalPreview.json()).message
 		expect(intervalMessage).toMatch(new RegExp(`^${LOCK_EXPLANATION} Möglich wäre diese Änderung erst ab \\d{2}\\.\\d{2}\\.\\d{4}\\.$`))
 		section = await openMeinBeitrag(page, USERS.ohneRolle)
 		card = assignmentCard(section, GROUP_LOCK.name)
-		await card.getByLabel('Turnus').selectOption('12')
+		await card.getByLabel('Turnus').selectOption('1')
 		await card.getByRole('button', { name: 'Vorschau' }).click()
 		await expect(toast(page, intervalMessage)).toBeVisible()
 		await expect(card.getByText(/Wirkt ab/)).toHaveCount(0)
@@ -373,7 +375,7 @@ test.describe('Sperrfenster nach der Vorabinfo (Protokoll 7.17, 11.3, 11.9)', ()
 		const amountSave = await api.selfUpdateAssignment(request, assignment.id, { monthlyAmount: 11, ...asMember })
 		expect(amountSave.status()).toBe(400)
 		expect((await amountSave.json()).message).toBe(lockMessage(firstFreeDay))
-		const intervalSave = await api.selfUpdateAssignment(request, assignment.id, { intervalMonths: 12, ...asMember })
+		const intervalSave = await api.selfUpdateAssignment(request, assignment.id, { intervalMonths: 1, ...asMember })
 		expect(intervalSave.status()).toBe(400)
 		const own = (await api.selfAssignments(request, { user: USERS.ohneRolle })).find((a) => a.id === assignment.id)
 		expect(own).toMatchObject({ monthlyAmount: 10, intervalMonths: 3 })

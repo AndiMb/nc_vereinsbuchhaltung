@@ -2955,6 +2955,18 @@ amount. A change that therefore could only take effect later is rejected by the
 app with an explanation – the message states the date from which it would be
 possible – instead of being silently postponed; the board can make it in the
 record (13.4) – for periods already announced, nothing changes anyway.
+What counts is the latest pre-notification sent, even if an earlier claim never
+got one (because it was already paid or free of charge). An assignment that only
+starts in the future is not locked: its change applies from its start.
+
+**Changing the interval without a gap.** A change of interval must not leave any
+time without a contribution. Once the contribution has been calculated for a
+period, the change is only possible if the next period of the new interval
+follows directly. Someone who wants to switch from monthly to yearly in February
+therefore gets a rejection naming both dates: otherwise March to December would
+remain without a contribution. Switching to a shorter interval always works,
+switching to a longer one at the latest at the end of the contribution year.
+This applies to members and to the administration alike.
 The **payment method** has none either: if a member switches to bank transfer
 after the pre-notification, the announced collection is dropped, the claim stays
 open, and the next daily run sends the payment request with GiroCode (13.8). If

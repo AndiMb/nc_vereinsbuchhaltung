@@ -177,6 +177,38 @@ class SelfContributionServiceTest extends TestCase {
 		$this->service('2026-06-15')->apply(self::ASSIGNMENT_ID, 1500, null);
 	}
 
+	/**
+	 * Eine Zuweisung, die erst künftig beginnt, ist nicht gesperrt: die Änderung
+	 * wirkt ab ihrem Beginn, eine Vorabinfo gibt es für sie noch nicht. Bisher
+	 * lehnte der Self-Service sie mit dem Hinweis auf eine Vorabinfo ab.
+	 */
+	public function testKuenftigBeginnendeZuweisungLaesstSichAendern(): void {
+		$this->actorContext->setMemberChannel(self::OWN_MEMBER_ID);
+		$assignment = $this->ownAssignment(amountCents: 1000, intervalMonths: 12);
+		$assignment->setValidFrom('2027-01-01');
+		$this->assignments->method('find')->willReturn($assignment);
+		$this->assignments->method('previewChange')->willReturn($this->fixedPreview(effectiveFrom: '2027-01-01'));
+		$this->assignments->expects($this->once())->method('update')->willReturn($this->ownAssignment(amountCents: 1000, intervalMonths: 1));
+		$this->members->method('find')->willReturn($this->member());
+
+		$preview = $this->service('2026-11-09')->preview(self::ASSIGNMENT_ID, null, 1);
+		$this->assertSame('2027-01-01', $preview['effectiveFrom']);
+
+		$this->service('2026-11-09')->apply(self::ASSIGNMENT_ID, null, 1);
+	}
+
+	/** Wirkt die Änderung erst nach dem Beginn der künftigen Zuweisung, bleibt es eine Sperre. */
+	public function testKuenftigBeginnendeZuweisungMitSpaetererWirkungBleibtGesperrt(): void {
+		$this->actorContext->setMemberChannel(self::OWN_MEMBER_ID);
+		$assignment = $this->ownAssignment();
+		$assignment->setValidFrom('2027-01-01');
+		$this->assignments->method('find')->willReturn($assignment);
+		$this->assignments->method('previewChange')->willReturn($this->fixedPreview(effectiveFrom: '2027-02-01'));
+
+		$this->expectException(\InvalidArgumentException::class);
+		$this->service('2026-11-09')->preview(self::ASSIGNMENT_ID, 1500, null);
+	}
+
 	// --- apply(): Benachrichtigungen ---------------------------------------
 
 	public function testApplyBeiBetragsAenderungSendetQuittungUndActivity(): void {

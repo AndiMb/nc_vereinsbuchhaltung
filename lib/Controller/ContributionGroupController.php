@@ -8,6 +8,7 @@ use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\ContributionGroup;
 use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
 use OCA\Vereinsbuchhaltung\Service\ContributionGroupService;
+use OCA\Vereinsbuchhaltung\Service\MonthlyAmount;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Db\DoesNotExistException;
@@ -99,7 +100,7 @@ class ContributionGroupController extends Controller {
 	 * ist nichts gesagt (`false`) und der gespeicherte Wert bleibt.
 	 */
 	private static function cents(float $amount): int {
-		return (int)round($amount * 100);
+		return MonthlyAmount::centsFromEuro($amount);
 	}
 
 	private function costCenterParam(?int $bookingCostCenterId): int|false|null {

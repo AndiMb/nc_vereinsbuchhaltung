@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Service;
 
+use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\Assignment;
 use OCA\Vereinsbuchhaltung\Db\AssignmentMapper;
 use OCA\Vereinsbuchhaltung\Db\ContributionGroupMapper;
@@ -11,6 +12,7 @@ use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Db\OpenItem;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
 use OCP\AppFramework\Utility\ITimeFactory;
+use Psr\Log\LoggerInterface;
 
 /**
  * Periodische Forderungserzeugung aus Zuweisungen (Spec §2.2/§3.3/§3.5, Issue
@@ -75,6 +77,7 @@ class ClaimGenerationService {
 		private ContributionCycleSettings $settings,
 		private ITimeFactory $time,
 		?ClubClock $clock = null,
+		private ?LoggerInterface $logger = null,
 	) {
 		$this->clock = $clock ?? new ClubClock($this->time);
 	}
@@ -86,10 +89,16 @@ class ClaimGenerationService {
 	 * erzeugte Periode je Zuweisung aus den bereits gespeicherten Forderungen
 	 * abgelesen wird.
 	 *
+	 * Jede Zuweisung läuft für sich: scheitert eine (kaputter Altbestand,
+	 * Datenbankfehler), bekommen die übrigen trotzdem ihre Forderungen. Die
+	 * gescheiterten merkt sich {@see ContributionCycleSettings::setFailedAssignmentIds()}
+	 * bis zum nächsten Lauf, damit sie als Aufgabe erscheinen statt nur im Log.
+	 *
 	 * @param string|null $today Stichtag, sonst heute (für Tests)
-	 * @return array{created:int, blocked:int} blocked = Zuweisungen, deren
-	 *                                         nächste Periode an einem fehlenden Mandat hängt (Störfall, siehe
-	 *                                         {@see ContributionCycleTaskService})
+	 * @return array{created:int, blocked:int, failed:int} blocked = Zuweisungen, deren
+	 *                                                     nächste Periode an einem fehlenden Mandat hängt (Störfall, siehe
+	 *                                                     {@see ContributionCycleTaskService}); failed = Zuweisungen, deren
+	 *                                                     Erzeugung mit einem Fehler abbrach
 	 */
 	public function generateDue(?string $today = null): array {
 		$today ??= $this->today();
@@ -98,12 +107,26 @@ class ClaimGenerationService {
 
 		$created = 0;
 		$blocked = 0;
+		$failed = [];
 		foreach ($this->assignments->findActiveAsOf($today) as $assignment) {
-			[$c, $b] = $this->generateForAssignment($assignment, $today, $horizon, $leadDays);
+			try {
+				[$c, $b] = $this->generateForAssignment($assignment, $today, $horizon, $leadDays);
+			} catch (\Throwable $e) {
+				// \Throwable: ein Überlauf beim Rechnen ist ein TypeError, keine Exception.
+				$failed[] = (int)$assignment->getId();
+				$this->logger?->error('Einzugszyklus: Forderung für Zuweisung {assignment} (Mitglied {member}) nicht erzeugt', [
+					'app' => Application::APP_ID,
+					'assignment' => $assignment->getId(),
+					'member' => $assignment->getMemberId(),
+					'exception' => $e,
+				]);
+				continue;
+			}
 			$created += $c;
 			$blocked += $b;
 		}
-		return ['created' => $created, 'blocked' => $blocked];
+		$this->settings->setFailedAssignmentIds($failed);
+		return ['created' => $created, 'blocked' => $blocked, 'failed' => count($failed)];
 	}
 
 	/** @return array{0:int,1:int} [erzeugt, blockiert] */

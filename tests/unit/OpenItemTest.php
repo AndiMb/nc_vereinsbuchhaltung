@@ -28,4 +28,17 @@ class OpenItemTest extends TestCase {
 	public function testBezahlterPostenIstNieUeberfaellig(): void {
 		$this->assertFalse($this->item('2026-06-30', 'paid')->isOverdue('2026-07-01'));
 	}
+
+	/**
+	 * Der Betrag 0 muss im INSERT stehen: die Spalte ist NOT NULL ohne Vorgabe.
+	 * Der magische Setter von Nextcloud überspringt einen unveränderten Wert –
+	 * daran scheiterte jede beitragsfreie Periode und mit ihr der Tageslauf.
+	 */
+	public function testBetragNullGiltAlsGesetzt(): void {
+		$item = new OpenItem();
+		$item->setAmountCents(0);
+
+		$this->assertArrayHasKey('amountCents', $item->getUpdatedFields());
+		$this->assertSame(0, $item->getAmountCents());
+	}
 }

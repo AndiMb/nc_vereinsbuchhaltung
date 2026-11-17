@@ -39,6 +39,8 @@ final class ContributionCycleSettings {
 	public const SETTING_RELEASE_LEAD_DAYS = 'release_lead_days';
 	public const DEFAULT_RELEASE_LEAD_DAYS = 5;
 
+	private const STATE_FAILED_ASSIGNMENTS = 'contribution_cycle_failed_assignments';
+
 	/** Reine Plausibilitätsgrenzen gegen Tippfehler (0 oder ein Jahr Vorlauf ergäben keinen Sinn). */
 	private const MIN_DAYS = 1;
 	private const MAX_DAYS = 365;
@@ -75,6 +77,27 @@ final class ContributionCycleSettings {
 	/** @throws \InvalidArgumentException außerhalb des Plausibilitätsbereichs */
 	public function setReleaseLeadDays(int $days): void {
 		$this->writeDays(self::SETTING_RELEASE_LEAD_DAYS, $days);
+	}
+
+	/**
+	 * Zuweisungen, für die der letzte Tageslauf keine Forderung erzeugen
+	 * konnte ({@see ClaimGenerationService::generateDue()}). Kein Wert, den
+	 * jemand einstellt: der Lauf schreibt ihn, die Aufgabenliste liest ihn.
+	 *
+	 * @return list<int>
+	 */
+	public function failedAssignmentIds(): array {
+		$stored = json_decode($this->config->getValueString(Application::APP_ID, self::STATE_FAILED_ASSIGNMENTS, '[]'), true);
+		return is_array($stored) ? array_values(array_map(intval(...), $stored)) : [];
+	}
+
+	/** @param list<int> $ids */
+	public function setFailedAssignmentIds(array $ids): void {
+		// Der Normalfall ist „keine“: dann auch nicht jeden Tag schreiben.
+		if ($ids === $this->failedAssignmentIds()) {
+			return;
+		}
+		$this->config->setValueString(Application::APP_ID, self::STATE_FAILED_ASSIGNMENTS, (string)json_encode($ids));
 	}
 
 	private function readDays(string $key, int $default): int {

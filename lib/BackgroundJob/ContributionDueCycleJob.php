@@ -53,7 +53,7 @@ class ContributionDueCycleJob extends TimedJob {
 		try {
 			$generated = $this->claimGeneration->generateDue();
 		} catch (\Throwable $e) {
-			$generated = ['created' => 0, 'blocked' => 0];
+			$generated = ['created' => 0, 'blocked' => 0, 'failed' => 0];
 			$this->logger->error('Einzugszyklus: Forderungserzeugung abgebrochen', [
 				'app' => Application::APP_ID,
 				'exception' => $e,
@@ -70,11 +70,12 @@ class ContributionDueCycleJob extends TimedJob {
 			return;
 		}
 
-		if ($generated['created'] > 0 || $generated['blocked'] > 0 || array_sum($notified) > 0) {
-			$this->logger->info('Einzugszyklus: {created} Forderung(en) erzeugt, {blocked} durch fehlendes Mandat blockiert, Vorabinfo an {sent} Mitglied(er) verschickt ({skipped} ohne Empfänger, {failed} fehlgeschlagen)', [
+		if ($generated['created'] > 0 || $generated['blocked'] > 0 || $generated['failed'] > 0 || array_sum($notified) > 0) {
+			$this->logger->info('Einzugszyklus: {created} Forderung(en) erzeugt, {blocked} durch fehlendes Mandat blockiert, {broken} mit Fehler abgebrochen, Vorabinfo an {sent} Mitglied(er) verschickt ({skipped} ohne Empfänger, {failed} fehlgeschlagen)', [
 				'app' => Application::APP_ID,
 				'created' => $generated['created'],
 				'blocked' => $generated['blocked'],
+				'broken' => $generated['failed'],
 				'sent' => $notified['sent'],
 				'skipped' => $notified['skipped'],
 				'failed' => $notified['failed'],

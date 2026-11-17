@@ -203,13 +203,16 @@ class PainXmlBuilder {
 	/**
 	 * Bank des Gläubigers bzw. des Zahlers. Ohne BIC gilt seit der IBAN-only-
 	 * Umstellung „NOTPROVIDED" – die Bank ermittelt sie selbst aus der IBAN.
+	 * Dasselbe gilt für eine gespeicherte BIC, die dem Schema nicht entspricht:
+	 * sie würde sonst die Datei für alle Zahler ungültig machen.
 	 */
 	private function buildAgent(\DOMDocument $doc, \DOMElement $parent, string $tag, ?string $bic): void {
 		$agt = $doc->createElement($tag);
 		$parent->appendChild($agt);
 		$finInstn = $doc->createElement('FinInstnId');
 		$agt->appendChild($finInstn);
-		if ($bic !== null && $bic !== '') {
+		$bic = Bic::normalize($bic);
+		if ($bic !== null) {
 			$this->el($doc, $finInstn, 'BIC', $bic);
 		} else {
 			$othr = $this->el($doc, $finInstn, 'Othr', null);

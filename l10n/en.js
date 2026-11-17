@@ -4874,5 +4874,9 @@ OC.L10N.register("vereinsbuchhaltung", {
 	"Neu: Importregeln teilen Umsätze mit festen Anteilen auf mehrere Konten auf.": "New: Import rules split transactions across several accounts with fixed shares.",
 	"Neu: Kontoauszüge auch als CAMT.052 und als ZIP-Archiv importieren.": "New: Import bank statements as CAMT.052 and as ZIP archives too.",
 	"Neu: Beitragsgruppen mit Jahresbeitrag statt Monatsbetrag.": "New: Contribution groups with an annual fee instead of a monthly amount.",
-	"Neu: Auslagen als Entwurf speichern, den Betrag bei der Prüfung korrigieren und Reisekosten abrechnen.": "New: Save expense claims as drafts, correct the amount during review, and claim travel expenses."
+	"Neu: Auslagen als Entwurf speichern, den Betrag bei der Prüfung korrigieren und Reisekosten abrechnen.": "New: Save expense claims as drafts, correct the amount during review, and claim travel expenses.",
+	"Für %s konnte der Tageslauf keine Forderung erzeugen. Bitte die Zuweisung prüfen (Betrag, Beginn, Ende).": "The daily run could not create a claim for %s. Please check the assignment (amount, start, end).",
+	"Dieser Turnuswechsel ist im Moment nicht möglich: Der Beitrag ist bis %1$s berechnet, die nächste volle Periode im neuen Turnus beginnt erst am %2$s. Die Zeit dazwischen bliebe ohne Beitrag. Der Wechsel geht, sobald die Berechnung an einer Periodengrenze des neuen Turnus endet – spätestens zum Ende des Beitragsjahres.": "This change of payment interval is not possible at the moment: the contribution has been calculated up to %1$s, and the next full period in the new interval does not start until %2$s. The time in between would remain without a contribution. The change becomes possible once the calculation ends at a period boundary of the new interval – at the latest at the end of the contribution year.",
+	"Der Monatsbeitrag darf höchstens %s betragen.": "The monthly fee may be at most %s.",
+	"Der Jahresbeitrag darf höchstens %s betragen.": "The annual fee may be at most %s."
 }, "nplurals=2; plural=(n != 1);");
