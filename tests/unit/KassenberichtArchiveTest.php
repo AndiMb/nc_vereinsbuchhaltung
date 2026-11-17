@@ -29,6 +29,10 @@ class KassenberichtArchiveTest extends TestCase {
 	private KassenberichtPdfRenderer&MockObject $renderer;
 	private IRootFolder&MockObject $root;
 	private AuditService&MockObject $audit;
+	/** Zielordner der Datei, siehe {@see home()} */
+	private Folder&MockObject $leaf;
+	/** @var list<string> Namen der angelegten Ordner */
+	private array $created = [];
 
 	protected function setUp(): void {
 		$this->renderer = $this->createMock(KassenberichtPdfRenderer::class);
@@ -58,23 +62,25 @@ class KassenberichtArchiveTest extends TestCase {
 	/**
 	 * Ordnerkette im Home: vorhandene Ordner werden genutzt, fehlende angelegt.
 	 *
+	 * Der Zielordner landet in $this->leaf, angelegte Ordner in $this->created.
+	 *
 	 * @param list<string> $existing schon vorhandene Pfadteile
-	 * @param list<string> $created füllt sich mit den Namen der angelegten Ordner
 	 */
-	private function home(array $existing, ?Folder &$leaf, array &$created): Folder {
-		$leaf = $this->createMock(Folder::class);
+	private function home(array $existing): Folder {
+		$this->leaf = $this->createMock(Folder::class);
+		$leaf = $this->leaf;
 		$sub = $this->createMock(Folder::class);
 		$home = $this->createMock(Folder::class);
 		$home->method('nodeExists')->willReturnCallback(static fn (string $name): bool => in_array($name, $existing, true));
 		$home->method('get')->willReturn($sub);
-		$home->method('newFolder')->willReturnCallback(function (string $name) use (&$created, $sub): Folder {
-			$created[] = $name;
+		$home->method('newFolder')->willReturnCallback(function (string $name) use ($sub): Folder {
+			$this->created[] = $name;
 			return $sub;
 		});
 		$sub->method('nodeExists')->willReturnCallback(static fn (string $name): bool => in_array($name, $existing, true));
 		$sub->method('get')->willReturn($leaf);
-		$sub->method('newFolder')->willReturnCallback(function (string $name) use (&$created, $leaf): Folder {
-			$created[] = $name;
+		$sub->method('newFolder')->willReturnCallback(function (string $name) use ($leaf): Folder {
+			$this->created[] = $name;
 			return $leaf;
 		});
 		return $home;
@@ -93,14 +99,13 @@ class KassenberichtArchiveTest extends TestCase {
 	}
 
 	public function testLegtPdfImBerichtsordnerAbUndProtokolliert(): void {
-		$created = [];
-		$home = $this->home([], $leaf, $created);
+		$home = $this->home([]);
 		$this->root->method('getUserFolder')->with('kasse')->willReturn($home);
 		$file = $this->createMock(File::class);
 		$file->method('getName')->willReturn('Kassenbericht-2026.pdf');
 		$file->expects($this->once())->method('putContent')->with('%PDF-1.7 Bericht');
-		$leaf->method('getNonExistingName')->willReturnArgument(0);
-		$leaf->expects($this->once())->method('newFile')->with('Kassenbericht-2026.pdf')->willReturn($file);
+		$this->leaf->method('getNonExistingName')->willReturnArgument(0);
+		$this->leaf->expects($this->once())->method('newFile')->with('Kassenbericht-2026.pdf')->willReturn($file);
 		$this->audit->expects($this->once())->method('log')->with('Kassenbericht abgelegt', 'period', 7, $this->callback(
 			static fn (array $d): bool => $d['datei'] === 'Vereinsbuchhaltung/Berichte/Kassenbericht-2026.pdf' && $d['sha256'] === hash('sha256', '%PDF-1.7 Bericht'),
 		));
@@ -108,21 +113,20 @@ class KassenberichtArchiveTest extends TestCase {
 		$path = $this->archive()->storeOnClose('verein', $this->period());
 
 		$this->assertSame('Vereinsbuchhaltung/Berichte/Kassenbericht-2026.pdf', $path);
-		$this->assertSame(['Vereinsbuchhaltung', 'Berichte'], $created, 'fehlende Ordner werden angelegt');
+		$this->assertSame(['Vereinsbuchhaltung', 'Berichte'], $this->created, 'fehlende Ordner werden angelegt');
 	}
 
 	/** Erneuter Abschluss nach Wiedereröffnung: die frühere Datei bleibt, die neue bekommt einen freien Namen. */
 	public function testVorhandeneDateiWirdNichtUeberschrieben(): void {
-		$created = [];
-		$home = $this->home(['Vereinsbuchhaltung', 'Berichte'], $leaf, $created);
+		$home = $this->home(['Vereinsbuchhaltung', 'Berichte']);
 		$this->root->method('getUserFolder')->willReturn($home);
 		$file = $this->createMock(File::class);
 		$file->method('getName')->willReturn('Kassenbericht-2026 (2).pdf');
-		$leaf->method('getNonExistingName')->with('Kassenbericht-2026.pdf')->willReturn('Kassenbericht-2026 (2).pdf');
-		$leaf->expects($this->once())->method('newFile')->with('Kassenbericht-2026 (2).pdf')->willReturn($file);
+		$this->leaf->method('getNonExistingName')->with('Kassenbericht-2026.pdf')->willReturn('Kassenbericht-2026 (2).pdf');
+		$this->leaf->expects($this->once())->method('newFile')->with('Kassenbericht-2026 (2).pdf')->willReturn($file);
 
 		$this->assertSame('Vereinsbuchhaltung/Berichte/Kassenbericht-2026 (2).pdf', $this->archive()->storeOnClose('verein', $this->period()));
-		$this->assertSame([], $created);
+		$this->assertSame([], $this->created);
 	}
 
 	public function testDateiStattOrdnerImPfadIstEinNutzerfehler(): void {
