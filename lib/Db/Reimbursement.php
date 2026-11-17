@@ -68,6 +68,10 @@ use OCP\AppFramework\Db\Entity;
  * @method void setTransferredAt(?string $transferredAt)
  * @method string|null getAccountHolder()
  * @method void setAccountHolder(?string $accountHolder)
+ * @method string getKind()
+ * @method void setKind(string $kind)
+ * @method string|null getTravelDetails()
+ * @method void setTravelDetails(?string $travelDetails)
  */
 class Reimbursement extends Entity implements \JsonSerializable {
 	protected $memberId;
@@ -91,6 +95,13 @@ class Reimbursement extends Entity implements \JsonSerializable {
 	protected $accountHolder;
 	protected $number;
 	protected $transferredAt;
+	/** `expense` oder `travel` (Reisekostenabrechnung, #353) */
+	protected $kind;
+	/** JSON der Reiseangaben, siehe {@see \OCA\Vereinsbuchhaltung\Service\TravelDetails} */
+	protected $travelDetails;
+
+	public const KIND_EXPENSE = 'expense';
+	public const KIND_TRAVEL = 'travel';
 
 	public const STATUS_SUBMITTED = 'submitted';
 	public const STATUS_PARTIALLY_APPROVED = 'partially_approved';
@@ -129,6 +140,10 @@ class Reimbursement extends Entity implements \JsonSerializable {
 		$this->setAccountHolder(null);
 	}
 
+	public function isTravel(): bool {
+		return $this->kind === self::KIND_TRAVEL;
+	}
+
 	public function isOpenForDecision(): bool {
 		return in_array($this->status, self::STATUSES_OPEN_FOR_DECISION, true);
 	}
@@ -157,6 +172,8 @@ class Reimbursement extends Entity implements \JsonSerializable {
 			'rejectionReason' => $this->rejectionReason,
 			'openItemId' => $this->openItemId,
 			'journalId' => $this->journalId,
+			'kind' => $this->kind ?? self::KIND_EXPENSE,
+			'travel' => \OCA\Vereinsbuchhaltung\Service\TravelDetails::decode($this->travelDetails),
 		];
 	}
 }

@@ -5,6 +5,7 @@ import { formatMoney } from './format.js'
 import { normalizeIban } from './iban.js'
 import { t, tRaw } from './l10n.js'
 import { parseAmountQuery } from './search.js'
+import { emptyTravel, missingTravelFields, travelHasContent, travelToForm } from './travelClaims.js'
 
 /** Reihenfolge der Filter-Chips in der Verwaltungssicht. */
 export const REIMBURSEMENT_STATUSES = ['submitted', 'partially_approved', 'approved', 'paid', 'rejected', 'withdrawn']
@@ -109,7 +110,9 @@ export function reimbursementBookingPrefill(item, today) {
 		date: today,
 		amount: item.amountCents / 100,
 		kind: 'expense',
-		description: tRaw('Erstattung Auslage: {purpose} ({member})', { purpose: item.purpose, member: item.memberName }),
+		description: item.kind === 'travel'
+			? tRaw('Erstattung Reisekosten: {purpose} ({member})', { purpose: item.purpose, member: item.memberName })
+			: tRaw('Erstattung Auslage: {purpose} ({member})', { purpose: item.purpose, member: item.memberName }),
 		documentRef: item.number || `AUSL-${item.id}`,
 	}
 }
@@ -119,15 +122,16 @@ export function reimbursementBookingPrefill(item, today) {
 /**
  * Die Felder, die jeder Antrag neu braucht - Kontoverbindung und Erklärung bleiben beim nächsten stehen.
  * `files` sind neu gewählte Dateien, `draftFiles` die schon in einem Entwurf gespeicherten Belege (#356).
+ * `kind` ist `expense` (Auslage mit Rechnung) oder `travel` (Reisekostenabrechnung, #353).
  */
-export function emptyReimbursementInvoice(date) {
-	return { amount: '', expenseDate: date, invoiceNumber: '', supplier: '', purpose: '', files: [], draftFiles: [] }
+export function emptyReimbursementInvoice(date, kind = 'expense') {
+	return { kind, amount: '', expenseDate: date, invoiceNumber: '', supplier: '', purpose: '', files: [], draftFiles: [], travel: emptyTravel() }
 }
 
 /** Ein leeres Formular; `account` (accountHolder, iban) belegt die Kontoverbindung vor. */
-export function emptyReimbursementForm(date, account = {}) {
+export function emptyReimbursementForm(date, account = {}, kind = 'expense') {
 	return {
-		...emptyReimbursementInvoice(date),
+		...emptyReimbursementInvoice(date, kind),
 		accountHolder: account.accountHolder || '',
 		iban: account.iban || '',
 		declaration: false,
@@ -141,6 +145,8 @@ export function emptyReimbursementForm(date, account = {}) {
  */
 export function reimbursementDraftForm(draft, account = {}) {
 	return {
+		kind: draft.kind === 'travel' ? 'travel' : 'expense',
+		travel: travelToForm(draft.travel),
 		amount: draft.amountCents !== null && draft.amountCents !== undefined ? draft.amountCents / 100 : '',
 		expenseDate: draft.expenseDate || '',
 		invoiceNumber: draft.invoiceNumber || '',
@@ -156,6 +162,12 @@ export function reimbursementDraftForm(draft, account = {}) {
 
 /** Hat das Formular überhaupt eine Angabe? Ein ganz leerer Entwurf lohnt das Speichern nicht. */
 export function reimbursementFormHasContent(form) {
+	if (form.kind === 'travel') {
+		return travelHasContent(form.travel)
+			|| form.purpose.trim() !== ''
+			|| form.files.length > 0
+			|| (form.draftFiles || []).length > 0
+	}
 	return Number(form.amount) > 0
 		|| form.purpose.trim() !== ''
 		|| form.invoiceNumber.trim() !== ''
@@ -164,15 +176,19 @@ export function reimbursementFormHasContent(form) {
 		|| (form.draftFiles || []).length > 0
 }
 
-/** Was zum Einreichen noch fehlt, als Liste von Feldnamen - sie steht neben dem Knopf. */
-export function missingReimbursementFields(form) {
-	const missing = []
-	if (!(Number(form.amount) > 0)) { missing.push(t('Betrag')) }
-	if (!form.expenseDate) { missing.push(t('Rechnungsdatum')) }
+/**
+ * Was zum Einreichen noch fehlt, als Liste von Feldnamen - sie steht neben dem Knopf.
+ * Bei Reisekosten ersetzen die Reiseangaben Betrag und Datum; Belege sind dort freiwillig.
+ */
+export function missingReimbursementFields(form, today = null) {
+	const travel = form.kind === 'travel'
+	const missing = travel ? missingTravelFields(form.travel, today) : []
+	if (!travel && !(Number(form.amount) > 0)) { missing.push(t('Betrag')) }
+	if (!travel && !form.expenseDate) { missing.push(t('Rechnungsdatum')) }
 	if (form.purpose.trim() === '') { missing.push(t('Zweck')) }
 	if (form.accountHolder.trim() === '') { missing.push(t('Kontoinhaber')) }
 	if (normalizeIban(form.iban).length < 15) { missing.push(t('IBAN')) }
-	if (form.files.length + (form.draftFiles || []).length === 0) { missing.push(t('Beleg')) }
+	if (!travel && form.files.length + (form.draftFiles || []).length === 0) { missing.push(t('Beleg')) }
 	if (!form.declaration) { missing.push(t('Erklärung')) }
 	return missing
 }

@@ -38,6 +38,10 @@ use OCP\AppFramework\Db\Entity;
  * @method void setCreatedAt(string $createdAt)
  * @method string getUpdatedAt()
  * @method void setUpdatedAt(string $updatedAt)
+ * @method string getKind()
+ * @method void setKind(string $kind)
+ * @method string|null getTravelDetails()
+ * @method void setTravelDetails(?string $travelDetails)
  */
 class ReimbursementDraft extends Entity {
 	protected $memberId;
@@ -50,6 +54,9 @@ class ReimbursementDraft extends Entity {
 	protected $accountHolder;
 	protected $createdAt;
 	protected $updatedAt;
+	/** wie {@see Reimbursement::$kind} (#353) */
+	protected $kind;
+	protected $travelDetails;
 
 	public function __construct() {
 		$this->addType('memberId', 'integer');

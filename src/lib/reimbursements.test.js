@@ -119,7 +119,10 @@ describe('reimbursements', () => {
 		})
 
 		it('beginnt mit leeren Feldern am angegebenen Tag', () => {
-			expect(emptyReimbursementInvoice('2026-11-01')).toEqual({ amount: '', expenseDate: '2026-11-01', invoiceNumber: '', supplier: '', purpose: '', files: [], draftFiles: [] })
+			const invoice = emptyReimbursementInvoice('2026-11-01')
+			expect(invoice).toMatchObject({ kind: 'expense', amount: '', expenseDate: '2026-11-01', invoiceNumber: '', supplier: '', purpose: '', files: [], draftFiles: [] })
+			expect(invoice.travel.items).toHaveLength(1)
+			expect(emptyReimbursementInvoice('2026-11-01', 'travel').kind).toBe('travel')
 		})
 
 		it('belegt die Kontoverbindung vor und lässt die Erklärung unbestätigt', () => {

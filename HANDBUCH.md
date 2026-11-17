@@ -775,6 +775,38 @@ Mitglied **Auslage einreichen**. Der Dialog folgt dem früheren Papierformular:
   anderweitig erstattet wurden. Ohne Häkchen lässt sich nicht einreichen; der
   bestätigte Wortlaut steht in der Historie des Antrags.
 
+**Reisekosten (Mitglied).** Für eine Fahrt im Auftrag des Vereins – zum
+Turnier, zur Fortbildung, zur Sitzung des Verbands – wählt das Mitglied
+**Reisekosten abrechnen**. An die Stelle der Rechnung treten die
+**Reiseangaben**:
+
+- **Reiseziel**, **Beginn** und **Ende** (Datum mit Uhrzeit; die Reise darf
+  nicht in der Zukunft beginnen).
+- die **Positionen**, höchstens 20: **Fahrtkosten** mit Verkehrsmittel (eigenes
+  Auto, Bus und Bahn, Fahrrad, Sonstiges), Strecke, wahlweise Entfernung in
+  Kilometern und Betrag, sowie **Parkgebühren** mit Betrag und optionalem
+  Hinweis. Weitere Positionen fügen **+ Fahrtkosten** und **+ Parkgebühren**
+  hinzu.
+
+Erstattet werden die **tatsächlichen Kosten**, die das Mitglied je Position
+einträgt – der Fahrkartenpreis, die Spritkosten, die Parkgebühr. Den
+Gesamtbetrag rechnet die App aus den Positionen; als Datum des Antrags gilt
+der Tag des Reisebeginns. **Belege sind freiwillig**: Fahrkarten oder
+Parkscheine lädt das Mitglied hoch, soweit vorhanden, für die Fahrt mit dem
+eigenen Auto genügen die Angaben. Zweck, Kontoverbindung und Erklärung sind
+dieselben wie bei einer Auslage. Tagespauschalen (Verpflegungsmehraufwand),
+Kilometersätze und Übernachtungen lassen sich in dieser Stufe noch nicht
+abrechnen.
+
+Danach ist die Reisekostenabrechnung ein gewöhnlicher Antrag: Sie bekommt eine
+Auslagennummer, läuft durch dieselben Freigaben, lässt sich als Entwurf
+speichern, zurückziehen und auszahlen. In den Listen trägt sie die Markierung
+**Reisekosten**, die Einzelansicht zeigt die Reiseangaben mit allen Positionen.
+Korrigiert ein Verwalter den Betrag, bleiben die Positionen so stehen, wie das
+Mitglied sie eingereicht hat. Wird das Mitglied anonymisiert, löscht die App
+Strecken und Hinweise der Positionen, denn dort kann die Wohnadresse stehen;
+Ziel, Zeiten, Verkehrsmittel und Beträge bleiben als Beleg.
+
 **Mehrere Rechnungen** reicht das Mitglied als **getrennte Anträge** ein. Mit
 **Einreichen und weitere erfassen** bleiben Kontoverbindung und Erklärung
 ausgefüllt, nur die Rechnung ist wieder leer. Jeder Antrag wird einzeln

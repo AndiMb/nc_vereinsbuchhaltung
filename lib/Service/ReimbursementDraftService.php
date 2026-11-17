@@ -77,7 +77,7 @@ class ReimbursementDraftService {
 	 * Legt einen Entwurf an oder speichert ihn neu.
 	 *
 	 * @param int|null $id null für einen neuen Entwurf
-	 * @param array{amountCents: ?int, expenseDate: ?string, purpose: ?string, invoiceNumber: ?string, supplier: ?string, iban: ?string, accountHolder: ?string} $fields
+	 * @param array{amountCents: ?int, expenseDate: ?string, purpose: ?string, invoiceNumber: ?string, supplier: ?string, iban: ?string, accountHolder: ?string, kind?: string, travel?: mixed} $fields
 	 * @param list<int> $keepFileIds die schon gespeicherten Belege, die bleiben; alle anderen verschwinden
 	 * @param list<array{name: string, content: string}> $uploads neue Belege
 	 * @return array<string, mixed> der gespeicherte Entwurf
@@ -105,6 +105,8 @@ class ReimbursementDraftService {
 			$draft->setSupplier($clean['supplier']);
 			$draft->setIban($clean['iban']);
 			$draft->setAccountHolder($clean['accountHolder']);
+			$draft->setKind($clean['kind']);
+			$draft->setTravelDetails($clean['travelDetails']);
 			$draft->setUpdatedAt($now);
 			$draft = $id === null ? $this->drafts->insert($draft) : $this->drafts->update($draft);
 
@@ -137,7 +139,7 @@ class ReimbursementDraftService {
 	 * gerade aussieht) plus die behaltenen Belege des Entwurfs und neue
 	 * Uploads. Scheitert das Einreichen, bleibt der Entwurf unverändert.
 	 *
-	 * @param array{amountCents: ?int, expenseDate: ?string, purpose: ?string, invoiceNumber: ?string, supplier: ?string, iban: ?string, accountHolder: ?string} $fields
+	 * @param array{amountCents: ?int, expenseDate: ?string, purpose: ?string, invoiceNumber: ?string, supplier: ?string, iban: ?string, accountHolder: ?string, kind?: string, travel?: mixed} $fields
 	 * @param list<int> $keepFileIds
 	 * @param list<array{name: string, content: string}> $uploads
 	 * @throws \InvalidArgumentException bei unvollständigen oder ungültigen Angaben
@@ -157,11 +159,16 @@ class ReimbursementDraftService {
 			$all[] = $upload;
 		}
 
-		$reimbursement = $this->transaction->run(function () use ($draft, $draftFiles, $member, $fields, $declarationAccepted, $all, $actorUid): Reimbursement {
+		// Reisekostenabrechnung (#353): Betrag und Datum ergeben sich aus den Reiseangaben.
+		$travel = ($fields['kind'] ?? 'expense') === 'travel'
+			? TravelDetails::fromInput($fields['travel'] ?? null, $this->l10n, true)
+			: null;
+
+		$reimbursement = $this->transaction->run(function () use ($draft, $draftFiles, $member, $fields, $declarationAccepted, $all, $actorUid, $travel): Reimbursement {
 			$reimbursement = $this->reimbursements->submit(
 				$member,
-				$fields['amountCents'] ?? 0,
-				(string)($fields['expenseDate'] ?? ''),
+				$travel !== null ? $travel->totalCents() : ($fields['amountCents'] ?? 0),
+				$travel !== null ? (string)$travel->startDate() : (string)($fields['expenseDate'] ?? ''),
 				(string)($fields['purpose'] ?? ''),
 				$fields['invoiceNumber'] ?? null,
 				$fields['supplier'] ?? null,
@@ -170,6 +177,7 @@ class ReimbursementDraftService {
 				$declarationAccepted,
 				$all,
 				$actorUid,
+				$travel,
 			);
 			foreach ($draftFiles as $file) {
 				$this->files->delete($file);
@@ -200,9 +208,18 @@ class ReimbursementDraftService {
 
 	/**
 	 * @param array<string, mixed> $fields
-	 * @return array{amountCents: ?int, expenseDate: ?string, purpose: ?string, invoiceNumber: ?string, supplier: ?string, iban: ?string, accountHolder: ?string}
+	 * @return array{amountCents: ?int, expenseDate: ?string, purpose: ?string, invoiceNumber: ?string, supplier: ?string, iban: ?string, accountHolder: ?string, kind: string, travelDetails: ?string}
 	 */
 	private function cleanFields(array $fields): array {
+		if (($fields['kind'] ?? 'expense') === 'travel') {
+			// Entwurf einer Reisekostenabrechnung (#353): unvollständig erlaubt; Betrag und Datum
+			// folgen aus den Positionen, damit die Entwurfsliste sie zeigen kann.
+			$travel = TravelDetails::fromInput($fields['travel'] ?? ['items' => []], $this->l10n, false);
+			$fields['amountCents'] = $travel->items !== [] ? $travel->totalCents() : null;
+			$fields['expenseDate'] = $travel->startDate();
+			$fields['invoiceNumber'] = null;
+			$fields['supplier'] = null;
+		}
 		$amount = $fields['amountCents'] ?? null;
 		if ($amount !== null && (!is_int($amount) || $amount < 0)) {
 			throw new \InvalidArgumentException($this->l10n->t('Bitte einen gültigen Betrag angeben, z. B. 12,50.'));
@@ -223,6 +240,8 @@ class ReimbursementDraftService {
 			'supplier' => $this->text($fields['supplier'] ?? null, self::MAX_SUPPLIER_LENGTH),
 			'iban' => $iban !== null ? strtoupper((string)preg_replace('/\s+/', '', $iban)) : null,
 			'accountHolder' => $this->text($fields['accountHolder'] ?? null, self::MAX_ACCOUNT_HOLDER_LENGTH),
+			'kind' => isset($travel) ? Reimbursement::KIND_TRAVEL : Reimbursement::KIND_EXPENSE,
+			'travelDetails' => isset($travel) ? $travel->toJson() : null,
 		];
 	}
 
@@ -303,6 +322,8 @@ class ReimbursementDraftService {
 			'supplier' => $draft->getSupplier() ?? '',
 			'iban' => $draft->getIban() ?? '',
 			'accountHolder' => $draft->getAccountHolder() ?? '',
+			'kind' => $draft->getKind() ?? Reimbursement::KIND_EXPENSE,
+			'travel' => TravelDetails::decode($draft->getTravelDetails()),
 			'createdAt' => $draft->getCreatedAt(),
 			'updatedAt' => $draft->getUpdatedAt(),
 			'files' => array_values($files),

@@ -5,9 +5,14 @@
 			<div class="vbh-card">
 				<div class="vbh-selfservice-card-header">
 					<h4>{{ t('Meine Auslagen') }}</h4>
-					<NcButton v-if="canSubmit" variant="primary" @click="openSubmit">
-						{{ t('Auslage einreichen') }}
-					</NcButton>
+					<div v-if="canSubmit" class="vbh-reimb-start">
+						<NcButton variant="secondary" @click="openSubmit('travel')">
+							{{ t('Reisekosten abrechnen') }}
+						</NcButton>
+						<NcButton variant="primary" @click="openSubmit('expense')">
+							{{ t('Auslage einreichen') }}
+						</NcButton>
+					</div>
 				</div>
 				<p class="vbh-hint vbh-hint--info" role="note">
 					{{ t('Haben Sie etwas für den Verein verauslagt? Reichen Sie hier den Beleg ein. Sobald genügend Verwalter zugestimmt haben, überweist der Verein den Betrag auf Ihr Konto.') }}
@@ -26,7 +31,7 @@
 					<ul class="vbh-reimb-draft-list">
 						<li v-for="draft in drafts" :key="draft.id">
 							<button type="button" class="vbh-reimb-draft" @click="openDraft(draft)">
-								<span class="vbh-reimb-draft-purpose">{{ draft.purpose || t('Ohne Zweck') }}</span>
+								<span class="vbh-reimb-draft-purpose"><span v-if="draft.kind === 'travel'" class="vbh-reimb-kind">{{ t('Reisekosten') }}</span> {{ draft.purpose || t('Ohne Zweck') }}</span>
 								<span class="vbh-reimb-draft-meta">{{ draftMeta(draft) }}</span>
 							</button>
 						</li>
@@ -59,7 +64,7 @@
 									{{ formatDate(item.expenseDate) }}
 								</td>
 								<td class="vbh-purpose vbh-stack-title">
-									<span class="vbh-clamp"><span v-if="item.number" class="vbh-reimb-number">{{ item.number }}</span> {{ item.purpose }}</span>
+									<span class="vbh-clamp"><span v-if="item.number" class="vbh-reimb-number">{{ item.number }}</span> <span v-if="item.kind === 'travel'" class="vbh-reimb-kind">{{ t('Reisekosten') }}</span> {{ item.purpose }}</span>
 								</td>
 								<td class="num strong">
 									{{ formatMoney(item.amountCents / 100) }}
@@ -92,12 +97,15 @@
 			@update:show="submitOpen = $event">
 			<div class="vbh-modal-inner vbh-reimb-dialog">
 				<h2 id="vbh-modal-title-reimb-submit" class="vbh-modal-title">
-					{{ draftId ? t('Entwurf bearbeiten') : t('Auslage einreichen') }}
+					{{ draftId ? t('Entwurf bearbeiten') : (isTravel ? t('Reisekosten abrechnen') : t('Auslage einreichen')) }}
 				</h2>
-				<p class="vbh-reimb-intro">
+				<p v-if="isTravel" class="vbh-reimb-intro">
+					{{ t('Tragen Sie Ziel, Zeitraum und die tatsächlichen Kosten der Reise ein. Die Verwalter prüfen die Abrechnung, danach überweist der Verein.') }}
+				</p>
+				<p v-else class="vbh-reimb-intro">
 					{{ t('Laden Sie den Beleg hoch und nennen Sie den Betrag. Die Verwalter prüfen den Antrag, danach überweist der Verein.') }}
 				</p>
-				<p class="vbh-reimb-help vbh-reimb-intro-more">
+				<p v-if="!isTravel" class="vbh-reimb-help vbh-reimb-intro-more">
 					{{ t('Mehrere Rechnungen? Reichen Sie jede als eigenen Antrag ein. Mit „Einreichen und weitere erfassen“ bleiben Kontoverbindung und Erklärung ausgefüllt.') }}
 				</p>
 				<p class="vbh-reimb-help vbh-reimb-intro-more">
@@ -105,7 +113,97 @@
 				</p>
 
 				<form class="vbh-reimb-form" novalidate @submit.prevent="submit">
-					<div class="vbh-reimb-row2">
+					<template v-if="isTravel">
+						<label class="vbh-reimb-field">
+							<span class="vbh-reimb-label">{{ t('Reiseziel') }}</span>
+							<input
+								ref="destination"
+								v-model="form.travel.destination"
+								maxlength="255"
+								:placeholder="t('z. B. Landesturnier in Kassel')">
+						</label>
+						<div class="vbh-reimb-row2">
+							<label class="vbh-reimb-field">
+								<span class="vbh-reimb-label">{{ t('Beginn') }}</span>
+								<input v-model="form.travel.start" type="datetime-local" :max="`${today}T23:59`">
+							</label>
+							<label class="vbh-reimb-field">
+								<span class="vbh-reimb-label">{{ t('Ende') }}</span>
+								<input v-model="form.travel.end" type="datetime-local" :min="form.travel.start || undefined">
+							</label>
+						</div>
+
+						<fieldset class="vbh-fieldset-reset vbh-reimb-section vbh-travel-costs">
+							<legend class="vbh-reimb-legend">
+								{{ t('Kosten') }}
+							</legend>
+							<p class="vbh-reimb-help vbh-travel-costs-help">
+								{{ t('Tragen Sie die tatsächlichen Kosten ein, etwa den Fahrkartenpreis oder die Spritkosten. Tagespauschalen und Übernachtungen lassen sich hier noch nicht abrechnen.') }}
+							</p>
+							<div
+								v-for="(item, index) in form.travel.items"
+								:key="item.uid"
+								class="vbh-travel-position"
+								role="group"
+								:aria-label="tRaw('{type}, Position {number}', { type: travelItemTypeLabel(item.type), number: index + 1 })">
+								<div class="vbh-travel-position-head">
+									<span class="vbh-reimb-label">{{ travelItemTypeLabel(item.type) }}</span>
+									<NcButton
+										variant="tertiary"
+										:aria-label="tRaw('{type}, Position {number} entfernen', { type: travelItemTypeLabel(item.type), number: index + 1 })"
+										@click="removeTravelItem(index)">
+										{{ t('Entfernen') }}
+									</NcButton>
+								</div>
+								<template v-if="item.type === 'travel'">
+									<div class="vbh-reimb-row2">
+										<label class="vbh-reimb-field">
+											<span class="vbh-reimb-label">{{ t('Verkehrsmittel') }}</span>
+											<select v-model="item.transport">
+												<option value="">{{ t('Bitte wählen') }}</option>
+												<option v-for="transport in transports" :key="transport" :value="transport">
+													{{ travelTransportLabel(transport) }}
+												</option>
+											</select>
+										</label>
+										<label class="vbh-reimb-field">
+											<span class="vbh-reimb-label">{{ t('Entfernung (km)') }}</span>
+											<input v-model="item.distanceKm" inputmode="decimal" :placeholder="t('optional')">
+										</label>
+									</div>
+									<label class="vbh-reimb-field">
+										<span class="vbh-reimb-label">{{ t('Strecke') }}</span>
+										<input v-model="item.route" maxlength="255" :placeholder="t('z. B. Vereinsheim – Kassel und zurück')">
+									</label>
+								</template>
+								<label v-else class="vbh-reimb-field">
+									<span class="vbh-reimb-label">{{ t('Ort / Hinweis') }}</span>
+									<input v-model="item.note" maxlength="255" :placeholder="t('optional')">
+								</label>
+								<label class="vbh-reimb-field">
+									<span class="vbh-reimb-label">{{ t('Betrag ({currency})', { currency: currencySymbol() }) }}</span>
+									<AmountInput v-model="item.amount" class="vbh-reimb-amount" />
+								</label>
+							</div>
+							<div class="vbh-travel-add">
+								<NcButton variant="secondary" :disabled="form.travel.items.length >= maxTravelItems" @click="addTravelItem('travel')">
+									<template #icon>
+										<NcIconSvgWrapper :path="mdiPlus" :size="18" />
+									</template>
+									{{ t('Fahrtkosten') }}
+								</NcButton>
+								<NcButton variant="secondary" :disabled="form.travel.items.length >= maxTravelItems" @click="addTravelItem('parking')">
+									<template #icon>
+										<NcIconSvgWrapper :path="mdiPlus" :size="18" />
+									</template>
+									{{ t('Parkgebühren') }}
+								</NcButton>
+								<span class="vbh-travel-total">{{ t('Summe: {amount}', { amount: formatMoney(travelTotal / 100) }) }}</span>
+							</div>
+						</fieldset>
+					</template>
+
+					<div v-if="!isTravel" class="vbh-reimb-row2">
 						<label class="vbh-reimb-field">
 							<span class="vbh-reimb-label">{{ t('Betrag ({currency})', { currency: currencySymbol() }) }}</span>
 							<AmountInput v-model="form.amount" class="vbh-reimb-amount" />
@@ -116,7 +214,7 @@
 						</label>
 					</div>
 
-					<div class="vbh-reimb-row2">
+					<div v-if="!isTravel" class="vbh-reimb-row2">
 						<label class="vbh-reimb-field">
 							<span class="vbh-reimb-label">{{ t('Rechnungsnummer') }}</span>
 							<input v-model="form.invoiceNumber" maxlength="100" :placeholder="t('optional')">
@@ -133,12 +231,13 @@
 							ref="purpose"
 							v-model="form.purpose"
 							maxlength="500"
-							:placeholder="t('z. B. Material für die Jugendfreizeit')">
-						<span class="vbh-reimb-help">{{ t('Was wurde gekauft, und wofür?') }}</span>
+							:placeholder="isTravel ? t('z. B. Fahrt zum Landesturnier') : t('z. B. Material für die Jugendfreizeit')">
+						<span class="vbh-reimb-help">{{ isTravel ? t('Wozu diente die Reise?') : t('Was wurde gekauft, und wofür?') }}</span>
 					</label>
 
 					<div class="vbh-reimb-field">
-						<span class="vbh-reimb-label">{{ t('Belege') }}</span>
+						<span class="vbh-reimb-label">{{ isTravel ? t('Belege (freiwillig)') : t('Belege') }}</span>
+						<span v-if="isTravel" class="vbh-reimb-help">{{ t('Fahrkarten, Tankquittungen oder Parkscheine, soweit vorhanden. Für die Fahrt mit dem eigenen Auto genügen die Angaben oben.') }}</span>
 						<ul v-if="form.draftFiles.length" class="vbh-reimb-draft-files">
 							<li v-for="file in form.draftFiles" :key="file.id">
 								<a :href="draftFileUrl(file)" target="_blank" rel="noopener noreferrer">{{ file.fileName }}</a>
@@ -238,7 +337,7 @@
 			@update:show="detail = $event ? detail : null">
 			<div class="vbh-modal-inner">
 				<h2 id="vbh-modal-title-reimb-detail" class="vbh-modal-title">
-					{{ t('Auslage vom {date}', { date: formatDate(detail.expenseDate) }) }}
+					{{ detail.kind === 'travel' ? t('Reisekosten vom {date}', { date: formatDate(detail.expenseDate) }) : t('Auslage vom {date}', { date: formatDate(detail.expenseDate) }) }}
 				</h2>
 				<dl class="vbh-selfservice-fields">
 					<template v-if="detail.number">
@@ -285,9 +384,17 @@
 					</template>
 				</dl>
 
+				<TravelClaimDetails
+					v-if="detail.kind === 'travel' && detail.travel"
+					:travel="detail.travel"
+					:corrected="detail.originalAmountCents !== null && detail.originalAmountCents !== undefined" />
+
 				<h4 class="vbh-selfservice-subhead">
 					{{ t('Belege') }}
 				</h4>
+				<p v-if="!detail.files.length" class="vbh-reimb-help">
+					{{ t('Keine Belege eingereicht.') }}
+				</p>
 				<ul class="vbh-reimb-files">
 					<li v-for="file in detail.files" :key="file.id">
 						<a :href="receiptUrl(file)" target="_blank" rel="noopener">{{ file.fileName }}</a>
@@ -355,6 +462,7 @@ import AmountInput from './AmountInput.vue'
 import ReimbursementHistory from './ReimbursementHistory.vue'
 import ReimbursementReceiptPicker from './ReimbursementReceiptPicker.vue'
 import ReimbursementStatusTag from './ReimbursementStatusTag.vue'
+import TravelClaimDetails from './TravelClaimDetails.vue'
 import api from '../api.js'
 import { currencySymbol } from '../lib/clubCurrency.js'
 import { errMsg, formatDate, formatFileSize, formatMoney, roundCents } from '../lib/format.js'
@@ -363,6 +471,7 @@ import { todayIso } from '../lib/invoices.js'
 import { focusOnOpen } from '../lib/modalFocus.js'
 import { RECEIPT_ACCEPT } from '../lib/reimbursementFiles.js'
 import { emptyReimbursementForm, emptyReimbursementInvoice, missingReimbursementFields, reimbursementDraftForm, reimbursementFormHasContent, reimbursementProgressText } from '../lib/reimbursements.js'
+import { emptyTravelItem, TRAVEL_MAX_ITEMS, TRAVEL_TRANSPORTS, travelItemTypeLabel, travelPayload, travelTotalCents, travelTransportLabel } from '../lib/travelClaims.js'
 
 /**
  * „Mein Bereich → Auslagen“ (docs/reimbursement-design.md): die eigenen
@@ -371,7 +480,7 @@ import { emptyReimbursementForm, emptyReimbursementInvoice, missingReimbursement
  */
 export default {
 	name: 'SelfReimbursementPanel',
-	components: { NcButton, NcCheckboxRadioSwitch, NcEmptyContent, NcIconSvgWrapper, NcLoadingIcon, NcModal, AmountInput, ReimbursementHistory, ReimbursementReceiptPicker, ReimbursementStatusTag },
+	components: { NcButton, NcCheckboxRadioSwitch, NcEmptyContent, NcIconSvgWrapper, NcLoadingIcon, NcModal, AmountInput, ReimbursementHistory, ReimbursementReceiptPicker, ReimbursementStatusTag, TravelClaimDetails },
 
 	data() {
 		return {
@@ -386,6 +495,8 @@ export default {
 			confirmDelete: false,
 			mdiPlus,
 			receiptAccept: RECEIPT_ACCEPT,
+			transports: TRAVEL_TRANSPORTS,
+			maxTravelItems: TRAVEL_MAX_ITEMS,
 			submitOpen: false,
 			form: emptyReimbursementForm(todayIso()),
 			detail: null,
@@ -402,7 +513,12 @@ export default {
 		ibanFromMandate() { return !!this.suggestedIban && normalizeIban(this.form.iban) === normalizeIban(this.suggestedIban) },
 
 		/** Was zum Einreichen noch fehlt, als Liste von Feldnamen – steht neben dem Knopf. */
-		missing() { return missingReimbursementFields(this.form) },
+		missing() { return missingReimbursementFields(this.form, this.today) },
+
+		/** Reisekostenabrechnung (#353) statt Auslage mit Rechnung? */
+		isTravel() { return this.form.kind === 'travel' },
+
+		travelTotal() { return travelTotalCents(this.form.travel) },
 
 		/** Ein ganz leeres Formular lohnt keinen Entwurf. */
 		hasContent() { return reimbursementFormHasContent(this.form) },
@@ -420,11 +536,24 @@ export default {
 		formatMoney,
 
 		progressText: reimbursementProgressText,
+		travelItemTypeLabel,
+		travelTransportLabel,
 
 		/** Ein leerer Antrag; die Kontoverbindung ist aus dem Mandat bzw. dem Mitgliedsnamen vorbelegt. */
-		emptyForm() {
-			return emptyReimbursementForm(this.today, { accountHolder: this.suggestedAccountHolder, iban: this.suggestedIban })
+		emptyForm(kind = 'expense') {
+			return emptyReimbursementForm(this.today, { accountHolder: this.suggestedAccountHolder, iban: this.suggestedIban }, kind)
 		},
+
+		/** Das erste Feld des Formulars: bei Reisekosten das Ziel, sonst der Zweck. */
+		firstField() { return this.isTravel ? this.$refs.destination : this.$refs.purpose },
+
+		addTravelItem(type) {
+			if (this.form.travel.items.length < TRAVEL_MAX_ITEMS) {
+				this.form.travel.items.push(emptyTravelItem(type))
+			}
+		},
+
+		removeTravelItem(index) { this.form.travel.items.splice(index, 1) },
 
 		async load() {
 			try {
@@ -442,13 +571,13 @@ export default {
 			}
 		},
 
-		openSubmit() {
-			this.form = this.emptyForm()
+		openSubmit(kind = 'expense') {
+			this.form = this.emptyForm(kind)
 			this.draftId = null
 			this.confirmDelete = false
 			this.error = ''
 			this.submitOpen = true
-			focusOnOpen(this, () => this.$refs.purpose)
+			focusOnOpen(this, () => this.firstField())
 		},
 
 		/** Öffnet einen gespeicherten Entwurf im selben Formular. */
@@ -460,7 +589,7 @@ export default {
 			this.confirmDelete = false
 			this.error = ''
 			this.submitOpen = true
-			focusOnOpen(this, () => this.$refs.purpose)
+			focusOnOpen(this, () => this.firstField())
 		},
 
 		closeSubmit() { this.submitOpen = false },
@@ -475,6 +604,11 @@ export default {
 			data.append('supplier', this.form.supplier.trim())
 			data.append('iban', this.form.iban.trim())
 			data.append('accountHolder', this.form.accountHolder.trim())
+			data.append('kind', this.form.kind)
+			if (this.isTravel) {
+				// Betrag und Datum rechnet der Server aus den Positionen nach.
+				data.append('travel', JSON.stringify(travelPayload(this.form.travel)))
+			}
 			for (const file of this.form.files) { data.append('files[]', file) }
 			for (const file of this.form.draftFiles) { data.append('keepFileIds[]', String(file.id)) }
 			return data
@@ -494,7 +628,7 @@ export default {
 				} else {
 					await api.selfSubmitReimbursement(data)
 				}
-				showSuccess(this.t('Die Auslage wurde eingereicht.'))
+				showSuccess(this.isTravel ? this.t('Die Reisekostenabrechnung wurde eingereicht.') : this.t('Die Auslage wurde eingereicht.'))
 				return true
 			} catch (e) {
 				this.error = errMsg(e, this.t('Die Auslage konnte nicht eingereicht werden.'))
@@ -517,8 +651,8 @@ export default {
 		 */
 		async submitAndAddAnother() {
 			if (await this.send()) {
-				Object.assign(this.form, emptyReimbursementInvoice(this.today))
-				focusOnOpen(this, () => this.$refs.purpose)
+				Object.assign(this.form, emptyReimbursementInvoice(this.today, this.form.kind))
+				focusOnOpen(this, () => this.firstField())
 				this.load()
 			}
 		},
@@ -645,6 +779,53 @@ export default {
 .vbh-reimb-original {
 	margin-inline-start: 6px;
 	color: var(--color-text-maxcontrast);
+}
+
+.vbh-reimb-start {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	justify-content: flex-end;
+}
+
+.vbh-reimb-kind {
+	padding: 0 6px;
+	border-radius: var(--border-radius-pill);
+	background: var(--color-primary-element-light);
+	color: var(--color-primary-element-light-text);
+	font-size: 0.85em;
+	white-space: nowrap;
+}
+
+.vbh-travel-costs-help {
+	margin: 0;
+}
+
+.vbh-travel-position {
+	display: grid;
+	gap: 12px;
+	padding: 12px;
+	border: 1px solid var(--color-border);
+	border-radius: var(--border-radius-large);
+}
+
+.vbh-travel-position-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+}
+
+.vbh-travel-add {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+}
+
+.vbh-travel-total {
+	margin-inline-start: auto;
+	font-weight: 700;
 }
 
 .vbh-selfservice-card-header {
@@ -809,7 +990,8 @@ export default {
 	font-weight: 600;
 }
 
-.vbh-reimb-field input:not([type="file"]) {
+.vbh-reimb-field input:not([type="file"]),
+.vbh-reimb-field select {
 	box-sizing: border-box;
 	width: 100%;
 	min-height: 44px;

@@ -181,6 +181,10 @@ class ReimbursementService {
 	 * @param string|null $accountHolder Kontoinhaber; ohne Angabe der Name des Mitglieds
 	 * @param bool $declarationAccepted das Mitglied hat die Erklärung bestätigt ({@see declarationText()})
 	 * @param list<array{name: string, content: string}> $uploads die Belegdateien, mindestens eine
+	 *                                                            (bei einer Reisekostenabrechnung optional)
+	 * @param TravelDetails|null $travel Reisekostenabrechnung (#353): dann ist `$amountCents` die Summe
+	 *                                   der Positionen und `$expenseDate` der Tag des Reisebeginns;
+	 *                                   Rechnungsnummer und Lieferant entfallen
 	 * @throws \InvalidArgumentException bei ungültigen Angaben oder wenn die Funktion aus ist
 	 */
 	public function submit(
@@ -195,7 +199,17 @@ class ReimbursementService {
 		bool $declarationAccepted,
 		array $uploads,
 		string $actorUid,
+		?TravelDetails $travel = null,
 	): Reimbursement {
+		if ($travel !== null) {
+			// Dieselbe strenge Prüfung wie im Formular – der Dienst verlässt sich nicht auf den Aufrufer.
+			$travel = TravelDetails::fromInput($travel->toArray(), $this->l10n, true, $this->clock->today());
+			if ($amountCents !== $travel->totalCents() || $expenseDate !== $travel->startDate()) {
+				throw new \InvalidArgumentException($this->l10n->t('Betrag und Datum müssen zu den Reiseangaben passen.'));
+			}
+			$invoiceNumber = null;
+			$supplier = null;
+		}
 		if (!$this->settings->isEnabled()) {
 			throw new \InvalidArgumentException($this->l10n->t('Die Auslagenerstattung ist nicht aktiv.'));
 		}
@@ -221,7 +235,8 @@ class ReimbursementService {
 		if (!$declarationAccepted) {
 			throw new \InvalidArgumentException($this->l10n->t('Bitte bestätigen Sie die Erklärung.'));
 		}
-		if ($uploads === []) {
+		// Für eine Fahrt mit dem eigenen Auto gibt es keinen Beleg; bei Reisekosten sind Belege freiwillig.
+		if ($uploads === [] && $travel === null) {
 			throw new \InvalidArgumentException($this->l10n->t('Bitte mindestens einen Beleg hochladen.'));
 		}
 		if (count($uploads) > self::MAX_FILES) {
@@ -237,7 +252,7 @@ class ReimbursementService {
 
 		$declaration = $this->declarationText();
 
-		return $this->transaction->run(function () use ($member, $amountCents, $expenseDate, $purpose, $invoiceNumber, $supplier, $normalizedIban, $accountHolder, $declaration, $uploads, $actorUid, $required): Reimbursement {
+		return $this->transaction->run(function () use ($member, $amountCents, $expenseDate, $purpose, $invoiceNumber, $supplier, $normalizedIban, $accountHolder, $declaration, $uploads, $actorUid, $required, $travel): Reimbursement {
 			$now = $this->now();
 			$reimbursement = new Reimbursement();
 			// In der Transaktion des Antrags: scheitert das Einreichen, rollt der Zähler mit zurück.
@@ -254,6 +269,8 @@ class ReimbursementService {
 			$reimbursement->setRequiredApprovals($required);
 			$reimbursement->setSubmittedBy($actorUid);
 			$reimbursement->setSubmittedAt($now);
+			$reimbursement->setKind($travel !== null ? Reimbursement::KIND_TRAVEL : Reimbursement::KIND_EXPENSE);
+			$reimbursement->setTravelDetails($travel?->toJson());
 			$reimbursement = $this->mapper->insert($reimbursement);
 
 			$names = [];
@@ -270,6 +287,10 @@ class ReimbursementService {
 				'amountCents' => $amountCents,
 				'requiredApprovals' => $required,
 				'receipts' => $names,
+				// Die Reiseangaben stehen bewusst nicht hier: Strecken können Adressen enthalten, und die
+				// Hash-Kette ließe sie bei der Anonymisierung nicht mehr schwärzen. Sie bleiben in
+				// travel_details, das nach dem Einreichen nur die Anonymisierung noch ändert.
+				'kind' => $travel !== null ? Reimbursement::KIND_TRAVEL : Reimbursement::KIND_EXPENSE,
 				// Der bestätigte Wortlaut steht in der Historie: wer ihn später ändert, bricht die Hash-Kette.
 				'declaration' => $declaration,
 			]);
