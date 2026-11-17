@@ -4854,5 +4854,17 @@ OC.L10N.register("vereinsbuchhaltung", {
 	"Bitte eine gültige Entfernung in Kilometern angeben.": "Please enter a valid distance in kilometres.",
 	"Jede Position braucht einen Betrag größer als 0.": "Every item needs an amount greater than 0.",
 	"Bitte bei den Fahrtkosten Verkehrsmittel und Strecke angeben.": "Please enter the means of transport and the route for travel costs.",
-	"Bitte Beginn und Ende als Datum mit Uhrzeit angeben.": "Please enter the start and end as a date with time."
+	"Bitte Beginn und Ende als Datum mit Uhrzeit angeben.": "Please enter the start and end as a date with time.",
+	"Kassenbericht als PDF-Datei herunterladen (mit Seitenzahlen und Unterschriftsfeldern)": "Download the treasurer's report as a PDF file (with page numbers and signature fields)",
+	"Kassenbericht (PDF)": "Treasurer's report (PDF)",
+	"Kassenbericht ablegen": "File the treasurer's report",
+	"Beim Abschließen den Kassenbericht als PDF ablegen": "Save the treasurer's report as a PDF when closing",
+	"Hält den Stand des abgeschlossenen Jahres als Datei fest. Wird ein Jahr wiedereröffnet und erneut abgeschlossen, kommt eine weitere Datei hinzu; die frühere bleibt liegen.": "Records the state of the closed year as a file. If a year is reopened and closed again, another file is added; the earlier one is kept.",
+	"Ablageordner für Berichte": "Storage folder for reports",
+	"Abgelegt wird im Ordner des Nutzers der Belegablage. Ist keiner eingerichtet, entsteht beim Abschluss keine Datei; den Kassenbericht gibt es dann weiterhin unter Berichte.": "Files are stored in the folder of the receipt storage user. If none is set up, closing creates no file; the treasurer's report remains available under Reports.",
+	"Kassenbericht abgelegt unter {path}.": "Treasurer's report saved to {path}.",
+	"Der Zeitraum ist abgeschlossen, aber der Kassenbericht wurde nicht abgelegt: {reason}": "The period is closed, but the treasurer's report was not saved: {reason}",
+	"Das PDF konnte nicht erzeugt werden.": "The PDF could not be created.",
+	"Der Kassenbericht konnte nicht als PDF abgelegt werden.": "The treasurer's report could not be saved as a PDF.",
+	"Berichtsordner": "Report folder"
 }, "nplurals=2; plural=(n != 1);");

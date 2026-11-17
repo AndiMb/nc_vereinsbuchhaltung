@@ -391,6 +391,7 @@ export default {
 	// wird per Browser-Navigation geöffnet (druckfertiges HTML, kein Axios).
 	selfCertificateYears: () => axios.get(url('/self/certificate/years')),
 	selfCertificateUrl: (year) => generateUrl(base + '/self/certificate') + (year ? `?year=${year}` : ''),
+	selfCertificatePdfUrl: (year) => generateUrl(base + '/self/certificate/pdf') + (year ? `?year=${year}` : ''),
 
 	// "Datenübersicht" (Issue #78, Spec §3.8): Art.-15-DSGVO-Auskunft als
 	// druckfertige Live-Ansicht, hier unter "Meine Daten".
@@ -413,6 +414,8 @@ export default {
 	// Visuelle Ansicht (Plan gegen Ist): Stand `YYYY-MM`/`current` (leer = Vorgabe), Basis `year`/`time`.
 	gliederungsberichtVisuellUrl: (template, period, asOf, basis = 'year') => generateUrl(base + '/export/gliederungsbericht-visuell') + `?template=${encodeURIComponent(template)}` + (period ? `&period=${period}` : '') + (asOf ? `&asOf=${encodeURIComponent(asOf)}` : '') + `&basis=${encodeURIComponent(basis)}`,
 	kassenberichtUrl: (period) => generateUrl(base + '/export/kassenbericht') + (period ? `?period=${period}` : ''),
+	// Derselbe Kassenbericht als PDF-Datei (Issue #364).
+	kassenberichtPdfUrl: (period) => generateUrl(base + '/export/kassenbericht/pdf') + (period ? `?period=${period}` : ''),
 	kurzberichtUrl: (since) => generateUrl(base + '/export/kurzbericht') + (since ? `?since=${since}` : ''),
 	exportAttachmentsUrl: (period) => generateUrl(base + '/export/attachments') + (period ? `?period=${period}` : ''),
 
@@ -421,6 +424,7 @@ export default {
 	// selfCertificateUrl(), hier für ein beliebiges Mitglied.
 	memberCertificateYears: (memberId) => axios.get(url(`/export/beitragsbescheinigung/${memberId}/years`)),
 	memberCertificateUrl: (memberId, year) => generateUrl(base + `/export/beitragsbescheinigung/${memberId}`) + (year ? `?year=${year}` : ''),
+	memberCertificatePdfUrl: (memberId, year) => generateUrl(base + `/export/beitragsbescheinigung/${memberId}/pdf`) + (year ? `?year=${year}` : ''),
 
 	// "Datenübersicht" eines Mitglieds, Stellvertretung durch den Kassenwart
 	// über die Admin-Akte (Issue #78, Spec §3.8).

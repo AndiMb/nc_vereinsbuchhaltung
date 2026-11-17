@@ -195,6 +195,38 @@
 		<!-- Vorschau der Umstellung. Erst hier steht „Übernehmen": die Umstellung
 		     ordnet jede Buchung neu zu und kann Planwerte verwerfen, das mutet man
 		     niemandem ungefragt zu. -->
+		<!-- KARTE 3: Kassenbericht beim Abschluss als PDF ablegen (Issue #364) -->
+		<div class="vbh-card">
+			<h4>{{ t('Kassenbericht ablegen') }}</h4>
+			<SettingsToggle v-model="archiveOnClose" :label="t('Beim Abschließen den Kassenbericht als PDF ablegen')">
+				{{ t('Hält den Stand des abgeschlossenen Jahres als Datei fest. Wird ein Jahr wiedereröffnet und erneut abgeschlossen, kommt eine weitere Datei hinzu; die frühere bleibt liegen.') }}
+			</SettingsToggle>
+			<div class="vbh-form">
+				<FolderPathField
+					v-model="reportFolder"
+					inputId="vbh-report-folder"
+					:user="storageUser"
+					placeholder="Vereinsbuchhaltung/Berichte"
+					:label="t('Ablageordner für Berichte')" />
+			</div>
+			<p v-if="!storageUser" class="vbh-hint">
+				{{ t('Abgelegt wird im Ordner des Nutzers der Belegablage. Ist keiner eingerichtet, entsteht beim Abschluss keine Datei; den Kassenbericht gibt es dann weiterhin unter Berichte.') }}
+			</p>
+			<p v-else class="vbh-hint">
+				<!-- Nutzer und Pfad stehen ausserhalb von t(): dessen Variablen werden als HTML maskiert, Vue maskiert ein zweites Mal -->
+				{{ t('Ablage-Nutzer:') }} <strong>{{ storageUser }}</strong>.
+				{{ t('Der Pfad beginnt im Home dieses Nutzers, nicht in Ihrem eigenen; ein fehlender Ordner wird angelegt. Am sichersten wählen Sie den Ordner über den Knopf neben dem Feld.') }}
+			</p>
+			<p v-if="archiveError" class="vbh-hint vbh-hint--error" role="alert">
+				{{ archiveError }}
+			</p>
+			<div class="vbh-form">
+				<NcButton variant="primary" :disabled="archiveSaving" @click="saveArchive">
+					{{ t('Speichern') }}
+				</NcButton>
+			</div>
+		</div>
+
 		<NcModal
 			v-if="previewOpen"
 			labelId="vbh-modal-title-periodrule"
@@ -277,6 +309,8 @@ import { toRefs } from 'vue'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcCheckboxRadioSwitch from '@nextcloud/vue/components/NcCheckboxRadioSwitch'
 import NcModal from '@nextcloud/vue/components/NcModal'
+import FolderPathField from './FolderPathField.vue'
+import SettingsToggle from './SettingsToggle.vue'
 import api from '../api.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { usePeriods } from '../composables/usePeriods.js'
@@ -293,7 +327,13 @@ import { errMsg, formatDate } from '../lib/format.js'
  */
 export default {
 	name: 'SettingsPeriods',
-	components: { NcButton, NcCheckboxRadioSwitch, NcModal },
+	components: { FolderPathField, NcButton, NcCheckboxRadioSwitch, NcModal, SettingsToggle },
+
+	props: {
+		// Nutzer der Belegablage: in dessen Home liegt der Berichtsordner (Issue #364).
+		storageUser: { type: String, default: '' },
+	},
+
 	setup() {
 		// periods/loadPeriods kommen direkt aus dem usePeriods-Singleton
 		// (gleicher geteilter Zustand wie in App.vue).
@@ -324,6 +364,11 @@ export default {
 			// Inline-Umbenennung: die ID der Zeile, die gerade bearbeitet wird.
 			editingId: null,
 			editingLabel: '',
+			// Ablage des Kassenberichts beim Abschluss (Issue #364).
+			archiveOnClose: false,
+			reportFolder: '',
+			archiveSaving: false,
+			archiveError: '',
 		}
 	},
 
@@ -404,6 +449,7 @@ export default {
 
 	mounted() {
 		this.loadRule()
+		this.loadArchive()
 	},
 
 	beforeUnmount() {
@@ -612,6 +658,37 @@ export default {
 			} catch (e) { await this.reportError(e, this.t('Entfernen fehlgeschlagen')) }
 		},
 
+		async loadArchive() {
+			try {
+				const { data } = await api.getSettings()
+				this.applyArchive(data)
+			} catch (e) {
+				this.archiveError = errMsg(e, this.t('Die Einstellungen konnten nicht geladen werden.'))
+			}
+		},
+
+		applyArchive(data) {
+			this.archiveOnClose = data.report_archive_on_close === true
+			this.reportFolder = data.report_folder || ''
+		},
+
+		async saveArchive() {
+			this.archiveSaving = true
+			this.archiveError = ''
+			try {
+				const { data } = await api.saveSettings({
+					report_archive_on_close: this.archiveOnClose ? '1' : '0',
+					report_folder: this.reportFolder,
+				})
+				this.applyArchive(data)
+				showSuccess(this.t('Einstellungen gespeichert.'))
+			} catch (e) {
+				this.archiveError = errMsg(e, this.t('Die Einstellungen konnten nicht gespeichert werden.'))
+			} finally {
+				this.archiveSaving = false
+			}
+		},
+
 		async closePeriod(period) {
 			if (!await this.askConfirm(
 				this.tRaw('Zeitraum {label} abschließen', { label: period.label }),
@@ -620,9 +697,15 @@ export default {
 				'primary',
 			)) { return }
 			try {
-				await api.closePeriod(period.id)
+				const { data } = await api.closePeriod(period.id)
 				await this.loadPeriods()
 				showSuccess(this.tRaw('Zeitraum {label} abgeschlossen.', { label: period.label }))
+				// Ablage des Kassenberichts (Issue #364): Erfolg mit Pfad, Fehler ohne den Abschluss aufzuhalten.
+				if (data?.reportFile) {
+					showSuccess(this.tRaw('Kassenbericht abgelegt unter {path}.', { path: data.reportFile }))
+				} else if (data?.reportError) {
+					showError(this.tRaw('Der Zeitraum ist abgeschlossen, aber der Kassenbericht wurde nicht abgelegt: {reason}', { reason: data.reportError }))
+				}
 			} catch (e) { await this.reportError(e, this.t('Abschließen fehlgeschlagen')) }
 		},
 

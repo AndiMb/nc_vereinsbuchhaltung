@@ -20,6 +20,16 @@ verwenden, z. B. `**Neu:**`.
 ## [Unreleased]
 
 **Neu:**
+- **Kassenbericht und Beitragsbestätigung als PDF** (#364): Neben der
+  Druckansicht gibt es beide jetzt als fertige PDF-Datei (PDF/A) mit
+  Seitenzahlen, wiederholten Tabellenköpfen und – beim Kassenbericht –
+  Unterschriftsfeldern, die nicht vom Rest getrennt werden. Die
+  Beitragsbestätigung lässt sich so in der Mitgliederakte und unter *Mein
+  Beitrag* herunterladen. Auf Wunsch legt die App den Kassenbericht beim
+  Abschluss eines Geschäftsjahres als PDF im Berichtsordner der Belegablage
+  ab (*Zahnrad → Geschäftsjahr → Kassenbericht ablegen*); scheitert das, bleibt
+  das Jahr trotzdem abgeschlossen. Die gemeinsame PDF-Grundlage dient später
+  auch den Zuwendungsbestätigungen.
 - **Sicherung und Umzug** (#111): Verwalter sichern unter *Zahnrad →
   Sicherung und Umzug* den gesamten Bestand – Buchhaltung, Mitglieder,
   Mandate, Beiträge, Rechnungen, Auslagen, Rollen, Änderungsprotokoll und

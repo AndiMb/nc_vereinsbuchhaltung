@@ -102,7 +102,7 @@
 
 		<div id="settings-section_geschaeftsjahr">
 			<NcSettingsSection :name="t('Geschäftsjahr')">
-				<SettingsPeriods />
+				<SettingsPeriods :storageUser="storageUser" />
 			</NcSettingsSection>
 		</div>
 

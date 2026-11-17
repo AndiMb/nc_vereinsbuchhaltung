@@ -122,10 +122,10 @@ class BackupSchemaTest extends TestCase {
 	}
 
 	public function testEinstellungenWerdenGesichertAusserInstanzgebundenen(): void {
-		foreach (['club_name', 'fiscal_period_rule', 'sepa_debtor_account_id', 'invoice_account_id', 'invoice_vat_account_19', 'demo_seeded', 'report_templates_seeded', 'brand_logo_mime'] as $key) {
+		foreach (['club_name', 'fiscal_period_rule', 'sepa_debtor_account_id', 'invoice_account_id', 'invoice_vat_account_19', 'demo_seeded', 'report_templates_seeded', 'brand_logo_mime', 'report_archive_on_close'] as $key) {
 			$this->assertTrue(BackupSchema::isBackedUpConfigKey($key), $key);
 		}
-		foreach (['storage_user', 'storage_path', 'storage_mode', 'statement_watch_user', 'statement_watch_path', 'mandate_document_folder', 'xml_folder_enabled', 'xml_folder_path', 'invoice_folder', 'data_revision', 'installed_version', 'enabled', 'types'] as $key) {
+		foreach (['storage_user', 'storage_path', 'storage_mode', 'statement_watch_user', 'statement_watch_path', 'mandate_document_folder', 'xml_folder_enabled', 'xml_folder_path', 'invoice_folder', 'report_folder', 'data_revision', 'installed_version', 'enabled', 'types'] as $key) {
 			$this->assertFalse(BackupSchema::isBackedUpConfigKey($key), $key);
 		}
 	}

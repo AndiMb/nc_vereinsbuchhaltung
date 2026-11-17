@@ -16,6 +16,7 @@ use OCA\Vereinsbuchhaltung\Service\ClubCurrencySwitchGuard;
 use OCA\Vereinsbuchhaltung\Service\ContributionYearService;
 use OCA\Vereinsbuchhaltung\Service\CostCenterSettings;
 use OCA\Vereinsbuchhaltung\Service\DunningSettings;
+use OCA\Vereinsbuchhaltung\Service\Export\KassenberichtArchive;
 use OCA\Vereinsbuchhaltung\Service\FolderPathValidator;
 use OCA\Vereinsbuchhaltung\Service\ForeignHomeGuard;
 use OCA\Vereinsbuchhaltung\Service\FrontendStateService;
@@ -135,9 +136,22 @@ class SettingsController extends Controller {
 		}
 		if (array_key_exists(InvoiceSettings::SETTING_FOLDER, $params)) {
 			$requested = trim(str_replace('\\', '/', (string)$params[InvoiceSettings::SETTING_FOLDER]), '/');
-			return $this->foreignHomeGuard->folderChangeError(
+			$error = $this->foreignHomeGuard->folderChangeError(
 				$this->invoiceSettings->folder(),
 				$requested !== '' ? $requested : InvoiceSettings::DEFAULT_FOLDER,
+				$storageUser,
+			);
+			if ($error !== null) {
+				return $error;
+			}
+		}
+		// Ablage des Kassenberichts beim Jahresabschluss (#364): derselbe Schutz wie bei Rechnungen.
+		if (array_key_exists(KassenberichtArchive::SETTING_FOLDER, $params)) {
+			$requested = trim(str_replace('\\', '/', (string)$params[KassenberichtArchive::SETTING_FOLDER]), '/');
+			$stored = trim($this->config->getValueString(Application::APP_ID, KassenberichtArchive::SETTING_FOLDER, ''), '/');
+			return $this->foreignHomeGuard->folderChangeError(
+				$stored !== '' ? $stored : KassenberichtArchive::DEFAULT_FOLDER,
+				$requested !== '' ? $requested : KassenberichtArchive::DEFAULT_FOLDER,
 				$storageUser,
 			);
 		}
@@ -467,6 +481,20 @@ class SettingsController extends Controller {
 			}
 			$mandateFolder = trim(str_replace('\\', '/', $mandateFolder), '/');
 			$this->config->setValueString($appId, MandateDocumentService::SETTING_FOLDER, $mandateFolder !== '' ? $mandateFolder : MandateDocumentService::DEFAULT_FOLDER);
+		}
+
+		if (array_key_exists(KassenberichtArchive::SETTING_FOLDER, $params)) {
+			$reportFolder = (string)$params[KassenberichtArchive::SETTING_FOLDER];
+			$reportFolderError = $this->validatePath($reportFolder, $this->l10n->t('Berichtsordner'));
+			if ($reportFolderError !== null) {
+				return new DataResponse(['message' => $reportFolderError], Http::STATUS_BAD_REQUEST);
+			}
+			$reportFolder = trim(str_replace('\\', '/', $reportFolder), '/');
+			$this->config->setValueString($appId, KassenberichtArchive::SETTING_FOLDER, $reportFolder !== '' ? $reportFolder : KassenberichtArchive::DEFAULT_FOLDER);
+		}
+
+		if (array_key_exists(KassenberichtArchive::SETTING_ENABLED, $params)) {
+			$this->config->setValueString($appId, KassenberichtArchive::SETTING_ENABLED, (string)$params[KassenberichtArchive::SETTING_ENABLED] === '1' ? '1' : '0');
 		}
 
 		if (array_key_exists('show_missing_document_warning', $params)) {

@@ -12,6 +12,7 @@ use OCA\Vereinsbuchhaltung\Service\ClubClock;
 use OCA\Vereinsbuchhaltung\Service\ClubCurrency;
 use OCA\Vereinsbuchhaltung\Service\EpcQrCodeGenerator;
 use OCA\Vereinsbuchhaltung\Service\InvoiceCalculator;
+use OCA\Vereinsbuchhaltung\Service\Pdf\PdfLogo;
 use OCP\IL10N;
 
 /**
@@ -253,42 +254,12 @@ class InvoicePdfRenderer {
 	}
 
 	/**
-	 * Das Vereinslogo oben rechts, höchstens 55 mm breit und 24 mm hoch. Es wird über GD
-	 * auf weißen Grund gebracht und als PNG ohne Transparenz eingebettet: so nimmt es auch
-	 * PDF/A an, und WebP, das TCPDF nicht kennt, geht ebenfalls. Gelingt das nicht (kein GD,
-	 * unlesbare Datei), bleibt der Briefkopf ohne Logo; die Rechnung scheitert deshalb nicht.
+	 * Das Vereinslogo oben rechts, höchstens 55 mm breit und 24 mm hoch, aufbereitet von
+	 * {@see PdfLogo} (weißer Grund, PNG ohne Transparenz, PDF/A-tauglich). Gelingt das nicht,
+	 * bleibt der Briefkopf ohne Logo; die Rechnung scheitert deshalb nicht.
 	 */
 	private function logo(InvoicePdfDocument $pdf, ?string $bytes): void {
-		if ($bytes === null || $bytes === '' || !function_exists('imagecreatefromstring')) {
-			return;
-		}
-		$source = @imagecreatefromstring($bytes);
-		if ($source === false) {
-			return;
-		}
-		$w = imagesx($source);
-		$h = imagesy($source);
-		if ($w > 900) {
-			$scaled = imagescale($source, 900);
-			if ($scaled !== false) {
-				$source = $scaled;
-				$w = imagesx($source);
-				$h = imagesy($source);
-			}
-		}
-		$canvas = imagecreatetruecolor($w, $h);
-		imagefill($canvas, 0, 0, (int)imagecolorallocate($canvas, 255, 255, 255));
-		imagecopy($canvas, $source, 0, 0, 0, 0, $w, $h);
-		ob_start();
-		imagepng($canvas);
-		$png = (string)ob_get_clean();
-		if ($png === '') {
-			return;
-		}
-		$scale = min(55 / $w, 24 / $h);
-		$dw = $w * $scale;
-		$dh = $h * $scale;
-		$pdf->Image('@' . $png, $pdf->getPageWidth() - self::MARGIN_RIGHT - $dw, 12, $dw, $dh, 'PNG');
+		PdfLogo::place($pdf, $bytes, self::MARGIN_RIGHT, 12, 55, 24);
 	}
 
 	/** @return float untere Kante des Informationsblocks (mm vom Seitenrand oben) */

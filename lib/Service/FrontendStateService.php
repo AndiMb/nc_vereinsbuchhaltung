@@ -9,6 +9,7 @@ use OCA\Vereinsbuchhaltung\Db\BudgetMapper;
 use OCA\Vereinsbuchhaltung\Db\BudgetSnapshotMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
+use OCA\Vereinsbuchhaltung\Service\Export\KassenberichtArchive;
 use OCP\IAppConfig;
 
 /**
@@ -192,6 +193,9 @@ class FrontendStateService {
 			'cost_centers_enabled' => $this->config->getValueString(Application::APP_ID, CostCenterSettings::SETTING_ENABLED, '0') === '1',
 			// Ampel-Schwellen der visuellen Gliederungsansicht, vereinsweit.
 			BudgetStatusSettings::KEY => $this->budgetStatusSettings->thresholds(),
+			// Kassenbericht beim Jahresabschluss als PDF ablegen (Issue #364), standardmäßig aus.
+			KassenberichtArchive::SETTING_ENABLED => $this->config->getValueString(Application::APP_ID, KassenberichtArchive::SETTING_ENABLED, '0') === '1',
+			KassenberichtArchive::SETTING_FOLDER => $this->config->getValueString(Application::APP_ID, KassenberichtArchive::SETTING_FOLDER, KassenberichtArchive::DEFAULT_FOLDER),
 		] + $this->invoiceSettings->all();
 	}
 

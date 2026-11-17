@@ -4854,5 +4854,17 @@ OC.L10N.register("vereinsbuchhaltung", {
 	"Bitte eine gültige Entfernung in Kilometern angeben.": "Vul een geldige afstand in kilometers in.",
 	"Jede Position braucht einen Betrag größer als 0.": "Elke post heeft een bedrag groter dan 0 nodig.",
 	"Bitte bei den Fahrtkosten Verkehrsmittel und Strecke angeben.": "Vul bij de vervoerskosten het vervoermiddel en het traject in.",
-	"Bitte Beginn und Ende als Datum mit Uhrzeit angeben.": "Vul begin en einde in als datum met tijd."
+	"Bitte Beginn und Ende als Datum mit Uhrzeit angeben.": "Vul begin en einde in als datum met tijd.",
+	"Kassenbericht als PDF-Datei herunterladen (mit Seitenzahlen und Unterschriftsfeldern)": "Kasverslag als pdf-bestand downloaden (met paginanummers en handtekeningvelden)",
+	"Kassenbericht (PDF)": "Kasverslag (pdf)",
+	"Kassenbericht ablegen": "Kasverslag opslaan",
+	"Beim Abschließen den Kassenbericht als PDF ablegen": "Bij het afsluiten het kasverslag als pdf opslaan",
+	"Hält den Stand des abgeschlossenen Jahres als Datei fest. Wird ein Jahr wiedereröffnet und erneut abgeschlossen, kommt eine weitere Datei hinzu; die frühere bleibt liegen.": "Legt de stand van het afgesloten jaar vast als bestand. Wordt een jaar heropend en opnieuw afgesloten, dan komt er een bestand bij; het eerdere blijft bewaard.",
+	"Ablageordner für Berichte": "Opslagmap voor rapporten",
+	"Abgelegt wird im Ordner des Nutzers der Belegablage. Ist keiner eingerichtet, entsteht beim Abschluss keine Datei; den Kassenbericht gibt es dann weiterhin unter Berichte.": "Opgeslagen wordt in de map van de gebruiker van de bewijsstukkenopslag. Is die niet ingesteld, dan ontstaat bij het afsluiten geen bestand; het kasverslag blijft beschikbaar onder Rapporten.",
+	"Kassenbericht abgelegt unter {path}.": "Kasverslag opgeslagen onder {path}.",
+	"Der Zeitraum ist abgeschlossen, aber der Kassenbericht wurde nicht abgelegt: {reason}": "De periode is afgesloten, maar het kasverslag is niet opgeslagen: {reason}",
+	"Das PDF konnte nicht erzeugt werden.": "De pdf kon niet worden gemaakt.",
+	"Der Kassenbericht konnte nicht als PDF abgelegt werden.": "Het kasverslag kon niet als pdf worden opgeslagen.",
+	"Berichtsordner": "Map voor rapporten"
 }, "nplurals=2; plural=(n != 1);");
