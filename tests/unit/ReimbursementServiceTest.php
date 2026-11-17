@@ -32,6 +32,7 @@ use OCA\Vereinsbuchhaltung\Service\ReimbursementFileService;
 use OCA\Vereinsbuchhaltung\Service\ReimbursementMailService;
 use OCA\Vereinsbuchhaltung\Service\ReimbursementPaymentReverter;
 use OCA\Vereinsbuchhaltung\Service\ReimbursementService;
+use OCA\Vereinsbuchhaltung\Service\TravelDetails;
 use OCA\Vereinsbuchhaltung\Service\ReimbursementSettings;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Utility\ITimeFactory;
@@ -346,6 +347,59 @@ class ReimbursementServiceTest extends TestCase {
 		$this->assertSame($service->declarationText(), $service->history($r->getId())[0]->decodedData()['declaration']);
 		$this->assertStringContainsString('im Auftrag des Vereins', $service->declarationText());
 		$this->assertChainIsValid($service, $r->getId());
+	}
+
+	// --- Reisekosten (#353) ------------------------------------------------------
+
+	private function travel(): TravelDetails {
+		$l10n = $this->createMock(IL10N::class);
+		$l10n->method('t')->willReturnCallback(static fn (string $text, array $parameters = []): string => vsprintf($text, $parameters));
+		return TravelDetails::fromInput([
+			'destination' => 'Landesturnier Kassel',
+			'start' => '2026-10-20T07:30',
+			'end' => '2026-10-20T19:15',
+			'items' => [
+				['type' => 'travel', 'transport' => 'car', 'route' => 'Vereinsheim – Kassel', 'distanceKm' => 184, 'amountCents' => 5520],
+				['type' => 'parking', 'note' => 'Parkhaus', 'amountCents' => 800],
+			],
+		], $l10n, true);
+	}
+
+	public function testReisekostenGehenOhneBelegUndOhneRechnungsangaben(): void {
+		$service = $this->service();
+		$travel = $this->travel();
+
+		$r = $this->submitWith($service, [
+			'amountCents' => 6320,
+			'expenseDate' => '2026-10-20',
+			'purpose' => 'Fahrt zum Landesturnier',
+			'uploads' => [],
+			'travel' => $travel,
+		]);
+
+		$this->assertTrue($r->isTravel());
+		$this->assertSame(6320, $r->getAmountCents());
+		$this->assertNull($r->getInvoiceNumber(), 'Eine Reise hat keine Rechnungsnummer');
+		$this->assertNull($r->getSupplier());
+		$this->assertSame($travel->toArray(), TravelDetails::decode($r->getTravelDetails()));
+		$this->assertSame('travel', $r->jsonSerialize()['kind']);
+		$submitted = $service->history($r->getId())[0]->decodedData();
+		$this->assertSame('travel', $submitted['kind']);
+		$this->assertArrayNotHasKey('travel', $submitted, 'Strecken gehören nicht in die unveränderliche Historie');
+		$this->assertChainIsValid($service, $r->getId());
+	}
+
+	public function testReisekostenBetragMussDerSummeDerPositionenEntsprechen(): void {
+		$service = $this->service();
+		$this->expectException(\InvalidArgumentException::class);
+		$this->submitWith($service, ['amountCents' => 9999, 'expenseDate' => '2026-10-20', 'uploads' => [], 'travel' => $this->travel()]);
+	}
+
+	public function testGewoehnlicheAuslageBleibtArtExpense(): void {
+		$r = $this->submit($this->service());
+		$this->assertFalse($r->isTravel());
+		$this->assertSame('expense', $r->getKind());
+		$this->assertNull($r->getTravelDetails());
 	}
 
 	public function testMehrereRechnungenSindMehrereUnabhaengigeAntraege(): void {

@@ -14,6 +14,7 @@ use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
 use OCA\Vereinsbuchhaltung\Service\ReimbursementDraftCleaner;
 use OCA\Vereinsbuchhaltung\Service\ReimbursementDraftService;
 use OCA\Vereinsbuchhaltung\Service\ReimbursementService;
+use OCA\Vereinsbuchhaltung\Service\TravelDetails;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\IDBConnection;
@@ -189,6 +190,72 @@ class ReimbursementDraftServiceTest extends TestCase {
 		]), true, [11], [['name' => 'neu.pdf', 'content' => self::PDF]], 'max');
 
 		$this->assertSame(99, $result->getId());
+	}
+
+	/** @return array<string, mixed> */
+	private static function travelInput(): array {
+		return [
+			'destination' => 'Kassel',
+			'start' => '2026-11-07T07:30',
+			'end' => '2026-11-07T19:15',
+			'items' => [
+				['type' => 'travel', 'transport' => 'public', 'route' => 'Hbf – Kassel', 'amountCents' => 3990],
+				['type' => 'parking', 'amountCents' => 600],
+			],
+		];
+	}
+
+	public function testReisekostenEntwurfMerktSichArtSummeUndDatum(): void {
+		$this->drafts->expects($this->once())->method('insert')->willReturnCallback(function (ReimbursementDraft $draft): ReimbursementDraft {
+			$this->assertSame('travel', $draft->getKind());
+			$this->assertSame(4590, $draft->getAmountCents(), 'Die Entwurfsliste zeigt die Summe der Positionen');
+			$this->assertSame('2026-11-07', $draft->getExpenseDate());
+			$this->assertNull($draft->getInvoiceNumber());
+			$this->assertStringContainsString('Hbf – Kassel', (string)$draft->getTravelDetails());
+			$draft->setId(5);
+			return $draft;
+		});
+		$this->drafts->method('findForMember')->willReturnCallback(function (int $id, int $memberId): ReimbursementDraft {
+			$draft = self::draft($id, $memberId);
+			$draft->setKind('travel');
+			return $draft;
+		});
+		$this->files->method('findByDraft')->willReturn([]);
+
+		$result = $this->service->save(null, 7, self::fields(['kind' => 'travel', 'travel' => self::travelInput(), 'invoiceNumber' => 'R-1']), [], []);
+
+		$this->assertSame('travel', $result['kind']);
+	}
+
+	public function testReisekostenEntwurfDarfUnvollstaendigSein(): void {
+		$this->drafts->method('insert')->willReturnCallback(static function (ReimbursementDraft $draft): ReimbursementDraft {
+			$draft->setId(5);
+			return $draft;
+		});
+		$this->drafts->method('findForMember')->willReturnCallback(fn (int $id, int $memberId) => self::draft($id, $memberId));
+		$this->files->method('findByDraft')->willReturn([]);
+
+		$result = $this->service->save(null, 7, self::fields(['kind' => 'travel', 'travel' => ['destination' => 'Kassel', 'items' => [['type' => 'travel']]]]), [], []);
+
+		$this->assertSame(5, $result['id']);
+	}
+
+	public function testReisekostenEntwurfWirdMitSummeUndReisebeginnEingereicht(): void {
+		$this->drafts->method('findForMember')->willReturn(self::draft(5));
+		$this->files->method('findByDraft')->willReturn([]);
+		$created = new Reimbursement();
+		$created->setId(99);
+		$this->reimbursements->expects($this->once())->method('submit')->with(
+			$this->anything(), 4590, '2026-11-07', 'Turnier', null, null, 'DE02120300000000202051', 'Max', true, [], 'max',
+			$this->callback(static fn ($travel): bool => $travel instanceof TravelDetails && $travel->totalCents() === 4590),
+		)->willReturn($created);
+
+		$member = new Member();
+		$member->setId(7);
+		$this->service->submit(5, $member, self::fields([
+			'kind' => 'travel', 'travel' => self::travelInput(), 'purpose' => 'Turnier',
+			'iban' => 'DE02120300000000202051', 'accountHolder' => 'Max',
+		]), true, [], [], 'max');
 	}
 
 	public function testScheiterndesEinreichenLaesstDenEntwurfStehen(): void {

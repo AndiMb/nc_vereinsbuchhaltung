@@ -758,6 +758,34 @@ expense claim**. The dialog follows the former paper form:
   elsewhere. Without the tick the request cannot be submitted; the confirmed
   wording is stored in the request's history.
 
+**Travel expenses (member).** For a trip on behalf of the club – to a
+tournament, a training course, an association meeting – the member chooses
+**Claim travel expenses**. The invoice is replaced by the **trip details**:
+
+- **Destination**, **Start** and **End** (date with time; the trip must not
+  start in the future).
+- the **items**, at most 20: **Travel costs** with the means of transport (own
+  car, public transport, bicycle, other), route, optional distance in
+  kilometres and amount, and **Parking fees** with an amount and an optional
+  note. **+ Travel costs** and **+ Parking fees** add further items.
+
+The **actual costs** the member enters per item are reimbursed – the ticket
+price, the fuel costs, the parking fee. The app calculates the total from the
+items; the request is dated on the day the trip started. **Receipts are
+optional**: the member uploads tickets or parking receipts where available; for
+a trip in their own car the details are enough. Purpose, bank details and
+declaration are the same as for an expense claim. Daily allowances, mileage
+rates and overnight stays cannot be claimed in this stage yet.
+
+From then on the travel expense claim is an ordinary request: it gets an
+expense number, goes through the same approvals and can be saved as a draft,
+withdrawn and paid out. In the lists it carries the label **Travel expenses**;
+the detail view shows the trip details with all items. If an administrator
+corrects the amount, the items stay as the member submitted them. If the
+member is anonymised, the app deletes the routes and notes of the items, as
+they may contain the home address; destination, times, means of transport and
+amounts remain as records.
+
 **Several invoices** are submitted as **separate requests**. With **Submit and
 add another** the bank details and the declaration stay filled in, only the
 invoice is empty again. Each request is approved or rejected and paid out on its

@@ -80,6 +80,15 @@ verwenden, z. B. `**Neu:**`.
   korrigieren. Ursprünglicher und neuer Betrag bleiben im Verlauf
   nachvollziehbar, das Mitglied wird per Mail benachrichtigt, und bereits
   erteilte Freigaben verfallen. Handbuch Kapitel 4.6.
+- **Reisekosten abrechnen** (#353, Stufe 1): Unter *Mein Bereich → Auslagen*
+  rechnen Mitglieder mit **Reisekosten abrechnen** eine Reise ab: Ziel,
+  Beginn und Ende sowie die Positionen Fahrtkosten (Verkehrsmittel, Strecke,
+  wahlweise Kilometer, Betrag) und Parkgebühren. Erstattet werden die
+  tatsächlichen Kosten; die Summe rechnet die App aus den Positionen. Belege
+  sind freiwillig. Die Abrechnung läuft wie eine Auslage durch Freigabe und
+  Auszahlung, lässt sich als Entwurf speichern, und eine Korrektur des
+  Betrags lässt die eingereichten Positionen stehen. Tagespauschalen,
+  Kilometersätze und Übernachtungen folgen später. Handbuch Kapitel 4.6.
 
 **Behoben:**
 - Nach dem Import eines Kontoauszugs zeigt *Buchungen → Alle Buchungen*

@@ -51,7 +51,7 @@
 								{{ item.memberName }}
 							</td>
 							<td class="vbh-purpose vbh-stack-title">
-								<span class="vbh-clamp"><span v-if="item.number" class="vbh-reimb-number">{{ item.number }}</span> {{ item.purpose }}</span>
+								<span class="vbh-clamp"><span v-if="item.number" class="vbh-reimb-number">{{ item.number }}</span> <span v-if="item.kind === 'travel'" class="vbh-reimb-kind">{{ t('Reisekosten') }}</span> {{ item.purpose }}</span>
 							</td>
 							<td class="num strong">
 								{{ formatMoney(item.amountCents / 100) }}
@@ -84,7 +84,9 @@
 			@update:show="detail = $event ? detail : null">
 			<div class="vbh-modal-inner">
 				<h2 id="vbh-modal-title-reimb-staff" class="vbh-modal-title">
-					{{ tRaw('Auslage {number} von {name}', { number: detail.number || `#${detail.id}`, name: detail.memberName }) }}
+					{{ detail.kind === 'travel'
+						? tRaw('Reisekosten {number} von {name}', { number: detail.number || `#${detail.id}`, name: detail.memberName })
+						: tRaw('Auslage {number} von {name}', { number: detail.number || `#${detail.id}`, name: detail.memberName }) }}
 				</h2>
 				<dl class="vbh-selfservice-fields">
 					<dt>{{ t('Betrag') }}</dt>
@@ -94,8 +96,10 @@
 							{{ t('(beantragt: {amount}, korrigiert)', { amount: formatMoney(detail.originalAmountCents / 100) }) }}
 						</span>
 					</dd>
-					<dt>{{ t('Rechnungsdatum') }}</dt>
-					<dd>{{ formatDate(detail.expenseDate) }}</dd>
+					<template v-if="detail.kind !== 'travel'">
+						<dt>{{ t('Rechnungsdatum') }}</dt>
+						<dd>{{ formatDate(detail.expenseDate) }}</dd>
+					</template>
 					<template v-if="detail.invoiceNumber">
 						<dt>{{ t('Rechnungsnummer') }}</dt>
 						<dd>{{ detail.invoiceNumber }}</dd>
@@ -128,6 +132,11 @@
 						<dd>{{ formatDate(detail.paidAt) }}</dd>
 					</template>
 				</dl>
+
+				<TravelClaimDetails
+					v-if="detail.kind === 'travel' && detail.travel"
+					:travel="detail.travel"
+					:corrected="detail.originalAmountCents !== null && detail.originalAmountCents !== undefined" />
 
 				<p v-if="detail.status === 'approved' && detail.transferredAt" class="vbh-hint vbh-hint--info" role="note">
 					{{ t('Die Überweisung ist angewiesen. Sobald der Kontoumsatz da ist, ordnen Sie ihn unter Buchungen → Zuzuordnen dieser Auslage zu; dort erscheint er mit dem Hinweis auf die Auslagennummer.') }}
@@ -313,6 +322,7 @@ import AmountInput from './AmountInput.vue'
 import ReimbursementHistory from './ReimbursementHistory.vue'
 import ReimbursementStatusTag from './ReimbursementStatusTag.vue'
 import ReimbursementTransferDialog from './ReimbursementTransferDialog.vue'
+import TravelClaimDetails from './TravelClaimDetails.vue'
 import api from '../api.js'
 import { useConfirm } from '../composables/useConfirm.js'
 import { errMsg, formatDate, formatFileSize, formatMoney } from '../lib/format.js'
@@ -336,7 +346,7 @@ import {
  */
 export default {
 	name: 'ReimbursementsPanel',
-	components: { NcButton, NcEmptyContent, NcLoadingIcon, NcModal, AmountInput, ReimbursementHistory, ReimbursementStatusTag, ReimbursementTransferDialog },
+	components: { NcButton, NcEmptyContent, NcLoadingIcon, NcModal, AmountInput, ReimbursementHistory, ReimbursementStatusTag, ReimbursementTransferDialog, TravelClaimDetails },
 
 	props: {
 		canWrite: { type: Boolean, default: false },
@@ -517,6 +527,15 @@ export default {
 </script>
 
 <style scoped>
+.vbh-reimb-kind {
+	padding: 0 6px;
+	border-radius: var(--border-radius-pill);
+	background: var(--color-primary-element-light);
+	color: var(--color-primary-element-light-text);
+	font-size: 0.85em;
+	white-space: nowrap;
+}
+
 .vbh-reimb-original {
 	margin-inline-start: 6px;
 	color: var(--color-text-maxcontrast);

@@ -75,6 +75,15 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   the amount of a claim, with a reason, before it is fully approved. The
   original and the new amount stay traceable in the history, the member is
   notified by email, and approvals already given lapse. Manual chapter 4.6.
+- **Claim travel expenses** (#353, stage 1): under *My area → Expenses*,
+  members use **Claim travel expenses** to settle a trip: destination, start
+  and end, and the items travel costs (means of transport, route, optional
+  distance, amount) and parking fees. The actual costs are reimbursed; the
+  app calculates the total from the items. Receipts are optional. The claim
+  goes through approval and payment like an expense claim, can be saved as a
+  draft, and correcting the amount leaves the submitted items unchanged.
+  Daily allowances, mileage rates and overnight stays will follow later.
+  Manual chapter 4.6.
 
 **Fixed:**
 - After importing a bank statement, *Entries → All entries* shows the

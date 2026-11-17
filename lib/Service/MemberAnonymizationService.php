@@ -70,7 +70,8 @@ use OCP\IL10N;
  *   `deferredReason`/`cancelledReason`.
  * - {@see \OCA\Vereinsbuchhaltung\Db\Reimbursement} (Auslagenanträge, docs/
  *   reimbursement-design.md §11): die Erstattungs-`iban` (Chiffrat) sowie
- *   Kontoinhaber werden geleert und der `debtor` des zugehörigen offenen Postens auf
+ *   Kontoinhaber werden geleert, bei Reisekosten (#353) Strecken und Notizen der
+ *   Positionen, und der `debtor` des zugehörigen offenen Postens auf
  *   {@see Member::REDACTED_DISPLAY_NAME} gesetzt. Antrag, Betrag, Zweck,
  *   Status und Historie bleiben als Buchungsbeleg stehen. Solange ein Antrag
  *   noch nicht abgeschlossen ist, ist das Mitglied nicht anonymisierungsreif
@@ -313,8 +314,20 @@ class MemberAnonymizationService {
 	 */
 	private function redactReimbursements(int $memberId): void {
 		foreach ($this->reimbursements->findByMember($memberId) as $reimbursement) {
+			$changed = false;
 			if ($reimbursement->hasBankDetails()) {
 				$reimbursement->clearBankDetails();
+				$changed = true;
+			}
+			// Reisekosten (#353): Strecken und Notizen können die Wohnadresse enthalten.
+			if ($reimbursement->getTravelDetails() !== null) {
+				$redacted = TravelDetails::redactJson($reimbursement->getTravelDetails());
+				if ($redacted !== $reimbursement->getTravelDetails()) {
+					$reimbursement->setTravelDetails($redacted);
+					$changed = true;
+				}
+			}
+			if ($changed) {
 				$this->reimbursements->update($reimbursement);
 			}
 			if ($reimbursement->getOpenItemId() === null) {
