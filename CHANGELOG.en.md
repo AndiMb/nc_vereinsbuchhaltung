@@ -17,7 +17,19 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 
 ## [Unreleased]
 
+## [0.54.0] – 2026-11-17
+
 **New:**
+- **Treasurer's report and contribution confirmation as PDF** (#364): besides
+  the print view, both are now available as a finished PDF file (PDF/A) with
+  page numbers, repeated table headers and – for the treasurer's report –
+  signature fields that stay together with the rest. The contribution
+  confirmation can thus be downloaded in the member record and under *My
+  contribution*. Optionally the app files the treasurer's report as a PDF in
+  the report folder of the receipt storage when a fiscal year is closed
+  (*gear icon → Fiscal year → File the treasurer's report*); if that fails,
+  the year is closed anyway. The shared PDF foundation will later also serve
+  the donation receipts.
 - **Backup and migration** (#111): under *gear icon → Backup and migration*,
   administrators save the entire data set – bookkeeping, members, mandates,
   contributions, invoices, expenses, roles, change log and settings,
@@ -52,6 +64,56 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   fiscal year in which the app was first opened; to post into an earlier
   year you previously had to know that it comes into being by itself with
   the first posting in it.
+- **Import rules split transactions** (#163): besides the contra account, a
+  rule can carry any number of **fixed shares** (account, amount, optionally
+  a cost centre). On import these amounts go to their accounts and the rest
+  to the contra account, then called the *remainder account* – say €10 of a
+  membership fee to the youth department, €5 to the tennis department, the
+  rest to the main club. If a transaction is smaller than the shares
+  combined, it stays unassigned and is reported instead of being posted
+  wrongly. For such rules, the suggestion under *To assign* opens the
+  *Split transaction* dialog already filled in. Manual chapter 4.1.
+- **CAMT.052 and ZIP archives in the bank statement import** (#359): besides
+  CAMT.053, the import now also reads CAMT.052 reports, which some banks offer
+  instead of CAMT.053. Statements bundled as a ZIP archive, e.g. one file per
+  day, can be imported directly or dropped into the watch folder; the app
+  reads every file in it. Manual chapter 3.2.
+- **Save expense claims as drafts** (#356): under *My area → Expenses*,
+  **Save as draft** keeps an incomplete claim, even without an amount,
+  receipt or declaration, so it can be completed and submitted later. Only
+  the member sees drafts; administrators learn about a claim only once it is
+  submitted. Manual chapter 4.6.
+- **Correct expense claims during review** (#353): administrators can correct
+  the amount of a claim, with a reason, before it is fully approved. The
+  original and the new amount stay traceable in the history, the member is
+  notified by email, and approvals already given lapse. Manual chapter 4.6.
+- **Claim travel expenses** (#353, stage 1): under *My area → Expenses*,
+  members use **Claim travel expenses** to settle a trip: destination, start
+  and end, and the items travel costs (means of transport, route, optional
+  distance, amount) and parking fees. The actual costs are reimbursed; the
+  app calculates the total from the items. Receipts are optional. The claim
+  goes through approval and payment like an expense claim, can be saved as a
+  draft, and correcting the amount leaves the submitted items unchanged.
+  Daily allowances, mileage rates and overnight stays will follow later.
+  Manual chapter 4.6.
+- **Invoice PDF as the payment's receipt** (#366): when an incoming payment is
+  assigned to an invoice – on import, via the chip in *To assign* or with
+  *Record payment* – the app attaches the invoice PDF as a receipt to the
+  payment booking, for partial payments to each one. The file is only linked
+  and stays in the invoice folder, which does not need to be inside the watch
+  folder. Manual chapter 15.6.
+
+**Fixed:**
+- After importing a bank statement, *Entries → All entries* shows the
+  entries booked by import rules right away, including splits and cost
+  centres; before, they only appeared after switching tabs (#358).
+- Treasurer's report: the signature lines no longer end up alone on a new page;
+  they move together with the *Completeness* section (#361).
+
+**Changed:**
+- Treasurer's report: every printed page shows "Page n of m" at the bottom (#362).
+  Chrome and Edge support this; Firefox and Safari still print the report
+  without page numbers.
 
 ## [0.53.0] – 2026-11-12
 

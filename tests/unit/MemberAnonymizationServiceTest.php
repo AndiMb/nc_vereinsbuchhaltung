@@ -462,6 +462,33 @@ class MemberAnonymizationServiceTest extends TestCase {
 		$this->assertSame('Material', $reimbursement->getPurpose());
 	}
 
+	public function testSchwaertStreckenUndHinweiseEinerReisekostenabrechnung(): void {
+		$this->members->method('find')->willReturn($this->member());
+		$reimbursement = new Reimbursement();
+		$reimbursement->setId(8);
+		$reimbursement->setMemberId(42);
+		$reimbursement->setIban('');
+		$reimbursement->setKind(Reimbursement::KIND_TRAVEL);
+		$reimbursement->setTravelDetails(json_encode([
+			'destination' => 'Kassel',
+			'start' => '2026-11-07T07:30',
+			'end' => '2026-11-07T19:15',
+			'items' => [
+				['type' => 'travel', 'transport' => 'car', 'route' => 'Gartenweg 5 – Kassel', 'distanceKm' => 184.0, 'note' => null, 'amountCents' => 5520],
+				['type' => 'parking', 'transport' => null, 'route' => null, 'distanceKm' => null, 'note' => 'vor dem Haus Gartenweg 5', 'amountCents' => 800],
+			],
+		]));
+		$this->reimbursements->method('findByMember')->with(42)->willReturn([$reimbursement]);
+		$this->reimbursements->expects($this->once())->method('update')->with($reimbursement);
+
+		$this->service()->anonymize(42);
+
+		$details = (string)$reimbursement->getTravelDetails();
+		$this->assertStringNotContainsString('Gartenweg', $details);
+		$this->assertStringContainsString('Kassel', $details, 'Das Ziel bleibt als Beleg');
+		$this->assertStringContainsString('5520', $details);
+	}
+
 	public function testUeberspringtForderungOhnePersonenbezogeneFreitexte(): void {
 		$this->members->method('find')->willReturn($this->member());
 		$item = $this->claim(11, 42);

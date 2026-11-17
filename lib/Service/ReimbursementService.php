@@ -181,6 +181,10 @@ class ReimbursementService {
 	 * @param string|null $accountHolder Kontoinhaber; ohne Angabe der Name des Mitglieds
 	 * @param bool $declarationAccepted das Mitglied hat die Erklärung bestätigt ({@see declarationText()})
 	 * @param list<array{name: string, content: string}> $uploads die Belegdateien, mindestens eine
+	 *                                                            (bei einer Reisekostenabrechnung optional)
+	 * @param TravelDetails|null $travel Reisekostenabrechnung (#353): dann ist `$amountCents` die Summe
+	 *                                   der Positionen und `$expenseDate` der Tag des Reisebeginns;
+	 *                                   Rechnungsnummer und Lieferant entfallen
 	 * @throws \InvalidArgumentException bei ungültigen Angaben oder wenn die Funktion aus ist
 	 */
 	public function submit(
@@ -195,7 +199,17 @@ class ReimbursementService {
 		bool $declarationAccepted,
 		array $uploads,
 		string $actorUid,
+		?TravelDetails $travel = null,
 	): Reimbursement {
+		if ($travel !== null) {
+			// Dieselbe strenge Prüfung wie im Formular – der Dienst verlässt sich nicht auf den Aufrufer.
+			$travel = TravelDetails::fromInput($travel->toArray(), $this->l10n, true, $this->clock->today());
+			if ($amountCents !== $travel->totalCents() || $expenseDate !== $travel->startDate()) {
+				throw new \InvalidArgumentException($this->l10n->t('Betrag und Datum müssen zu den Reiseangaben passen.'));
+			}
+			$invoiceNumber = null;
+			$supplier = null;
+		}
 		if (!$this->settings->isEnabled()) {
 			throw new \InvalidArgumentException($this->l10n->t('Die Auslagenerstattung ist nicht aktiv.'));
 		}
@@ -221,7 +235,8 @@ class ReimbursementService {
 		if (!$declarationAccepted) {
 			throw new \InvalidArgumentException($this->l10n->t('Bitte bestätigen Sie die Erklärung.'));
 		}
-		if ($uploads === []) {
+		// Für eine Fahrt mit dem eigenen Auto gibt es keinen Beleg; bei Reisekosten sind Belege freiwillig.
+		if ($uploads === [] && $travel === null) {
 			throw new \InvalidArgumentException($this->l10n->t('Bitte mindestens einen Beleg hochladen.'));
 		}
 		if (count($uploads) > self::MAX_FILES) {
@@ -237,7 +252,7 @@ class ReimbursementService {
 
 		$declaration = $this->declarationText();
 
-		return $this->transaction->run(function () use ($member, $amountCents, $expenseDate, $purpose, $invoiceNumber, $supplier, $normalizedIban, $accountHolder, $declaration, $uploads, $actorUid, $required): Reimbursement {
+		return $this->transaction->run(function () use ($member, $amountCents, $expenseDate, $purpose, $invoiceNumber, $supplier, $normalizedIban, $accountHolder, $declaration, $uploads, $actorUid, $required, $travel): Reimbursement {
 			$now = $this->now();
 			$reimbursement = new Reimbursement();
 			// In der Transaktion des Antrags: scheitert das Einreichen, rollt der Zähler mit zurück.
@@ -254,6 +269,8 @@ class ReimbursementService {
 			$reimbursement->setRequiredApprovals($required);
 			$reimbursement->setSubmittedBy($actorUid);
 			$reimbursement->setSubmittedAt($now);
+			$reimbursement->setKind($travel !== null ? Reimbursement::KIND_TRAVEL : Reimbursement::KIND_EXPENSE);
+			$reimbursement->setTravelDetails($travel?->toJson());
 			$reimbursement = $this->mapper->insert($reimbursement);
 
 			$names = [];
@@ -270,6 +287,10 @@ class ReimbursementService {
 				'amountCents' => $amountCents,
 				'requiredApprovals' => $required,
 				'receipts' => $names,
+				// Die Reiseangaben stehen bewusst nicht hier: Strecken können Adressen enthalten, und die
+				// Hash-Kette ließe sie bei der Anonymisierung nicht mehr schwärzen. Sie bleiben in
+				// travel_details, das nach dem Einreichen nur die Anonymisierung noch ändert.
+				'kind' => $travel !== null ? Reimbursement::KIND_TRAVEL : Reimbursement::KIND_EXPENSE,
 				// Der bestätigte Wortlaut steht in der Historie: wer ihn später ändert, bricht die Hash-Kette.
 				'declaration' => $declaration,
 			]);
@@ -356,6 +377,55 @@ class ReimbursementService {
 
 			$this->audit->log('Auslage abgelehnt', 'reimbursement', $id, ['reason' => $reason]);
 			$this->transaction->afterCommit(fn () => $this->mail->rejected($reimbursement));
+			return $reimbursement;
+		});
+	}
+
+	/**
+	 * Ein Verwalter korrigiert den Betrag bei der Prüfung (#353), etwa wenn
+	 * ein Beleg weniger ausweist als beantragt. Nur solange der Antrag zur
+	 * Entscheidung ansteht; Begründung ist Pflicht. Der bisherige und der neue
+	 * Betrag stehen in der Historie, das Mitglied wird benachrichtigt.
+	 *
+	 * Bereits erteilte Freigaben verfallen: sie galten dem alten Betrag. Der
+	 * Antrag steht danach wieder auf `submitted` und braucht alle Freigaben neu
+	 * (auch die des Korrigierenden selbst – die Korrektur ist keine Freigabe).
+	 *
+	 * @throws \InvalidArgumentException ohne Begründung, bei unverändertem oder ungültigem Betrag
+	 *                                   oder wenn der Antrag nicht zur Entscheidung ansteht
+	 * @throws ForbiddenException
+	 * @throws DoesNotExistException
+	 */
+	public function correctAmount(int $id, string $actorUid, int $amountCents, string $reason): Reimbursement {
+		$reason = Utf8::wellFormed(trim($reason), $this->l10n);
+		if ($reason === '') {
+			throw new \InvalidArgumentException($this->l10n->t('Bitte eine Begründung für die Korrektur angeben.'));
+		}
+		if (mb_strlen($reason) > self::MAX_PURPOSE_LENGTH) {
+			throw new \InvalidArgumentException($this->l10n->t('Die Begründung ist zu lang (höchstens %d Zeichen).', [self::MAX_PURPOSE_LENGTH]));
+		}
+		if ($amountCents <= 0) {
+			throw new \InvalidArgumentException($this->l10n->t('Der Betrag muss größer als 0 sein.'));
+		}
+		return $this->atomically(function () use ($id, $actorUid, $amountCents, $reason): Reimbursement {
+			$reimbursement = $this->mapper->find($id);
+			$this->assertOpenForDecision($reimbursement);
+			$this->assertMayDecide($reimbursement, $actorUid);
+			$from = $reimbursement->getAmountCents();
+			if ($from === $amountCents) {
+				throw new \InvalidArgumentException($this->l10n->t('Der Betrag ist unverändert.'));
+			}
+
+			$this->log->append($id, ReimbursementEvent::ACTION_AMOUNT_CORRECTED, $actorUid, ReimbursementEvent::ROLE_STAFF, $reason, [
+				'from' => $from,
+				'to' => $amountCents,
+			]);
+			$reimbursement->setAmountCents($amountCents);
+			$reimbursement->setStatus(Reimbursement::STATUS_SUBMITTED);
+			$reimbursement = $this->mapper->update($reimbursement);
+
+			$this->audit->log('Auslage korrigiert', 'reimbursement', $id, ['from' => $from, 'to' => $amountCents, 'reason' => $reason]);
+			$this->transaction->afterCommit(fn () => $this->mail->corrected($reimbursement, $from, $reason));
 			return $reimbursement;
 		});
 	}

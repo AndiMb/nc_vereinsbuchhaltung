@@ -5,10 +5,15 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Controller;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
+use OCA\Vereinsbuchhaltung\Db\AccountMapper;
 use OCA\Vereinsbuchhaltung\Db\BookingCostCenterMapper;
 use OCA\Vereinsbuchhaltung\Db\Rule;
 use OCA\Vereinsbuchhaltung\Db\RuleMapper;
+use OCA\Vereinsbuchhaltung\Db\RulePart;
+use OCA\Vereinsbuchhaltung\Db\RulePartMapper;
+use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
 use OCA\Vereinsbuchhaltung\Service\CostCenterSettings;
+use OCA\Vereinsbuchhaltung\Service\JournalService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http;
@@ -21,12 +26,18 @@ class RuleController extends Controller {
 
 	use BookContext;
 
+	/** Feste Anteile je Regel: dazu kommt noch der Restteil (Issue #163). */
+	public const MAX_PARTS = JournalService::MAX_LINES - 2;
+
 	public function __construct(
 		IRequest $request,
 		private RuleMapper $mapper,
 		private IL10N $l10n,
 		private BookingCostCenterMapper $costCenters,
 		private CostCenterSettings $costCenterSettings,
+		private RulePartMapper $parts,
+		private AccountMapper $accounts,
+		private TransactionRunner $transaction,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -37,12 +48,15 @@ class RuleController extends Controller {
 	}
 
 	#[NoAdminRequired]
-	public function create(string $matchField, string $matchValue, int $contraAccountId, int $priority = 0, ?int $costCenterId = null): DataResponse {
+	/** @param list<array<string, mixed>>|null $parts feste Anteile (Issue #163), Beträge in Euro */
+	public function create(string $matchField, string $matchValue, int $contraAccountId, int $priority = 0, ?int $costCenterId = null, ?array $parts = null): DataResponse {
 		if (!$this->isValid($matchField, $matchValue, $contraAccountId)) {
 			return new DataResponse(['message' => $this->l10n->t('Ungültige Regel (Feld, Suchtext oder Gegenkonto fehlt).')], Http::STATUS_BAD_REQUEST);
 		}
 		$rule = new Rule();
 		$error = $this->applyCostCenter($rule, $costCenterId);
+		$newParts = $this->parseParts($parts, $error);
+		$error ??= $this->accountConflict($contraAccountId, $newParts ?? $rule->getPartsList());
 		if ($error !== null) {
 			return new DataResponse(['message' => $error], Http::STATUS_BAD_REQUEST);
 		}
@@ -51,11 +65,12 @@ class RuleController extends Controller {
 		$rule->setMatchValue(trim($matchValue));
 		$rule->setContraAccountId($contraAccountId);
 		$rule->setPriority($priority);
-		return new DataResponse($this->mapper->insert($rule), Http::STATUS_CREATED);
+		return new DataResponse($this->save($rule, $newParts, true), Http::STATUS_CREATED);
 	}
 
 	#[NoAdminRequired]
-	public function update(int $id, string $matchField, string $matchValue, int $contraAccountId, int $priority = 0, ?int $costCenterId = null): DataResponse {
+	/** @param list<array<string, mixed>>|null $parts feste Anteile (Issue #163), Beträge in Euro */
+	public function update(int $id, string $matchField, string $matchValue, int $contraAccountId, int $priority = 0, ?int $costCenterId = null, ?array $parts = null): DataResponse {
 		if (!$this->isValid($matchField, $matchValue, $contraAccountId)) {
 			return new DataResponse(['message' => $this->l10n->t('Ungültige Regel (Feld, Suchtext oder Gegenkonto fehlt).')], Http::STATUS_BAD_REQUEST);
 		}
@@ -65,6 +80,8 @@ class RuleController extends Controller {
 			return new DataResponse(['message' => $this->l10n->t('Regel nicht gefunden')], Http::STATUS_NOT_FOUND);
 		}
 		$error = $this->applyCostCenter($rule, $costCenterId);
+		$newParts = $this->parseParts($parts, $error);
+		$error ??= $this->accountConflict($contraAccountId, $newParts ?? $rule->getPartsList());
 		if ($error !== null) {
 			return new DataResponse(['message' => $error], Http::STATUS_BAD_REQUEST);
 		}
@@ -72,7 +89,72 @@ class RuleController extends Controller {
 		$rule->setMatchValue(trim($matchValue));
 		$rule->setContraAccountId($contraAccountId);
 		$rule->setPriority($priority);
-		return new DataResponse($this->mapper->update($rule));
+		return new DataResponse($this->save($rule, $newParts, false));
+	}
+
+	/**
+	 * Speichert Regel und Anteile gemeinsam. $parts === null: die
+	 * gespeicherten Anteile bleiben, wie sie sind.
+	 *
+	 * @param list<RulePart>|null $parts
+	 */
+	private function save(Rule $rule, ?array $parts, bool $isNew): Rule {
+		return $this->transaction->run(function () use ($rule, $parts, $isNew): Rule {
+			$kept = $rule->getPartsList();
+			$saved = $isNew ? $this->mapper->insert($rule) : $this->mapper->update($rule);
+			$saved->setPartsList($parts === null ? $kept : $this->parts->replaceForRule($this->userId(), (int)$saved->getId(), $parts));
+			return $saved;
+		});
+	}
+
+	/**
+	 * Feste Anteile aus dem Request (Issue #163). Fehlt `parts` im Request
+	 * (alter Client), kommt null zurück: die gespeicherten Anteile bleiben.
+	 * Jeder Anteil braucht ein vorhandenes Konto und einen Betrag > 0; eine
+	 * Kostenstelle gilt wie an der Regel selbst.
+	 *
+	 * @param list<array<string, mixed>>|null $raw
+	 * @param string|null $error Fehlermeldung; ist schon eine gesetzt, wird nichts geprüft
+	 * @return list<RulePart>|null
+	 */
+	private function parseParts(?array $raw, ?string &$error): ?array {
+		if ($error !== null || !array_key_exists('parts', $this->request->getParams())) {
+			return null;
+		}
+		// Anteile + Restteil passen in eine Aufteilung (BookingService::validateParts).
+		if (count($raw ?? []) > self::MAX_PARTS) {
+			$error = $this->l10n->t('Eine Regel kann höchstens %d feste Anteile haben.', [self::MAX_PARTS]);
+			return null;
+		}
+		$parts = [];
+		foreach ($raw ?? [] as $item) {
+			$accountId = (int)($item['accountId'] ?? 0);
+			// Je Anteil auf Cent runden, wie bei der Aufteilung von Hand.
+			$cents = (int)round(((float)($item['amount'] ?? 0)) * 100);
+			if ($accountId <= 0 || $cents <= 0) {
+				$error = $this->l10n->t('Ungültiger Anteil (Konto oder Betrag fehlt).');
+				return null;
+			}
+			try {
+				$this->accounts->find($accountId, $this->userId());
+			} catch (DoesNotExistException) {
+				$error = $this->l10n->t('Konto nicht gefunden');
+				return null;
+			}
+			$costCenterId = (int)($item['costCenterId'] ?? 0);
+			if ($costCenterId > 0) {
+				$error = $this->costCenterError($costCenterId);
+				if ($error !== null) {
+					return null;
+				}
+			}
+			$part = new RulePart();
+			$part->setAccountId($accountId);
+			$part->setAmountCents($cents);
+			$part->setCostCenterId($costCenterId > 0 ? $costCenterId : null);
+			$parts[] = $part;
+		}
+		return $parts;
 	}
 
 	/**
@@ -93,6 +175,31 @@ class RuleController extends Controller {
 			$rule->setCostCenterId(null);
 			return null;
 		}
+		$error = $this->costCenterError($costCenterId);
+		if ($error === null) {
+			$rule->setCostCenterId($costCenterId);
+		}
+		return $error;
+	}
+
+	/**
+	 * Jedes Konto höchstens einmal – unter den Anteilen und neben dem
+	 * Restkonto. Die Buchung lehnt eine Aufteilung mit doppeltem Konto ab
+	 * (BookingService::validateParts); eine solche Regel könnte nie buchen.
+	 *
+	 * @param list<RulePart> $parts
+	 */
+	private function accountConflict(int $contraAccountId, array $parts): ?string {
+		$ids = array_map(static fn (RulePart $p): int => (int)$p->getAccountId(), $parts);
+		$ids[] = $contraAccountId;
+		if (count($ids) !== count(array_unique($ids))) {
+			return $this->l10n->t('Jedes Konto darf in einer Regel nur einmal vorkommen.');
+		}
+		return null;
+	}
+
+	/** Darf diese Kostenstelle vorgegeben werden? null = ja, sonst die Meldung. */
+	private function costCenterError(int $costCenterId): ?string {
 		if (!$this->costCenterSettings->isEnabled()) {
 			return $this->l10n->t('Kostenstellen sind in den Einstellungen ausgeschaltet.');
 		}
@@ -101,7 +208,6 @@ class RuleController extends Controller {
 		} catch (DoesNotExistException) {
 			return $this->l10n->t('Kostenstelle nicht gefunden');
 		}
-		$rule->setCostCenterId($costCenterId);
 		return null;
 	}
 
@@ -115,7 +221,10 @@ class RuleController extends Controller {
 	public function destroy(int $id): DataResponse {
 		try {
 			$rule = $this->mapper->find($id, $this->userId());
-			$this->mapper->delete($rule);
+			$this->transaction->run(function () use ($rule): void {
+				$this->parts->deleteByRule($this->userId(), (int)$rule->getId());
+				$this->mapper->delete($rule);
+			});
 			return new DataResponse([]);
 		} catch (DoesNotExistException) {
 			return new DataResponse(['message' => $this->l10n->t('Regel nicht gefunden')], Http::STATUS_NOT_FOUND);

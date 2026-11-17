@@ -325,14 +325,27 @@ only the spelling was changed.
 For ongoing transactions: **Bookings** tab → *Import transactions* → drag
 the bank's file here or choose it.
 
-**Which format?** The app recognizes three and determines the format from
+**Which format?** The app recognizes four and determines the format from
 the content – it doesn't care about the file extension:
 
 | Format | Usually named like this in online banking | Recommendation |
 |---|---|---|
 | **CSV-CAMT** | "CSV-CAMT format", "transactions as CSV" | works, but every bank builds the columns differently |
 | **CAMT.053** (XML) | "CAMT", "ISO 20022", "XML" | **best choice**, if offered |
+| **CAMT.052** (XML) | "CAMT.052", "account report", "daily report" | good if there is no CAMT.053 |
 | **MT940** | "MT940", "SWIFT", file often ends in `.sta` | also good |
+
+**ZIP archives:** If your bank delivers its statements bundled as a ZIP, for
+example one CAMT file per day, simply use the ZIP: the app reads every file
+in it. All files in the archive must have the same format; days without
+transactions and macOS extras (`__MACOSX`, `.DS_Store`) don't matter.
+Limits: at most 400 files and at most 20 MB unpacked. This also applies to
+the watch folder (section 3.3).
+
+CAMT.052 entries are structured exactly like CAMT.053. Intraday reports
+often still contain pending transactions; as with CAMT.053, the app only
+takes them over once a later report shows them as booked. Entries reported
+twice are caught by the duplicate check.
 
 Why CAMT.053 is the best choice: sign, date and payment parties are
 explicitly tagged there. With CSV, the app has to guess the columns from
@@ -436,6 +449,22 @@ posting is created automatically from the assignment:
   bookkeepers only). During import, rules can be applied automatically
   (checkbox "apply auto-assignment rules"); via the watch folder
   (chapter 3.3) this always happens.
+- **Splitting a transaction by rule:** Below the rule form you can add
+  **fixed shares** – each with an account, an amount and, if cost centres
+  are switched on, optionally a cost centre. When the rule applies, these
+  amounts go to their accounts and whatever is left goes to the
+  **remainder account** (the "contra account" field is then labelled that
+  way). Example: of a membership fee, €10 go to the youth department and
+  €5 to the tennis department, the rest stays with the main club. Shares
+  apply to incoming and outgoing payments alike. If a transaction is
+  **smaller** than the shares combined (a reduced fee, say), the rule does
+  not apply: the transaction stays under *To assign*, and the watch folder
+  reports it as unassigned – so a wrong amount is never posted silently. In
+  the assignment list, "✓ apply suggestion" for such a rule opens the
+  *Split transaction* dialog with the parts already calculated; nothing is
+  posted until you confirm there. Deleting an account that is used in a
+  share removes the whole rule. Each account may appear only once in a rule –
+  not even as a share and as the remainder account at the same time.
 - **Search by text or amount:** The search field above the list finds
   payment partner and purpose – and with a number such as `12,50`, `1.250`
   or `18,75 €` also transactions of exactly that amount. A dot separates
@@ -729,10 +758,52 @@ expense claim**. The dialog follows the former paper form:
   elsewhere. Without the tick the request cannot be submitted; the confirmed
   wording is stored in the request's history.
 
+**Travel expenses (member).** For a trip on behalf of the club – to a
+tournament, a training course, an association meeting – the member chooses
+**Claim travel expenses**. The invoice is replaced by the **trip details**:
+
+- **Destination**, **Start** and **End** (date with time; the trip must not
+  start in the future).
+- the **items**, at most 20: **Travel costs** with the means of transport (own
+  car, public transport, bicycle, other), route, optional distance in
+  kilometres and amount, and **Parking fees** with an amount and an optional
+  note. **+ Travel costs** and **+ Parking fees** add further items.
+
+The **actual costs** the member enters per item are reimbursed – the ticket
+price, the fuel costs, the parking fee. The app calculates the total from the
+items; the request is dated on the day the trip started. **Receipts are
+optional**: the member uploads tickets or parking receipts where available; for
+a trip in their own car the details are enough. Purpose, bank details and
+declaration are the same as for an expense claim. Daily allowances, mileage
+rates and overnight stays cannot be claimed in this stage yet.
+
+From then on the travel expense claim is an ordinary request: it gets an
+expense number, goes through the same approvals and can be saved as a draft,
+withdrawn and paid out. In the lists it carries the label **Travel expenses**;
+the detail view shows the trip details with all items. If an administrator
+corrects the amount, the items stay as the member submitted them. If the
+member is anonymised, the app deletes the routes and notes of the items, as
+they may contain the home address; destination, times, means of transport and
+amounts remain as records.
+
 **Several invoices** are submitted as **separate requests**. With **Submit and
 add another** the bank details and the declaration stay filled in, only the
 invoice is empty again. Each request is approved or rejected and paid out on its
 own.
+
+**Drafts.** If something is still missing – the invoice is on its way, the
+IBAN is at home –, **Save as draft** keeps what has been entered, even without
+an amount, receipt or declaration. Drafts are listed under *My area → Expenses*
+above the list of requests; a click opens the draft again in the same dialog.
+There it can be completed, saved again, deleted (click twice) or submitted.
+The declaration is confirmed only when submitting; it is never stored with the
+draft. Only the member can see a draft: administrators find it neither under
+*Bookings → Expenses* nor in any count, it has no expense number, and its
+receipts are kept in the app storage, not in the watch folder. Only
+**Submit** turns it into an ordinary request with a number, the declaration
+and a notification to the administrators. Drafts are not part of the club's
+records: they are not included in backups and disappear when the member is
+deleted or anonymised.
 
 The receipts go to the receipt storage: into `<folder>/<expense year>/` of the watch
 folder, otherwise into the app storage. The member never sees the watch folder.
@@ -751,6 +822,15 @@ history and these buttons (the approvals replace the "factually correct" and
 - **Reject:** with a mandatory reason. A rejection takes effect **immediately and
   is final** and needs no second vote; the member receives the reason by email and
   can submit a new request.
+- **Correct amount:** with a mandatory reason, as long as the request is not
+  fully approved – for instance when the receipt shows less than claimed or an
+  item is not reimbursable. The original and the new amount are recorded in the
+  history together with the reason, the detail view shows "claimed: …,
+  corrected", and the member receives an email. **Approvals already given
+  lapse**, because they applied to the old amount: the request is back to
+  *Submitted* and needs all approvals again – including yours, as the
+  correction itself is not an approval. If the member disagrees, they can
+  withdraw the request.
 - **Your own request** (when you submit expense claims as an administrator) you
   can neither approve nor reject.
 
@@ -1351,6 +1431,14 @@ period selected). Opens a dedicated, print-optimized page with:
 Print or "save as PDF" via the browser (**Ctrl+P** or **⌘+P** on Mac). This
 report is the document for the general assembly.
 
+Next to it, **"PDF"** downloads the same report as a finished PDF file (on a
+phone in the *More exports* menu as **"Treasurer's report (PDF)"**): with
+header and footer, "Page x of y", table headers repeated on every new page and
+signature fields ("Place, date") for the treasurer and the auditors that are
+never separated from the completeness note. The file is PDF/A and suitable for
+archiving. When a fiscal year is closed, the app can file it by itself
+(chapter 8.2).
+
 ### 7.3 Short report for board meetings (print-ready)
 
 **Reports → Evaluation** tab → **"Short report"** button. Unlike the
@@ -1634,6 +1722,19 @@ Gear icon → *Fiscal year* → *Periods* card (administrators only). Confirm
 wrong period doesn't get caught. The period is then marked with a 🔒 in the
 selector in the header.
 
+**Filing the treasurer's report.** In the same settings, card *File the
+treasurer's report*, the switch **"Save the treasurer's report as a PDF when
+closing"** files the treasurer's report (chapter 7.2) as a PDF on closing – in
+the home of the receipt storage user under the **storage folder for reports**
+(default `Vereinsbuchhaltung/Berichte`; a missing folder is created). This
+records the state of the closed year as a file; the change log notes the file
+and its checksum. After closing, a message names the path. If a year is
+reopened and closed again, another file is added ("… (2).pdf"); the earlier
+one is kept. Without receipt storage set up, no file is created. If filing
+fails, the period is closed anyway and the message names the reason. Only
+Nextcloud administrators may change the folder in another user's home (as with
+the invoice folder).
+
 ### 8.3 What's locked – and what isn't
 
 After closing, the following are **no longer possible** for the period in
@@ -1823,7 +1924,9 @@ structured report (afterwards the two standard templates are available
 again) and the year-end closing markers.
 **The change log is kept.** Members, mandates, contribution groups and
 assignments (chapter 13) are not part of the posting records and stay untouched
-(the collection is cleared with it, see below). The same applies to
+(the collection is cleared with it, see below). Likewise, the **expense claim
+drafts** that members have not submitted yet (4.6) stay – they belong to the
+members, not to the bookkeeping. The same applies to
 reset mode during the xbuc import. Both are irreversible – so only after
 checking with others, and never by accident. If you really want to remove
 everything, including members, mandates and settings – for instance to restore
@@ -2908,7 +3011,9 @@ under § 10b EStG** and has no tax effect – the page says so explicitly.
 contribution confirmation* (*Meine Beitragsbestätigung*, 13.11): choose the
 **contribution year**, **"Open"** (*Öffnen*). The board opens it in the
 record (13.2) in the **"Contribution confirmation"** (*Beitragsbestätigung*)
-section – the way for members without a Nextcloud account. There is no bulk run
+section – the way for members without a Nextcloud account. Next to
+**"Open"**, **"PDF"** downloads the same confirmation as a PDF file, for
+instance to forward it by mail. There is no bulk run
 for all members, no sending from the app and no link without signing in. The
 choice offers the years with at least one paid contribution and the current one.
 
@@ -3179,7 +3284,8 @@ In the invoice details: **Send by email**. Recipient address, subject and text a
 - **In Entries → To assign:** For everything else an incoming payment shows a **"✓ Invoice RE-…"** chip – number in the text, or amount and name match, or only the amount with exactly one open invoice. One click books it. If the amount is lower the chip reads "Partial payment on …" and the invoice stays open; if it is higher, split the transaction ("Split…") and assign the rest to another account.
 - **From the invoice:** **Record payment** assigns a transaction or books a **cash payment** (cash account/cash box to revenue accounts).
 - **Partial payments** are spread proportionally over the revenue accounts of the line items; with the last payment the totals per account match exactly.
-- **Reverting:** If a payment's assignment is removed or its booking is deleted, the invoice opens again. In the details you can also do it with the arrow next to the payment.
+- **Receipt:** On all three paths the app attaches the **invoice PDF** as a receipt to the payment booking, for partial payments to each one. The file is only linked, not copied: it stays in the invoice folder, and its integrity proof (SHA-256) stays valid. This also works if the invoice folder is not inside the watch folder. It requires a Nextcloud user for receipt storage (chapter 2.4); without one the PDF is stored inside the app, and the payment booking stays without a receipt.
+- **Reverting:** If a payment's assignment is removed or its booking is deleted, the invoice opens again. In the details you can also do it with the arrow next to the payment. The link to the invoice PDF disappears with the booking; the file itself stays.
 
 ### 15.7 Cancelling and duplicating
 

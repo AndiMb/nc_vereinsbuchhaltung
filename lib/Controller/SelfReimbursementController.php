@@ -10,10 +10,12 @@ use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Db\ReimbursementMapper;
 use OCA\Vereinsbuchhaltung\Http\ReceiptPreviewPolicy;
 use OCA\Vereinsbuchhaltung\Service\ActorContextService;
+use OCA\Vereinsbuchhaltung\Service\ReimbursementDraftService;
 use OCA\Vereinsbuchhaltung\Service\ReimbursementFileService;
 use OCA\Vereinsbuchhaltung\Service\ReimbursementPresenter;
 use OCA\Vereinsbuchhaltung\Service\ReimbursementService;
 use OCA\Vereinsbuchhaltung\Service\ReimbursementSettings;
+use OCA\Vereinsbuchhaltung\Service\TravelDetails;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http;
@@ -49,6 +51,7 @@ class SelfReimbursementController extends Controller {
 		private ReimbursementPresenter $presenter,
 		private ReimbursementMapper $mapper,
 		private ReimbursementFileService $fileService,
+		private ReimbursementDraftService $drafts,
 		private ReimbursementSettings $settings,
 		private MemberMapper $members,
 		private MandateMapper $mandates,
@@ -78,6 +81,7 @@ class SelfReimbursementController extends Controller {
 			...$this->suggestedAccount(),
 			'declarationText' => $this->service->declarationText(),
 			'items' => array_map(fn ($r) => $this->presenter->forMember($r), $own),
+			'drafts' => $this->drafts->listForMember($this->memberId()),
 		]);
 	}
 
@@ -102,10 +106,12 @@ class SelfReimbursementController extends Controller {
 	public function create(): DataResponse {
 		return $this->handle(function (): DataResponse {
 			$uploads = $this->readUploads('files');
+			// Reisekostenabrechnung (#353): Betrag und Datum ergeben sich aus den Reiseangaben.
+			$travel = $this->travelInput(true);
 			$reimbursement = $this->service->submit(
 				member: $this->members->find($this->memberId()),
-				amountCents: $this->amountCents((string)$this->request->getParam('amount', '')),
-				expenseDate: (string)$this->request->getParam('expenseDate', ''),
+				amountCents: $travel !== null ? $travel->totalCents() : $this->amountCents((string)$this->request->getParam('amount', '')),
+				expenseDate: $travel !== null ? (string)$travel->startDate() : (string)$this->request->getParam('expenseDate', ''),
 				purpose: (string)$this->request->getParam('purpose', ''),
 				invoiceNumber: (string)$this->request->getParam('invoiceNumber', ''),
 				supplier: (string)$this->request->getParam('supplier', ''),
@@ -114,6 +120,7 @@ class SelfReimbursementController extends Controller {
 				declarationAccepted: filter_var($this->request->getParam('declaration', false), FILTER_VALIDATE_BOOLEAN),
 				uploads: $uploads,
 				actorUid: $this->uid(),
+				travel: $travel,
 			);
 			return new DataResponse($this->presenter->forMember($reimbursement, true), Http::STATUS_CREATED);
 		});
@@ -162,6 +169,137 @@ class SelfReimbursementController extends Controller {
 			return new DataResponse(['message' => $this->l10n->t('Datei nicht gefunden')], Http::STATUS_NOT_FOUND);
 		}
 		return ReceiptPreviewPolicy::inlineResponse($content, $file->getFileName(), $file->getMimeType());
+	}
+
+	// --- Entwürfe (Issue #356) --------------------------------------------------
+
+	/**
+	 * Speichert einen neuen Entwurf (multipart/form-data wie beim Einreichen,
+	 * alle Felder optional, neue Belege unter `files`).
+	 */
+	#[NoAdminRequired]
+	#[UserRateLimit(limit: 120, period: 3600)]
+	public function createDraft(): DataResponse {
+		return $this->handle(function (): DataResponse {
+			$draft = $this->drafts->save(null, $this->memberId(), $this->draftFields(), [], $this->readUploads('files'));
+			return new DataResponse($draft, Http::STATUS_CREATED);
+		});
+	}
+
+	/**
+	 * Speichert einen Entwurf neu. `keepFileIds[]` nennt die gespeicherten
+	 * Belege, die bleiben; die übrigen werden entfernt.
+	 */
+	#[NoAdminRequired]
+	#[UserRateLimit(limit: 120, period: 3600)]
+	public function updateDraft(int $id): DataResponse {
+		return $this->handle(function () use ($id): DataResponse {
+			$draft = $this->drafts->save($id, $this->memberId(), $this->draftFields(), $this->keepFileIds(), $this->readUploads('files'));
+			return new DataResponse($draft);
+		});
+	}
+
+	#[NoAdminRequired]
+	public function deleteDraft(int $id): DataResponse {
+		return $this->handle(function () use ($id): DataResponse {
+			$this->drafts->delete($id, $this->memberId());
+			return new DataResponse(['status' => 'ok']);
+		});
+	}
+
+	/**
+	 * Reicht einen Entwurf ein: dieselben Angaben und Prüfungen wie
+	 * {@see create()}, dazu die behaltenen Belege des Entwurfs.
+	 */
+	#[NoAdminRequired]
+	#[UserRateLimit(limit: 60, period: 3600)]
+	public function submitDraft(int $id): DataResponse {
+		return $this->handle(function () use ($id): DataResponse {
+			$fields = $this->draftFields();
+			if ($fields['kind'] !== 'travel' && $fields['amountCents'] === null) {
+				throw new \InvalidArgumentException($this->l10n->t('Der Betrag muss größer als 0 sein.'));
+			}
+			$reimbursement = $this->drafts->submit(
+				$id,
+				$this->members->find($this->memberId()),
+				$fields,
+				filter_var($this->request->getParam('declaration', false), FILTER_VALIDATE_BOOLEAN),
+				$this->keepFileIds(),
+				$this->readUploads('files'),
+				$this->uid(),
+			);
+			return new DataResponse($this->presenter->forMember($reimbursement, true), Http::STATUS_CREATED);
+		});
+	}
+
+	/** Beleg eines eigenen Entwurfs inline ausliefern (Vorschau). */
+	#[NoAdminRequired]
+	#[NoCSRFRequired]
+	public function draftFile(int $id, int $fileId): DataDownloadResponse|DataResponse {
+		try {
+			$found = $this->drafts->fileForMember($id, $fileId, $this->memberId());
+		} catch (DoesNotExistException) {
+			return $this->notFound();
+		} catch (\RuntimeException) {
+			return new DataResponse(['message' => $this->l10n->t('Datei nicht gefunden')], Http::STATUS_NOT_FOUND);
+		}
+		return ReceiptPreviewPolicy::inlineResponse($found['content'], $found['file']->getFileName(), $found['file']->getMimeType());
+	}
+
+	/**
+	 * Die Formularfelder eines Entwurfs; leer heißt „noch nicht ausgefüllt“.
+	 *
+	 * @return array{amountCents: ?int, expenseDate: ?string, purpose: ?string, invoiceNumber: ?string, supplier: ?string, iban: ?string, accountHolder: ?string, kind: string, travel: mixed}
+	 */
+	private function draftFields(): array {
+		$travel = $this->request->getParam('kind', '') === 'travel';
+		$amount = trim((string)$this->request->getParam('amount', ''));
+		$text = fn (string $key): ?string => ($value = (string)$this->request->getParam($key, '')) !== '' ? $value : null;
+		return [
+			'amountCents' => $amount !== '' ? $this->amountCents($amount) : null,
+			'expenseDate' => $text('expenseDate'),
+			'purpose' => $text('purpose'),
+			'invoiceNumber' => $text('invoiceNumber'),
+			'supplier' => $text('supplier'),
+			'iban' => $text('iban'),
+			'accountHolder' => $text('accountHolder'),
+			'kind' => $travel ? 'travel' : 'expense',
+			'travel' => $travel ? $this->decodedTravel() : null,
+		];
+	}
+
+	/**
+	 * Die Reiseangaben aus dem Formular (`kind=travel`, `travel` als JSON), oder null für eine
+	 * gewöhnliche Auslage.
+	 *
+	 * @throws \InvalidArgumentException bei unvollständigen oder ungültigen Angaben
+	 */
+	private function travelInput(bool $strict): ?TravelDetails {
+		if ($this->request->getParam('kind', '') !== 'travel') {
+			return null;
+		}
+		return TravelDetails::fromInput($this->decodedTravel(), $this->l10n, $strict);
+	}
+
+	private function decodedTravel(): mixed {
+		$raw = $this->request->getParam('travel', '');
+		if (is_array($raw)) {
+			return $raw;
+		}
+		try {
+			return json_decode((string)$raw, true, 16, JSON_THROW_ON_ERROR);
+		} catch (\JsonException) {
+			throw new \InvalidArgumentException($this->l10n->t('Die Reiseangaben fehlen oder sind unlesbar.'));
+		}
+	}
+
+	/** @return list<int> */
+	private function keepFileIds(): array {
+		$raw = $this->request->getParam('keepFileIds', []);
+		if (!is_array($raw)) {
+			return [];
+		}
+		return array_values(array_unique(array_map('intval', array_filter($raw, 'is_numeric'))));
 	}
 
 	/**

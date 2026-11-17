@@ -88,6 +88,19 @@ class ReimbursementMailService {
 		]);
 	}
 
+	/** Ein Verwalter hat den Betrag korrigiert (#353). */
+	public function corrected(Reimbursement $reimbursement, int $fromCents, string $reason): void {
+		$this->toMember($reimbursement, 'vereinsbuchhaltung.reimbursementCorrected', fn (IL10N $l, Reimbursement $r, Member $m, string $amount): array => [
+			$l->t('Ihre Auslage wurde korrigiert'),
+			[
+				$l->t('Guten Tag %s,', [$m->displayName()]),
+				$l->t('Bei der Prüfung Ihres Antrags „%1$s“ wurde der Betrag von %2$s auf %3$s korrigiert.', [$r->getPurpose(), $this->euro($fromCents, $l), $amount]),
+				$l->t('Begründung: %s', [$reason]),
+				$l->t('Ihre ursprünglichen Angaben bleiben im Verlauf des Antrags sichtbar. Sind Sie mit der Korrektur nicht einverstanden, wenden Sie sich bitte an den Vorstand oder ziehen den Antrag unter „Mein Bereich → Auslagen“ zurück.'),
+			],
+		]);
+	}
+
 	public function paid(Reimbursement $reimbursement): void {
 		$this->toMember($reimbursement, 'vereinsbuchhaltung.reimbursementPaid', static fn (IL10N $l, Reimbursement $r, Member $m, string $amount): array => [
 			$l->t('Ihre Auslage wurde erstattet'),

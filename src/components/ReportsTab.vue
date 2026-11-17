@@ -50,6 +50,12 @@
 					rel="noopener"
 					class="vbh-export-btn"
 					:title="t('Druckfertiger Kassenbericht für die Mitgliederversammlung (öffnet in neuem Tab, dort drucken oder als PDF speichern)')"><NcIconSvgWrapper :path="mdiPrinter" :size="16" inline /> {{ t('Kassenbericht') }}</a>
+				<a
+					v-if="reportView === 'summary' && selectedPeriodId && !isMobile"
+					:href="kassenberichtPdfUrl"
+					download=""
+					class="vbh-export-btn"
+					:title="t('Kassenbericht als PDF-Datei herunterladen (mit Seitenzahlen und Unterschriftsfeldern)')"><NcIconSvgWrapper :path="mdiFilePdfBox" :size="16" inline /> {{ t('PDF') }}</a>
 				<span v-if="reportView === 'summary' && !isMobile" class="vbh-kurzbericht-picker">
 					<input
 						v-model="kurzberichtSince"
@@ -88,6 +94,16 @@
 							<NcIconSvgWrapper :path="mdiPrinter" :size="16" />
 						</template>
 						{{ t('Kassenbericht') }}
+					</NcActionLink>
+					<NcActionLink
+						v-if="isMobile && selectedPeriodId"
+						:href="kassenberichtPdfUrl"
+						download=""
+						:title="t('Kassenbericht als PDF-Datei herunterladen (mit Seitenzahlen und Unterschriftsfeldern)')">
+						<template #icon>
+							<NcIconSvgWrapper :path="mdiFilePdfBox" :size="16" />
+						</template>
+						{{ t('Kassenbericht (PDF)') }}
 					</NcActionLink>
 					<NcActionInput
 						v-if="isMobile"
@@ -1022,7 +1038,7 @@
 </template>
 
 <script>
-import { mdiCalendarRange, mdiDelete, mdiDownload, mdiPaperclip, mdiPrinter } from '@mdi/js'
+import { mdiCalendarRange, mdiDelete, mdiDownload, mdiFilePdfBox, mdiPaperclip, mdiPrinter } from '@mdi/js'
 import { showError, showSuccess } from '@nextcloud/dialogs'
 import { toRef, toRefs } from 'vue'
 import NcActionInput from '@nextcloud/vue/components/NcActionInput'
@@ -1143,6 +1159,7 @@ export default {
 
 	data() {
 		return {
+			mdiFilePdfBox,
 			mdiPrinter,
 			mdiPaperclip,
 			mdiDownload,
@@ -1175,6 +1192,7 @@ export default {
 
 	computed: {
 		kassenberichtUrl() { return api.kassenberichtUrl(this.selectedPeriodId) },
+		kassenberichtPdfUrl() { return api.kassenberichtPdfUrl(this.selectedPeriodId) },
 		pruefleitfadenUrl() { return api.pruefleitfadenUrl() },
 		attachmentsZipUrl() { return api.exportAttachmentsUrl(this.selectedPeriodId) },
 		exportBalancesUrl() { return api.exportBalancesUrl(this.selectedPeriodId) },

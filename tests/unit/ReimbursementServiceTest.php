@@ -33,6 +33,7 @@ use OCA\Vereinsbuchhaltung\Service\ReimbursementMailService;
 use OCA\Vereinsbuchhaltung\Service\ReimbursementPaymentReverter;
 use OCA\Vereinsbuchhaltung\Service\ReimbursementService;
 use OCA\Vereinsbuchhaltung\Service\ReimbursementSettings;
+use OCA\Vereinsbuchhaltung\Service\TravelDetails;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\IDBConnection;
@@ -157,7 +158,12 @@ class ReimbursementServiceTest extends TestCase {
 		$eventMapper->method('approverUids')->willReturnCallback(function (int $id): array {
 			$uids = [];
 			foreach ($this->events as $e) {
-				if ($e->getReimbursementId() === $id && $e->getAction() === ReimbursementEvent::ACTION_APPROVED) {
+				if ($e->getReimbursementId() !== $id) {
+					continue;
+				}
+				if ($e->getAction() === ReimbursementEvent::ACTION_AMOUNT_CORRECTED) {
+					$uids = [];
+				} elseif ($e->getAction() === ReimbursementEvent::ACTION_APPROVED) {
 					$uids[] = $e->getActorUid();
 				}
 			}
@@ -343,6 +349,59 @@ class ReimbursementServiceTest extends TestCase {
 		$this->assertChainIsValid($service, $r->getId());
 	}
 
+	// --- Reisekosten (#353) ------------------------------------------------------
+
+	private function travel(): TravelDetails {
+		$l10n = $this->createMock(IL10N::class);
+		$l10n->method('t')->willReturnCallback(static fn (string $text, array $parameters = []): string => vsprintf($text, $parameters));
+		return TravelDetails::fromInput([
+			'destination' => 'Landesturnier Kassel',
+			'start' => '2026-10-20T07:30',
+			'end' => '2026-10-20T19:15',
+			'items' => [
+				['type' => 'travel', 'transport' => 'car', 'route' => 'Vereinsheim – Kassel', 'distanceKm' => 184, 'amountCents' => 5520],
+				['type' => 'parking', 'note' => 'Parkhaus', 'amountCents' => 800],
+			],
+		], $l10n, true);
+	}
+
+	public function testReisekostenGehenOhneBelegUndOhneRechnungsangaben(): void {
+		$service = $this->service();
+		$travel = $this->travel();
+
+		$r = $this->submitWith($service, [
+			'amountCents' => 6320,
+			'expenseDate' => '2026-10-20',
+			'purpose' => 'Fahrt zum Landesturnier',
+			'uploads' => [],
+			'travel' => $travel,
+		]);
+
+		$this->assertTrue($r->isTravel());
+		$this->assertSame(6320, $r->getAmountCents());
+		$this->assertNull($r->getInvoiceNumber(), 'Eine Reise hat keine Rechnungsnummer');
+		$this->assertNull($r->getSupplier());
+		$this->assertSame($travel->toArray(), TravelDetails::decode($r->getTravelDetails()));
+		$this->assertSame('travel', $r->jsonSerialize()['kind']);
+		$submitted = $service->history($r->getId())[0]->decodedData();
+		$this->assertSame('travel', $submitted['kind']);
+		$this->assertArrayNotHasKey('travel', $submitted, 'Strecken gehören nicht in die unveränderliche Historie');
+		$this->assertChainIsValid($service, $r->getId());
+	}
+
+	public function testReisekostenBetragMussDerSummeDerPositionenEntsprechen(): void {
+		$service = $this->service();
+		$this->expectException(\InvalidArgumentException::class);
+		$this->submitWith($service, ['amountCents' => 9999, 'expenseDate' => '2026-10-20', 'uploads' => [], 'travel' => $this->travel()]);
+	}
+
+	public function testGewoehnlicheAuslageBleibtArtExpense(): void {
+		$r = $this->submit($this->service());
+		$this->assertFalse($r->isTravel());
+		$this->assertSame('expense', $r->getKind());
+		$this->assertNull($r->getTravelDetails());
+	}
+
 	public function testMehrereRechnungenSindMehrereUnabhaengigeAntraege(): void {
 		$service = $this->service();
 		$first = $this->submitWith($service, ['purpose' => 'Noten', 'amountCents' => 1000]);
@@ -483,6 +542,73 @@ class ReimbursementServiceTest extends TestCase {
 		$this->assertSame(['count' => 1, 'required' => 2, 'final' => false], $approvals[0]->decodedData());
 		$this->assertSame(['count' => 2, 'required' => 2, 'final' => true], $approvals[1]->decodedData());
 		$this->assertSame('vera', $approvals[0]->getActorUid());
+	}
+
+	// --- Korrigieren (#353) ----------------------------------------------------
+
+	public function testEinVerwalterKorrigiertDenBetragMitBegruendung(): void {
+		$service = $this->service();
+		$r = $this->submit($service);
+		$this->mail->expects($this->once())->method('corrected')->with($this->anything(), 1250, 'Beleg weist 9,80 € aus');
+
+		$r = $service->correctAmount($r->getId(), 'vera', 980, '  Beleg weist 9,80 € aus ');
+
+		$this->assertSame(980, $r->getAmountCents());
+		$this->assertSame(Reimbursement::STATUS_SUBMITTED, $r->getStatus());
+		$last = $service->history($r->getId())[count($service->history($r->getId())) - 1];
+		$this->assertSame(ReimbursementEvent::ACTION_AMOUNT_CORRECTED, $last->getAction());
+		$this->assertSame(['from' => 1250, 'to' => 980], $last->decodedData());
+		$this->assertSame('Beleg weist 9,80 € aus', $last->getComment());
+		$this->assertChainIsValid($service, $r->getId());
+	}
+
+	public function testEineKorrekturLaesstFruehereFreigabenVerfallen(): void {
+		$service = $this->service();
+		$r = $this->submit($service);
+		$service->approve($r->getId(), 'vera');
+
+		$r = $service->correctAmount($r->getId(), 'viktor', 1000, 'Pfand nicht erstattungsfähig');
+
+		$this->assertSame(Reimbursement::STATUS_SUBMITTED, $r->getStatus());
+		$this->assertSame(['approved' => 0, 'required' => 2], $service->progress($r));
+		// vera darf (und muss) den korrigierten Antrag erneut freigeben.
+		$service->approve($r->getId(), 'vera');
+		$r = $service->approve($r->getId(), 'viktor');
+		$this->assertSame(Reimbursement::STATUS_APPROVED, $r->getStatus());
+		$this->assertSame(1000, $this->openItems[$r->getOpenItemId()]->getAmountCents());
+	}
+
+	/** @return array<string, array{0: int, 1: string}> */
+	public static function ungueltigeKorrekturen(): array {
+		return [
+			'ohne Begründung' => [980, '   '],
+			'unveränderter Betrag' => [1250, 'gleich'],
+			'Betrag null' => [0, 'nichts'],
+		];
+	}
+
+	#[\PHPUnit\Framework\Attributes\DataProvider('ungueltigeKorrekturen')]
+	public function testUngueltigeKorrekturWirdAbgelehnt(int $amount, string $reason): void {
+		$service = $this->service();
+		$r = $this->submit($service);
+		$this->expectException(\InvalidArgumentException::class);
+		$service->correctAmount($r->getId(), 'vera', $amount, $reason);
+	}
+
+	public function testDenEigenenAntragKorrigiertNiemand(): void {
+		$service = $this->service();
+		$r = $this->submit($service, 'vera');
+		$this->expectException(ForbiddenException::class);
+		$service->correctAmount($r->getId(), 'vera', 900, 'selbst');
+	}
+
+	public function testNachDerFreigabeIstKeineKorrekturMehrMoeglich(): void {
+		$service = $this->service();
+		$r = $this->submit($service);
+		$service->approve($r->getId(), 'vera');
+		$service->approve($r->getId(), 'viktor');
+		$this->expectException(\InvalidArgumentException::class);
+		$service->correctAmount($r->getId(), 'vera', 900, 'zu spät');
 	}
 
 	// --- Ablehnen -------------------------------------------------------------

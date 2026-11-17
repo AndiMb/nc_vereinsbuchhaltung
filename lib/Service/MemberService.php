@@ -29,6 +29,7 @@ class MemberService {
 		private IUserManager $userManager,
 		private IL10N $l10n,
 		private ClubClock $clock,
+		private ?ReimbursementDraftCleaner $drafts = null,
 	) {
 	}
 
@@ -159,6 +160,8 @@ class MemberService {
 		if ($reasons !== []) {
 			throw new \InvalidArgumentException($this->l10n->t('Das Mitglied lässt sich nicht löschen, es hängt noch daran: %s.', [implode(', ', $reasons)]));
 		}
+		// Entwürfe von Auslagen (#356) sind private Vorarbeit und blockieren nichts – sie gehen mit.
+		$this->drafts?->deleteAllForMember($id);
 		$this->mapper->delete($member);
 	}
 

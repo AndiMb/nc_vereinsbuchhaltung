@@ -6,7 +6,9 @@ import {
 	matchesReimbursementSearch,
 	missingReimbursementFields,
 	reimbursementBookingPrefill,
+	reimbursementDraftForm,
 	reimbursementEventText,
+	reimbursementFormHasContent,
 	reimbursementProgressText,
 	reimbursementStatusClass,
 	reimbursementStatusLabel,
@@ -49,6 +51,15 @@ describe('reimbursements', () => {
 		expect(reimbursementEventText({ action: 'rejected', actorName: 'Vera' }, true)).toBe('Vera hat abgelehnt')
 		expect(reimbursementEventText({ action: 'rejected' }, false)).toBe('Antrag abgelehnt')
 		expect(reimbursementEventText({ action: 'unbekannt' }, false)).toBe('unbekannt')
+	})
+
+	it('beschreibt eine Korrektur des Betrags mit beiden Beträgen (#353)', () => {
+		const event = { action: 'amount_corrected', actorName: 'Vera', data: { from: 1250, to: 980 } }
+		const staff = reimbursementEventText(event, true)
+		expect(staff).toMatch(/^Vera hat den Betrag von 12,50\s€ auf 9,80\s€ korrigiert$/)
+		const member = reimbursementEventText(event, false)
+		expect(member).toMatch(/^Betrag durch einen Verwalter korrigiert: 12,50\s€ → 9,80\s€$/)
+		expect(member).not.toContain('Vera')
 	})
 
 	it('zählt Anträge je Status', () => {
@@ -108,7 +119,10 @@ describe('reimbursements', () => {
 		})
 
 		it('beginnt mit leeren Feldern am angegebenen Tag', () => {
-			expect(emptyReimbursementInvoice('2026-11-01')).toEqual({ amount: '', expenseDate: '2026-11-01', invoiceNumber: '', supplier: '', purpose: '', files: [] })
+			const invoice = emptyReimbursementInvoice('2026-11-01')
+			expect(invoice).toMatchObject({ kind: 'expense', amount: '', expenseDate: '2026-11-01', invoiceNumber: '', supplier: '', purpose: '', files: [], draftFiles: [] })
+			expect(invoice.travel.items).toHaveLength(1)
+			expect(emptyReimbursementInvoice('2026-11-01', 'travel').kind).toBe('travel')
 		})
 
 		it('belegt die Kontoverbindung vor und lässt die Erklärung unbestätigt', () => {
@@ -128,6 +142,30 @@ describe('reimbursements', () => {
 
 		it('verlangt Rechnungsnummer und Lieferant nicht', () => {
 			expect(missingReimbursementFields({ ...filled(), invoiceNumber: '', supplier: '' })).toEqual([])
+		})
+
+		it('zählt die im Entwurf gespeicherten Belege mit (#356)', () => {
+			expect(missingReimbursementFields({ ...filled(), files: [], draftFiles: [{ id: 3 }] })).toEqual([])
+		})
+	})
+
+	describe('Entwürfe (#356)', () => {
+		const draft = { id: 4, amountCents: 1250, expenseDate: '2026-11-10', purpose: 'Bälle', invoiceNumber: '', supplier: 'Sportladen', iban: '', accountHolder: '', files: [{ id: 3, fileName: 'a.pdf' }] }
+
+		it('füllt das Formular aus dem Entwurf, die Kontoverbindung fällt auf den Vorschlag zurück', () => {
+			const form = reimbursementDraftForm(draft, { accountHolder: 'Anna', iban: 'DE89' })
+			expect(form).toMatchObject({ amount: 12.5, expenseDate: '2026-11-10', purpose: 'Bälle', supplier: 'Sportladen', accountHolder: 'Anna', iban: 'DE89', declaration: false, files: [] })
+			expect(form.draftFiles).toEqual([{ id: 3, fileName: 'a.pdf' }])
+		})
+
+		it('lässt einen Entwurf ohne Betrag und Datum leer', () => {
+			expect(reimbursementDraftForm({ ...draft, amountCents: null, expenseDate: null })).toMatchObject({ amount: '', expenseDate: '' })
+		})
+
+		it('erkennt ein leeres Formular', () => {
+			expect(reimbursementFormHasContent(emptyReimbursementForm('2026-11-01', { accountHolder: 'Anna', iban: 'DE89' }))).toBe(false)
+			expect(reimbursementFormHasContent({ ...emptyReimbursementForm('2026-11-01'), purpose: 'Bälle' })).toBe(true)
+			expect(reimbursementFormHasContent({ ...emptyReimbursementForm('2026-11-01'), draftFiles: [{ id: 3 }] })).toBe(true)
 		})
 	})
 })

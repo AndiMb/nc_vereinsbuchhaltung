@@ -36,6 +36,7 @@ use OCA\Vereinsbuchhaltung\Db\ReimbursementFileMapper;
 use OCA\Vereinsbuchhaltung\Db\ReimbursementMapper;
 use OCA\Vereinsbuchhaltung\Db\ReturnedDebitMapper;
 use OCA\Vereinsbuchhaltung\Db\RuleMapper;
+use OCA\Vereinsbuchhaltung\Db\RulePartMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
 use OCA\Vereinsbuchhaltung\Migration\Version000157Date20261004130000;
 use OCA\Vereinsbuchhaltung\Service\AttachmentStorageService;
@@ -87,6 +88,7 @@ class ResetServiceTest extends TestCase {
 		'vbh_bank_tx_sepa_details',
 		'vbh_incoming_pay_rejects',
 		'vbh_rules',
+		'vbh_rule_parts',
 		'vbh_accounts',
 		'vbh_costcenters',
 		'vbh_booking_cc',
@@ -140,6 +142,10 @@ class ResetServiceTest extends TestCase {
 		'vbh_receipt_hashes',
 		// Belegindex der Belegvorschläge: abgeleiteter Cache, wird neu gelesen.
 		'vbh_receipt_index',
+		// Entwürfe von Auslagen (#356): private Vorarbeit der Mitglieder, die
+		// bleiben; sie verweisen auf nichts, was der Reset löscht.
+		'vbh_reimb_drafts',
+		'vbh_reimb_draft_files',
 	];
 
 	/** @var list<string> Reihenfolge aller Wirkungen des Resets, siehe record() */
@@ -297,7 +303,7 @@ class ResetServiceTest extends TestCase {
 			$this->journalLines(),
 			new JournalMapper($this->db),
 			new BankTransactionMapper($this->db, $this->cipher),
-			new RuleMapper($this->db, $this->cipher),
+			new RuleMapper($this->db, $this->cipher, new RulePartMapper($this->db)),
 			new AccountMapper($this->db),
 			new CostCenterMapper($this->db),
 			new BudgetMapper($this->db),

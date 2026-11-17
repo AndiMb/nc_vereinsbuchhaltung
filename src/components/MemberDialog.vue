@@ -337,6 +337,12 @@
 							</template>
 							{{ t('Öffnen') }}
 						</NcButton>
+						<NcButton variant="secondary" :href="certificatePdfUrl" :download="true">
+							<template #icon>
+								<NcIconSvgWrapper :path="mdiFilePdfBox" :size="20" />
+							</template>
+							{{ t('PDF') }}
+						</NcButton>
 					</div>
 				</section>
 
@@ -460,7 +466,7 @@
 </template>
 
 <script>
-import { mdiOpenInNew } from '@mdi/js'
+import { mdiFilePdfBox, mdiOpenInNew } from '@mdi/js'
 import { showError, showSuccess } from '@nextcloud/dialogs'
 import { toRefs } from 'vue'
 import NcButton from '@nextcloud/vue/components/NcButton'
@@ -581,6 +587,7 @@ export default {
 
 	data() {
 		return {
+			mdiFilePdfBox,
 			mdiOpenInNew,
 			form: emptyForm(this.member),
 			suggestions: [],
@@ -645,6 +652,11 @@ export default {
 		/** Druckfertige Live-Ansicht der Beitragsbestätigung (Issue #77) - öffnet in neuem Tab. */
 		certificateUrl() {
 			return api.memberCertificateUrl(this.member.id, this.certificateYear)
+		},
+
+		/** Dieselbe Bestätigung als PDF-Datei (Issue #364). */
+		certificatePdfUrl() {
+			return api.memberCertificatePdfUrl(this.member.id, this.certificateYear)
 		},
 
 		/** Druckfertige "Datenübersicht" (Art. 15 DSGVO, Issue #78) - öffnet in neuem Tab. */

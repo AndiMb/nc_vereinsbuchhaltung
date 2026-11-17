@@ -11,8 +11,10 @@ use OCA\Vereinsbuchhaltung\Db\Mandate;
 use OCA\Vereinsbuchhaltung\Db\Member;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Exception\ForbiddenException;
+use OCA\Vereinsbuchhaltung\Exception\UserFacingException;
 use OCA\Vereinsbuchhaltung\Middleware\NoRevisionBump;
 use OCA\Vereinsbuchhaltung\Service\ActorContextService;
+use OCA\Vereinsbuchhaltung\Service\Export\BeitragsbescheinigungPdfRenderer;
 use OCA\Vereinsbuchhaltung\Service\Export\BeitragsbescheinigungRenderer;
 use OCA\Vereinsbuchhaltung\Service\Export\DatenuebersichtRenderer;
 use OCA\Vereinsbuchhaltung\Service\Export\PrintableReportPage;
@@ -31,6 +33,7 @@ use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\Attribute\UserRateLimit;
 use OCP\AppFramework\Http\DataDisplayResponse;
+use OCP\AppFramework\Http\DataDownloadResponse;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\IL10N;
 use OCP\IRequest;
@@ -80,6 +83,7 @@ class SelfController extends Controller {
 		private SelfReturnedDebitService $selfReturnedDebits,
 		private SelfServiceService $selfService,
 		private IL10N $l10n,
+		private ?BeitragsbescheinigungPdfRenderer $certificatePdf = null,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -384,6 +388,26 @@ class SelfController extends Controller {
 		} catch (DoesNotExistException) {
 			return new DataResponse(['message' => $this->l10n->t('Mitglied nicht gefunden')], Http::STATUS_NOT_FOUND);
 		}
+	}
+
+	/**
+	 * Die eigene Beitragsbestätigung als PDF (Issue #364). `memberId` wie bei
+	 * {@see certificate()} nur aus dem ActorContextService.
+	 */
+	#[NoAdminRequired]
+	#[NoCSRFRequired]
+	public function certificatePdf(?int $year = null): DataDownloadResponse|DataResponse {
+		$memberId = $this->requireMemberId();
+		try {
+			$pdf = $this->certificatePdf?->render($memberId, $year) ?? throw new UserFacingException($this->l10n->t('Das PDF konnte nicht erzeugt werden.'));
+		} catch (DoesNotExistException) {
+			return new DataResponse(['message' => $this->l10n->t('Mitglied nicht gefunden')], Http::STATUS_NOT_FOUND);
+		} catch (UserFacingException $e) {
+			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_INTERNAL_SERVER_ERROR);
+		} catch (\RuntimeException) {
+			return new DataResponse(['message' => $this->l10n->t('Das PDF konnte nicht erzeugt werden.')], Http::STATUS_INTERNAL_SERVER_ERROR);
+		}
+		return new DataDownloadResponse($pdf['content'], $pdf['fileName'], 'application/pdf');
 	}
 
 	/**

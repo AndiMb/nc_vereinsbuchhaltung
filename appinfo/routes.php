@@ -157,6 +157,7 @@ return [
 		// aufgelösten Kontoverknüpfung, siehe SelfController::certificate().
 		['name' => 'self#certificateYears', 'url' => '/api/self/certificate/years', 'verb' => 'GET'],
 		['name' => 'self#certificate', 'url' => '/api/self/certificate', 'verb' => 'GET'],
+		['name' => 'self#certificatePdf', 'url' => '/api/self/certificate/pdf', 'verb' => 'GET'],
 
 		// Issue #78: eigene "Datenübersicht" (Art. 15 DSGVO) unter "Meine
 		// Daten" - member_id ausschließlich aus der Kontoverknüpfung, siehe
@@ -269,6 +270,12 @@ return [
 		['name' => 'selfReimbursement#addReceipt', 'url' => '/api/self/reimbursements/{id}/receipts', 'verb' => 'POST'],
 		['name' => 'selfReimbursement#removeReceipt', 'url' => '/api/self/reimbursements/{id}/receipts/{fileId}', 'verb' => 'DELETE'],
 		['name' => 'selfReimbursement#receipt', 'url' => '/api/self/reimbursements/{id}/receipts/{fileId}/view', 'verb' => 'GET'],
+		// Entwürfe (Issue #356): nur das eigene Mitglied, Verwalter sehen sie nie.
+		['name' => 'selfReimbursement#createDraft', 'url' => '/api/self/reimbursement-drafts', 'verb' => 'POST'],
+		['name' => 'selfReimbursement#updateDraft', 'url' => '/api/self/reimbursement-drafts/{id}', 'verb' => 'POST'],
+		['name' => 'selfReimbursement#deleteDraft', 'url' => '/api/self/reimbursement-drafts/{id}', 'verb' => 'DELETE'],
+		['name' => 'selfReimbursement#submitDraft', 'url' => '/api/self/reimbursement-drafts/{id}/submit', 'verb' => 'POST'],
+		['name' => 'selfReimbursement#draftFile', 'url' => '/api/self/reimbursement-drafts/{id}/files/{fileId}/view', 'verb' => 'GET'],
 		['name' => 'reimbursement#index', 'url' => '/api/reimbursements', 'verb' => 'GET'],
 		['name' => 'reimbursement#summary', 'url' => '/api/reimbursements/summary', 'verb' => 'GET'],
 		['name' => 'reimbursement#suggestions', 'url' => '/api/reimbursements/suggestions', 'verb' => 'GET'],
@@ -277,6 +284,7 @@ return [
 		['name' => 'reimbursement#show', 'url' => '/api/reimbursements/{id}', 'verb' => 'GET'],
 		['name' => 'reimbursement#approve', 'url' => '/api/reimbursements/{id}/approve', 'verb' => 'POST'],
 		['name' => 'reimbursement#reject', 'url' => '/api/reimbursements/{id}/reject', 'verb' => 'POST'],
+		['name' => 'reimbursement#correct', 'url' => '/api/reimbursements/{id}/correct', 'verb' => 'POST'],
 		['name' => 'reimbursement#transfer', 'url' => '/api/reimbursements/{id}/transfer', 'verb' => 'GET'],
 		['name' => 'reimbursement#transferred', 'url' => '/api/reimbursements/{id}/transferred', 'verb' => 'POST'],
 		['name' => 'reimbursement#notTransferred', 'url' => '/api/reimbursements/{id}/transferred', 'verb' => 'DELETE'],
@@ -412,6 +420,7 @@ return [
 		['name' => 'export#gliederungsberichtVisuell', 'url' => '/api/export/gliederungsbericht-visuell', 'verb' => 'GET'],
 		['name' => 'export#multiyear', 'url' => '/api/export/multiyear', 'verb' => 'GET'],
 		['name' => 'export#kassenbericht', 'url' => '/api/export/kassenbericht', 'verb' => 'GET'],
+		['name' => 'export#kassenberichtPdf', 'url' => '/api/export/kassenbericht/pdf', 'verb' => 'GET'],
 		['name' => 'export#kurzbericht', 'url' => '/api/export/kurzbericht', 'verb' => 'GET'],
 		['name' => 'export#attachments', 'url' => '/api/export/attachments', 'verb' => 'GET'],
 
@@ -419,6 +428,7 @@ return [
 		// durch den Kassenwart über die Admin-Akte (Spec §3.7).
 		['name' => 'export#beitragsbescheinigungYears', 'url' => '/api/export/beitragsbescheinigung/{memberId}/years', 'verb' => 'GET'],
 		['name' => 'export#beitragsbescheinigung', 'url' => '/api/export/beitragsbescheinigung/{memberId}', 'verb' => 'GET'],
+		['name' => 'export#beitragsbescheinigungPdf', 'url' => '/api/export/beitragsbescheinigung/{memberId}/pdf', 'verb' => 'GET'],
 
 		// Issue #78: "Datenübersicht" eines Mitglieds (Art. 15 DSGVO),
 		// Stellvertretung durch den Kassenwart über die Admin-Akte (Spec §3.8).

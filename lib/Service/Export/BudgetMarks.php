@@ -42,6 +42,22 @@ final class BudgetMarks {
 	}
 
 	public static function legend(IL10N $l10n): string {
+		$parts = array_map(static fn (string $part): string => PrintableReportPage::escape($part), self::legendParts($l10n));
+		return '<p class="meta">' . implode(' · ', $parts) . '<br>'
+			. PrintableReportPage::escape($l10n->t('Plan und Ist schließen alle Unterkonten ein.')) . '</p>';
+	}
+
+	/**
+	 * Die Legende als Klartext, für das PDF (Issue #364).
+	 *
+	 * @return list<string> je Zeichen „Zeichen Bedeutung“, zuletzt der Hinweis auf die Unterkonten
+	 */
+	public static function legendText(IL10N $l10n): array {
+		return [implode(' · ', self::legendParts($l10n)), $l10n->t('Plan und Ist schließen alle Unterkonten ein.')];
+	}
+
+	/** @return list<string> */
+	private static function legendParts(IL10N $l10n): array {
 		$texts = [
 			BudgetTree::FLAG_OVERRUN => $l10n->t('Ausgaben über Plan'),
 			BudgetTree::FLAG_UNPLANNED => $l10n->t('Ist ohne Plan'),
@@ -50,21 +66,26 @@ final class BudgetMarks {
 		];
 		$parts = [];
 		foreach (self::MARKS as $flag => $mark) {
-			$parts[] = $mark . ' ' . PrintableReportPage::escape($texts[$flag]);
+			$parts[] = $mark . ' ' . $texts[$flag];
 		}
-		return '<p class="meta">' . implode(' · ', $parts) . '<br>'
-			. PrintableReportPage::escape($l10n->t('Plan und Ist schließen alle Unterkonten ein.')) . '</p>';
+		return $parts;
 	}
 
 	/** Warnung über der Tabelle, weil Konflikte die Plansummen doppelt zählen. */
 	public static function conflictNote(IL10N $l10n, int $count): string {
+		$text = self::conflictText($l10n, $count);
+		return $text === '' ? '' : '<p><strong>' . PrintableReportPage::escape($text) . '</strong></p>';
+	}
+
+	/** Dieselbe Warnung als Klartext, '' ohne Konflikt. */
+	public static function conflictText(IL10N $l10n, int $count): string {
 		if ($count <= 0) {
 			return '';
 		}
-		return '<p><strong>⚠ ' . PrintableReportPage::escape($l10n->n(
+		return '⚠ ' . $l10n->n(
 			'%n Plankonflikt: In einem Zweig ist auf mehreren Ebenen geplant, die Summen zählen diese Pläne doppelt.',
 			'%n Plankonflikte: In einem Zweig ist auf mehreren Ebenen geplant, die Summen zählen diese Pläne doppelt.',
 			$count,
-		)) . '</strong></p>';
+		);
 	}
 }

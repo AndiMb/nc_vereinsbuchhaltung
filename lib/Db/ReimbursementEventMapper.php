@@ -48,18 +48,7 @@ class ReimbursementEventMapper extends QBMapper {
 	 * @return list<string> Nutzerkennungen
 	 */
 	public function approverUids(int $reimbursementId): array {
-		$qb = $this->db->getQueryBuilder();
-		$qb->select('actor_uid')
-			->from($this->getTableName())
-			->where($qb->expr()->eq('reimbursement_id', $qb->createNamedParameter($reimbursementId, IQueryBuilder::PARAM_INT)))
-			->andWhere($qb->expr()->eq('action', $qb->createNamedParameter(ReimbursementEvent::ACTION_APPROVED)));
-		$result = $qb->executeQuery();
-		$uids = [];
-		while (($uid = $result->fetchOne()) !== false) {
-			$uids[] = (string)$uid;
-		}
-		$result->closeCursor();
-		return array_values(array_unique($uids));
+		return $this->approverUidsFor([$reimbursementId])[$reimbursementId] ?? [];
 	}
 
 	/**
@@ -72,13 +61,21 @@ class ReimbursementEventMapper extends QBMapper {
 		$found = [];
 		foreach (array_chunk(array_values(array_unique($reimbursementIds)), 1000) as $chunk) {
 			$qb = $this->db->getQueryBuilder();
-			$qb->select('reimbursement_id', 'actor_uid')
+			$qb->select('reimbursement_id', 'actor_uid', 'action')
 				->from($this->getTableName())
 				->where($qb->expr()->in('reimbursement_id', $qb->createNamedParameter($chunk, IQueryBuilder::PARAM_INT_ARRAY)))
-				->andWhere($qb->expr()->eq('action', $qb->createNamedParameter(ReimbursementEvent::ACTION_APPROVED)));
+				->andWhere($qb->expr()->in('action', $qb->createNamedParameter([ReimbursementEvent::ACTION_APPROVED, ReimbursementEvent::ACTION_AMOUNT_CORRECTED], IQueryBuilder::PARAM_STR_ARRAY)))
+				->orderBy('reimbursement_id', 'ASC')
+				->addOrderBy('seq', 'ASC');
 			$result = $qb->executeQuery();
 			while (($row = $result->fetch()) !== false) {
-				$found[(int)$row['reimbursement_id']][(string)$row['actor_uid']] = true;
+				$id = (int)$row['reimbursement_id'];
+				if ($row['action'] === ReimbursementEvent::ACTION_AMOUNT_CORRECTED) {
+					// Ein korrigierter Betrag ist ein anderer Antrag: frühere Freigaben zählen nicht mehr.
+					$found[$id] = [];
+					continue;
+				}
+				$found[$id][(string)$row['actor_uid']] = true;
 			}
 			$result->closeCursor();
 		}

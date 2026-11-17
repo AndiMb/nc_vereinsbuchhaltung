@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Controller;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
+use OCA\Vereinsbuchhaltung\Exception\UserFacingException;
 use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
 use OCA\Vereinsbuchhaltung\Service\Export\AccountStatementRenderer;
 use OCA\Vereinsbuchhaltung\Service\Export\AttachmentArchive;
+use OCA\Vereinsbuchhaltung\Service\Export\BeitragsbescheinigungPdfRenderer;
 use OCA\Vereinsbuchhaltung\Service\Export\BeitragsbescheinigungRenderer;
 use OCA\Vereinsbuchhaltung\Service\Export\CsvExportService;
 use OCA\Vereinsbuchhaltung\Service\Export\CsvFile;
@@ -15,6 +17,7 @@ use OCA\Vereinsbuchhaltung\Service\Export\DatenuebersichtRenderer;
 use OCA\Vereinsbuchhaltung\Service\Export\FinanzplanRenderer;
 use OCA\Vereinsbuchhaltung\Service\Export\GliederungsberichtRenderer;
 use OCA\Vereinsbuchhaltung\Service\Export\GliederungsberichtVisuellRenderer;
+use OCA\Vereinsbuchhaltung\Service\Export\KassenberichtPdfRenderer;
 use OCA\Vereinsbuchhaltung\Service\Export\KassenberichtRenderer;
 use OCA\Vereinsbuchhaltung\Service\Export\KurzberichtRenderer;
 use OCA\Vereinsbuchhaltung\Service\Export\PrintableReportPage;
@@ -34,6 +37,7 @@ use OCP\AppFramework\Http\DataResponse;
 use OCP\AppFramework\Http\StreamResponse;
 use OCP\IL10N;
 use OCP\IRequest;
+use Psr\Log\LoggerInterface;
 
 /**
  * Die Download- und Druckansichten: CSV-Exporte, Beleg-Archiv und die
@@ -73,8 +77,32 @@ class ExportController extends Controller {
 		private VisualReportService $visualReport,
 		private PeriodService $periods,
 		private IL10N $l10n,
+		private ?KassenberichtPdfRenderer $kassenberichtPdf = null,
+		private ?BeitragsbescheinigungPdfRenderer $beitragsbescheinigungPdf = null,
+		private ?LoggerInterface $logger = null,
 	) {
 		parent::__construct(Application::APP_ID, $request);
+	}
+
+	/**
+	 * Antwort für die PDF-Fassungen der formellen Berichte (Issue #364). Scheitert
+	 * das Erzeugen (etwa ohne PDF-Bibliothek), gibt es eine Meldung statt einer
+	 * kaputten Datei.
+	 *
+	 * @param callable(): array{content: string, fileName: string} $build
+	 */
+	private function pdfResponse(callable $build): DataDownloadResponse|DataResponse {
+		try {
+			$pdf = $build();
+		} catch (DoesNotExistException) {
+			return new DataResponse(['message' => $this->l10n->t('Mitglied nicht gefunden')], Http::STATUS_NOT_FOUND);
+		} catch (UserFacingException $e) {
+			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_INTERNAL_SERVER_ERROR);
+		} catch (\RuntimeException $e) {
+			$this->logger?->error($e->getMessage(), ['exception' => $e, 'app' => Application::APP_ID]);
+			return new DataResponse(['message' => $this->l10n->t('Das PDF konnte nicht erzeugt werden.')], Http::STATUS_INTERNAL_SERVER_ERROR);
+		}
+		return new DataDownloadResponse($pdf['content'], $pdf['fileName'], 'application/pdf');
 	}
 
 	private function download(CsvFile $file): DataDownloadResponse {
@@ -249,6 +277,21 @@ class ExportController extends Controller {
 	}
 
 	/**
+	 * Der Kassenbericht als PDF (Issue #364): dasselbe wie die HTML-Seite, als
+	 * festes Dokument zum Unterschreiben und Ablegen.
+	 */
+	#[NoAdminRequired]
+	#[NoCSRFRequired]
+	public function kassenberichtPdf(?int $period = null): DataDownloadResponse|DataResponse {
+		$userId = $this->userId();
+		$selected = $this->periods->selectedOrCurrent($userId, $period);
+		return $this->pdfResponse(function () use ($userId, $selected): array {
+			$renderer = $this->kassenberichtPdf ?? throw new \RuntimeException('KassenberichtPdfRenderer fehlt');
+			return ['content' => $renderer->render($userId, $selected), 'fileName' => $renderer->fileName($selected)];
+		});
+	}
+
+	/**
 	 * Kurzbericht für die nächste Vorstandssitzung: Kontostände und Bewegungen
 	 * seit einem wählbaren Stichtag, optional im Corporate Design.
 	 */
@@ -296,6 +339,15 @@ class ExportController extends Controller {
 		} catch (DoesNotExistException) {
 			return new DataResponse(['message' => $this->l10n->t('Mitglied nicht gefunden')], Http::STATUS_NOT_FOUND);
 		}
+	}
+
+	/** Die Beitragsbestätigung eines Mitglieds als PDF (Issue #364), Rechte wie {@see beitragsbescheinigung()}. */
+	#[NoAdminRequired]
+	#[NoCSRFRequired]
+	#[RequiresRole(PermissionService::ROLE_WRITE)]
+	public function beitragsbescheinigungPdf(int $memberId, ?int $year = null): DataDownloadResponse|DataResponse {
+		return $this->pdfResponse(fn (): array => $this->beitragsbescheinigungPdf?->render($memberId, $year)
+			?? throw new \RuntimeException('BeitragsbescheinigungPdfRenderer fehlt'));
 	}
 
 	/**

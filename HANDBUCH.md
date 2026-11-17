@@ -331,14 +331,27 @@ Zeiträume – geändert wurde nur die Schreibweise.
 Für die laufenden Umsätze: Tab **Buchungen** → *Umsätze importieren* →
 Datei der Bank hierher ziehen oder wählen.
 
-**Welches Format?** Die App erkennt drei und bestimmt das Format am Inhalt –
+**Welches Format?** Die App erkennt vier und bestimmt das Format am Inhalt –
 die Dateiendung ist ihr egal:
 
 | Format | Im Onlinebanking meist so benannt | Empfehlung |
 |---|---|---|
 | **CSV-CAMT** | „CSV-CAMT-Format", „Umsätze als CSV" | funktioniert, aber jede Bank baut die Spalten anders |
 | **CAMT.053** (XML) | „CAMT", „ISO 20022", „XML" | **beste Wahl**, wenn angeboten |
+| **CAMT.052** (XML) | „CAMT.052", „Umsatzreport", „Tagesreport" | gut, wenn es kein CAMT.053 gibt |
 | **MT940** | „MT940", „SWIFT", Datei endet oft auf `.sta` | ebenfalls gut |
+
+**ZIP-Archive:** Liefert die Bank ihre Auszüge gebündelt als ZIP, etwa eine
+CAMT-Datei je Tag, nehmt einfach das ZIP: Die App liest jede Datei darin.
+Alle Dateien im Archiv müssen dasselbe Format haben; Tage ohne Umsatz und
+macOS-Beigaben (`__MACOSX`, `.DS_Store`) stören nicht. Grenzen: höchstens
+400 Dateien und entpackt höchstens 20 MB. Das gilt auch für den Wachordner
+(Abschnitt 3.3).
+
+CAMT.052 ist in den Buchungen gleich aufgebaut wie CAMT.053. Untertägige
+Reports enthalten oft noch vorgemerkte Umsätze; die übernimmt die App wie
+bei CAMT.053 erst, wenn ein späterer Report sie als gebucht meldet. Doppelt
+gemeldete Buchungen erkennt die Dublettenprüfung.
 
 Warum CAMT.053 die beste Wahl ist: dort sind Vorzeichen, Datum und
 Zahlungsbeteiligte eindeutig ausgezeichnet. Bei der CSV muss die App die
@@ -443,6 +456,22 @@ der Zuordnung entsteht automatisch der Buchungssatz:
   nur Verwalter/Buchhalter). Beim Import
   können Regeln automatisch angewendet werden (Häkchen „Auto-Zuordnungsregeln
   anwenden"); über den Wachordner (Kapitel 3.3) geschieht das immer.
+- **Umsatz per Regel aufteilen:** Unter dem Regelformular lassen sich
+  **feste Anteile** hinzufügen – je Anteil ein Konto, ein Betrag und, bei
+  eingeschalteten Kostenstellen, wahlweise eine Kostenstelle. Greift die
+  Regel, gehen diese Beträge auf ihre Konten, und was übrig bleibt, landet
+  auf dem **Restkonto** (das Feld „Gegenkonto" heißt dann so). Beispiel:
+  Vom Mitgliedsbeitrag gehen 10 € an die Jugendabteilung und 5 € an die
+  Tennisabteilung, der Rest bleibt beim Hauptverein. Die Anteile gelten für
+  Ein- und Ausgänge gleich. Ist ein Umsatz **kleiner** als die Anteile
+  zusammen (etwa ein ermäßigter Beitrag), greift die Regel nicht: Der Umsatz
+  bleibt unter *Zuzuordnen* liegen, und der Wachordner meldet ihn als nicht
+  zugeordnet – so wird nie still ein falscher Betrag gebucht. In der
+  Zuordnungsliste öffnet „✓ Vorschlag übernehmen" bei einer solchen Regel
+  den Dialog *Umsatz aufteilen* mit den fertig berechneten Teilen; gebucht
+  wird erst, wenn Sie dort bestätigen. Wird ein Konto gelöscht, das in einem
+  Anteil vorkommt, entfällt die ganze Regel. Jedes Konto darf in einer Regel
+  nur einmal vorkommen – auch nicht zugleich als Anteil und als Restkonto.
 - **Suche nach Text oder Betrag:** Das Suchfeld über der Liste findet
   Zahlungspartner und Verwendungszweck – und mit einer Zahl wie `12,50`,
   `1.250` oder `18,75 €` auch Umsätze über genau diesen Betrag. Ein Punkt
@@ -746,10 +775,56 @@ Mitglied **Auslage einreichen**. Der Dialog folgt dem früheren Papierformular:
   anderweitig erstattet wurden. Ohne Häkchen lässt sich nicht einreichen; der
   bestätigte Wortlaut steht in der Historie des Antrags.
 
+**Reisekosten (Mitglied).** Für eine Fahrt im Auftrag des Vereins – zum
+Turnier, zur Fortbildung, zur Sitzung des Verbands – wählt das Mitglied
+**Reisekosten abrechnen**. An die Stelle der Rechnung treten die
+**Reiseangaben**:
+
+- **Reiseziel**, **Beginn** und **Ende** (Datum mit Uhrzeit; die Reise darf
+  nicht in der Zukunft beginnen).
+- die **Positionen**, höchstens 20: **Fahrtkosten** mit Verkehrsmittel (eigenes
+  Auto, Bus und Bahn, Fahrrad, Sonstiges), Strecke, wahlweise Entfernung in
+  Kilometern und Betrag, sowie **Parkgebühren** mit Betrag und optionalem
+  Hinweis. Weitere Positionen fügen **+ Fahrtkosten** und **+ Parkgebühren**
+  hinzu.
+
+Erstattet werden die **tatsächlichen Kosten**, die das Mitglied je Position
+einträgt – der Fahrkartenpreis, die Spritkosten, die Parkgebühr. Den
+Gesamtbetrag rechnet die App aus den Positionen; als Datum des Antrags gilt
+der Tag des Reisebeginns. **Belege sind freiwillig**: Fahrkarten oder
+Parkscheine lädt das Mitglied hoch, soweit vorhanden, für die Fahrt mit dem
+eigenen Auto genügen die Angaben. Zweck, Kontoverbindung und Erklärung sind
+dieselben wie bei einer Auslage. Tagespauschalen (Verpflegungsmehraufwand),
+Kilometersätze und Übernachtungen lassen sich in dieser Stufe noch nicht
+abrechnen.
+
+Danach ist die Reisekostenabrechnung ein gewöhnlicher Antrag: Sie bekommt eine
+Auslagennummer, läuft durch dieselben Freigaben, lässt sich als Entwurf
+speichern, zurückziehen und auszahlen. In den Listen trägt sie die Markierung
+**Reisekosten**, die Einzelansicht zeigt die Reiseangaben mit allen Positionen.
+Korrigiert ein Verwalter den Betrag, bleiben die Positionen so stehen, wie das
+Mitglied sie eingereicht hat. Wird das Mitglied anonymisiert, löscht die App
+Strecken und Hinweise der Positionen, denn dort kann die Wohnadresse stehen;
+Ziel, Zeiten, Verkehrsmittel und Beträge bleiben als Beleg.
+
 **Mehrere Rechnungen** reicht das Mitglied als **getrennte Anträge** ein. Mit
 **Einreichen und weitere erfassen** bleiben Kontoverbindung und Erklärung
 ausgefüllt, nur die Rechnung ist wieder leer. Jeder Antrag wird einzeln
 freigegeben oder abgelehnt und einzeln ausgezahlt.
+
+**Entwürfe.** Fehlt noch etwas – die Rechnung ist unterwegs, die IBAN liegt
+zu Hause –, speichert **Als Entwurf speichern** den Stand, auch ohne Betrag,
+Beleg oder Erklärung. Entwürfe stehen unter *Mein Bereich → Auslagen* über
+der Liste der Anträge; ein Klick öffnet den Entwurf wieder im selben Dialog.
+Dort lässt er sich ergänzen, erneut speichern, löschen (zweimal klicken) oder
+einreichen. Die Erklärung wird erst beim Einreichen bestätigt, sie wird nie
+mit dem Entwurf gespeichert. Einen Entwurf sieht nur das Mitglied selbst:
+Verwalter finden ihn weder in *Buchungen → Auslagen* noch in einer Zahl, er
+hat keine Auslagennummer, und seine Belege liegen in der App-Ablage, nicht im
+Wächter-Ordner. Erst mit **Einreichen** entsteht daraus ein gewöhnlicher
+Antrag mit Nummer, Erklärung und Benachrichtigung der Verwalter. Entwürfe
+gehören nicht zum Bestand des Vereins: Sie sind nicht in der Sicherung
+enthalten und verschwinden, wenn das Mitglied gelöscht oder anonymisiert wird.
 
 Die Belege landen in der Belegablage: im Wächter-Ordner
 unter `<Ordner>/<Ausgabejahr>/`, sonst in der App-Ablage. Das Mitglied sieht den
@@ -769,6 +844,15 @@ Wer wann freigegeben hat, steht im Verlauf):
 - **Ablehnen:** mit Pflichtbegründung. Eine Ablehnung gilt **sofort und
   endgültig** und braucht keine zweite Stimme; das Mitglied erfährt den Grund
   per Mail. Es reicht bei Bedarf einen neuen Antrag ein.
+- **Betrag korrigieren:** mit Pflichtbegründung, solange der Antrag noch nicht
+  vollständig freigegeben ist – etwa wenn der Beleg weniger ausweist als
+  beantragt oder ein Posten nicht erstattungsfähig ist. Der ursprüngliche und
+  der neue Betrag stehen samt Begründung im Verlauf, die Einzelansicht zeigt
+  „beantragt: …, korrigiert“, und das Mitglied bekommt eine Mail. **Bereits
+  erteilte Freigaben verfallen**, denn sie galten dem alten Betrag: Der Antrag
+  steht wieder auf *Eingereicht* und braucht alle Freigaben neu – auch Ihre,
+  die Korrektur selbst ist keine Freigabe. Ist das Mitglied nicht
+  einverstanden, kann es den Antrag zurückziehen.
 - **Den eigenen Antrag** (wenn Sie als Verwalter selbst Auslagen einreichen)
   können Sie nicht freigeben oder ablehnen.
 
@@ -1379,6 +1463,14 @@ Drucken oder „Als PDF speichern" über den Browser (**Strg+P** bzw. **⌘+P**
 auf dem Mac). Dieser Bericht ist das Dokument für die
 Mitgliederversammlung.
 
+Daneben lädt **„PDF"** denselben Bericht als fertige PDF-Datei herunter
+(auf dem Handy im Menü *Weitere Exporte* als **„Kassenbericht (PDF)"**):
+mit Kopf- und Fußzeile, „Seite x von y", Tabellenköpfen, die sich auf jeder
+neuen Seite wiederholen, und Unterschriftsfeldern („Ort, Datum") für
+Schatzmeister/in und Kassenprüfer/in, die nie vom Vollständigkeitshinweis
+getrennt werden. Die Datei ist PDF/A und eignet sich zum Ablegen. Beim
+Abschluss eines Geschäftsjahres kann die App sie selbst ablegen (Kapitel 8.2).
+
 ### 7.3 Kurzbericht für Vorstandssitzungen (druckfertig)
 
 Tab **Berichte → Auswertung** → Button **„Kurzbericht"**. Anders als der
@@ -1667,6 +1759,20 @@ Zahnrad → *Geschäftsjahr* → Karte *Zeiträume* (nur Verwalter). Bei Bedarf
 nicht der falsche Zeitraum erwischt wird. Der Zeitraum ist danach mit einem
 🔒 in der Auswahl in der Kopfzeile markiert.
 
+**Kassenbericht ablegen.** In derselben Einstellung, Karte *Kassenbericht
+ablegen*, legt der Schalter **„Beim Abschließen den Kassenbericht als PDF
+ablegen"** beim Abschluss den Kassenbericht (Kapitel 7.2) als PDF ab – im
+Home des Nutzers der Belegablage unter dem **Ablageordner für Berichte**
+(Standard `Vereinsbuchhaltung/Berichte`; ein fehlender Ordner wird angelegt).
+Damit ist der Stand des abgeschlossenen Jahres als Datei festgehalten; das
+Änderungsprotokoll vermerkt Datei und Prüfsumme. Nach dem Abschluss nennt eine
+Meldung den Pfad. Wird ein Jahr wiedereröffnet und erneut abgeschlossen, kommt
+eine weitere Datei hinzu („… (2).pdf"); die frühere bleibt liegen. Ohne
+eingerichtete Belegablage entsteht keine Datei. Scheitert das Ablegen, ist
+der Zeitraum trotzdem abgeschlossen; die Meldung nennt den Grund. Den
+Ordner in einem fremden Home umstellen dürfen nur Nextcloud-Administratoren
+(wie beim Rechnungsordner).
+
 ### 8.3 Was gesperrt ist – und was nicht
 
 Nach dem Abschluss sind im betreffenden Zeitraum **nicht mehr möglich**:
@@ -1866,6 +1972,8 @@ Gliederungsberichts (danach stehen wieder die beiden Standardvorlagen bereit)
 und die Zeiträume samt ihrer Festschreibung. **Das Änderungsprotokoll bleibt erhalten.** Mitglieder,
 Mandate, Beitragsgruppen und Zuweisungen (Kapitel 13) gehören nicht zum
 Buchungsbestand und bleiben unberührt (der Einzug wird mitgeräumt, siehe unten).
+Ebenso bleiben die **Entwürfe von Auslagen**, die Mitglieder noch nicht
+eingereicht haben (4.6) – sie gehören den Mitgliedern, nicht der Buchhaltung.
 Gleiches gilt für den Reset-Modus beim xbuc-Import. Beides ist
 unwiderruflich – also nur nach Rücksprache und nie aus Versehen. Wer wirklich
 alles entfernen will, auch Mitglieder, Mandate und Einstellungen – etwa um
@@ -2941,7 +3049,9 @@ Seite sagt das ausdrücklich.
 **Wo.** Das Mitglied öffnet sie selbst unter *Mein Beitrag → Meine
 Beitragsbestätigung* (13.11): **Beitragsjahr** wählen, **„Öffnen"**. Der
 Vorstand öffnet sie in der Akte (13.2) im Abschnitt **„Beitragsbestätigung"**
-– der Weg für Mitglieder ohne Nextcloud-Konto. Einen Sammellauf für alle
+– der Weg für Mitglieder ohne Nextcloud-Konto. Neben **„Öffnen"** lädt
+**„PDF"** dieselbe Bestätigung als PDF-Datei herunter, etwa zum Weiterleiten
+per Mail. Einen Sammellauf für alle
 Mitglieder, einen Versand aus der App oder einen Link ohne Anmeldung gibt es
 nicht. Zur Wahl stehen die Jahre mit mindestens einem bezahlten Beitrag und das
 laufende.
@@ -3220,7 +3330,8 @@ Im Detail der Rechnung: **Per E-Mail senden**. Empfänger-Adresse, Betreff und T
 - **In Buchungen → Zuzuordnen:** Für alles andere erscheint beim Zahlungseingang ein Chip **„✓ Rechnung RE-…"** – Nummer im Text, oder Betrag und Name passen, oder nur der Betrag bei genau einer offenen Rechnung. Ein Klick bucht. Ist der Betrag niedriger, heißt der Chip „Teilzahlung auf …" und die Rechnung bleibt offen; ist er höher, teilen Sie den Umsatz auf („Aufteilen…") und ordnen den Rest einem anderen Konto zu.
 - **Von der Rechnung aus:** **Zahlung erfassen** ordnet einen Umsatz zu oder bucht eine **Barzahlung** (Geldkonto/Kasse an Erlöskonten).
 - **Teilzahlungen** verteilen sich im Verhältnis auf die Erlöskonten der Positionen; mit der letzten Zahlung stimmen die Summen je Konto genau.
-- **Zurücknehmen:** Löst eine Zuordnung oder löscht die Buchung die Zahlung, öffnet sich die Rechnung wieder. Im Detail geht das auch mit dem Pfeil neben der Zahlung.
+- **Beleg:** Auf allen drei Wegen hängt die App das **PDF der Rechnung** als Beleg an die Zahlungsbuchung, bei Teilzahlungen an jede. Die Datei wird nur verknüpft, nicht kopiert: Sie bleibt im Rechnungsordner, und ihr Echtheitsnachweis (SHA-256) bleibt gültig. Das gilt auch, wenn der Rechnungsordner nicht im Wächter-Ordner liegt. Voraussetzung ist ein Nextcloud-Nutzer für die Belegablage (Kapitel 2.4); ohne ihn liegt das PDF app-intern, und die Zahlungsbuchung bleibt ohne Beleg.
+- **Zurücknehmen:** Löst eine Zuordnung oder löscht die Buchung die Zahlung, öffnet sich die Rechnung wieder. Im Detail geht das auch mit dem Pfeil neben der Zahlung. Die Verknüpfung zum Rechnungs-PDF verschwindet mit der Buchung, die Datei selbst bleibt.
 
 ### 15.7 Stornieren und Duplizieren
 

@@ -52,13 +52,56 @@ final class PrintableReportPage {
 	 * @param bool $darkOnScreen false für Seiten mit festen Druckfarben (z. B.
 	 *                           Balken, SVG), die auf dunklem Grund unlesbar
 	 *                           würden: sie bleiben auch am Bildschirm hell
+	 * @param string|null $pageNumbers übersetztes Muster für die Seitenzahl im
+	 *                                 Fuß jeder gedruckten Seite, mit den Platzhaltern
+	 *                                 {page} und {pages} (z. B. „Seite {page} von
+	 *                                 {pages}“); null = keine Seitenzahlen
 	 */
-	public static function document(string $title, string $body, string $accent = self::DEFAULT_ACCENT, bool $darkOnScreen = true): string {
+	public static function document(string $title, string $body, string $accent = self::DEFAULT_ACCENT, bool $darkOnScreen = true, ?string $pageNumbers = null): string {
+		$css = self::stylesheet($accent, $darkOnScreen);
+		if ($pageNumbers !== null) {
+			$css .= self::pageNumberRule($pageNumbers);
+		}
 		return '<!DOCTYPE html><html lang="de"><head><meta charset="utf-8">'
 			. '<title>' . self::escape($title) . '</title>'
-			. '<style>' . self::stylesheet($accent, $darkOnScreen) . '</style></head><body>'
+			. '<style>' . $css . '</style></head><body>'
 			. $body
 			. '</body></html>';
+	}
+
+	/**
+	 * Seitenzahl „Seite n von m“ im unteren Seitenrand (Issue #362).
+	 *
+	 * Die Berichte sind HTML-Seiten, die der Browser druckt; die Seitenzahl kommt
+	 * deshalb aus einem @page-Randfeld mit den CSS-Zählern page und pages.
+	 * Chromium-Browser (Chrome, Edge, ab Version 131) setzen das um; ein Browser
+	 * ohne Randfelder lässt die Regel einfach weg. Mittig statt rechts, damit
+	 * sie nicht mit der Seitenzahl kollidiert, die der Browser selbst in seine
+	 * Kopf-/Fußzeilen schreibt, wenn diese eingeschaltet sind.
+	 *
+	 * Das Muster kommt aus der Übersetzung und wird als CSS-Zeichenkette
+	 * maskiert, damit kein Zeichen daraus das Stylesheet verlassen kann.
+	 */
+	private static function pageNumberRule(string $pattern): string {
+		$parts = preg_split('/(\{pages\}|\{page\})/', $pattern, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY);
+		$content = [];
+		foreach ($parts === false ? [$pattern] : $parts as $part) {
+			$content[] = match ($part) {
+				'{page}' => 'counter(page)',
+				'{pages}' => 'counter(pages)',
+				default => self::cssString($part),
+			};
+		}
+		return '@page { @bottom-center { content: ' . implode(' ', $content) . '; font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif; font-size: 8pt; color: #555; } }';
+	}
+
+	/** Text als CSS-Zeichenkette in doppelten Anführungszeichen; alles außer Buchstaben, Ziffern und Leerzeichen als Hex-Escape. */
+	private static function cssString(string $text): string {
+		$out = '';
+		foreach (mb_str_split($text) as $ch) {
+			$out .= preg_match('/^[\p{L}\p{N} ]$/u', $ch) === 1 ? $ch : '\\' . dechex(mb_ord($ch)) . ' ';
+		}
+		return '"' . $out . '"';
 	}
 
 	/**
@@ -144,6 +187,7 @@ final class PrintableReportPage {
 			.num { text-align: right; white-space: nowrap; }
 			tr.sum td { font-weight: 600; border-top: 1px solid #999; }
 			tr.result td { font-weight: 700; border-top: 2px solid ' . $accent . '; border-bottom: 2px solid ' . $accent . '; }
+			.closing { break-inside: avoid; page-break-inside: avoid; }
 			.signatures { display: flex; gap: 24px; margin-top: 60px; page-break-inside: avoid; }
 			.signatures > div { flex: 1; font-size: 9pt; color: #555; }
 			.signatures .line { border-bottom: 1px solid #222; height: 40px; margin-bottom: 4px; }

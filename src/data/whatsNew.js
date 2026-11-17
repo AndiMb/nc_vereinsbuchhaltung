@@ -25,6 +25,20 @@ import { compareVersions, isNewerVersion } from '../lib/version.js'
 export function buildWhatsNewEntries() {
 	return [
 		{
+			version: '0.54.0',
+			roles: ['verwalter', 'buchhalter'],
+			items: [
+				t('Neu: Sicherung und Umzug – der gesamte Bestand passwortverschlüsselt in einer Datei, einspielbar auch auf einer anderen Nextcloud (Zahnrad → Sicherung und Umzug).'),
+				t('Neu: Kassenbericht und Beitragsbestätigung als PDF-Datei. Auf Wunsch legt die App den Kassenbericht beim Jahresabschluss als PDF ab.'),
+				t('Neu: Das Rechnungs-PDF hängt automatisch als Beleg an der Zahlungsbuchung.'),
+				t('Neu: Kontoabstimmung – einen Kontoauszug der Bank Zeile für Zeile mit dem Geldkonto vergleichen.'),
+				t('Neu: Importregeln teilen Umsätze mit festen Anteilen auf mehrere Konten auf.'),
+				t('Neu: Kontoauszüge auch als CAMT.052 und als ZIP-Archiv importieren.'),
+				t('Neu: Beitragsgruppen mit Jahresbeitrag statt Monatsbetrag.'),
+				t('Neu: Auslagen als Entwurf speichern, den Betrag bei der Prüfung korrigieren und Reisekosten abrechnen.'),
+			],
+		},
+		{
 			version: '0.53.0',
 			roles: ['verwalter', 'buchhalter'],
 			items: [

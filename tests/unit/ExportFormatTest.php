@@ -157,6 +157,24 @@ class ExportFormatTest extends TestCase {
 		$this->assertStringContainsString('#123456', $html);
 	}
 
+	/** Issue #362: „Seite n von m“ im Seitenfuß, aus den CSS-Zählern page und pages. */
+	public function testSeitenzahlenAusMuster(): void {
+		$html = PrintableReportPage::document('Titel', '', pageNumbers: 'Seite {page} von {pages}');
+		$this->assertStringContainsString('@bottom-center { content: "Seite " counter(page) " von " counter(pages);', $html);
+	}
+
+	public function testOhneMusterKeineSeitenzahlen(): void {
+		$html = PrintableReportPage::document('Titel', '');
+		$this->assertStringNotContainsString('counter(page', $html);
+	}
+
+	/** Das Muster stammt aus der Übersetzung – es darf weder die Zeichenkette noch das Stylesheet verlassen. */
+	public function testSeitenzahlMusterWirdMaskiert(): void {
+		$html = PrintableReportPage::document('Titel', '', pageNumbers: 'S." } </style><script>x</script> {page}');
+		$this->assertStringNotContainsString('</style><script>', $html);
+		$this->assertStringContainsString('content: "S\\2e \\22  \\7d  \\3c \\2f style\\3e \\3c script\\3e x\\3c \\2f script\\3e  " counter(page);', $html);
+	}
+
 	public function testKopfzeileOhneLogoUndOhneVereinsname(): void {
 		$h = PrintableReportPage::header(null, '', 'Bericht', 'Zeile');
 		$this->assertStringNotContainsString('<img', $h);

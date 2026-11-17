@@ -19,7 +19,19 @@ verwenden, z. B. `**Neu:**`.
 
 ## [Unreleased]
 
+## [0.54.0] – 2026-11-17
+
 **Neu:**
+- **Kassenbericht und Beitragsbestätigung als PDF** (#364): Neben der
+  Druckansicht gibt es beide jetzt als fertige PDF-Datei (PDF/A) mit
+  Seitenzahlen, wiederholten Tabellenköpfen und – beim Kassenbericht –
+  Unterschriftsfeldern, die nicht vom Rest getrennt werden. Die
+  Beitragsbestätigung lässt sich so in der Mitgliederakte und unter *Mein
+  Beitrag* herunterladen. Auf Wunsch legt die App den Kassenbericht beim
+  Abschluss eines Geschäftsjahres als PDF im Berichtsordner der Belegablage
+  ab (*Zahnrad → Geschäftsjahr → Kassenbericht ablegen*); scheitert das, bleibt
+  das Jahr trotzdem abgeschlossen. Die gemeinsame PDF-Grundlage dient später
+  auch den Zuwendungsbestätigungen.
 - **Sicherung und Umzug** (#111): Verwalter sichern unter *Zahnrad →
   Sicherung und Umzug* den gesamten Bestand – Buchhaltung, Mitglieder,
   Mandate, Beiträge, Rechnungen, Auslagen, Rollen, Änderungsprotokoll und
@@ -56,6 +68,58 @@ verwenden, z. B. `**Neu:**`.
   anlegen. Die Liste beginnt mit dem Geschäftsjahr, in dem die App zum
   ersten Mal geöffnet wurde; wer ein früheres Jahr nachbuchen will, musste
   bisher wissen, dass es mit der ersten Buchung darin von allein entsteht.
+- **Importregeln teilen Umsätze auf** (#163): Eine Regel kann neben dem
+  Gegenkonto beliebig viele **feste Anteile** tragen (Konto, Betrag,
+  wahlweise Kostenstelle). Beim Import gehen diese Beträge auf ihre Konten,
+  der Rest auf das Gegenkonto, das dann *Restkonto* heißt – etwa 10 € eines
+  Mitgliedsbeitrags an die Jugendabteilung, 5 € an die Tennisabteilung, der
+  Rest an den Hauptverein. Ist ein Umsatz kleiner als die Anteile zusammen,
+  bleibt er unzugeordnet und wird gemeldet, statt falsch gebucht zu werden.
+  Der Vorschlag in *Zuzuordnen* öffnet bei solchen Regeln den Dialog
+  *Umsatz aufteilen* fertig vorbelegt. Handbuch Kapitel 4.1.
+- **CAMT.052 und ZIP-Archive beim Kontoauszug-Import** (#359): Neben CAMT.053
+  liest der Import jetzt auch CAMT.052-Reports, wie sie manche Institute statt
+  CAMT.053 anbieten. Kontoauszüge als ZIP-Archiv, etwa eine Datei je Tag,
+  lassen sich direkt importieren oder in den Wachordner legen; die App liest
+  jede Datei darin. Handbuch Kapitel 3.2.
+- **Auslagen als Entwurf speichern** (#356): Unter *Mein Bereich → Auslagen*
+  speichert **Als Entwurf speichern** einen unvollständigen Antrag, auch ohne
+  Betrag, Beleg oder Erklärung, damit er sich später ergänzen und einreichen
+  lässt. Entwürfe sieht nur das Mitglied; die Verwalter erfahren erst beim
+  Einreichen davon. Handbuch Kapitel 4.6.
+- **Auslagen bei der Prüfung korrigieren** (#353): Verwalter können den
+  Betrag eines Antrags vor der vollständigen Freigabe mit Begründung
+  korrigieren. Ursprünglicher und neuer Betrag bleiben im Verlauf
+  nachvollziehbar, das Mitglied wird per Mail benachrichtigt, und bereits
+  erteilte Freigaben verfallen. Handbuch Kapitel 4.6.
+- **Reisekosten abrechnen** (#353, Stufe 1): Unter *Mein Bereich → Auslagen*
+  rechnen Mitglieder mit **Reisekosten abrechnen** eine Reise ab: Ziel,
+  Beginn und Ende sowie die Positionen Fahrtkosten (Verkehrsmittel, Strecke,
+  wahlweise Kilometer, Betrag) und Parkgebühren. Erstattet werden die
+  tatsächlichen Kosten; die Summe rechnet die App aus den Positionen. Belege
+  sind freiwillig. Die Abrechnung läuft wie eine Auslage durch Freigabe und
+  Auszahlung, lässt sich als Entwurf speichern, und eine Korrektur des
+  Betrags lässt die eingereichten Positionen stehen. Tagespauschalen,
+  Kilometersätze und Übernachtungen folgen später. Handbuch Kapitel 4.6.
+- **Rechnungs-PDF als Beleg der Zahlung** (#366): Wird ein Zahlungseingang
+  einer Rechnung zugeordnet – beim Import, über den Chip in *Zuzuordnen* oder
+  mit *Zahlung erfassen* –, hängt die App das PDF der Rechnung als Beleg an
+  die Zahlungsbuchung, bei Teilzahlungen an jede. Die Datei wird nur
+  verknüpft und bleibt im Rechnungsordner; der muss dafür nicht im
+  Wächter-Ordner liegen. Handbuch Kapitel 15.6.
+
+**Behoben:**
+- Nach dem Import eines Kontoauszugs zeigt *Buchungen → Alle Buchungen*
+  die von Importregeln angelegten Buchungen sofort an, samt Aufteilungen und
+  Kostenstellen; vorher erschienen sie erst nach einem Reiterwechsel (#358).
+- Kassenbericht: Die Unterschriftszeilen stehen nicht mehr allein auf einer
+  neuen Seite, sondern rutschen zusammen mit dem Abschnitt *Vollständigkeit*
+  um (#361).
+
+**Geändert:**
+- Kassenbericht: Jede gedruckte Seite trägt unten „Seite n von m“ (#362).
+  Das setzen Chrome und Edge um; Firefox und Safari drucken den Bericht
+  weiterhin ohne Seitenzahl.
 
 ## [0.53.0] – 2026-11-12
 

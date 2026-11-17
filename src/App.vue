@@ -524,6 +524,7 @@ import { linkFilesToBookings } from './lib/receiptBatch.js'
 import { bookingsContext, txContext } from './lib/receiptPreview.js'
 import { reimbursementBookingPrefill } from './lib/reimbursements.js'
 import { newUid } from './lib/rowKeys.js'
+import { ruleSplitSuggestion } from './lib/ruleSplit.js'
 import { splitBalanced, splitRemainder, splitSideOf } from './lib/split.js'
 
 // Selten gebrauchte Reiter und Dialoge sind eigene Webpack-Chunks und werden erst
@@ -2109,7 +2110,13 @@ export default {
 			this.bookingView = 'unassigned'
 		},
 
-		async onImported() { await Promise.all([this.loadBalances(), this.loadTransactions(this.selectedPeriodId)]) },
+		// Importregeln legen beim Import Buchungen an (auch aufgeteilte, mit
+		// Kostenstellen) – deshalb wie nach anderen eigenen Journal-Schreibvorgängen
+		// Journal, Sphären, offene Posten, Kontoauszug und Belegvorschläge nachladen (#358).
+		async onImported() {
+			this.afterOwnJournalWrite(this.attachmentsRevision)
+			await Promise.all([this.loadBalances(), this.loadTransactions(this.selectedPeriodId), this.loadJournal(), this.loadSphereReport(), this.loadOpenItems(), this.reloadStatement()])
+		},
 
 		// Zahlungen zu Rechnungen buchen und lösen Bankumsätze, Buchungen und Salden (Epic #168).
 		// `info.bookings`: der Server hat dabei eine Buchung angelegt oder zurückgenommen
@@ -2257,7 +2264,31 @@ export default {
 		},
 
 		// --- Umsatz aufteilen (Zuordnen) ------------------------------------
-		openSplitAssign(tx) {
+		/**
+		 * @param {object} tx Bankbuchung
+		 * @param {Array<{accountId: number, amountCents: number, costCenterId: number|null}>|null} preset
+		 *        fertige Teile aus einer Aufteilungsregel (Issue #163); der Nutzer bestaetigt sie nur noch
+		 */
+		openSplitAssign(tx, preset = null) {
+			if (preset) {
+				this.splitAssign = {
+					open: true,
+					tx,
+					parts: preset.map((p) => {
+						const amount = p.amountCents / 100
+						return {
+							uid: newUid(),
+							accountId: p.accountId,
+							amount,
+							// Kostenstelle des Anteils wie beim Import: der ganze Teil, nicht anwendbar heisst ohne.
+							...(this.costCentersEnabled
+								? { allocations: defaultAllocation(p.costCenterId, amount, this.accountsById[p.accountId], this.bookingCostCentersById) }
+								: {}),
+						}
+					}),
+				}
+				return
+			}
 			// Der Vorschlag (Regel/Verlauf) landet in der ersten Zeile: bei einer
 			// Aufteilung stimmt er meist fuer den groessten Teil und muss dann nur
 			// noch beziffert werden.
@@ -2318,6 +2349,11 @@ export default {
 			for (const rule of this.rules) {
 				const haystack = { counterparty: tx.counterparty, purpose: tx.purpose, iban: tx.iban }[rule.matchField]
 				if (haystack && rule.matchValue && haystack.toLowerCase().includes(rule.matchValue.toLowerCase())) {
+					if (rule.parts && rule.parts.length) {
+						const s = this.splitSuggestion(rule, tx)
+						if (s) { return s }
+						continue
+					}
 					const acc = this.accountsById[rule.contraAccountId]
 					// Die Vorgabe-Kostenstelle der Regel (Issue #331) reist mit dem Vorschlag.
 					if (acc && acc.active) { return { accountId: acc.id, label: accountLabel(acc), costCenterId: rule.costCenterId ?? null } }
@@ -2334,9 +2370,37 @@ export default {
 			return null
 		},
 
+		/**
+		 * Vorschlag aus einer Regel mit festen Anteilen (Issue #163). null, wenn
+		 * der Umsatz nicht fuer alle Anteile reicht oder ein Konto inaktiv ist –
+		 * dann sucht computeSuggestion() weiter, wie bei einem inaktiven Konto.
+		 */
+		splitSuggestion(rule, tx) {
+			const s = ruleSplitSuggestion(rule, tx.amountCents || 0)
+			if (!s) { return null }
+			const ids = s.splitParts ? s.splitParts.map((p) => p.accountId) : [s.accountId]
+			if (ids.some((id) => !this.accountsById[id]?.active)) { return null }
+			// Ein einziger Teil (Umsatz = Anteil) ist ein gewoehnlicher Vorschlag.
+			if (!s.splitParts) {
+				return { accountId: s.accountId, label: accountLabel(this.accountsById[s.accountId]), costCenterId: s.costCenterId }
+			}
+			const numbers = ids.map((id) => this.accountsById[id].number)
+			return {
+				accountId: s.accountId,
+				label: this.tRaw('Aufteilung: {accounts}', { accounts: numbers.join(' · ') }),
+				splitParts: s.splitParts,
+			}
+		},
+
 		applySuggestion(tx) {
 			const s = this.suggestionsById[tx.id]
 			if (!s) { return }
+			// Aufteilungsregel: den Aufteilen-Dialog vorbelegt oeffnen, gebucht
+			// wird erst nach Bestaetigung.
+			if (s.splitParts) {
+				this.openSplitAssign(tx, s.splitParts)
+				return
+			}
 			// Kommt der Vorschlag aus einer Regel mit Kostenstelle, gehoert ihr der
 			// ganze Betrag - wie beim Import. Nicht anwendbar heisst: ohne.
 			const allocations = this.costCentersEnabled

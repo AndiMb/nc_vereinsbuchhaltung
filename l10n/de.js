@@ -104,5 +104,13 @@ OC.L10N.register("vereinsbuchhaltung", {
 	"Ihr Monatsbeitrag wurde von %1$s auf %2$s geändert.": "Dein Monatsbeitrag wurde von %1$s auf %2$s geändert.",
 	"Der Vorstand hat Ihren Monatsbeitrag von %1$s auf %2$s geändert.": "Der Vorstand hat deinen Monatsbeitrag von %1$s auf %2$s geändert.",
 	"Ihr Jahresbeitrag wurde von %1$s auf %2$s geändert.": "Dein Jahresbeitrag wurde von %1$s auf %2$s geändert.",
-	"Der Vorstand hat Ihren Jahresbeitrag von %1$s auf %2$s geändert.": "Der Vorstand hat deinen Jahresbeitrag von %1$s auf %2$s geändert."
+	"Der Vorstand hat Ihren Jahresbeitrag von %1$s auf %2$s geändert.": "Der Vorstand hat deinen Jahresbeitrag von %1$s auf %2$s geändert.",
+	"Nur Sie sehen Ihre Entwürfe. Erst mit „Einreichen“ geht der Antrag an die Verwalter.": "Nur du siehst deine Entwürfe. Erst mit „Einreichen“ geht der Antrag an die Verwalter.",
+	"Noch nicht alles beisammen? Mit „Als Entwurf speichern“ sichern Sie den Stand und reichen später ein. Den Entwurf sehen nur Sie.": "Noch nicht alles beisammen? Mit „Als Entwurf speichern“ sicherst du den Stand und reichst später ein. Den Entwurf siehst nur du.",
+	"Der Entwurf wurde gespeichert. Nur Sie sehen ihn.": "Der Entwurf wurde gespeichert. Nur du siehst ihn.",
+	"Ihre Auslage wurde korrigiert": "Deine Auslage wurde korrigiert",
+	"Bei der Prüfung Ihres Antrags „%1$s“ wurde der Betrag von %2$s auf %3$s korrigiert.": "Bei der Prüfung deines Antrags „%1$s“ wurde der Betrag von %2$s auf %3$s korrigiert.",
+	"Ihre ursprünglichen Angaben bleiben im Verlauf des Antrags sichtbar. Sind Sie mit der Korrektur nicht einverstanden, wenden Sie sich bitte an den Vorstand oder ziehen den Antrag unter „Mein Bereich → Auslagen“ zurück.": "Deine ursprünglichen Angaben bleiben im Verlauf des Antrags sichtbar. Bist du mit der Korrektur nicht einverstanden, wende dich bitte an den Vorstand oder ziehe den Antrag unter „Mein Bereich → Auslagen“ zurück.",
+	"Tragen Sie Ziel, Zeitraum und die tatsächlichen Kosten der Reise ein. Die Verwalter prüfen die Abrechnung, danach überweist der Verein.": "Trag Ziel, Zeitraum und die tatsächlichen Kosten der Reise ein. Die Verwalter prüfen die Abrechnung, danach überweist der Verein.",
+	"Tragen Sie die tatsächlichen Kosten ein, etwa den Fahrkartenpreis oder die Spritkosten. Tagespauschalen und Übernachtungen lassen sich hier noch nicht abrechnen.": "Trag die tatsächlichen Kosten ein, etwa den Fahrkartenpreis oder die Spritkosten. Tagespauschalen und Übernachtungen lassen sich hier noch nicht abrechnen."
 }, "nplurals=2; plural=(n != 1);");

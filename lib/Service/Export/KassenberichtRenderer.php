@@ -22,9 +22,9 @@ use OCP\IL10N;
 /**
  * Der Kassenbericht für die Mitgliederversammlung als druckfertige HTML-Seite.
  *
- * Kein Server-PDF: der Browser druckt oder speichert als PDF. Das spart eine
- * PDF-Bibliothek samt Schriftarten im Auslieferungspaket und funktioniert auf
- * jeder Instanz gleich.
+ * Die HTML-Seite ist die schnelle Vorschau am Bildschirm; für Unterschrift und
+ * Ablage gibt es denselben Inhalt als PDF ({@see KassenberichtPdfRenderer},
+ * Issue #364) – mit Seitenzahlen in jedem Browser und ohne URL am Seitenrand.
  *
  * Der Bericht enthält bewusst auch eine Vollständigkeitsangabe (Anzahl und
  * Lückenlosigkeit der Buchungsnummern) und Unterschriftszeilen – das sind die
@@ -46,7 +46,25 @@ class KassenberichtRenderer {
 	) {
 	}
 
-	public function render(string $userId, Period $period): string {
+	/**
+	 * Alles, was im Kassenbericht steht – einmal berechnet für die HTML-Ansicht
+	 * und das PDF ({@see KassenberichtPdfRenderer}, Issue #364).
+	 *
+	 * @return array{
+	 *     clubName: string,
+	 *     periodLabel: string,
+	 *     from: string,
+	 *     to: string,
+	 *     created: string,
+	 *     closeNote: string,
+	 *     vermoegen: array{rows: list<array{account:mixed, start:int, end:int}>, startCents:int, endCents:int},
+	 *     erfolg: array<string, mixed>,
+	 *     spheres: array<string, mixed>,
+	 *     budget: array<string, mixed>|null,
+	 *     numberingNote: string,
+	 * }
+	 */
+	public function collect(string $userId, Period $period): array {
 		$from = $period->getStartDate();
 		$to = $period->getEndDate();
 		// Anfangsbestand ist der kumulierte Stand am Vorabend des Zeitraums.
@@ -60,33 +78,84 @@ class KassenberichtRenderer {
 		$cumEnd = $this->lineMapper->sumByAccount($userId, null, $to);
 		$cumStart = $this->lineMapper->sumByAccount($userId, null, $prevTo);
 
-		$erfolg = LedgerAggregator::incomeExpense($accounts, $moveSums);
-		$vermoegen = LedgerAggregator::wealthRows($accounts, $cumStart, $cumEnd);
 		$budget = $this->budgetOverview->build($userId, (int)$period->getId());
 		$hasPlan = array_filter($budget['nodes'], static fn (array $n): bool => $n['isPlanItem']) !== [];
 
-		$clubName = $this->config->getValueString(Application::APP_ID, 'club_name', '');
-		$title = ($clubName !== '' ? $clubName . ' – ' : '') . $this->l10n->t('Kassenbericht %s', [$period->getLabel()]);
+		return [
+			'clubName' => $this->config->getValueString(Application::APP_ID, 'club_name', ''),
+			'periodLabel' => (string)$period->getLabel(),
+			'from' => (string)$from,
+			'to' => (string)$to,
+			'created' => $this->l10n->t('Erstellt am %s', [ReportFormat::date($this->clock->today())]),
+			'closeNote' => $this->closeNote($period),
+			'vermoegen' => LedgerAggregator::wealthRows($accounts, $cumStart, $cumEnd),
+			'erfolg' => LedgerAggregator::incomeExpense($accounts, $moveSums),
+			'spheres' => $this->reportService->sphereReport($userId, (int)$period->getId()),
+			'budget' => $hasPlan ? $budget : null,
+			'numberingNote' => $this->numberingNote($userId, $period, (string)$from, (string)$to),
+		];
+	}
+
+	public function render(string $userId, Period $period): string {
+		$d = $this->collect($userId, $period);
+		$clubName = $d['clubName'];
+		$title = ($clubName !== '' ? $clubName . ' – ' : '') . $this->l10n->t('Kassenbericht %s', [$d['periodLabel']]);
 
 		$h = PrintableReportPage::printHint($this->l10n->t('Zum Drucken oder Als-PDF-Speichern: <strong>Strg+P</strong> (Mac: ⌘P) im Browser.'));
 		$h .= PrintableReportPage::header(
 			null,
 			$clubName,
-			$this->l10n->t('Kassenbericht für das Geschäftsjahr %s', [$period->getLabel()]),
-			$this->l10n->t('Erstellt am %s', [ReportFormat::date($this->clock->today())]) . ' · ' . PrintableReportPage::escape($this->closeNote($period)),
+			$this->l10n->t('Kassenbericht für das Geschäftsjahr %s', [$d['periodLabel']]),
+			$d['created'] . ' · ' . PrintableReportPage::escape($d['closeNote']),
 		);
-		$h .= $this->wealthSection($vermoegen, $from, $to);
-		$h .= $this->resultSection($erfolg);
-		$h .= $this->sphereSection($userId, (int)$period->getId());
-		if ($hasPlan) {
-			$h .= $this->planSection($budget);
+		$h .= $this->wealthSection($d['vermoegen'], $d['from'], $d['to']);
+		$h .= $this->resultSection($d['erfolg']);
+		$h .= $this->sphereSection($d['spheres']);
+		if ($d['budget'] !== null) {
+			$h .= $this->planSection($d['budget']);
 		}
+		// Vollständigkeit und Unterschriften bilden einen Schlussblock, den der
+		// Druck nicht trennt: sonst landete die Unterschriftszeile allein auf
+		// einer neuen Seite, ohne Bezug zum Bericht darüber (#361).
+		$h .= '<div class="closing">';
 		$h .= '<section><h2>' . $this->l10n->t('Vollständigkeit') . '</h2><p>'
-			. PrintableReportPage::escape($this->numberingNote($userId, $period, $from, $to))
+			. PrintableReportPage::escape($d['numberingNote'])
 			. '</p></section>';
 		$h .= $this->signatureSection();
+		$h .= '</div>';
 
-		return PrintableReportPage::document($title, $h);
+		return PrintableReportPage::document($title, $h, pageNumbers: $this->l10n->t('Seite {page} von {pages}'));
+	}
+
+	/** @return list<string> Beschriftungen der Unterschriftszeilen */
+	public function signatureRoles(): array {
+		return [$this->l10n->t('Schatzmeister/in'), $this->l10n->t('Kassenprüfer/in'), $this->l10n->t('Kassenprüfer/in')];
+	}
+
+	/**
+	 * Satz zur Freigrenze des wirtschaftlichen Geschäftsbetriebs, oder '' ohne Einnahmen dort.
+	 *
+	 * @param array<string, mixed> $spheres aus ReportService::sphereReport()
+	 */
+	public function freigrenzeNote(array $spheres): string {
+		$fg = $spheres['freigrenze'];
+		if ($fg['incomeCents'] <= 0) {
+			return '';
+		}
+		$levelText = match ($fg['level']) {
+			'over' => $this->l10n->t('überschritten'),
+			'warn' => $this->l10n->t('nähert sich der Grenze'),
+			default => $this->l10n->t('im grünen Bereich'),
+		};
+		return $this->l10n->t(
+			'Wirtschaftlicher Geschäftsbetrieb: %s € von %s € Freigrenze (%s %% – %s).',
+			[
+				ReportFormat::money((float)$fg['income']),
+				ReportFormat::money((float)$fg['threshold']),
+				(string)round(((float)$fg['ratio']) * 100),
+				$levelText,
+			],
+		);
 	}
 
 	/**
@@ -145,29 +214,15 @@ class KassenberichtRenderer {
 		return $h;
 	}
 
-	private function sphereSection(string $userId, int $periodId): string {
-		$report = $this->reportService->sphereReport($userId, $periodId);
+	/** @param array<string, mixed> $report aus ReportService::sphereReport() */
+	private function sphereSection(array $report): string {
 		$h = '<section><h2>' . $this->l10n->t('Sphärenübersicht (steuerlich)') . '</h2><table>';
 		$h .= '<tr><th>' . $this->l10n->t('Sphäre') . '</th><th class="num">' . $this->l10n->t('Einnahmen') . '</th><th class="num">' . $this->l10n->t('Ausgaben') . '</th><th class="num">' . $this->l10n->t('Ergebnis') . '</th></tr>';
 		$h .= self::sphereRows($report['spheres'], $this->currency->symbol());
 		$h .= '</table>';
-
-		$fg = $report['freigrenze'];
-		if ($fg['incomeCents'] > 0) {
-			$levelText = match ($fg['level']) {
-				'over' => $this->l10n->t('überschritten'),
-				'warn' => $this->l10n->t('nähert sich der Grenze'),
-				default => $this->l10n->t('im grünen Bereich'),
-			};
-			$h .= '<p>' . $this->l10n->t(
-				'Wirtschaftlicher Geschäftsbetrieb: %s € von %s € Freigrenze (%s %% – %s).',
-				[
-					ReportFormat::money((float)$fg['income']),
-					ReportFormat::money((float)$fg['threshold']),
-					(string)round(((float)$fg['ratio']) * 100),
-					$levelText,
-				],
-			) . '</p>';
+		$note = $this->freigrenzeNote($report);
+		if ($note !== '') {
+			$h .= '<p>' . $note . '</p>';
 		}
 		$h .= '<p class="meta">' . $this->l10n->t('Ersetzt keine steuerliche Beratung.') . '</p>';
 		return $h . '</section>';
@@ -292,7 +347,7 @@ class KassenberichtRenderer {
 
 	private function signatureSection(): string {
 		$h = '<section class="signatures">';
-		foreach ([$this->l10n->t('Schatzmeister/in'), $this->l10n->t('Kassenprüfer/in'), $this->l10n->t('Kassenprüfer/in')] as $rolle) {
+		foreach ($this->signatureRoles() as $rolle) {
 			$h .= '<div><div class="line"></div>' . $this->l10n->t('Ort, Datum') . ' · ' . $rolle . '</div>';
 		}
 		return $h . '</section>';
