@@ -17,6 +17,7 @@ use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
 use OCA\Vereinsbuchhaltung\Service\AuditService;
 use OCA\Vereinsbuchhaltung\Service\BookingService;
+use OCA\Vereinsbuchhaltung\Service\Invoice\InvoiceReceiptLinker;
 use OCA\Vereinsbuchhaltung\Service\InvoicePaymentLedger;
 use OCA\Vereinsbuchhaltung\Service\InvoicePaymentService;
 use OCA\Vereinsbuchhaltung\Service\JournalService;
@@ -35,6 +36,7 @@ class InvoicePaymentServiceTest extends TestCase {
 	private BookingService&MockObject $booking;
 	private JournalService&MockObject $journals;
 	private InvoicePaymentLedger&MockObject $ledger;
+	private InvoiceReceiptLinker&MockObject $receipts;
 	private Invoice $invoice;
 	private OpenItem $item;
 	private Journal $journal;
@@ -59,6 +61,7 @@ class InvoicePaymentServiceTest extends TestCase {
 		$this->booking = $this->createMock(BookingService::class);
 		$this->journals = $this->createMock(JournalService::class);
 		$this->ledger = $this->createMock(InvoicePaymentLedger::class);
+		$this->receipts = $this->createMock(InvoiceReceiptLinker::class);
 		$invoices = $this->createMock(InvoiceMapper::class);
 		$invoices->method('find')->willReturn($this->invoice);
 		$openItems = $this->createMock(OpenItemMapper::class);
@@ -89,6 +92,8 @@ class InvoicePaymentServiceTest extends TestCase {
 			$this->createMock(AuditService::class),
 			$this->createMock(IUserSession::class),
 			ClubCurrencyStub::of($this),
+			null,
+			$this->receipts,
 		);
 	}
 
@@ -156,6 +161,38 @@ class InvoicePaymentServiceTest extends TestCase {
 			->willReturn($this->journal);
 
 		$s->payManually(1, '2026-05-02', 20);
+	}
+
+	/** Issue #366: Die Zahlungsbuchung bekommt das Rechnungs-PDF als Beleg – über den Bankumsatz … */
+	public function testBankzahlungVerknuepftDasRechnungsPdf(): void {
+		$s = $this->service();
+		$this->ledger->method('allocate')->willReturn([10 => 2500]);
+		$this->booking->method('assignParts')->willReturnCallback(function (BankTransaction $t): BankTransaction {
+			$t->setJournalId(55);
+			return $t;
+		});
+		$this->receipts->expects($this->once())->method('linkToJournal')->with($this->invoice, 55);
+
+		$s->payFromBankTransaction($this->tx(2500), 1);
+	}
+
+	/** … und bei der Barzahlung ohne Bankumsatz. */
+	public function testBarzahlungVerknuepftDasRechnungsPdf(): void {
+		$s = $this->service();
+		$this->ledger->method('allocate')->willReturn([10 => 10000]);
+		$this->journals->method('createBookingLines')->willReturn($this->journal);
+		$this->receipts->expects($this->once())->method('linkToJournal')->with($this->invoice, 55);
+
+		$s->payManually(1, '2026-05-02', 20);
+	}
+
+	/** Eine abgelehnte Zahlung bucht nichts und verknüpft auch nichts. */
+	public function testAbgelehnteZahlungVerknuepftNichts(): void {
+		$s = $this->service();
+		$this->receipts->expects($this->never())->method('linkToJournal');
+		$this->expectException(\InvalidArgumentException::class);
+
+		$s->payFromBankTransaction($this->tx(20000), 1);
 	}
 
 	public function testTeilzahlungIstErlaubt(): void {

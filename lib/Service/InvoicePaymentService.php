@@ -14,6 +14,7 @@ use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Db\OpenItem;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
+use OCA\Vereinsbuchhaltung\Service\Invoice\InvoiceReceiptLinker;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\IL10N;
 use OCP\IUserSession;
@@ -31,6 +32,10 @@ use OCP\IUserSession;
  * Teilzahlungen sind vorgesehen: Eine Zahlung darf kleiner sein als der offene
  * Rest, nie größer. Wer mehr überweist, teilt den Umsatz selbst auf (Rest auf
  * ein anderes Konto), das ist eine fachliche Entscheidung.
+ *
+ * Jede Zahlungsbuchung bekommt das PDF der Rechnung als Beleg (Issue #366),
+ * bei Teilzahlungen jede einzelne. Verknüpft wird nur; die Datei bleibt im
+ * Rechnungsordner ({@see InvoiceReceiptLinker}).
  */
 class InvoicePaymentService {
 
@@ -48,6 +53,7 @@ class InvoicePaymentService {
 		private IUserSession $userSession,
 		private ClubCurrency $currency,
 		private ?IL10N $l10n = null,
+		private ?InvoiceReceiptLinker $receipts = null,
 	) {
 	}
 
@@ -88,6 +94,7 @@ class InvoicePaymentService {
 			$tx = $this->booking->assignParts($tx, $list);
 			$journalId = (int)$tx->getJournalId();
 			$this->labelJournal($journalId, $invoice, $tx->getCounterparty());
+			$this->receipts?->linkToJournal($invoice, $journalId);
 			$this->ledger->record($invoice, $item, $amount, (int)$tx->getId(), $journalId, $parts, $this->actor());
 
 			$this->audit->log('Rechnung bezahlt (Bankumsatz)', 'invoice', $invoiceId, [
@@ -144,6 +151,7 @@ class InvoicePaymentService {
 				$lines,
 			);
 			$this->ledger->record($invoice, $item, $amount, null, (int)$journal->getId(), $parts, $this->actor());
+			$this->receipts?->linkToJournal($invoice, (int)$journal->getId());
 			$this->audit->log('Rechnung bezahlt (Barzahlung)', 'invoice', $invoiceId, [
 				'number' => $invoice->getNumber(),
 				'amount' => $amount / 100,

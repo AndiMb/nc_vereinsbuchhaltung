@@ -3249,7 +3249,8 @@ In the invoice details: **Send by email**. Recipient address, subject and text a
 - **In Entries → To assign:** For everything else an incoming payment shows a **"✓ Invoice RE-…"** chip – number in the text, or amount and name match, or only the amount with exactly one open invoice. One click books it. If the amount is lower the chip reads "Partial payment on …" and the invoice stays open; if it is higher, split the transaction ("Split…") and assign the rest to another account.
 - **From the invoice:** **Record payment** assigns a transaction or books a **cash payment** (cash account/cash box to revenue accounts).
 - **Partial payments** are spread proportionally over the revenue accounts of the line items; with the last payment the totals per account match exactly.
-- **Reverting:** If a payment's assignment is removed or its booking is deleted, the invoice opens again. In the details you can also do it with the arrow next to the payment.
+- **Receipt:** On all three paths the app attaches the **invoice PDF** as a receipt to the payment booking, for partial payments to each one. The file is only linked, not copied: it stays in the invoice folder, and its integrity proof (SHA-256) stays valid. This also works if the invoice folder is not inside the watch folder. It requires a Nextcloud user for receipt storage (chapter 2.4); without one the PDF is stored inside the app, and the payment booking stays without a receipt.
+- **Reverting:** If a payment's assignment is removed or its booking is deleted, the invoice opens again. In the details you can also do it with the arrow next to the payment. The link to the invoice PDF disappears with the booking; the file itself stays.
 
 ### 15.7 Cancelling and duplicating
 
