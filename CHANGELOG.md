@@ -89,6 +89,12 @@ verwenden, z. B. `**Neu:**`.
   Auszahlung, lässt sich als Entwurf speichern, und eine Korrektur des
   Betrags lässt die eingereichten Positionen stehen. Tagespauschalen,
   Kilometersätze und Übernachtungen folgen später. Handbuch Kapitel 4.6.
+- **Rechnungs-PDF als Beleg der Zahlung** (#366): Wird ein Zahlungseingang
+  einer Rechnung zugeordnet – beim Import, über den Chip in *Zuzuordnen* oder
+  mit *Zahlung erfassen* –, hängt die App das PDF der Rechnung als Beleg an
+  die Zahlungsbuchung, bei Teilzahlungen an jede. Die Datei wird nur
+  verknüpft und bleibt im Rechnungsordner; der muss dafür nicht im
+  Wächter-Ordner liegen. Handbuch Kapitel 15.6.
 
 **Behoben:**
 - Nach dem Import eines Kontoauszugs zeigt *Buchungen → Alle Buchungen*

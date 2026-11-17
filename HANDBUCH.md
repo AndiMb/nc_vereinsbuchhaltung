@@ -3294,7 +3294,8 @@ Im Detail der Rechnung: **Per E-Mail senden**. Empfänger-Adresse, Betreff und T
 - **In Buchungen → Zuzuordnen:** Für alles andere erscheint beim Zahlungseingang ein Chip **„✓ Rechnung RE-…"** – Nummer im Text, oder Betrag und Name passen, oder nur der Betrag bei genau einer offenen Rechnung. Ein Klick bucht. Ist der Betrag niedriger, heißt der Chip „Teilzahlung auf …" und die Rechnung bleibt offen; ist er höher, teilen Sie den Umsatz auf („Aufteilen…") und ordnen den Rest einem anderen Konto zu.
 - **Von der Rechnung aus:** **Zahlung erfassen** ordnet einen Umsatz zu oder bucht eine **Barzahlung** (Geldkonto/Kasse an Erlöskonten).
 - **Teilzahlungen** verteilen sich im Verhältnis auf die Erlöskonten der Positionen; mit der letzten Zahlung stimmen die Summen je Konto genau.
-- **Zurücknehmen:** Löst eine Zuordnung oder löscht die Buchung die Zahlung, öffnet sich die Rechnung wieder. Im Detail geht das auch mit dem Pfeil neben der Zahlung.
+- **Beleg:** Auf allen drei Wegen hängt die App das **PDF der Rechnung** als Beleg an die Zahlungsbuchung, bei Teilzahlungen an jede. Die Datei wird nur verknüpft, nicht kopiert: Sie bleibt im Rechnungsordner, und ihr Echtheitsnachweis (SHA-256) bleibt gültig. Das gilt auch, wenn der Rechnungsordner nicht im Wächter-Ordner liegt. Voraussetzung ist ein Nextcloud-Nutzer für die Belegablage (Kapitel 2.4); ohne ihn liegt das PDF app-intern, und die Zahlungsbuchung bleibt ohne Beleg.
+- **Zurücknehmen:** Löst eine Zuordnung oder löscht die Buchung die Zahlung, öffnet sich die Rechnung wieder. Im Detail geht das auch mit dem Pfeil neben der Zahlung. Die Verknüpfung zum Rechnungs-PDF verschwindet mit der Buchung, die Datei selbst bleibt.
 
 ### 15.7 Stornieren und Duplizieren
 

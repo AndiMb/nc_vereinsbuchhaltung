@@ -190,7 +190,9 @@ class AttachmentStorageServiceTest extends TestCase {
 			static fn (int $id): ?File => $id === 99 ? $inside : null,
 		);
 		$home = $this->createMock(Folder::class);
-		$home->method('get')->with(self::NC_PATH)->willReturn($watch);
+		$home->method('get')->willReturnCallback(static fn (string $path): Folder => $path === self::NC_PATH
+			? $watch
+			: throw new \OCP\Files\NotFoundException($path));
 		// Das ganze Home wird nicht durchsucht – dort läge auch die hinausgeschobene Datei.
 		$home->expects($this->never())->method('getFirstNodeById');
 		$this->rootFolder->method('getUserFolder')->with(self::NC_USER)->willReturn($home);
@@ -199,6 +201,39 @@ class AttachmentStorageServiceTest extends TestCase {
 		$this->assertSame($inside, $service->nodeOrNull($this->linked(99)));
 		$this->assertNull($service->nodeOrNull($this->linked(100)), 'außerhalb des Wächter-Ordners = fehlend');
 		$this->assertFalse($service->exists($this->linked(100)));
+	}
+
+	/**
+	 * Issue #366: Das Rechnungs-PDF an der Zahlungsbuchung liegt im Rechnungsordner,
+	 * der nicht im Wächter-Ordner liegen muss. Es gilt trotzdem als vorhanden –
+	 * aber nur dort, nicht irgendwo im Home des Ablage-Nutzers.
+	 */
+	public function testImWaechterModusZaehltAuchDerRechnungsordner(): void {
+		$this->configureStorage(self::NC_USER, AttachmentStorageService::MODE_WATCH);
+
+		$pdf = $this->createMock(File::class);
+		$watch = $this->createMock(Folder::class);
+		$watch->method('getFirstNodeById')->willReturn(null);
+		$invoices = $this->createMock(Folder::class);
+		$invoices->method('getFirstNodeById')->willReturnCallback(
+			static fn (int $id): ?File => $id === 200 ? $pdf : null,
+		);
+		$home = $this->createMock(Folder::class);
+		$home->method('get')->willReturnCallback(static fn (string $path): Folder => match ($path) {
+			self::NC_PATH => $watch,
+			\OCA\Vereinsbuchhaltung\Service\InvoiceSettings::DEFAULT_FOLDER => $invoices,
+		});
+		$home->expects($this->never())->method('getFirstNodeById');
+		$this->rootFolder->method('getUserFolder')->with(self::NC_USER)->willReturn($home);
+
+		$service = $this->service();
+		$this->assertSame($pdf, $service->nodeOrNull($this->linked(200)));
+		$this->assertNull($service->nodeOrNull($this->linked(100)), 'weder im Wächter- noch im Rechnungsordner = fehlend');
+
+		// Gehört der Beleg einem anderen Nutzer, zählt der Rechnungsordner des Ablage-Nutzers nicht.
+		$foreign = $this->linked(200);
+		$foreign->setFileOwner('jemand-anders');
+		$this->assertNull($service->nodeOrNull($foreign));
 	}
 
 	/**

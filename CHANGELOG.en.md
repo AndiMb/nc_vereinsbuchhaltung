@@ -84,6 +84,12 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   draft, and correcting the amount leaves the submitted items unchanged.
   Daily allowances, mileage rates and overnight stays will follow later.
   Manual chapter 4.6.
+- **Invoice PDF as the payment's receipt** (#366): when an incoming payment is
+  assigned to an invoice – on import, via the chip in *To assign* or with
+  *Record payment* – the app attaches the invoice PDF as a receipt to the
+  payment booking, for partial payments to each one. The file is only linked
+  and stays in the invoice folder, which does not need to be inside the watch
+  folder. Manual chapter 15.6.
 
 **Fixed:**
 - After importing a bank statement, *Entries → All entries* shows the

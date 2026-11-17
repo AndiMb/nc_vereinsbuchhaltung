@@ -49,6 +49,8 @@ class AttachmentStorageService {
 
 	private ?Folder $watchFolderMemo = null;
 	private bool $watchFolderResolved = false;
+	private ?Folder $invoiceFolderMemo = null;
+	private bool $invoiceFolderResolved = false;
 
 	public function __construct(
 		IAppDataFactory $appDataFactory,
@@ -205,6 +207,11 @@ class AttachmentStorageService {
 	 * nur, was im Wächter-Ordner liegt: eine hinausgeschobene Datei gilt als
 	 * fehlend, sonst bliebe sie über die App für alle Leser erreichbar, auch
 	 * wenn sie in der Dateien-App längst in einem privaten Ordner liegt.
+	 *
+	 * Ausnahme ist der Rechnungsordner des Ablage-Nutzers: Dort liegen die
+	 * Rechnungs-PDFs, die die App an die Zahlungsbuchung hängt (#366), und er
+	 * muss nicht im Wächter-Ordner liegen. Auch er gehört der App; was der
+	 * Nutzer von dort wegschiebt, gilt ebenso als fehlend.
 	 */
 	public function nodeOrNull(Attachment $attachment): ?File {
 		if (!$attachment->isLinked()) {
@@ -213,10 +220,23 @@ class AttachmentStorageService {
 		try {
 			$root = $this->isWatchMode() ? $this->watchFolder() : $this->userFolder((string)$attachment->getFileOwner());
 			$node = $root?->getFirstNodeById((int)$attachment->getFileId());
+			if (!$node instanceof File && $this->isWatchMode() && $attachment->getFileOwner() === $this->storageUser()) {
+				$node = $this->invoiceFolder()?->getFirstNodeById((int)$attachment->getFileId());
+			}
 		} catch (\Throwable) {
 			return null;
 		}
 		return $node instanceof File ? $node : null;
+	}
+
+	/** Der Ordner für erzeugte Rechnungsdokumente im Home des Ablage-Nutzers, je Anfrage einmal aufgelöst. */
+	private function invoiceFolder(): ?Folder {
+		if (!$this->invoiceFolderResolved) {
+			$path = trim($this->config->getValueString(Application::APP_ID, InvoiceSettings::SETTING_FOLDER, ''), '/');
+			$this->invoiceFolderMemo = $this->folderAt($this->storageUser(), $path !== '' ? $path : InvoiceSettings::DEFAULT_FOLDER);
+			$this->invoiceFolderResolved = true;
+		}
+		return $this->invoiceFolderMemo;
 	}
 
 	/** @throws \RuntimeException wenn die Datei nicht (mehr) auffindbar ist */
