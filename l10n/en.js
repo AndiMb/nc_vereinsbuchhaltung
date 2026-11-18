@@ -3023,6 +3023,7 @@ OC.L10N.register("vereinsbuchhaltung", {
 	"Gliederungsbericht": "Structured report",
 	"Druckfertiger Gliederungsbericht (öffnet in neuem Tab, dort drucken oder als PDF speichern)": "Printable structured report (opens in a new tab, print or save as PDF there)",
 	"Gliederungsbericht als CSV exportieren": "Export structured report as CSV",
+	"Gliederungsbericht als PDF-Datei herunterladen (mit Seitenzahlen)": "Download the structured report as a PDF file (with page numbers)",
 	"CSV": "CSV",
 	"Derselbe Plan und dieselben Buchungen, gegliedert nach einer Vorlage – etwa für einen Zuwendungsgeber oder für die Mitgliederversammlung. Die Vorlage legt fest, nach welchen Merkmalen gegliedert wird und welche Spalten erscheinen.": "The same budget and entries, structured by a template – for example for a funding body or the general meeting. The template defines the grouping criteria and the columns shown.",
 	"Vorlage": "Template",

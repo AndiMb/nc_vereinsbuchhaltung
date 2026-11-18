@@ -20,6 +20,11 @@ verwenden, z. B. `**Neu:**`.
 ## [Unreleased]
 
 **Neu:**
+- **Gliederungsbericht als PDF:** In der Tabellenansicht lädt der neue Knopf
+  **PDF** neben *Drucken / PDF* und *CSV* den Bericht als fertige PDF-Datei
+  herunter – mit Seitenzahlen, wiederholtem Tabellenkopf und ab fünf
+  Wertspalten im Querformat. Die visuelle Ansicht bleibt Druckseite. Beschrieben
+  in Kapitel 7.4 des Handbuchs.
 - **PayPal-Import** (#375): Der deutsche PayPal-Aktivitätsdownload (CSV) wird
   im normalen Kontoauszugs-Import und im Wachordner am Inhalt erkannt und auf
   das PayPal-Geldkonto gebucht. Gebühren werden zu eigenen Bankbuchungen
@@ -52,6 +57,11 @@ verwenden, z. B. `**Neu:**`.
   zusammen mit den Beiträgen. Sind Mitgliedsbeiträge nicht abziehbar (etwa bei
   Sportvereinen), bestätigt die App nur Spenden, und die informelle
   Beitragsbestätigung bleibt. Sachspenden sind nicht enthalten.
+
+**Geändert:**
+- Der Dateiname des Kassenberichts als PDF schreibt Umlaute jetzt um
+  (ä → ae, ö → oe, ü → ue, ß → ss), damit er auf jedem System ohne
+  Sonderzeichen gespeichert wird.
 
 ## [0.54.0] – 2026-11-17
 
