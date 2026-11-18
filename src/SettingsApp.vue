@@ -17,6 +17,9 @@
 					:storageSaving="storageSaving"
 					:saveStorageSettings="saveSettings"
 					@changed="loadSettings" />
+				<!-- Anschrift und Steuernummer: Rechnungen UND Zuwendungsbestätigungen
+				     brauchen sie, deshalb hier und unabhängig von jedem Modulschalter. -->
+				<SettingsClubIssuer :clubName="clubName" />
 			</NcSettingsSection>
 		</div>
 
@@ -82,6 +85,16 @@
 				     Rechtstext und Willkommens-Mail ausblenden – rund 30 Felder, die
 				     dann nichts bewirken. Der Schalter oben bleibt sichtbar. -->
 				<SettingsSepaModule v-if="membershipEnabled" :storageUser="storageUser" />
+				<div v-else-if="loadFailed" class="vbh-card">
+					<!-- Ohne geladene Einstellungen ist unbekannt, ob das Modul an ist:
+					     nicht stumm ausblenden, sondern den Fehler zeigen. -->
+					<p class="vbh-hint vbh-hint--error" role="alert">
+						{{ t('Die Einstellungen konnten nicht geladen werden.') }}
+					</p>
+					<NcButton @click="loadSettings">
+						{{ t('Erneut versuchen') }}
+					</NcButton>
+				</div>
 				<p v-else-if="settingsLoaded" class="vbh-hint vbh-hint--info" data-testid="settings-module-off-beitraege">
 					{{ t('Das Beitragsmodul ist ausgeschaltet. Beitragsjahr und Fristen, Mandate, Rücklastschriften, Mandats-Rechtstext und Willkommens-Mail erscheinen hier, sobald Sie den Reiter „Beiträge“ einschalten.') }}
 				</p>
@@ -191,6 +204,7 @@ import SettingsAttachments from './components/SettingsAttachments.vue'
 import SettingsBackup from './components/SettingsBackup.vue'
 import SettingsBudgetStatus from './components/SettingsBudgetStatus.vue'
 import SettingsClub from './components/SettingsClub.vue'
+import SettingsClubIssuer from './components/SettingsClubIssuer.vue'
 import SettingsCostCenters from './components/SettingsCostCenters.vue'
 import SettingsDisplay from './components/SettingsDisplay.vue'
 import SettingsDonationReceipts from './components/SettingsDonationReceipts.vue'
@@ -241,6 +255,7 @@ export default {
 		SettingsBackup,
 		SettingsBudgetStatus,
 		SettingsClub,
+		SettingsClubIssuer,
 		SettingsCostCenters,
 		SettingsDonationReceipts,
 		SettingsDisplay,
@@ -274,6 +289,7 @@ export default {
 			// Erst nach dem ersten Laden stehen die Modulschalter fest; vorher
 			// soll kein „ausgeschaltet“ aufblitzen.
 			settingsLoaded: false,
+			loadFailed: false,
 			// An/aus der übrigen Module, nur für das Inhaltsverzeichnis: die Karten
 			// laden und speichern ihre Schalter selbst und melden sie per @active.
 			modules: { zuwendungen: false, rechnungen: false, auslagen: false, kostenstellen: false },
@@ -387,7 +403,10 @@ export default {
 					kostenstellen: !!data.cost_centers_enabled,
 				}
 				this.settingsLoaded = true
-			} catch { /* ignorieren */ }
+				this.loadFailed = false
+			} catch {
+				this.loadFailed = true
+			}
 		},
 
 		// Speichern einer Karte: nur deren Felder (lib/settingsSave.js). Ohne
@@ -427,8 +446,12 @@ export default {
 			} catch (e) {
 				const msg = (e?.response?.data?.message) || this.t('Speichern fehlgeschlagen (HTTP {status})', { status: e?.response?.status ?? this.t('Netzwerkfehler') })
 				showError(msg)
-				// Nichts gespeichert: die Währungsauswahl zeigt wieder den Stand des Servers.
-				this.clubCurrency = this.savedCurrency
+				// Nichts gespeichert: die Währungsauswahl zeigt wieder den Stand des
+				// Servers – nur wenn sie mitgeschickt wurde; eine ungespeicherte
+				// Auswahl darf der Fehler einer anderen Karte nicht verwerfen.
+				if (!parts.length || parts.includes('currency')) {
+					this.clubCurrency = this.savedCurrency
+				}
 				// Die Modulschalter wirken sofort; scheitert das, sollen sie (und
 				// die davon abhängigen Karten) nicht einen Stand zeigen, den der
 				// Server nicht hat.

@@ -41,6 +41,12 @@ export default {
 			event.preventDefault()
 			history.replaceState(null, '', '#settings-section_' + id)
 			target.scrollIntoView({ block: 'start' })
+			// Tastatur: ohne Fokuswechsel ginge der nächste Tab-Schritt zurück ins
+			// Verzeichnis. Fokus auf die Abschnittsüberschrift (sonst den Abschnitt),
+			// die dafür einmalig per tabindex="-1" fokussierbar wird.
+			const heading = target.querySelector('h2') || target
+			if (!heading.hasAttribute('tabindex')) { heading.setAttribute('tabindex', '-1') }
+			heading.focus({ preventScroll: true })
 		},
 	},
 }
@@ -69,7 +75,9 @@ export default {
 
 .vbh-settings-toc li {
 	display: flex;
-	flex-wrap: wrap;
+	/* Das Kennzeichen „ausgeschaltet“ bleibt neben dem Link; bricht ein langer
+	   Name um, dann innerhalb des Links. */
+	flex-wrap: nowrap;
 	align-items: center;
 	gap: 6px;
 	padding: 2px 0;
@@ -78,5 +86,11 @@ export default {
 .vbh-settings-toc a {
 	color: var(--color-primary-element);
 	text-decoration: underline;
+	min-width: 0;
+}
+
+.vbh-settings-toc .vbh-badge {
+	flex: none;
+	white-space: nowrap;
 }
 </style>

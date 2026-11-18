@@ -82,7 +82,7 @@ opens the matching chapter of this handbook. The sections come in this order:
 
 | Group | Sections (chapter) |
 |---|---|
-| Basics | Club (2.5, 2.6) · Permissions (2.1) · Receipts (2.4) · Automatically import bank statements (3.3) · Fiscal year (8.1) |
+| Basics | Club with club name, club currency, corporate design and club details (2.5, 2.6) · Permissions (2.1) · Receipts (2.4) · Automatically import bank statements (3.3) · Fiscal year (8.1) |
 | Lists and reports | Display – amounts in the posting lists neutral or with sign and color, the same for all users · Status in the structured report (7.5) |
 | Modules | Fees & SEPA (13.1) · Mandate legal text (13.2) · Welcome email (13.2) · Donation receipts (13.12) · Invoices (15.1) · Expense reimbursement (4.6) · Cost centres (5.8) |
 | Data and backup | Data import from "zero Buchhaltung" (3.1) · Backup and migration (12.3) · Reset with *Delete all data* (12.1) |
@@ -91,7 +91,9 @@ opens the matching chapter of this handbook. The sections come in this order:
 other cards appear once the module is on (the table of contents then no longer
 says "off"). This applies to Fees & SEPA (including the mandate legal text and
 the welcome email), donation receipts, invoices and the expense numbers. Saved
-details are kept when you switch a module off.
+details are kept when you switch a module off. The **club details** (address,
+tax number, register, board), on the other hand, always stay under *Club*:
+invoices and donation receipts both need them.
 
 **Saving.** **Module switches take effect immediately** – no need to save, a
 message at the top right confirms it; if it fails, the switch flips back and
@@ -272,7 +274,13 @@ The app's emails (invoices, dunning letters, pre-notifications, welcome
 emails, mandate confirmations) then also show the club name as the sender
 and in the footer instead of the Nextcloud's name. The sender address stays
 the one from the Nextcloud mail settings. If a club email is set in the
-settings under *Invoices*, replies go to that address.
+*Club details* card, replies go to that address.
+
+**Club details.** Also under *Club* is the *Club details* card: address, tax
+number or VAT ID, register of associations, board, phone, email and an
+optional note on non-profit status. Invoices (chapter 15.1) and donation
+receipts (13.12) take the name, address and tax number from here; that is why
+the card is always visible, even when the invoice module is off.
 
 **Club currency.** The same page has a *Club currency* card. Out of the box
 the app works in euros. You can also choose Swiss franc (CHF), British pound
@@ -3170,7 +3178,7 @@ immediately; then the other details appear, which "Save" applies:
 - the **basis of the tax privilege**: *exemption notice* (or annex to the
   corporation tax assessment, with the **assessment period**) or *assessment
   under § 60a AO*; plus **tax office**, **tax number** (if empty, the one from
-  the invoice settings) and **date of the notice**;
+  *Club → Club details*) and **date of the notice**;
 - the **privileged purposes** as worded in the notice;
 - **place** and **who signs** (name and role below the signature line) – or the
   **automated procedure** without a signature, if it has been notified to the
@@ -3186,7 +3194,8 @@ immediately; then the other details appear, which "Save" applies:
 - the **storage folder** (default *Vereinsbuchhaltung/Zuwendungsbestätigungen*,
   one subfolder per year; without a receipt storage user, inside the app).
 
-The club's name and address come from *Invoices → Club details*. If anything is
+The club's name and address come from *Club → Club details* (2.5); that card is
+visible even when the invoice module is off. If anything is
 missing, the record names it instead of issuing. If the notice is older than
 **5 years** (exemption) or **3 years** (§ 60a AO), the app doesn't issue either –
 the tax office does not accept such receipts (§ 63 (5) AO).
@@ -3446,7 +3455,7 @@ With the invoice module the association issues invoices in its own name – for 
 *Nextcloud settings → Vereinsbuchhaltung → Invoices* (administrators only):
 
 1. **Turn on the invoice module.** The switch takes effect immediately; only then do the other cards of the section appear.
-2. Enter the **details of the association**. Section 14 (4) UStG requires the name and address and the **tax number** (from the tax office) or the VAT ID. Register, board, phone and email additionally appear in the footer of the invoice. You maintain the name of the association further up under "Club". If it is too long for invoices or should read differently there, enter a **name on invoices**; it then appears in the letterhead, the sender line, the footer, the e-invoice and the invoice emails. The **account holder** (at most 70 characters, the limit of the GiroCode) appears in the payment block and the GiroCode; if empty, the name on invoices is used.
+2. Enter the **details of the association** – they are at the top in the *Club* section (*Club details* card), because donation receipts need them too. Section 14 (4) UStG requires the name and address and the **tax number** (from the tax office) or the VAT ID. Register, board, phone and email additionally appear in the footer of the invoice. You maintain the name of the association further up under "Club". If it is too long for invoices or should read differently there, enter a **name on invoices**; it then appears in the letterhead, the sender line, the footer, the e-invoice and the invoice emails. The **account holder** (at most 70 characters, the limit of the GiroCode) appears in the payment block and the GiroCode; if empty, the name on invoices is used.
 3. **Tax and payment:** Most small associations are **small businesses** (section 19 UStG) and do not show value added tax; the invoice then carries the required notice. Whether this applies to your association is determined by the tax office or your tax adviser. The app picks the **account for payment details and GiroCode** itself: the SEPA direct debit account, otherwise the only cash account with an IBAN. You only need to choose it if several cash accounts have an IBAN; if the IBAN is missing, the checklist hint leads straight to the account. Also set the payment term and, if you like, default texts.
 4. **Invoice numbers:** The default is `RE-{JJJJ}-{NNNN}` (e.g. `RE-2026-0042`), restarting at 1 every year; credit notes are counted separately (`ST-…`). `{MM}` adds the month of the invoice date, e.g. `RE-{JJJJ}{MM}-{NNNN}` for `RE-202611-0001`; the counter can then also restart at 1 every month. Numbers are consecutive and unique – change the pattern only before you write the first invoice.
 
@@ -3469,7 +3478,7 @@ Accountants may create drafts; **finalizing, sending and cancelling** are reserv
 
 ### 15.4 Finalizing
 
-**Finalize …** checks the mandatory details (address and tax number of the association, recipient, time of service, line items, amount). Under **Please note** the editor lists hints that do not prevent finalizing: a line on an account of the non-material sphere (**donations and genuine membership fees are not invoiced** – use the donation receipt or the contributions module instead), a registered association without "e. V." in its name, and a missing bank account. Optionally the invoice prints a **note on non-profit status** (Settings → Invoices → Club details); it does not replace a VAT notice. After that:
+**Finalize …** checks the mandatory details (address and tax number of the association, recipient, time of service, line items, amount). Under **Please note** the editor lists hints that do not prevent finalizing: a line on an account of the non-material sphere (**donations and genuine membership fees are not invoiced** – use the donation receipt or the contributions module instead), a registered association without "e. V." in its name, and a missing bank account. Optionally the invoice prints a **note on non-profit status** (Settings → Club → Club details); it does not replace a VAT notice. After that:
 
 - the invoice receives its **number** and is **immutable** – it can only be corrected by cancelling it;
 - the **PDF** is created (PDF/A-3b, with a GiroCode to scan in the banking app) and stored as a file in the home of the receipt storage user under `Vereinsbuchhaltung/Rechnungen/<year>/` (the folder can be changed in the invoice settings; the path starts in that user's home, not in your own); the checksum (SHA-256) later shows whether the file was changed;

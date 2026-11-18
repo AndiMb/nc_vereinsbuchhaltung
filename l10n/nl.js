@@ -3418,8 +3418,7 @@ OC.L10N.register("vereinsbuchhaltung", {
 	"Schaltet den Reiter „Rechnungen“ ein. Rechnungen im Namen des Vereins werden als offene Posten geführt und beim Kontoauszug-Import ihrer Zahlung zugeordnet.": "Schakelt het tabblad “Facturen” in. Facturen namens de vereniging worden als openstaande posten bijgehouden en bij het importeren van het bankafschrift aan hun betaling toegewezen.",
 	"Rechnungsmodul einschalten": "Factuurmodule inschakelen",
 	"Der Import bucht Zahlungen mit passender Rechnungsnummer und genauem Betrag selbst": "De import boekt betalingen met een overeenkomend factuurnummer en exact bedrag zelfstandig",
-	"Angaben des Vereins auf der Rechnung": "Gegevens van de vereniging op de factuur",
-	"Pflichtangaben nach § 14 Abs. 4 UStG: Name und Anschrift des Vereins sowie die Steuernummer oder USt-IdNr. Den Vereinsnamen pflegen Sie oben unter „Verein“.": "Verplichte gegevens volgens § 14 lid 4 UStG: naam en adres van de vereniging en het belastingnummer of btw-id. De naam van de vereniging beheert u hierboven onder “Vereniging”.",
+	"Angaben des Vereins": "Gegevens van de vereniging",
 	"Es fehlen noch Angaben, ohne die sich keine Rechnung festschreiben lässt.": "Er ontbreken nog gegevens zonder welke geen factuur definitief kan worden gemaakt.",
 	"Steuernummer": "Belastingnummer",
 	"USt-IdNr. (falls vorhanden)": "Btw-id (indien aanwezig)",
@@ -4911,7 +4910,7 @@ OC.L10N.register("vereinsbuchhaltung", {
 	"Ort des Vereins": "Plaats van de vereniging",
 	"Unterschrift (Name, Funktion)": "Handtekening (naam, functie)",
 	"z. B. Max Muster, Kassenwart": "bijv. Max Muster, penningmeester",
-	"Ohne eigene Steuernummer gilt die aus den Rechnungseinstellungen; Name und Anschrift des Vereins kommen ebenfalls von dort. Ist der Freistellungsbescheid älter als 5 Jahre (Feststellung nach § 60a AO: 3 Jahre), stellt die App keine Bestätigung aus.": "Zonder eigen belastingnummer geldt dat uit de factuurinstellingen; naam en adres van de vereniging komen daar ook vandaan. Is de vrijstellingsbeschikking ouder dan 5 jaar (vaststelling volgens § 60a AO: 3 jaar), dan geeft de app geen bevestiging uit.",
+	"Ohne eigene Steuernummer gilt die aus der Karte „Angaben des Vereins“ oben unter „Verein“; Name und Anschrift des Vereins kommen ebenfalls von dort. Ist der Freistellungsbescheid älter als 5 Jahre (Feststellung nach § 60a AO: 3 Jahre), stellt die App keine Bestätigung aus.": "Zonder eigen belastingnummer geldt dat uit de kaart “Gegevens van de vereniging” hierboven onder “Vereniging”; naam en adres van de vereniging komen daar ook vandaan. Is de vrijstellingsbeschikking ouder dan 5 jaar (vaststelling volgens § 60a AO: 3 jaar), dan stelt de app geen bevestiging uit.",
 	"Maschinelles Verfahren ohne Unterschrift (dem Finanzamt angezeigt, R 10b.1 Abs. 4 EStR)": "Geautomatiseerde procedure zonder handtekening (gemeld bij de belastingdienst, R 10b.1 lid 4 EStR)",
 	"Ablageordner für Zuwendungsbestätigungen": "Opslagmap voor giftbevestigingen",
 	"Ohne Nutzer der Belegablage legt die App die Doppel intern ab; sie bleiben über die Akte des Mitglieds abrufbar.": "Zonder gebruiker voor de opslag van bewijsstukken bewaart de app de duplicaten intern; ze blijven via het dossier van het lid beschikbaar.",
@@ -4927,7 +4926,7 @@ OC.L10N.register("vereinsbuchhaltung", {
 	"Unbekannte Grundlage der Steuerbegünstigung.": "Onbekende grondslag van de belastingvrijstelling.",
 	"Das Datum des Bescheids ist ungültig.": "De datum van de beschikking is ongeldig.",
 	"Eine Angabe ist zu lang (höchstens %s Zeichen).": "Een invoer is te lang (maximaal %s tekens).",
-	"Name und Anschrift des Vereins fehlen (Einstellungen → Rechnungen → Angaben des Vereins).": "Naam en adres van de vereniging ontbreken (Instellingen → Facturen → Gegevens van de vereniging).",
+	"Name und Anschrift des Vereins fehlen (Einstellungen → Verein → Angaben des Vereins).": "Naam en adres van de vereniging ontbreken (Instellingen → Vereniging → Gegevens van de vereniging).",
 	"Das Finanzamt fehlt.": "De belastingdienst (Finanzamt) ontbreekt.",
 	"Die Steuernummer fehlt.": "Het belastingnummer ontbreekt.",
 	"Die begünstigten Zwecke fehlen.": "De begunstigde doelen ontbreken.",
@@ -5002,7 +5001,8 @@ OC.L10N.register("vereinsbuchhaltung", {
 	"Der Schalter wirkt sofort, ein Speichern ist nicht nötig.": "De schakelaar werkt direct; opslaan is niet nodig.",
 	"Der Schalter wirkt sofort. Grundlage, Zwecke, Spendenkonten, Unterschrift und Ablage erscheinen, sobald er eingeschaltet ist.": "De schakelaar werkt direct. Grondslag, doelen, giftenrekeningen, ondertekening en opslag verschijnen zodra hij is ingeschakeld.",
 	"Der Schalter oben wirkt sofort; die Angaben darunter übernimmt „Speichern“.": "De schakelaar hierboven werkt direct; de gegevens hieronder worden met “Opslaan” overgenomen.",
-	"Das Rechnungsmodul ist ausgeschaltet. Angaben des Vereins, Steuer und Zahlung, Nummernkreise, Positionsvorlagen, Mahnwesen und E-Mail-Vorlagen erscheinen, sobald Sie den Reiter „Rechnungen“ einschalten.": "De factuurmodule is uitgeschakeld. Gegevens van de vereniging, belasting en betaling, nummerreeksen, sjablonen voor factuurregels, aanmaningen en e-mailsjablonen verschijnen zodra u het tabblad “Facturen” inschakelt.",
+	"Das Rechnungsmodul ist ausgeschaltet. Steuer und Zahlung, Nummernkreise, Positionsvorlagen, Mahnwesen und E-Mail-Vorlagen erscheinen, sobald Sie den Reiter „Rechnungen“ einschalten. Die Angaben des Vereins (Anschrift, Steuernummer) stehen oben unter „Verein“.": "De factuurmodule is uitgeschakeld. Belasting en betaling, nummerreeksen, sjablonen voor factuurregels, aanmaningen en e-mailsjablonen verschijnen zodra u het tabblad “Facturen” inschakelt. De gegevens van de vereniging (adres, belastingnummer) staan hierboven onder “Vereniging”.",
 	"Der Schalter wirkt sofort; eine geänderte Zahl übernimmt „Speichern“.": "De schakelaar werkt direct; een gewijzigd aantal wordt met “Opslaan” overgenomen.",
-	"Das Beitragsmodul ist ausgeschaltet. Beitragsjahr und Fristen, Mandate, Rücklastschriften, Mandats-Rechtstext und Willkommens-Mail erscheinen hier, sobald Sie den Reiter „Beiträge“ einschalten.": "De contributiemodule is uitgeschakeld. Contributiejaar en termijnen, machtigingen, gestorneerde incasso's, juridische tekst van de machtiging en welkomstmail verschijnen hier zodra u het tabblad “Contributies” inschakelt."
+	"Das Beitragsmodul ist ausgeschaltet. Beitragsjahr und Fristen, Mandate, Rücklastschriften, Mandats-Rechtstext und Willkommens-Mail erscheinen hier, sobald Sie den Reiter „Beiträge“ einschalten.": "De contributiemodule is uitgeschakeld. Contributiejaar en termijnen, machtigingen, gestorneerde incasso's, juridische tekst van de machtiging en welkomstmail verschijnen hier zodra u het tabblad “Contributies” inschakelt.",
+	"Name, Anschrift und Steuernummer des Vereins stehen auf Rechnungen und Zuwendungsbestätigungen. Für Rechnungen sind Name und Anschrift sowie die Steuernummer oder USt-IdNr. Pflicht (§ 14 Abs. 4 UStG). Den Vereinsnamen pflegen Sie oben in der Karte „Vereinsname“.": "Naam, adres en belastingnummer van de vereniging staan op facturen en giftbevestigingen. Voor facturen zijn naam en adres en het belastingnummer of btw-id verplicht (§ 14 lid 4 UStG). De naam van de vereniging beheert u hierboven op de kaart “Naam van de vereniging”."
 }, "nplurals=2; plural=(n != 1);");

@@ -103,7 +103,7 @@
 				</label>
 			</div>
 			<p class="vbh-hint">
-				{{ t('Ohne eigene Steuernummer gilt die aus den Rechnungseinstellungen; Name und Anschrift des Vereins kommen ebenfalls von dort. Ist der Freistellungsbescheid älter als 5 Jahre (Feststellung nach § 60a AO: 3 Jahre), stellt die App keine Bestätigung aus.') }}
+				{{ t('Ohne eigene Steuernummer gilt die aus der Karte „Angaben des Vereins“ oben unter „Verein“; Name und Anschrift des Vereins kommen ebenfalls von dort. Ist der Freistellungsbescheid älter als 5 Jahre (Feststellung nach § 60a AO: 3 Jahre), stellt die App keine Bestätigung aus.') }}
 			</p>
 
 			<NcCheckboxRadioSwitch v-model="form.donation_machine_signed">

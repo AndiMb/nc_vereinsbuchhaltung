@@ -81,6 +81,12 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   the mandate legal text and the welcome email), invoices, donation receipts
   and the expense numbers. The table of contents marks it as "off". Saved
   details are kept.
+- **Club details under "Club":** address, tax number, register and board are
+  now in the *Club details* card of the *Club* section (previously "Details
+  of the association on the invoice" under *Invoices*) and always visible –
+  donation receipts need them too, so a club without the invoice module can
+  still reach them. The jump address `#settings-section_rechnungen-angaben`
+  keeps working.
 - **Consistent saving:** module switches now take effect immediately
   everywhere (invoice module, cost centres, expense reimbursement, donation
   receipts – as the contributions module already did); if saving fails, the

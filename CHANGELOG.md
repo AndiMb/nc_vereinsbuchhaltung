@@ -86,6 +86,12 @@ verwenden, z. B. `**Neu:**`.
   SEPA (samt Mandats-Rechtstext und Willkommens-Mail), Rechnungen,
   Zuwendungsbestätigungen und den Auslagennummern. Das Inhaltsverzeichnis
   vermerkt „ausgeschaltet". Gespeichertes bleibt erhalten.
+- **Angaben des Vereins unter „Verein“:** Anschrift, Steuernummer, Register
+  und Vorstand stehen jetzt in der Karte *Angaben des Vereins* im Abschnitt
+  *Verein* (bisher „Angaben des Vereins auf der Rechnung“ unter
+  *Rechnungen*) und sind immer sichtbar – auch die Zuwendungsbestätigungen
+  brauchen sie, ein Verein ohne Rechnungsmodul kommt so weiter an sie heran.
+  Die Sprungadresse `#settings-section_rechnungen-angaben` gilt weiter.
 - **Einheitliches Speichern:** Modulschalter wirken jetzt überall sofort
   (Rechnungsmodul, Kostenstellen, Auslagenerstattung, Zuwendungsbestätigungen –
   wie zuvor schon das Beitragsmodul); scheitert das Speichern, springt der

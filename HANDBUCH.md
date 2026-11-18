@@ -85,7 +85,7 @@ Abschnitte stehen in dieser Reihenfolge:
 
 | Gruppe | Abschnitte (Kapitel) |
 |---|---|
-| Grundlagen | Verein (2.5, 2.6) · Berechtigungen (2.1) · Belege (2.4) · Kontoauszüge automatisch einlesen (3.3) · Geschäftsjahr (8.1) |
+| Grundlagen | Verein mit Vereinsname, Vereinswährung, Corporate Design und Angaben des Vereins (2.5, 2.6) · Berechtigungen (2.1) · Belege (2.4) · Kontoauszüge automatisch einlesen (3.3) · Geschäftsjahr (8.1) |
 | Listen und Berichte | Darstellung – Beträge in den Buchungslisten neutral oder mit Vorzeichen und Farbe, für alle Nutzer gleich · Ampel im Gliederungsbericht (7.5) |
 | Module | Beiträge & SEPA (13.1) · Mandats-Rechtstext (13.2) · Willkommens-Mail (13.2) · Zuwendungsbestätigungen (13.12) · Rechnungen (15.1) · Auslagenerstattung (4.6) · Kostenstellen (5.8) |
 | Daten und Sicherung | Datenübernahme aus „zero Buchhaltung" (3.1) · Sicherung und Umzug (12.3) · Zurücksetzen mit *Alle Daten löschen* (12.1) |
@@ -95,6 +95,9 @@ Abschnitte stehen in dieser Reihenfolge:
 steht dann nicht mehr „ausgeschaltet"). Das betrifft Beiträge & SEPA (samt
 Mandats-Rechtstext und Willkommens-Mail), Zuwendungsbestätigungen, Rechnungen
 und die Auslagennummern. Gespeicherte Angaben bleiben beim Ausschalten erhalten.
+Die **Angaben des Vereins** (Anschrift, Steuernummer, Register, Vorstand)
+stehen dagegen immer unter *Verein*: Rechnungen und Zuwendungsbestätigungen
+brauchen sie gleichermaßen.
 
 **Speichern.** **Modulschalter wirken sofort** – ein Speichern ist nicht nötig,
 eine Meldung oben rechts bestätigt es; scheitert es, springt der Schalter
@@ -278,8 +281,15 @@ Auch die E-Mails der App (Rechnungen, Mahnungen, Vorabankündigungen,
 Willkommens-Mails, Mandatsbestätigungen) tragen dann den Vereinsnamen als
 Absender und in der Fußzeile statt des Namens der Nextcloud. Die
 Absenderadresse bleibt die aus den Mail-Einstellungen der Nextcloud. Steht
-in den Einstellungen unter *Rechnungen* eine E-Mail des Vereins, gehen
+in der Karte *Angaben des Vereins* eine E-Mail des Vereins, gehen
 Antworten an diese Adresse.
+
+**Angaben des Vereins.** Ebenfalls unter *Verein* steht die Karte *Angaben
+des Vereins*: Anschrift, Steuernummer bzw. USt-IdNr., Vereinsregister,
+Vorstand, Telefon, E-Mail und ein optionaler Hinweis auf die
+Gemeinnützigkeit. Rechnungen (Kapitel 15.1) und Zuwendungsbestätigungen
+(13.12) nehmen Name, Anschrift und Steuernummer von hier; deshalb ist die
+Karte immer sichtbar, auch wenn das Rechnungsmodul aus ist.
 
 **Vereinswährung.** Auf derselben Seite steht die Karte *Vereinswährung*.
 Ab Werk rechnet die App in Euro. Zur Wahl stehen außerdem Schweizer Franken
@@ -3212,7 +3222,7 @@ Mitgliedsbeiträge abziehbar sind und wer unterschreibt.
 - die **Grundlage der Steuerbegünstigung**: *Freistellungsbescheid* (bzw. Anlage
   zum Körperschaftsteuerbescheid, mit dem **Veranlagungszeitraum**) oder
   *Feststellung nach § 60a AO*; dazu **Finanzamt**, **Steuernummer** (ohne
-  Angabe die aus den Rechnungseinstellungen) und **Datum des Bescheids**;
+  Angabe die aus *Verein → Angaben des Vereins*) und **Datum des Bescheids**;
 - die **begünstigten Zwecke**, so wie sie im Bescheid stehen (z. B. „der
   Bildung und Erziehung (§ 52 Abs. 2 Satz 1 Nr. 7 AO)");
 - **Ort** und **wer unterschreibt** (Name und Funktion unter der
@@ -3230,7 +3240,8 @@ Mitgliedsbeiträge abziehbar sind und wer unterschreibt.
 - der **Ablageordner** (Standard *Vereinsbuchhaltung/Zuwendungsbestätigungen*,
   je Jahr ein Unterordner; ohne Belegablage-Nutzer app-intern).
 
-Name und Anschrift des Vereins kommen aus *Rechnungen → Angaben des Vereins*.
+Name und Anschrift des Vereins kommen aus *Verein → Angaben des Vereins* (2.5);
+diese Karte ist auch bei ausgeschaltetem Rechnungsmodul sichtbar.
 Fehlt etwas, nennt die Akte es, statt auszustellen. Ist der Bescheid älter als
 **5 Jahre** (Freistellung) bzw. **3 Jahre** (§ 60a AO), stellt die App ebenfalls
 nichts aus – solche Bestätigungen erkennt das Finanzamt nicht an (§ 63 Abs. 5 AO).
@@ -3498,7 +3509,7 @@ Mit dem Rechnungsmodul stellt der Verein Rechnungen in seinem eigenen Namen aus 
 *Nextcloud-Einstellungen → Vereinsbuchhaltung → Rechnungen* (nur Verwalter):
 
 1. **Rechnungsmodul einschalten.** Der Schalter wirkt sofort; erst danach erscheinen die übrigen Karten des Abschnitts.
-2. **Angaben des Vereins** eintragen. Pflicht nach § 14 Abs. 4 UStG sind Name und Anschrift sowie die **Steuernummer** (vom Finanzamt) oder die USt-IdNr. Register, Vorstand, Telefon und E-Mail erscheinen zusätzlich im Fuß der Rechnung. Den Vereinsnamen pflegen Sie weiter oben unter „Verein". Ist er für Rechnungen zu lang oder soll er dort anders lauten, tragen Sie einen **Namen auf Rechnungen** ein; er steht dann im Briefkopf, in der Absenderzeile, im Fuß, in der E-Rechnung und in den Rechnungs-Mails. Der **Kontoinhaber** (höchstens 70 Zeichen, so viel fasst der GiroCode) steht im Zahlungsblock und im GiroCode; leer gilt der Name auf Rechnungen.
+2. **Angaben des Vereins** eintragen – sie stehen oben im Abschnitt *Verein* (Karte *Angaben des Vereins*), weil auch die Zuwendungsbestätigungen sie brauchen. Pflicht nach § 14 Abs. 4 UStG sind Name und Anschrift sowie die **Steuernummer** (vom Finanzamt) oder die USt-IdNr. Register, Vorstand, Telefon und E-Mail erscheinen zusätzlich im Fuß der Rechnung. Den Vereinsnamen pflegen Sie weiter oben unter „Verein". Ist er für Rechnungen zu lang oder soll er dort anders lauten, tragen Sie einen **Namen auf Rechnungen** ein; er steht dann im Briefkopf, in der Absenderzeile, im Fuß, in der E-Rechnung und in den Rechnungs-Mails. Der **Kontoinhaber** (höchstens 70 Zeichen, so viel fasst der GiroCode) steht im Zahlungsblock und im GiroCode; leer gilt der Name auf Rechnungen.
 3. **Steuer und Zahlung:** Die meisten kleinen Vereine sind **Kleinunternehmer** (§ 19 UStG) und weisen keine Umsatzsteuer aus; auf der Rechnung steht dann der vorgeschriebene Hinweis. Ob das für Ihren Verein gilt, klärt das Finanzamt oder Ihre Steuerberatung. Das **Konto für Zahlungsangaben und GiroCode** wählt die App selbst: das Konto des SEPA-Einzugs, sonst das einzige Geldkonto mit IBAN. Selbst wählen müssen Sie es nur, wenn mehrere Geldkonten eine IBAN haben; fehlt die IBAN, führt der Hinweis in der Prüfliste direkt zum Konto. Legen Sie außerdem das Zahlungsziel und bei Bedarf Standardtexte fest.
 4. **Rechnungsnummern:** Voreingestellt ist `RE-{JJJJ}-{NNNN}` (z. B. `RE-2026-0042`), jedes Jahr neu ab 1; Stornorechnungen zählen getrennt (`ST-…`). Mit `{MM}` kommt der Monat des Rechnungsdatums dazu, etwa `RE-{JJJJ}{MM}-{NNNN}` für `RE-202611-0001`; der Zähler kann dann auch jeden Monat neu ab 1 beginnen. Die Nummern sind fortlaufend und einmalig – ändern Sie das Muster nur, bevor Sie die erste Rechnung schreiben.
 
@@ -3521,7 +3532,7 @@ Buchhalter dürfen Entwürfe anlegen; **Festschreiben, Versenden und Stornieren*
 
 ### 15.4 Festschreiben
 
-**Festschreiben …** prüft die Pflichtangaben (Anschrift und Steuernummer des Vereins, Empfänger, Leistungszeitpunkt, Positionen, Betrag). Unter **Zur Beachtung** nennt der Editor Hinweise, die das Festschreiben nicht verhindern: eine Position auf einem Konto des ideellen Bereichs (**Spenden und echte Mitgliedsbeiträge sind keine Rechnung** – dafür gibt es die Zuwendungsbestätigung bzw. das Beitragsmodul), ein eingetragener Verein ohne „e. V.“ im Namen und eine fehlende Bankverbindung. Optional druckt die Rechnung einen **Hinweis auf die Gemeinnützigkeit** (Einstellungen → Rechnungen → Angaben des Vereins); er ersetzt keinen Steuerhinweis. Danach:
+**Festschreiben …** prüft die Pflichtangaben (Anschrift und Steuernummer des Vereins, Empfänger, Leistungszeitpunkt, Positionen, Betrag). Unter **Zur Beachtung** nennt der Editor Hinweise, die das Festschreiben nicht verhindern: eine Position auf einem Konto des ideellen Bereichs (**Spenden und echte Mitgliedsbeiträge sind keine Rechnung** – dafür gibt es die Zuwendungsbestätigung bzw. das Beitragsmodul), ein eingetragener Verein ohne „e. V.“ im Namen und eine fehlende Bankverbindung. Optional druckt die Rechnung einen **Hinweis auf die Gemeinnützigkeit** (Einstellungen → Verein → Angaben des Vereins); er ersetzt keinen Steuerhinweis. Danach:
 
 - bekommt die Rechnung ihre **Nummer** und ist **unveränderlich** – korrigieren lässt sie sich nur durch Stornieren;
 - entsteht das **PDF** (PDF/A-3b, mit GiroCode zum Scannen in der Banking-App) und liegt als Datei im Home des Belegablage-Nutzers unter `Vereinsbuchhaltung/Rechnungen/<Jahr>/` (der Ordner lässt sich in den Rechnungs-Einstellungen ändern; der Pfad beginnt im Home dieses Nutzers, nicht im eigenen); die Prüfsumme (SHA-256) zeigt später, ob die Datei verändert wurde;

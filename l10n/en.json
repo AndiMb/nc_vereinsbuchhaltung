@@ -3424,8 +3424,7 @@
         "Schaltet den Reiter „Rechnungen“ ein. Rechnungen im Namen des Vereins werden als offene Posten geführt und beim Kontoauszug-Import ihrer Zahlung zugeordnet.": "Turns on the “Invoices” tab. Invoices in the name of the association are kept as open items and assigned to their payment when the bank statement is imported.",
         "Rechnungsmodul einschalten": "Turn on the invoice module",
         "Der Import bucht Zahlungen mit passender Rechnungsnummer und genauem Betrag selbst": "The import books payments with a matching invoice number and the exact amount on its own",
-        "Angaben des Vereins auf der Rechnung": "Details of the association on the invoice",
-        "Pflichtangaben nach § 14 Abs. 4 UStG: Name und Anschrift des Vereins sowie die Steuernummer oder USt-IdNr. Den Vereinsnamen pflegen Sie oben unter „Verein“.": "Mandatory details under section 14 (4) UStG: name and address of the association as well as the tax number or VAT ID. You maintain the name of the association above under “Club”.",
+        "Angaben des Vereins": "Club details",
         "Es fehlen noch Angaben, ohne die sich keine Rechnung festschreiben lässt.": "Some details are still missing, without which no invoice can be finalized.",
         "Steuernummer": "Tax number",
         "USt-IdNr. (falls vorhanden)": "VAT ID (if available)",
@@ -4912,7 +4911,7 @@
         "Ort des Vereins": "Club's city",
         "Unterschrift (Name, Funktion)": "Signature (name, role)",
         "z. B. Max Muster, Kassenwart": "e.g. Max Muster, treasurer",
-        "Ohne eigene Steuernummer gilt die aus den Rechnungseinstellungen; Name und Anschrift des Vereins kommen ebenfalls von dort. Ist der Freistellungsbescheid älter als 5 Jahre (Feststellung nach § 60a AO: 3 Jahre), stellt die App keine Bestätigung aus.": "Without a tax number of its own, the one from the invoice settings applies; the club's name and address also come from there. If the exemption notice is older than 5 years (assessment under § 60a AO: 3 years), the app does not issue receipts.",
+        "Ohne eigene Steuernummer gilt die aus der Karte „Angaben des Vereins“ oben unter „Verein“; Name und Anschrift des Vereins kommen ebenfalls von dort. Ist der Freistellungsbescheid älter als 5 Jahre (Feststellung nach § 60a AO: 3 Jahre), stellt die App keine Bestätigung aus.": "Without a tax number of its own, the one from the \"Club details\" card above under \"Club\" applies; the club's name and address also come from there. If the exemption notice is older than 5 years (assessment under § 60a AO: 3 years), the app does not issue a receipt.",
         "Maschinelles Verfahren ohne Unterschrift (dem Finanzamt angezeigt, R 10b.1 Abs. 4 EStR)": "Automated procedure without signature (notified to the tax office, R 10b.1 (4) EStR)",
         "Ablageordner für Zuwendungsbestätigungen": "Storage folder for donation receipts",
         "Ohne Nutzer der Belegablage legt die App die Doppel intern ab; sie bleiben über die Akte des Mitglieds abrufbar.": "Without a receipt storage user, the app stores the duplicates internally; they remain available from the member's record.",
@@ -4928,7 +4927,7 @@
         "Unbekannte Grundlage der Steuerbegünstigung.": "Unknown basis of the tax privilege.",
         "Das Datum des Bescheids ist ungültig.": "The date of the notice is invalid.",
         "Eine Angabe ist zu lang (höchstens %s Zeichen).": "An entry is too long (%s characters at most).",
-        "Name und Anschrift des Vereins fehlen (Einstellungen → Rechnungen → Angaben des Vereins).": "The club's name and address are missing (Settings → Invoices → Club details).",
+        "Name und Anschrift des Vereins fehlen (Einstellungen → Verein → Angaben des Vereins).": "The club's name and address are missing (Settings → Club → Club details).",
         "Das Finanzamt fehlt.": "The tax office is missing.",
         "Die Steuernummer fehlt.": "The tax number is missing.",
         "Die begünstigten Zwecke fehlen.": "The privileged purposes are missing.",
@@ -5003,9 +5002,10 @@
         "Der Schalter wirkt sofort, ein Speichern ist nicht nötig.": "The switch takes effect immediately; there is no need to save.",
         "Der Schalter wirkt sofort. Grundlage, Zwecke, Spendenkonten, Unterschrift und Ablage erscheinen, sobald er eingeschaltet ist.": "The switch takes effect immediately. Basis, purposes, donation accounts, signature and storage appear as soon as it is switched on.",
         "Der Schalter oben wirkt sofort; die Angaben darunter übernimmt „Speichern“.": "The switch above takes effect immediately; the details below are applied with \"Save\".",
-        "Das Rechnungsmodul ist ausgeschaltet. Angaben des Vereins, Steuer und Zahlung, Nummernkreise, Positionsvorlagen, Mahnwesen und E-Mail-Vorlagen erscheinen, sobald Sie den Reiter „Rechnungen“ einschalten.": "The invoice module is switched off. Club details, tax and payment, number ranges, line item templates, dunning and email templates appear as soon as you switch on the \"Invoices\" tab.",
+        "Das Rechnungsmodul ist ausgeschaltet. Steuer und Zahlung, Nummernkreise, Positionsvorlagen, Mahnwesen und E-Mail-Vorlagen erscheinen, sobald Sie den Reiter „Rechnungen“ einschalten. Die Angaben des Vereins (Anschrift, Steuernummer) stehen oben unter „Verein“.": "The invoice module is switched off. Tax and payment, number ranges, line item templates, dunning and email templates appear as soon as you switch on the \"Invoices\" tab. The club details (address, tax number) are above under \"Club\".",
         "Der Schalter wirkt sofort; eine geänderte Zahl übernimmt „Speichern“.": "The switch takes effect immediately; a changed number is applied with \"Save\".",
-        "Das Beitragsmodul ist ausgeschaltet. Beitragsjahr und Fristen, Mandate, Rücklastschriften, Mandats-Rechtstext und Willkommens-Mail erscheinen hier, sobald Sie den Reiter „Beiträge“ einschalten.": "The contributions module is switched off. Contribution year and deadlines, mandates, returned direct debits, mandate legal text and welcome email appear here as soon as you switch on the \"Contributions\" tab."
+        "Das Beitragsmodul ist ausgeschaltet. Beitragsjahr und Fristen, Mandate, Rücklastschriften, Mandats-Rechtstext und Willkommens-Mail erscheinen hier, sobald Sie den Reiter „Beiträge“ einschalten.": "The contributions module is switched off. Contribution year and deadlines, mandates, returned direct debits, mandate legal text and welcome email appear here as soon as you switch on the \"Contributions\" tab.",
+        "Name, Anschrift und Steuernummer des Vereins stehen auf Rechnungen und Zuwendungsbestätigungen. Für Rechnungen sind Name und Anschrift sowie die Steuernummer oder USt-IdNr. Pflicht (§ 14 Abs. 4 UStG). Den Vereinsnamen pflegen Sie oben in der Karte „Vereinsname“.": "The club's name, address and tax number appear on invoices and donation receipts. For invoices, the name and address as well as the tax number or VAT ID are mandatory (section 14 (4) UStG). You maintain the club name above in the \"Club name\" card."
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

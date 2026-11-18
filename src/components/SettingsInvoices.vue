@@ -40,113 +40,17 @@
 				{{ stateError }}
 			</p>
 			<p v-if="!form.invoice_module_active" class="vbh-hint vbh-hint--info" data-testid="settings-module-off-rechnungen">
-				{{ t('Das Rechnungsmodul ist ausgeschaltet. Angaben des Vereins, Steuer und Zahlung, Nummernkreise, Positionsvorlagen, Mahnwesen und E-Mail-Vorlagen erscheinen, sobald Sie den Reiter „Rechnungen“ einschalten.') }}
+				{{ t('Das Rechnungsmodul ist ausgeschaltet. Steuer und Zahlung, Nummernkreise, Positionsvorlagen, Mahnwesen und E-Mail-Vorlagen erscheinen, sobald Sie den Reiter „Rechnungen“ einschalten. Die Angaben des Vereins (Anschrift, Steuernummer) stehen oben unter „Verein“.') }}
 			</p>
 		</div>
 
 		<!-- Ausgeschaltetes Modul: die übrigen Karten (rund 40 Felder) bewirken
 		     nichts und bleiben verborgen; gespeichert bleibt alles. Die Prüfliste
 		     des Rechnungseditors, die auf die Anker darin springt, gibt es nur bei
-		     eingeschaltetem Modul. -->
+		     eingeschaltetem Modul. Die Angaben des Vereins brauchen auch die
+		     Zuwendungsbestätigungen; sie stehen deshalb immer sichtbar unter
+		     „Verein“ (SettingsClubIssuer.vue). -->
 		<template v-if="form.invoice_module_active">
-			<div id="settings-section_rechnungen-angaben" class="vbh-card">
-				<h4>{{ t('Angaben des Vereins auf der Rechnung') }}</h4>
-				<p class="vbh-hint">
-					{{ t('Pflichtangaben nach § 14 Abs. 4 UStG: Name und Anschrift des Vereins sowie die Steuernummer oder USt-IdNr. Den Vereinsnamen pflegen Sie oben unter „Verein“.') }}
-				</p>
-				<p v-if="missing.length" class="vbh-hint vbh-hint--warning">
-					{{ t('Es fehlen noch Angaben, ohne die sich keine Rechnung festschreiben lässt.') }}
-				</p>
-				<div class="vbh-form">
-					<label class="vbh-grow">{{ t('Name auf Rechnungen (optional)') }}
-						<input v-model="form.club_invoice_name" maxlength="200" :placeholder="clubName">
-					</label>
-				</div>
-				<p class="vbh-hint">
-					{{ t('Nur nötig, wenn der Vereinsname auf Rechnungen anders lauten soll, etwa weil er sehr lang ist. Er steht dann im Briefkopf, in der Absenderzeile, in der Fußzeile, in der E-Rechnung und in den Rechnungs-Mails. Leer gilt der Vereinsname.') }}
-				</p>
-				<div class="vbh-form">
-					<label class="vbh-grow">{{ t('Kontoinhaber (optional)') }}
-						<input v-model="form.club_account_holder" maxlength="70" :placeholder="invoiceName.slice(0, 70)">
-					</label>
-				</div>
-				<p v-if="holderTooLong" class="vbh-hint vbh-hint--warning">
-					{{ t('Der Name auf Rechnungen hat mehr als 70 Zeichen; im GiroCode würde er abgeschnitten. Tragen Sie den Kontoinhaber so ein, wie ihn die Bank führt.') }}
-				</p>
-				<p v-else class="vbh-hint">
-					{{ t('Steht im Zahlungsblock, im GiroCode (höchstens 70 Zeichen) und in der E-Rechnung. Leer gilt der Name auf Rechnungen.') }}
-				</p>
-				<div class="vbh-form">
-					<label class="vbh-grow">{{ t('Straße und Hausnummer') }}
-						<input v-model="form.club_street" maxlength="255">
-					</label>
-				</div>
-				<div class="vbh-form">
-					<label>{{ t('PLZ') }}
-						<input v-model="form.club_postal_code" class="vbh-short" maxlength="16">
-					</label>
-					<label class="vbh-grow">{{ t('Ort') }}
-						<input v-model="form.club_city" maxlength="128">
-					</label>
-					<label>{{ t('Land') }}
-						<CountrySelect v-model="form.club_country" :noClear="true" />
-					</label>
-				</div>
-				<div class="vbh-form">
-					<label>{{ t('Steuernummer') }}
-						<input v-model="form.club_tax_number" maxlength="32" placeholder="12/345/67890">
-					</label>
-					<label>{{ t('USt-IdNr. (falls vorhanden)') }}
-						<input v-model="form.club_vat_id" maxlength="32" placeholder="DE123456789">
-					</label>
-				</div>
-				<div class="vbh-form">
-					<label>{{ t('Vereinsregister (Gericht)') }}
-						<input v-model="form.club_register_court" maxlength="128" :placeholder="t('z. B. Amtsgericht Musterstadt')">
-					</label>
-					<label>{{ t('Registernummer') }}
-						<input
-							v-model="form.club_register_no"
-							class="vbh-short"
-							maxlength="64"
-							placeholder="VR 1234">
-					</label>
-				</div>
-				<div class="vbh-form">
-					<label class="vbh-grow">{{ t('Vertretungsberechtigt (Vorstand)') }}
-						<input v-model="form.club_representatives" maxlength="255" :placeholder="t('z. B. Erika Muster, 1. Vorsitzende')">
-					</label>
-				</div>
-				<div class="vbh-form">
-					<label>{{ t('Telefon') }}
-						<input v-model="form.club_phone" maxlength="64">
-					</label>
-					<label class="vbh-grow">{{ t('E-Mail') }}
-						<input v-model="form.club_email" type="email" maxlength="255">
-					</label>
-				</div>
-				<div class="vbh-form">
-					<SettingsTemplateField
-						v-model="form.club_nonprofit_note"
-						:label="t('Hinweis auf die Gemeinnützigkeit (optional)')"
-						:defaultText="t('Der Verein ist vom Finanzamt … als gemeinnützig anerkannt (Freistellungsbescheid vom …).')"
-						:maxlength="500"
-						multiline
-						:rows="2" />
-				</div>
-				<p class="vbh-hint">
-					{{ t('Erscheint unter den Hinweisen auf der Rechnung. Er ist freiwillig und ersetzt keinen Hinweis zur Umsatzsteuer.') }}
-				</p>
-				<p v-if="issuerError" class="vbh-hint vbh-hint--error" role="alert">
-					{{ issuerError }}
-				</p>
-				<div class="vbh-form">
-					<NcButton variant="primary" :disabled="saving" @click="saveIssuer">
-						{{ t('Speichern') }}
-					</NcButton>
-				</div>
-			</div>
-
 			<div id="settings-section_rechnungen-zahlung" class="vbh-card">
 				<h4>{{ t('Steuer, Zahlung und Texte') }}</h4>
 				<p class="vbh-hint">
@@ -419,7 +323,6 @@ import { showError, showSuccess } from '@nextcloud/dialogs'
 import { generateUrl } from '@nextcloud/router'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
-import CountrySelect from './CountrySelect.vue'
 import FolderPathField from './FolderPathField.vue'
 import NumberRangeForm from './NumberRangeForm.vue'
 import SettingsInvoiceTemplates from './SettingsInvoiceTemplates.vue'
@@ -460,25 +363,12 @@ const KEYS = [
 	'invoice_folder',
 	'invoice_mail_subject',
 	'invoice_mail_body',
-	'club_invoice_name',
-	'club_account_holder',
-	'club_street',
-	'club_postal_code',
-	'club_city',
-	'club_country',
-	'club_tax_number',
-	'club_vat_id',
-	'club_register_court',
-	'club_register_no',
-	'club_representatives',
-	'club_phone',
-	'club_email',
-	'club_nonprofit_note',
 ]
 
 /**
  * Einstellungen des Rechnungsmoduls (Epic #168): Modul ein- und ausschalten,
- * Angaben des Vereins für die Pflichtangaben, Steuer-Modus, Zahlungsangaben,
+ * Steuer-Modus, Zahlungsangaben (die Angaben des Vereins stehen in
+ * SettingsClubIssuer.vue unter „Verein“),
  * Mail-Vorlage und Nummernkreise. Schreiben dürfen nur Verwalter (SettingsController).
  * Jede Karte speichert nur ihre eigenen Felder; Fehler des Servers stehen in der Karte.
  *
@@ -489,7 +379,7 @@ const KEYS = [
  */
 export default {
 	name: 'SettingsInvoices',
-	components: { NcButton, NcLoadingIcon, CountrySelect, FolderPathField, NumberRangeForm, SettingsInvoiceTemplates, SettingsTemplateField, SettingsToggle },
+	components: { NcButton, NcLoadingIcon, FolderPathField, NumberRangeForm, SettingsInvoiceTemplates, SettingsTemplateField, SettingsToggle },
 
 	props: {
 		// Nutzer der Belegablage im Nextcloud-Dateibaum (SettingsApp.vue); leer = app-interne Ablage
@@ -504,14 +394,11 @@ export default {
 			loaded: false,
 			saving: false,
 			form: {},
-			clubName: '',
-			missing: [],
 			defaults: {},
 			accounts: [],
 			ranges: [],
 			sepaAccountId: null,
 			stateError: '',
-			issuerError: '',
 			taxError: '',
 			mailError: '',
 			dunningError: '',
@@ -520,12 +407,6 @@ export default {
 	},
 
 	computed: {
-		/** Wie InvoiceSettings::issuer()['name']: Name auf Rechnungen, sonst der Vereinsname (#238). */
-		invoiceName() { return (this.form.club_invoice_name || '').trim() || this.clubName },
-
-		/** Der GiroCode fasst 70 Zeichen; ohne eigenen Kontoinhaber würde der Name gekürzt. */
-		holderTooLong() { return !(this.form.club_account_holder || '').trim() && this.invoiceName.length > 70 },
-
 		/** Wie InvoiceSettings::folder(): ein leeres Feld heißt Standardordner (Issue #212). */
 		invoiceFolderPath() {
 			return String(this.form.invoice_folder || '').replace(/\\/g, '/').replace(/^\/+|\/+$/g, '') || 'Vereinsbuchhaltung/Rechnungen'
@@ -568,8 +449,6 @@ export default {
 	methods: {
 		apply(data) {
 			this.form = this.normalize(data)
-			this.clubName = data.club_name || ''
-			this.missing = data.invoice_missing_issuer_fields || []
 			this.defaults = data.invoice_default_texts || {}
 		},
 
@@ -598,8 +477,6 @@ export default {
 				const { data } = await api.saveSettings(body)
 				const fresh = this.normalize(data)
 				for (const key of keys) { this.form[key] = fresh[key] }
-				this.clubName = data.club_name || ''
-				this.missing = data.invoice_missing_issuer_fields || []
 				this.defaults = data.invoice_default_texts || {}
 				showSuccess(this.t('Einstellungen gespeichert.'))
 				return true
@@ -620,10 +497,6 @@ export default {
 		},
 
 		saveModule() { return this.store(['invoice_module_active', 'invoice_auto_assign', 'invoice_einvoice_auto', 'invoice_rf_reference'], 'stateError') },
-
-		saveIssuer() {
-			return this.store(['club_invoice_name', 'club_account_holder', 'club_street', 'club_postal_code', 'club_city', 'club_country', 'club_tax_number', 'club_vat_id', 'club_register_court', 'club_register_no', 'club_representatives', 'club_phone', 'club_email', 'club_nonprofit_note'], 'issuerError')
-		},
 
 		saveTax() {
 			return this.store(['invoice_tax_mode', 'invoice_vat_account_19', 'invoice_vat_account_7', 'invoice_rate_zweckbetrieb', 'invoice_rate_wirtschaftlich', 'invoice_default_due_days', 'invoice_default_exemption_text', 'invoice_account_id', 'invoice_bic', 'invoice_payment_terms', 'invoice_note_head', 'invoice_note_foot', 'invoice_folder'], 'taxError')
