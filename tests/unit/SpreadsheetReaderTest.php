@@ -32,7 +32,10 @@ class SpreadsheetReaderTest extends TestCase {
 	private function temp(): ITempManager {
 		$temp = $this->createMock(ITempManager::class);
 		$temp->method('getTemporaryFile')->willReturnCallback(function (string $postFix = ''): string {
-			$file = tempnam(sys_get_temp_dir(), 'vbh-test') . $postFix;
+			$base = tempnam(sys_get_temp_dir(), 'vbh-test');
+			// Auch die Platzhalterdatei von tempnam() aufraeumen, nicht nur die mit Endung.
+			$this->tempFiles[] = $base;
+			$file = $base . $postFix;
 			touch($file);
 			$this->tempFiles[] = $file;
 			return $file;

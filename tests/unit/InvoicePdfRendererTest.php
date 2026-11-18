@@ -27,6 +27,24 @@ class InvoicePdfRendererTest extends TestCase {
 		if (!class_exists(\TCPDF::class)) {
 			$this->markTestSkipped('TCPDF ist nicht installiert (composer install).');
 		}
+		$this->cacheBefore = $this->cacheFiles();
+	}
+
+	protected function tearDown(): void {
+		// TCPDF raeumt seine Bild-Zwischendateien ueber den Namen "__tcpdf_…" auf.
+		// Unter Windows kuerzt tempnam() das Praefix auf drei Zeichen ("__t"), der
+		// Name passt dann nie, und die Dateien bleiben im Temp-Ordner liegen.
+		foreach (array_diff($this->cacheFiles(), $this->cacheBefore) as $file) {
+			@unlink($file);
+		}
+	}
+
+	/** @var list<string> */
+	private array $cacheBefore = [];
+
+	/** @return list<string> */
+	private function cacheFiles(): array {
+		return glob(rtrim(sys_get_temp_dir(), '/\\') . DIRECTORY_SEPARATOR . '__t*.tmp') ?: [];
 	}
 
 	/** @return list<InvoiceLine> */
