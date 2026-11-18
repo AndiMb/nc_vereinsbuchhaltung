@@ -12,6 +12,10 @@ const FILE = join(FIXTURES_DIR, 'beispiel-paypal.csv')
 const PAYPAL_EMAIL = 'kasse@example.org'
 
 test.describe('PayPal-Import', () => {
+	// Seriell: ein Wiederholungslauf startet die Datei ab beforeAll (resetBook) neu,
+	// statt Test 2 gegen schon importierte Daten zu wiederholen.
+	test.describe.configure({ mode: 'serial' })
+
 	test.beforeAll(async ({ request }) => {
 		await api.resetBook(request)
 		await api.seedDefaultAccounts(request)
