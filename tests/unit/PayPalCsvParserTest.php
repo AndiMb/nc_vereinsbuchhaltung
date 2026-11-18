@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Tests\Unit;
 
 use OCA\Vereinsbuchhaltung\Exception\UserFacingException;
+use OCA\Vereinsbuchhaltung\Service\ClubCurrency;
 use OCA\Vereinsbuchhaltung\Service\Statement\PayPalCsvParser;
+use OCP\IL10N;
 use PHPUnit\Framework\TestCase;
 
 class PayPalCsvParserTest extends TestCase {
@@ -125,6 +127,54 @@ class PayPalCsvParserTest extends TestCase {
 			$out .= '"' . implode('","', array_map(static fn ($c) => str_replace('"', '""', (string)$c), $cols)) . "\"\r\n";
 		}
 		return $out;
+	}
+
+	public function testFehlenderTransaktionscodeFehler(): void {
+		try {
+			$this->parser->parse($this->variant([0], [0 => [12 => '']]));
+			$this->fail('UserFacingException erwartet');
+		} catch (UserFacingException $e) {
+			$this->assertSame('Zeile 2: Transaktionscode fehlt.', $e->getMessage());
+		}
+	}
+
+	public function testDoppelterTransaktionscodeFehler(): void {
+		try {
+			$this->parser->parse($this->variant([0, 0]));
+			$this->fail('UserFacingException erwartet');
+		} catch (UserFacingException $e) {
+			$this->assertSame('Zeile 3: Transaktionscode 1AB23456CD7890123 kommt mehrfach vor.', $e->getMessage());
+		}
+	}
+
+	public function testMemoZeileOhneCodeStoertNicht(): void {
+		// Nicht übernommene Zeilen (Memo) brauchen keinen Code.
+		$rows = $this->parser->parse($this->variant([0, 1], [0 => [40 => 'Memo', 12 => '']]));
+		$this->assertCount(1, $rows);
+	}
+
+	public function testFremdwaehrungVereinswaehrungChf(): void {
+		$currency = $this->createMock(ClubCurrency::class);
+		$currency->method('code')->willReturn('CHF');
+		$parser = new PayPalCsvParser(currency: $currency);
+		$content = $this->variant([0, 1], [0 => [6 => 'CHF']]);
+
+		$rows = $parser->parse($content);
+
+		$this->assertCount(2, $rows);
+		$this->assertSame('CHF', $rows[0]['currency']);
+		$this->assertSame(1, $parser->skipped($content));
+	}
+
+	public function testGebuehrtextWirdUebersetzt(): void {
+		$l10n = $this->createMock(IL10N::class);
+		$l10n->method('t')->willReturnCallback(static fn (string $text, array $params = []): string => 'EN:' . ($params === [] ? $text : vsprintf($text, $params)));
+		$parser = new PayPalCsvParser(l10n: $l10n);
+
+		$fee = $parser->parse($this->content)[1];
+
+		$this->assertSame('EN:PayPal-Gebühr', $fee['bookingText']);
+		$this->assertSame('EN:PayPal-Gebühr zu 1AB23456CD7890123', $fee['purpose']);
 	}
 
 	public function testSaldenAusGuthaben(): void {

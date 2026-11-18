@@ -76,13 +76,25 @@ class ReconciliationService {
 		[$parsed] = $this->parsers->parse($content);
 		$rows = [];
 		$foreign = [];
+		$foreignPayPal = [];
 		foreach ($parsed as $row) {
 			$own = isset($row['ownAccount']) ? (string)$row['ownAccount'] : null;
 			if ($this->concerns($own, $account, $banks)) {
 				$rows[] = $row;
 			} else {
 				$foreign[(string)$own] = ($foreign[(string)$own] ?? 0) + 1;
+				// Nur der PayPal-Parser nennt die lesbare Adresse hinter der Kennung.
+				if (isset($row['ownAccountLabel']) && $row['ownAccountLabel'] !== '') {
+					$foreignPayPal[(string)$row['ownAccountLabel']] = true;
+				}
 			}
+		}
+		if ($rows === [] && $foreignPayPal !== []) {
+			// Die interne Kennung (PAYPAL…) und der IBAN-Hinweis helfen hier nicht.
+			throw new \InvalidArgumentException($this->l10n->t(
+				'Die Datei gehört zum PayPal-Konto %s. Tragen Sie diese Adresse als PayPal-Adresse am richtigen Geldkonto ein (Tab Konten).',
+				[implode(', ', array_keys($foreignPayPal))],
+			));
 		}
 		if ($rows === []) {
 			throw new \InvalidArgumentException($this->l10n->t(

@@ -191,7 +191,10 @@ class AccountService {
 		if (array_key_exists('iban', $data)) {
 			$account->setIban($this->ibanValidator->validate($data['iban'] !== null ? (string)$data['iban'] : null));
 		}
-		if (array_key_exists('paypalEmail', $data)) {
+		// Nur an einem Geldkonto (isBank steht oben schon fest): sonst wird der
+		// Wert unten ohnehin verworfen und ein Tippfehler im versteckten Feld
+		// dürfte keinen Fehler auslösen.
+		if (array_key_exists('paypalEmail', $data) && $account->getIsBank()) {
 			$account->setPaypalEmail(PayPalAddresses::normalize($data['paypalEmail'] !== null ? (string)$data['paypalEmail'] : null, $this->l10n));
 		}
 		// Wird das Geldkonto-Kennzeichen entfernt, muss die IBAN mitgehen: an

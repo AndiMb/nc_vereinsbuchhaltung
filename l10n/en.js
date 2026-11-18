@@ -3139,6 +3139,7 @@ OC.L10N.register("vereinsbuchhaltung", {
 	"am {day}. des ersten Periodenmonats": "on day {day} of the first month of the period",
 	"Der Umsatz gehört zum Konto %s, das zu keinem Geldkonto passt. Tragen Sie dessen IBAN am richtigen Geldkonto ein (Tab Konten).": "The transaction belongs to account %s, which matches no cash/bank account. Enter its IBAN on the right cash/bank account (Accounts tab).",
 	"Der Umsatz gehört zum Konto %s, das zu mehreren Geldkonten passt (%s). Prüfen Sie die IBANs der Geldkonten (Tab Konten).": "The transaction belongs to account %s, which matches several cash/bank accounts (%s). Check the IBANs of the cash/bank accounts (Accounts tab).",
+	"Die Datei gehört zum PayPal-Konto %s. Tragen Sie diese Adresse als PayPal-Adresse am richtigen Geldkonto ein (Tab Konten).": "The file belongs to PayPal account %s. Enter this address as the PayPal address on the correct cash/bank account (Accounts tab).",
 	"Der Umsatz gehört zum PayPal-Konto %s. Tragen Sie diese Adresse als PayPal-Adresse am richtigen Geldkonto ein (Tab Konten).": "The transaction belongs to PayPal account %s. Enter this address as the PayPal address on the correct cash/bank account (Accounts tab).",
 	"Der Umsatz gehört zum PayPal-Konto %s, das zu mehreren Geldkonten passt (%s). Prüfen Sie die PayPal-Adressen der Geldkonten (Tab Konten).": "The transaction belongs to PayPal account %s, which matches several cash/bank accounts (%s). Check the PayPal addresses of the cash/bank accounts (Accounts tab).",
 	"Nicht jeder Umsatz lässt sich einem Geldkonto zuordnen. Die Datei wird trotzdem eingelesen; zuordnen können Sie diese Umsätze, sobald die IBAN am richtigen Geldkonto steht.": "Not every transaction can be matched to a cash/bank account. The file is imported anyway; you can assign these transactions once the IBAN is on the right cash/bank account.",
@@ -4985,6 +4986,8 @@ OC.L10N.register("vereinsbuchhaltung", {
 	"Die Datei ist kein PayPal-Aktivitätsdownload: Spalten fehlen.": "The file is not a PayPal activity download: columns are missing.",
 	"In der Datei steht keine eigene PayPal-Adresse (Absender bzw. Empfänger E-Mail-Adresse).": "The file contains no PayPal address of your own (sender or recipient email address).",
 	"Zeile %d: Datum oder Betrag sind nicht lesbar.": "Row %d: date or amount cannot be read.",
+	"Zeile %d: Transaktionscode fehlt.": "Row %d: transaction code is missing.",
+	"Zeile %d: Transaktionscode %s kommt mehrfach vor.": "Row %d: transaction code %s occurs more than once.",
 	"Zeile %d: Netto passt nicht zu Brutto und Gebühr.": "Row %d: net does not match gross and fee.",
 	"PayPal-Adresse (optional)": "PayPal address (optional)",
 	"E-Mail-Adresse(n) des PayPal-Kontos für den PayPal-Import; mehrere durch Komma trennen.": "Email address(es) of the PayPal account for the PayPal import; separate multiple addresses with a comma."

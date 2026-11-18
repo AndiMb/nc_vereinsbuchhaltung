@@ -337,6 +337,20 @@ class ReconciliationServiceTest extends TestCase {
 		$this->assertSame(0, $r['balance']['diffClosingCents']);
 	}
 
+	/** Eine PayPal-Datei am falschen Geldkonto nennt die Adresse, nicht die interne Kennung und keine IBAN. */
+	public function testPayPalDateiAmFalschenGeldkonto(): void {
+		$content = (string)file_get_contents(__DIR__ . '/../fixtures/beispiel-paypal.csv');
+		try {
+			$this->service()->reconcile(self::USER, 1, $content, null, null);
+			$this->fail('InvalidArgumentException erwartet');
+		} catch (\InvalidArgumentException $e) {
+			$this->assertStringContainsString('kasse@example.org', $e->getMessage());
+			$this->assertStringContainsString('PayPal-Adresse', $e->getMessage());
+			$this->assertStringNotContainsString('PAYPALKASSE', $e->getMessage());
+			$this->assertStringNotContainsString('IBAN', $e->getMessage());
+		}
+	}
+
 	public function testAuszugNurEinesAnderenKontos(): void {
 		$this->expectException(\InvalidArgumentException::class);
 		$this->expectExceptionMessage(self::OTHER_IBAN);

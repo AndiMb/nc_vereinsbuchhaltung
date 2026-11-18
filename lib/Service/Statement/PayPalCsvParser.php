@@ -262,11 +262,22 @@ final class PayPalCsvParser implements StatementParser, StatementBalanceReader {
 		$rows = [];
 		$chain = [];
 		$skipped = 0;
+		$seen = [];
 		foreach ($entries as $entry) {
 			if ($this->side($entry['effect']) === null || $entry['currency'] !== $clubCurrency) {
 				$skipped++;
 				continue;
 			}
+
+			// Der Code ist der einzige Anker des Hashs: ohne ihn oder bei Doppelung
+			// würden Umsätze als Dublette verworfen bzw. nie wiedererkannt.
+			if ($entry['code'] === '') {
+				throw new UserFacingException($this->msg('Zeile %d: Transaktionscode fehlt.', [$entry['line']]));
+			}
+			if (isset($seen[$entry['code']])) {
+				throw new UserFacingException($this->msg('Zeile %d: Transaktionscode %s kommt mehrfach vor.', [$entry['line'], $entry['code']]));
+			}
+			$seen[$entry['code']] = true;
 
 			$date = $this->parseDate($entry['date']);
 			$gross = $this->parseAmount($entry['gross']);
@@ -336,7 +347,10 @@ final class PayPalCsvParser implements StatementParser, StatementBalanceReader {
 		return $e === 'soll' || $e === 'haben' ? $e : null;
 	}
 
-	/** „1.250,00" / „-1,60" → Cent; null bei nicht lesbarem Wert. */
+	/**
+	 * „1.250,00" / „-1,60" → Cent; null bei nicht lesbarem Wert. Das Format
+	 * ist bewusst das des deutschen Exports (Tausenderpunkt, Dezimalkomma).
+	 */
 	private function parseAmount(string $value): ?int {
 		$v = str_replace(['.', ' ', "\xC2\xA0"], '', trim($value));
 		$v = str_replace(',', '.', $v);

@@ -54,6 +54,19 @@ class AccountPaypalEmailTest extends TestCase {
 		$this->assertNull($saved->getPaypalEmail());
 	}
 
+	public function testUpdateOhneGeldkontoIgnoriertUngueltigeAdresse(): void {
+		$existing = new Account();
+		$existing->setUserId('u');
+		$existing->setNumber('1200');
+		$existing->setName('PayPal');
+		$existing->setType('asset');
+		$existing->setIsBank(true);
+
+		$saved = $this->service($existing)->update(1, 'u', ['isBank' => false, 'paypalEmail' => 'kaputt']);
+
+		$this->assertNull($saved->getPaypalEmail());
+	}
+
 	public function testUpdateLeerstringLoescht(): void {
 		$existing = new Account();
 		$existing->setUserId('u');
