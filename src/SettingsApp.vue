@@ -77,22 +77,30 @@
 					v-model:selfServiceEnabled="selfServiceEnabled"
 					v-model:selfServiceTransferSwitchEnabled="selfServiceTransferSwitchEnabled"
 					:storageSaving="storageSaving"
-					:saveSettings="saveSettings" />
-				<SettingsSepaModule :storageUser="storageUser" />
+					:saveSettings="saveSepaBasics" />
+				<!-- Ausgeschaltetes Modul: Fristen, Mandate, Rücklastschriften,
+				     Rechtstext und Willkommens-Mail ausblenden – rund 30 Felder, die
+				     dann nichts bewirken. Der Schalter oben bleibt sichtbar. -->
+				<SettingsSepaModule v-if="membershipEnabled" :storageUser="storageUser" />
+				<p v-else-if="settingsLoaded" class="vbh-hint vbh-hint--info" data-testid="settings-module-off-beitraege">
+					{{ t('Das Beitragsmodul ist ausgeschaltet. Beitragsjahr und Fristen, Mandate, Rücklastschriften, Mandats-Rechtstext und Willkommens-Mail erscheinen hier, sobald Sie den Reiter „Beiträge“ einschalten.') }}
+				</p>
 			</NcSettingsSection>
 		</div>
 
 		<!-- Rechtstext und Willkommens-Mail gehören fachlich zum Beitragsmodul
 		     und stehen deshalb direkt darunter; eigene Abschnitte bleiben sie,
-		     weil ihre Anker von außen angesprungen werden. -->
+		     weil ihre Anker von außen angesprungen werden. Der Anker-Container
+		     bleibt auch bei ausgeschaltetem Modul stehen: ein Sprunglink landet
+		     dann beim Hinweis direkt darüber statt ins Leere. -->
 		<div id="settings-section_mandats-rechtstext">
-			<NcSettingsSection :name="sec['mandats-rechtstext'].name" :docUrl="helpUrl('mandats-rechtstext')">
+			<NcSettingsSection v-if="membershipEnabled" :name="sec['mandats-rechtstext'].name" :docUrl="helpUrl('mandats-rechtstext')">
 				<SettingsMandateLegalText :clubName="clubName" />
 			</NcSettingsSection>
 		</div>
 
 		<div id="settings-section_willkommens-mail">
-			<NcSettingsSection :name="sec['willkommens-mail'].name" :docUrl="helpUrl('willkommens-mail')">
+			<NcSettingsSection v-if="membershipEnabled" :name="sec['willkommens-mail'].name" :docUrl="helpUrl('willkommens-mail')">
 				<SettingsWelcomeMail />
 			</NcSettingsSection>
 		</div>
@@ -101,25 +109,25 @@
 		     gibt es auch ohne Beitragsmodul, für Spenden externer Spender (#10, Teil B). -->
 		<div id="settings-section_zuwendungen">
 			<NcSettingsSection :name="sec.zuwendungen.name" :docUrl="helpUrl('zuwendungen')">
-				<SettingsDonationReceipts :storageUser="storageUser" />
+				<SettingsDonationReceipts :storageUser="storageUser" @active="modules.zuwendungen = $event" />
 			</NcSettingsSection>
 		</div>
 
 		<div id="settings-section_rechnungen">
 			<NcSettingsSection :name="sec.rechnungen.name" :docUrl="helpUrl('rechnungen')">
-				<SettingsInvoices :storageUser="storageUser" />
+				<SettingsInvoices :storageUser="storageUser" @active="modules.rechnungen = $event" />
 			</NcSettingsSection>
 		</div>
 
 		<div id="settings-section_auslagen">
 			<NcSettingsSection :name="sec.auslagen.name" :docUrl="helpUrl('auslagen')">
-				<SettingsReimbursements />
+				<SettingsReimbursements @active="modules.auslagen = $event" />
 			</NcSettingsSection>
 		</div>
 
 		<div id="settings-section_kostenstellen">
 			<NcSettingsSection :name="sec.kostenstellen.name" :docUrl="helpUrl('kostenstellen')">
-				<SettingsCostCenters />
+				<SettingsCostCenters @active="modules.kostenstellen = $event" />
 			</NcSettingsSection>
 		</div>
 
@@ -203,10 +211,11 @@ import { useConfirm } from './composables/useConfirm.js'
 import { usePeriods } from './composables/usePeriods.js'
 import { usePermissions } from './composables/usePermissions.js'
 import { THRESHOLD_DEFAULTS } from './lib/budgetStatusSettings.js'
-import { currencySettingsPayload, setClubCurrency } from './lib/clubCurrency.js'
+import { setClubCurrency } from './lib/clubCurrency.js'
 import { setClubTimeZone } from './lib/clubTime.js'
 import { errMsg } from './lib/format.js'
 import { withPasswordConfirmation } from './lib/passwordGate.js'
+import { SAVE_PARTS, settingsPayload } from './lib/settingsSave.js'
 import { settingsSections, tocGroups } from './lib/settingsSections.js'
 
 /**
@@ -262,6 +271,12 @@ export default {
 		return {
 			// Überschriften und Handbuch-Kapitel der Abschnitte, siehe lib/settingsSections.js
 			sections: settingsSections(),
+			// Erst nach dem ersten Laden stehen die Modulschalter fest; vorher
+			// soll kein „ausgeschaltet“ aufblitzen.
+			settingsLoaded: false,
+			// An/aus der übrigen Module, nur für das Inhaltsverzeichnis: die Karten
+			// laden und speichern ihre Schalter selbst und melden sie per @active.
+			modules: { zuwendungen: false, rechnungen: false, auslagen: false, kostenstellen: false },
 			storageMode: 'appdata',
 			storageUser: '',
 			storagePath: '',
@@ -306,19 +321,27 @@ export default {
 		},
 
 		toc() {
-			return tocGroups(this.sections)
+			const off = new Set(Object.keys(this.modules).filter((id) => !this.modules[id]))
+			if (!this.membershipEnabled) { off.add('beitraege-sepa') }
+			// Ohne Beitragsmodul sind Rechtstext und Willkommens-Mail ausgeblendet.
+			const hidden = new Set(this.membershipEnabled ? [] : ['mandats-rechtstext', 'willkommens-mail'])
+			return tocGroups(this.sections, this.settingsLoaded ? { off, hidden } : {})
 		},
 	},
 
-	mounted() {
-		this.loadSettings()
+	async mounted() {
+		// Laden anstoßen, bevor auf die Einstellungen gewartet wird.
+		const settings = this.loadSettings()
 		usePermissions().loadPermissions()
 		useAccounts().loadAccounts()
 		// Ein Aufruf statt der frueheren zwei (loadYears + loadClosedYears):
 		// /periods liefert Zeitraeume und Festschreibung in einem Satz.
 		usePeriods().loadPeriods()
 		// Die Seite wird erst nach dem Parsen gemountet - ein #settings-
-		// section_<id>-Anker in der URL scrollt deshalb nicht von allein.
+		// section_<id>-Anker in der URL scrollt deshalb nicht von allein. Erst
+		// nach den Einstellungen: davon hängt ab, welche Module ihre Karten
+		// zeigen, und damit, wo der Abschnitt steht.
+		await settings
 		this.$nextTick(() => {
 			if (location.hash) {
 				document.getElementById(location.hash.slice(1))?.scrollIntoView({ block: 'start' })
@@ -357,35 +380,40 @@ export default {
 				this.membershipEnabled = !!data.membership_enabled
 				this.selfServiceEnabled = !!data.self_service_enabled
 				this.selfServiceTransferSwitchEnabled = !!data.self_service_transfer_switch_enabled
+				this.modules = {
+					zuwendungen: !!data.donation_receipts_enabled,
+					rechnungen: !!data.invoice_module_active,
+					auslagen: !!data.reimbursement_enabled,
+					kostenstellen: !!data.cost_centers_enabled,
+				}
+				this.settingsLoaded = true
 			} catch { /* ignorieren */ }
 		},
 
-		// Gemeinsame Speichern-Funktion aller Abschnitte ausser "Daten": schreibt
-		// den vollstaendigen Satz dieser Seite (zwoelf Felder, alles ausser
-		// cost_center_mode - das bleibt bei ReportsTab/App.vue, siehe
-		// SettingsController::update()).
-		async saveSettings() {
+		// Speichern einer Karte: nur deren Felder (lib/settingsSave.js). Ohne
+		// Angabe – so ruft SettingsSepaBasics.vue die Funktion auf, die zum
+		// SEPA-Modul gehört und unverändert bleibt – über saveSepaBasics() der
+		// Teil 'sepa'. cost_center_mode bleibt bei ReportsTab/App.vue.
+		async saveSettings(...args) {
+			// Als Klick-Handler bekäme die Funktion das Ereignis mit; nur bekannte
+			// Teile zählen, sonst wie früher der vollständige Satz.
+			const parts = args.filter((p) => SAVE_PARTS.includes(p))
 			this.storageSaving = true
 			try {
-				const { data } = await api.saveSettings({
-					storage_mode: this.storageMode,
-					storage_user: this.storageUser,
-					storage_path: this.storagePath || 'Vereinsbuchhaltung/Belege',
-					club_name: this.clubName,
-					...currencySettingsPayload(this.clubCurrency, this.savedCurrency),
-					brand_color: this.brandColor,
-					amount_display: this.amountDisplay,
-					statement_watch_user: this.statementWatchUser,
-					statement_watch_path: this.statementWatchPath,
-					sepa_creditor_id: this.sepaCreditorId,
-					sepa_debtor_account_id: this.sepaDebtorAccountId || '',
-					membership_enabled: this.membershipEnabled ? '1' : '0',
-					self_service_enabled: this.selfServiceEnabled ? '1' : '0',
-					self_service_transfer_switch_enabled: this.selfServiceTransferSwitchEnabled ? '1' : '0',
-				})
+				const { data } = await api.saveSettings(settingsPayload(parts, this))
+				const saved = new Set(parts.length ? parts : SAVE_PARTS)
 				// Die Auswahl „intern" räumt den Nutzer serverseitig ab – die Felder
-				// sollen danach dasselbe zeigen wie der Server.
-				this.storageUser = data.storage_user || ''
+				// sollen danach dasselbe zeigen wie der Server. Nur wenn die Ablage
+				// gespeichert wurde: sonst überschriebe die Antwort eine noch nicht
+				// gespeicherte Eingabe in der Karte „Belege".
+				if (saved.has('storage')) {
+					this.storageUser = data.storage_user || ''
+				}
+				if (saved.has('sepa')) {
+					// Ohne gespeicherten Schalter gilt das Modul als an, sobald es
+					// Mitglieder gibt – maßgeblich ist, was der Server meldet.
+					this.membershipEnabled = !!data.membership_enabled
+				}
 				// Neue Vereinswährung: SEPA-Abschnitte, Beschriftungen und Beträge hängen daran.
 				if (data.club_currency && data.club_currency !== this.savedCurrency) {
 					window.location.reload()
@@ -401,7 +429,27 @@ export default {
 				showError(msg)
 				// Nichts gespeichert: die Währungsauswahl zeigt wieder den Stand des Servers.
 				this.clubCurrency = this.savedCurrency
+				// Die Modulschalter wirken sofort; scheitert das, sollen sie (und
+				// die davon abhängigen Karten) nicht einen Stand zeigen, den der
+				// Server nicht hat.
+				if (!parts.length || parts.includes('sepa')) {
+					await this.reloadModuleFlags()
+				}
 			} finally { this.storageSaving = false }
+		},
+
+		saveSepaBasics() {
+			return this.saveSettings('sepa')
+		},
+
+		/** Nur die Schalter des Beitragsmoduls neu laden, ohne andere Eingaben zu überschreiben. */
+		async reloadModuleFlags() {
+			try {
+				const { data } = await api.getSettings()
+				this.membershipEnabled = !!data.membership_enabled
+				this.selfServiceEnabled = !!data.self_service_enabled
+				this.selfServiceTransferSwitchEnabled = !!data.self_service_transfer_switch_enabled
+			} catch { /* bleibt beim lokalen Stand */ }
 		},
 
 		/** Hilfe-Symbol neben der Überschrift: das passende Handbuch-Kapitel. */

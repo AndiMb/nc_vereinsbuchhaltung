@@ -90,6 +90,18 @@ Abschnitte stehen in dieser Reihenfolge:
 | Module | Beiträge & SEPA (13.1) · Mandats-Rechtstext (13.2) · Willkommens-Mail (13.2) · Zuwendungsbestätigungen (13.12) · Rechnungen (15.1) · Auslagenerstattung (4.6) · Kostenstellen (5.8) |
 | Daten und Sicherung | Datenübernahme aus „zero Buchhaltung" (3.1) · Sicherung und Umzug (12.3) · Zurücksetzen mit *Alle Daten löschen* (12.1) |
 
+**Ausgeschaltete Module** zeigen nur ihren Schalter und einen Hinweis; ihre
+übrigen Karten erscheinen erst, wenn das Modul an ist (im Inhaltsverzeichnis
+steht dann nicht mehr „ausgeschaltet"). Das betrifft Beiträge & SEPA (samt
+Mandats-Rechtstext und Willkommens-Mail), Zuwendungsbestätigungen, Rechnungen
+und die Auslagennummern. Gespeicherte Angaben bleiben beim Ausschalten erhalten.
+
+**Speichern.** **Modulschalter wirken sofort** – ein Speichern ist nicht nötig,
+eine Meldung oben rechts bestätigt es; scheitert es, springt der Schalter
+zurück und der Grund steht in der Karte. **Alle anderen Angaben speichert der
+Knopf „Speichern" ihrer Karte**, und zwar nur die Felder dieser Karte: Wer in
+zwei Karten etwas ändert, speichert beide einzeln.
+
 ### 2.0 Der Start-Assistent und die Checkliste
 
 Beim allerersten Öffnen – solange noch kein einziges Konto existiert –
@@ -853,8 +865,9 @@ Historie des Antrags.
 **Einschalten (Verwalter).** *Nextcloud-Einstellungen → Vereinsbuchhaltung →
 Auslagenerstattung*: der Schalter **„Auslagenerstattung aktivieren"** und die
 Zahl der **nötigen Freigaben** (ab Werk 2). Niemand kann den eigenen Antrag
-freigeben; deshalb braucht es mindestens **N + 1 Verwalter**, sonst lässt sich
-der Schalter nicht speichern. Als Verwalter zählen alle Personen mit der Rolle
+freigeben; deshalb braucht es mindestens **N + 1 Verwalter**, sonst springt der
+Schalter zurück und die Karte nennt den Grund. Der Schalter wirkt sofort (mit
+der eingetragenen Zahl); eine später geänderte Zahl übernimmt „Speichern". Als Verwalter zählen alle Personen mit der Rolle
 Verwalter (einzeln oder über eine Gruppe) und die Nextcloud-Administratoren.
 Die Funktion hängt nicht am Self-Service „Beitrag": ein Mitglied braucht nur das
 verknüpfte Nextcloud-Konto (13.2).
@@ -1259,7 +1272,7 @@ Kostenstellen haben keine steuerliche Bedeutung und ersetzen die Sphären
 nicht.
 
 **Einschalten:** *Einstellungen → Vereinsbuchhaltung → Kostenstellen →
-Kostenstellen aktivieren* (nur Verwalter).
+Kostenstellen aktivieren* (nur Verwalter). Der Schalter wirkt sofort.
 
 **Anlegen:** Tab **Berichte → Kostenstellen → Kostenstellen verwalten**. Jede
 Kostenstelle hat ein Kürzel (höchstens acht Zeichen, z. B. `SEN`) und einen
@@ -2295,6 +2308,10 @@ zugänglich:
 | *Mandats-Rechtstext* (eigener Abschnitt direkt darunter) | der Text auf Mandatsformular und Zustimmungsseite (13.2) |
 | *Willkommens-Mail* (eigener Abschnitt direkt darunter) | Betreff und Text der Mail an neu aufgenommene Mitglieder (13.2) |
 
+Ist der Reiter „Beiträge" ausgeschaltet, zeigt der Abschnitt nur die Karten
+*Beitragsmodul* und *Lastschrift: Gläubiger-ID und Konto*; alle übrigen Karten
+und die beiden Abschnitte darunter erscheinen, sobald er an ist.
+
 Nachweis-Ordner und XML-Ablage liegen im Home des Nutzers, den Sie unter
 *Belege* für die Ablage im Nextcloud-Dateibaum gewählt haben (2.4); ohne ihn
 lassen sich keine Nachweise hochladen und die XML-Ablage nicht einschalten.
@@ -3188,7 +3205,9 @@ Klären Sie im Zweifel mit Finanzamt oder Steuerberatung, ob Ihre
 Mitgliedsbeiträge abziehbar sind und wer unterschreibt.
 
 **Einschalten.** *Nextcloud-Einstellungen → Vereinsbuchhaltung → Zuwendungsbestätigungen*
-(eigener Abschnitt unter den Modulen, nur Verwalter). Dort stehen:
+(eigener Abschnitt unter den Modulen, nur Verwalter). Der Schalter
+**„Zuwendungsbestätigungen ausstellen"** wirkt sofort; danach erscheinen die
+übrigen Angaben, die „Speichern" übernimmt:
 
 - die **Grundlage der Steuerbegünstigung**: *Freistellungsbescheid* (bzw. Anlage
   zum Körperschaftsteuerbescheid, mit dem **Veranlagungszeitraum**) oder
@@ -3478,7 +3497,7 @@ Mit dem Rechnungsmodul stellt der Verein Rechnungen in seinem eigenen Namen aus 
 
 *Nextcloud-Einstellungen → Vereinsbuchhaltung → Rechnungen* (nur Verwalter):
 
-1. **Rechnungsmodul einschalten.**
+1. **Rechnungsmodul einschalten.** Der Schalter wirkt sofort; erst danach erscheinen die übrigen Karten des Abschnitts.
 2. **Angaben des Vereins** eintragen. Pflicht nach § 14 Abs. 4 UStG sind Name und Anschrift sowie die **Steuernummer** (vom Finanzamt) oder die USt-IdNr. Register, Vorstand, Telefon und E-Mail erscheinen zusätzlich im Fuß der Rechnung. Den Vereinsnamen pflegen Sie weiter oben unter „Verein". Ist er für Rechnungen zu lang oder soll er dort anders lauten, tragen Sie einen **Namen auf Rechnungen** ein; er steht dann im Briefkopf, in der Absenderzeile, im Fuß, in der E-Rechnung und in den Rechnungs-Mails. Der **Kontoinhaber** (höchstens 70 Zeichen, so viel fasst der GiroCode) steht im Zahlungsblock und im GiroCode; leer gilt der Name auf Rechnungen.
 3. **Steuer und Zahlung:** Die meisten kleinen Vereine sind **Kleinunternehmer** (§ 19 UStG) und weisen keine Umsatzsteuer aus; auf der Rechnung steht dann der vorgeschriebene Hinweis. Ob das für Ihren Verein gilt, klärt das Finanzamt oder Ihre Steuerberatung. Das **Konto für Zahlungsangaben und GiroCode** wählt die App selbst: das Konto des SEPA-Einzugs, sonst das einzige Geldkonto mit IBAN. Selbst wählen müssen Sie es nur, wenn mehrere Geldkonten eine IBAN haben; fehlt die IBAN, führt der Hinweis in der Prüfliste direkt zum Konto. Legen Sie außerdem das Zahlungsziel und bei Bedarf Standardtexte fest.
 4. **Rechnungsnummern:** Voreingestellt ist `RE-{JJJJ}-{NNNN}` (z. B. `RE-2026-0042`), jedes Jahr neu ab 1; Stornorechnungen zählen getrennt (`ST-…`). Mit `{MM}` kommt der Monat des Rechnungsdatums dazu, etwa `RE-{JJJJ}{MM}-{NNNN}` für `RE-202611-0001`; der Zähler kann dann auch jeden Monat neu ab 1 beginnen. Die Nummern sind fortlaufend und einmalig – ändern Sie das Muster nur, bevor Sie die erste Rechnung schreiben.

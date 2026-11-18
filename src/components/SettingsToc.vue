@@ -7,6 +7,7 @@
 			<ul>
 				<li v-for="entry in group.entries" :key="entry.id">
 					<a :href="'#settings-section_' + entry.id" @click="jump($event, entry.id)">{{ entry.name }}</a>
+					<span v-if="entry.off" class="vbh-badge muted">{{ t('ausgeschaltet') }}</span>
 				</li>
 			</ul>
 		</div>
@@ -24,7 +25,8 @@
 export default {
 	name: 'SettingsToc',
 	props: {
-		// [{ name, entries: [{ id, name }] }] – Reihenfolge wie auf der Seite
+		// [{ name, entries: [{ id, name, off }] }] – Reihenfolge wie auf der Seite,
+		// `off` = Modul ausgeschaltet (siehe lib/settingsSections.js::tocGroups())
 		groups: { type: Array, required: true },
 	},
 

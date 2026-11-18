@@ -5,24 +5,25 @@
 			<p class="vbh-hint">
 				{{ t('Mit Kostenstellen ordnen Sie einzelne Beträge einer Abteilung, Mannschaft oder einem Projekt zu – auch anteilig: von 1.000 für Ausrüstung gehen 600 an die Senioren und 400 an die A-Junioren, auf demselben Konto. Ein eigener Bericht zeigt Einnahmen, Ausgaben und Ergebnis je Kostenstelle.') }}
 			</p>
-			<SettingsToggle v-model="enabled" :label="t('Kostenstellen aktivieren')">
+			<SettingsToggle
+				:modelValue="enabled"
+				:disabled="saving"
+				:label="t('Kostenstellen aktivieren')"
+				@update:modelValue="toggle">
 				{{ t('Schaltet das Feld „Kostenstelle“ beim Buchen und den Bericht „Kostenstellen“ ein. Die Angabe bleibt bei jeder Buchung freiwillig. Ausgeschaltet ist von der Funktion nichts zu sehen; bereits gespeicherte Zuordnungen bleiben erhalten und erscheinen wieder, sobald Sie die Funktion erneut einschalten.') }}
 			</SettingsToggle>
+			<p class="vbh-hint">
+				{{ t('Der Schalter wirkt sofort, ein Speichern ist nicht nötig.') }}
+			</p>
 			<p v-if="error" class="vbh-hint vbh-hint--error" role="alert">
 				{{ error }}
 			</p>
-			<div class="vbh-form">
-				<NcButton variant="primary" :disabled="saving" @click="save">
-					{{ t('Speichern') }}
-				</NcButton>
-			</div>
 		</div>
 	</template>
 	<NcLoadingIcon v-else :name="t('Einstellungen werden geladen')" :size="24" />
 </template>
 
 <script>
-import NcButton from '@nextcloud/vue/components/NcButton'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import SettingsToggle from './SettingsToggle.vue'
 import api from '../api.js'
@@ -35,10 +36,17 @@ import { useSettingsCardSave } from '../composables/useSettingsCardSave.js'
  *
  * Schreibt nur das eine Feld – SettingsController::update() speichert
  * teilweise, die übrigen Einstellungen bleiben unberührt.
+ *
+ * Ein Modulschalter ohne weitere Felder wirkt sofort wie die Schalter des
+ * Beitragsmoduls (einheitliches Speichermodell der Einstellungsseite:
+ * Modulschalter sofort, Formularfelder mit dem Speichern-Knopf ihrer Karte).
+ * Scheitert das Speichern, springt der Schalter zurück.
  */
 export default {
 	name: 'SettingsCostCenters',
-	components: { NcButton, NcLoadingIcon, SettingsToggle },
+	components: { NcLoadingIcon, SettingsToggle },
+
+	emits: ['active'],
 
 	setup() {
 		return { ...useSettingsCardSave() }
@@ -55,16 +63,20 @@ export default {
 		try {
 			const { data } = await api.getSettings()
 			this.enabled = !!data.cost_centers_enabled
+			this.$emit('active', this.enabled)
 		} finally {
 			this.loaded = true
 		}
 	},
 
 	methods: {
-		save() {
-			return this.run(() => null, async () => {
-				await api.saveSettings({ cost_centers_enabled: this.enabled ? '1' : '0' })
+		async toggle(on) {
+			this.enabled = on
+			const saved = await this.run(() => null, async () => {
+				await api.saveSettings({ cost_centers_enabled: on ? '1' : '0' })
 			})
+			if (!saved) { this.enabled = !on }
+			this.$emit('active', this.enabled)
 		},
 	},
 }

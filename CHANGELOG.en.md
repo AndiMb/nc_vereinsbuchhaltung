@@ -76,6 +76,19 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   Administration) and in which order; the outdated paths via the "gear icon"
   and the never-existing "Basic settings" card are replaced by the real
   section and card names.
+- **Switched-off modules without their cards:** when a module is off, the
+  settings page only shows its switch and a note – for fees & SEPA (including
+  the mandate legal text and the welcome email), invoices, donation receipts
+  and the expense numbers. The table of contents marks it as "off". Saved
+  details are kept.
+- **Consistent saving:** module switches now take effect immediately
+  everywhere (invoice module, cost centres, expense reimbursement, donation
+  receipts – as the contributions module already did); if saving fails, the
+  switch flips back. Everything else is saved by the button of its card, and
+  only that card's fields: until now "Save" under club, display, receipts,
+  bank statements or creditor ID also took along unsaved input from all the
+  other cards of that group, and in the invoice cards saving one card
+  discarded the input in the others.
 
 ## [0.54.0] – 2026-11-17
 

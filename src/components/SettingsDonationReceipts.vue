@@ -8,10 +8,23 @@
 		</p>
 		<NcLoadingIcon v-else-if="!loaded" :size="24" :name="t('Wird geladen…')" />
 		<template v-else>
-			<SettingsToggle v-model="form.donation_receipts_enabled" :label="t('Zuwendungsbestätigungen ausstellen')">
+			<SettingsToggle
+				:modelValue="form.donation_receipts_enabled"
+				:disabled="saving"
+				:label="t('Zuwendungsbestätigungen ausstellen')"
+				@update:modelValue="toggle">
 				{{ t('Mitgliedsbeiträge (in der Akte eines Mitglieds) und Geldspenden (unter Buchungen → Spenden) lassen sich dann amtlich nach § 10b EStG bestätigen; Mitglieder laden ihre Bestätigungen unter „Mein Beitrag“ herunter. Keine Steuerberatung – im Zweifel mit Finanzamt oder Steuerberatung klären.') }}
 			</SettingsToggle>
-
+			<p v-if="!form.donation_receipts_enabled" class="vbh-hint vbh-hint--info" data-testid="settings-module-off-zuwendungen">
+				{{ t('Der Schalter wirkt sofort. Grundlage, Zwecke, Spendenkonten, Unterschrift und Ablage erscheinen, sobald er eingeschaltet ist.') }}
+			</p>
+			<p v-if="toggleError" class="vbh-hint vbh-hint--error" role="alert">
+				{{ toggleError }}
+			</p>
+		</template>
+		<!-- Ausgeschaltet bewirken die Angaben nichts (auch der Reiter „Spenden“
+		     ist dann aus); gespeichert bleiben sie trotzdem. -->
+		<template v-if="loaded && form.donation_receipts_enabled">
 			<NcCheckboxRadioSwitch v-model="form.donation_fees_deductible" class="vbh-donation-confirm">
 				{{ t('Der Verein fördert keine Zwecke, bei denen Mitgliedsbeiträge nicht abziehbar sind (Sport, kulturelle Betätigungen der Freizeitgestaltung, Heimatpflege, Freizeitzwecke – § 10b Abs. 1 Satz 8 EStG).') }}
 			</NcCheckboxRadioSwitch>
@@ -108,6 +121,9 @@
 			<p v-if="!storageUser" class="vbh-hint">
 				{{ t('Ohne Nutzer der Belegablage legt die App die Doppel intern ab; sie bleiben über die Akte des Mitglieds abrufbar.') }}
 			</p>
+			<p class="vbh-hint">
+				{{ t('Der Schalter oben wirkt sofort; die Angaben darunter übernimmt „Speichern“.') }}
+			</p>
 
 			<p v-if="error" class="vbh-hint vbh-hint--error" role="alert">
 				{{ error }}
@@ -137,6 +153,10 @@ import { errMsg } from '../lib/format.js'
  * Einstellungen der Zuwendungsbestätigungen (Issue #10): Grundlage der
  * Steuerbegünstigung, Zwecke, Unterschrift, Ablage und die Spendenkonten
  * (Teil B). Eigener Endpunkt, nur für Verwalter speicherbar.
+ *
+ * Der Schalter wirkt sofort und schreibt nur sich selbst (der Endpunkt
+ * speichert teilweise); die übrigen Angaben übernimmt „Speichern“, und sie
+ * erscheinen erst, wenn der Schalter an ist.
  */
 export default {
 	name: 'SettingsDonationReceipts',
@@ -145,12 +165,17 @@ export default {
 		storageUser: { type: String, default: '' },
 	},
 
+	emits: ['active'],
+
 	data() {
 		return {
 			loaded: false,
 			loadFailed: false,
 			saving: false,
 			error: '',
+			// Fehler des Schalters getrennt von dem des Formulars: die Meldung
+			// soll bei dem stehen, was sie ausgelöst hat.
+			toggleError: '',
 			form: {},
 			accounts: [],
 			selectedAccounts: [],
@@ -173,6 +198,7 @@ export default {
 			this.accounts = accounts.data
 			this.applyForm(data)
 			this.loaded = true
+			this.$emit('active', !!data.donation_receipts_enabled)
 		} catch {
 			this.loadFailed = true
 		}
@@ -183,6 +209,25 @@ export default {
 			this.form = { ...data }
 			const ids = new Set(data.donation_accounts || [])
 			this.selectedAccounts = this.accountOptions.filter((o) => ids.has(o.id))
+		},
+
+		async toggle(on) {
+			this.form.donation_receipts_enabled = on
+			this.saving = true
+			this.toggleError = ''
+			try {
+				const { data } = await api.saveDonationReceiptSettings({ donation_receipts_enabled: on })
+				// Nur den Schalter übernehmen: noch nicht gespeicherte Angaben im
+				// Formular sollen stehen bleiben.
+				this.form.donation_receipts_enabled = !!data.donation_receipts_enabled
+				showSuccess(this.t('Einstellungen gespeichert.'))
+			} catch (e) {
+				this.form.donation_receipts_enabled = !on
+				this.toggleError = errMsg(e, this.t('Die Einstellungen konnten nicht gespeichert werden.'))
+			} finally {
+				this.saving = false
+				this.$emit('active', !!this.form.donation_receipts_enabled)
+			}
 		},
 
 		async save() {

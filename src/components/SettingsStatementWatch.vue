@@ -15,7 +15,7 @@
 				inputId="vbh-statement-path"
 				:user="statementWatchUser"
 				placeholder="Vereinsbuchhaltung/Kontoauszüge" />
-			<NcButton variant="primary" :disabled="storageSaving" @click="saveStorageSettings">
+			<NcButton variant="primary" :disabled="storageSaving" @click="saveStorageSettings('watch')">
 				{{ t('Speichern') }}
 			</NcButton>
 		</div>
@@ -88,7 +88,7 @@ export default {
 			this.enabled = on
 			if (!on) {
 				this.$emit('update:statementWatchUser', '')
-				this.$nextTick(() => this.saveStorageSettings())
+				this.$nextTick(() => this.saveStorageSettings('watch'))
 			}
 		},
 	},

@@ -49,11 +49,15 @@ export function settingsSections() {
 /**
  * Gruppen des Inhaltsverzeichnisses, je mit ihren Abschnitten.
  *
+ * Ein ausgeschaltetes Modul bleibt im Verzeichnis, mit dem Vermerk
+ * „ausgeschaltet“ (`off`): man soll es finden, um es einzuschalten.
+ * Abschnitte, die die Seite gerade gar nicht zeigt (`hidden`), fehlen.
+ *
  * @param {{id: string, group: string, name: string}[]} sections aus settingsSections()
- * @param {(id: string) => boolean} [visible] blendet Abschnitte aus, die die Seite gerade nicht zeigt
- * @return {{name: string, entries: {id: string, name: string}[]}[]}
+ * @param {{off?: Set<string>, hidden?: Set<string>}} [state] Zustand der Module
+ * @return {{name: string, entries: {id: string, name: string, off: boolean}[]}[]}
  */
-export function tocGroups(sections, visible = () => true) {
+export function tocGroups(sections, { off = new Set(), hidden = new Set() } = {}) {
 	const names = {
 		basics: t('Grundlagen'),
 		display: t('Listen und Berichte'),
@@ -64,8 +68,8 @@ export function tocGroups(sections, visible = () => true) {
 		.map((group) => ({
 			name: names[group],
 			entries: sections
-				.filter((s) => s.group === group && visible(s.id))
-				.map(({ id, name }) => ({ id, name })),
+				.filter((s) => s.group === group && !hidden.has(s.id))
+				.map(({ id, name }) => ({ id, name, off: off.has(id) })),
 		}))
 		.filter((g) => g.entries.length > 0)
 }

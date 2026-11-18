@@ -87,6 +87,18 @@ opens the matching chapter of this handbook. The sections come in this order:
 | Modules | Fees & SEPA (13.1) · Mandate legal text (13.2) · Welcome email (13.2) · Donation receipts (13.12) · Invoices (15.1) · Expense reimbursement (4.6) · Cost centres (5.8) |
 | Data and backup | Data import from "zero Buchhaltung" (3.1) · Backup and migration (12.3) · Reset with *Delete all data* (12.1) |
 
+**Modules that are switched off** only show their switch and a note; their
+other cards appear once the module is on (the table of contents then no longer
+says "off"). This applies to Fees & SEPA (including the mandate legal text and
+the welcome email), donation receipts, invoices and the expense numbers. Saved
+details are kept when you switch a module off.
+
+**Saving.** **Module switches take effect immediately** – no need to save, a
+message at the top right confirms it; if it fails, the switch flips back and
+the reason is shown in the card. **Everything else is saved with the "Save"
+button of its card**, and only the fields of that card: if you change
+something in two cards, save each of them.
+
 ### 2.0 The setup wizard and the checklist
 
 On the very first open – as long as not a single account exists yet – a
@@ -836,7 +848,8 @@ history.
 Expense reimbursement*: the switch **"Enable expense reimbursement"** and the
 number of **required approvals** (2 by default). Nobody can approve their own
 request, so at least **N + 1 administrators** are needed, otherwise the switch
-cannot be saved. Administrators are everybody with the administrator role (as a
+flips back and the card names the reason. The switch takes effect immediately
+(with the number entered); a number changed later is applied with "Save". Administrators are everybody with the administrator role (as a
 person or through a group) plus the Nextcloud administrators. The feature does
 not depend on the "Contribution" self-service: a member only needs the linked
 Nextcloud account (13.2).
@@ -1228,7 +1241,7 @@ nothing of it.
 Cost centres have no tax meaning and do not replace the spheres.
 
 **Switching on:** *Settings → Vereinsbuchhaltung → Cost centres → Enable cost
-centres* (administrators only).
+centres* (administrators only). The switch takes effect immediately.
 
 **Creating:** **Reports → Cost centres → Manage cost centres** tab. Each cost
 centre has a code (at most eight characters, e.g. `SEN`) and a name. A cost
@@ -2240,6 +2253,10 @@ only:
 | *Mandate legal text* (*Mandats-Rechtstext*, a section of its own directly below) | the text on the mandate form and the consent page (13.2) |
 | *Welcome email* (*Willkommens-Mail*, a section of its own directly below) | subject and text of the email to newly admitted members (13.2) |
 
+If the "Contributions" tab is switched off, the section only shows the
+*Contributions module* and *Direct debit: creditor ID and account* cards; all
+other cards and the two sections below appear as soon as it is on.
+
 The proof folder and the XML storage live in the home of the user you chose
 under *Receipts* for storage in the Nextcloud file tree (2.4); without one,
 no proofs can be uploaded and the XML storage can't be switched on.
@@ -3147,7 +3164,8 @@ office or tax advisor whether your membership fees are deductible and who signs.
 
 **Turning it on.** *Nextcloud settings → Vereinsbuchhaltung → Donation receipts*
 (*Zuwendungsbestätigungen*, a section of its own among the modules,
-administrators only). There you enter:
+administrators only). The switch **"Issue donation receipts"** takes effect
+immediately; then the other details appear, which "Save" applies:
 
 - the **basis of the tax privilege**: *exemption notice* (or annex to the
   corporation tax assessment, with the **assessment period**) or *assessment
@@ -3427,7 +3445,7 @@ With the invoice module the association issues invoices in its own name – for 
 
 *Nextcloud settings → Vereinsbuchhaltung → Invoices* (administrators only):
 
-1. **Turn on the invoice module.**
+1. **Turn on the invoice module.** The switch takes effect immediately; only then do the other cards of the section appear.
 2. Enter the **details of the association**. Section 14 (4) UStG requires the name and address and the **tax number** (from the tax office) or the VAT ID. Register, board, phone and email additionally appear in the footer of the invoice. You maintain the name of the association further up under "Club". If it is too long for invoices or should read differently there, enter a **name on invoices**; it then appears in the letterhead, the sender line, the footer, the e-invoice and the invoice emails. The **account holder** (at most 70 characters, the limit of the GiroCode) appears in the payment block and the GiroCode; if empty, the name on invoices is used.
 3. **Tax and payment:** Most small associations are **small businesses** (section 19 UStG) and do not show value added tax; the invoice then carries the required notice. Whether this applies to your association is determined by the tax office or your tax adviser. The app picks the **account for payment details and GiroCode** itself: the SEPA direct debit account, otherwise the only cash account with an IBAN. You only need to choose it if several cash accounts have an IBAN; if the IBAN is missing, the checklist hint leads straight to the account. Also set the payment term and, if you like, default texts.
 4. **Invoice numbers:** The default is `RE-{JJJJ}-{NNNN}` (e.g. `RE-2026-0042`), restarting at 1 every year; credit notes are counted separately (`ST-…`). `{MM}` adds the month of the invoice date, e.g. `RE-{JJJJ}{MM}-{NNNN}` for `RE-202611-0001`; the counter can then also restart at 1 every month. Numbers are consecutive and unique – change the pattern only before you write the first invoice.

@@ -5,7 +5,11 @@
 			<p class="vbh-hint">
 				{{ t('Mitglieder reichen privat verauslagte Ausgaben mit Beleg ein. Verwalter geben sie frei; erst wenn genügend verschiedene Verwalter zugestimmt haben, entsteht ein offener Posten zur Überweisung. Jeder Schritt steht in der Historie des Antrags.') }}
 			</p>
-			<SettingsToggle v-model="enabled" :label="t('Auslagenerstattung aktivieren')">
+			<SettingsToggle
+				:modelValue="enabled"
+				:disabled="saving"
+				:label="t('Auslagenerstattung aktivieren')"
+				@update:modelValue="toggle">
 				{{ t('Schaltet den Unterreiter „Auslagen“ unter „Mein Bereich“ für Mitglieder und den Reiter „Auslagen“ unter „Buchungen“ für die Verwaltung ein. Ausgeschaltet können keine neuen Anträge eingereicht werden; bestehende bleiben sichtbar und lassen sich weiter bearbeiten.') }}
 			</SettingsToggle>
 			<div class="vbh-form">
@@ -20,6 +24,7 @@
 			</div>
 			<p class="vbh-hint">
 				{{ t('So viele verschiedene Verwalter müssen einen Antrag freigeben. Den eigenen Antrag kann niemand freigeben; deshalb braucht es mindestens eine Person mehr, als Freigaben nötig sind. Derzeit gibt es {count} Verwalter.', { count: approverCount }) }}
+				{{ t('Der Schalter wirkt sofort; eine geänderte Zahl übernimmt „Speichern“.') }}
 			</p>
 			<p v-if="tooFew" class="vbh-hint vbh-hint--warning" role="note">
 				{{ t('Für {n} Freigaben braucht es mindestens {min} Verwalter. Vergeben Sie unter „Berechtigungen“ die Rolle Verwalter an weitere Personen oder verringern Sie die Zahl.', { n: requiredApprovals, min: requiredApprovals + 1 }) }}
@@ -34,7 +39,9 @@
 			</div>
 		</div>
 
-		<div v-if="range" class="vbh-card">
+		<!-- Ausgeschaltet gibt es keine neuen Anträge und damit keine neuen
+		     Nummern; die Karte erscheint wieder, sobald der Schalter an ist. -->
+		<div v-if="range && enabled" class="vbh-card">
 			<h4>{{ t('Auslagennummern') }}</h4>
 			<p class="vbh-hint">
 				{{ t('Jeder Antrag bekommt beim Einreichen eine fortlaufende Nummer. Sie steht im Verwendungszweck der Überweisung und ordnet den Kontoumsatz später der Auslage zu. Platzhalter: {JJJJ} (Jahr), {JJ} (zweistelliges Jahr), {MM} (Monat) und {NNNN} (Zähler, die Zahl der N bestimmt die Stellen). Bereits vergebene Nummern bleiben unverändert.') }}
@@ -62,10 +69,17 @@ import { useSettingsCardSave } from '../composables/useSettingsCardSave.js'
  * Schalter, Zahl der nötigen Freigaben und das Muster der Auslagennummer. Schalter und Zahl werden
  * gemeinsam gespeichert, weil der Server beim Einschalten prüft, ob es genug
  * Verwalter für N+1 gibt - die Meldung dazu steht hier in der Karte.
+ *
+ * Der Schalter wirkt sofort (Modulschalter, wie beim Beitragsmodul) und
+ * schickt dabei die eingetragene Zahl mit; scheitert das (zu wenige
+ * Verwalter), springt er zurück und der Grund steht in der Karte. Die Zahl
+ * allein übernimmt der Speichern-Knopf.
  */
 export default {
 	name: 'SettingsReimbursements',
 	components: { NcButton, NcLoadingIcon, NumberRangeForm, SettingsToggle },
+
+	emits: ['active'],
 
 	setup() {
 		// Zwei Karten, zwei Speichervorgänge: Fehler und Laufzustand je Karte getrennt.
@@ -95,6 +109,7 @@ export default {
 			this.requiredApprovals = Number(data.reimbursement_required_approvals) || 2
 			this.approverCount = Number(data.reimbursement_approver_count) || 0
 			this.range = range
+			this.$emit('active', this.enabled)
 		} finally {
 			this.loaded = true
 		}
@@ -110,6 +125,12 @@ export default {
 				})
 				this.range = data
 			})
+		},
+
+		async toggle(on) {
+			this.enabled = on
+			if (!await this.save()) { this.enabled = !on }
+			this.$emit('active', this.enabled)
 		},
 
 		save() {

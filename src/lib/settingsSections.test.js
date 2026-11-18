@@ -41,8 +41,17 @@ describe('tocGroups', () => {
 		expect(groups.map((g) => g.entries[0].id)).toEqual(['verein', 'darstellung', 'beitraege-sepa', 'daten'])
 		expect(groups.flatMap((g) => g.entries.map((e) => e.id))).toEqual(settingsSections().map((s) => s.id))
 
-		const onlyData = tocGroups(settingsSections(), (id) => ['daten', 'sicherung'].includes(id))
+		const hidden = new Set(settingsSections().map((s) => s.id).filter((id) => !['daten', 'sicherung'].includes(id)))
+		const onlyData = tocGroups(settingsSections(), { hidden })
 		expect(onlyData).toHaveLength(1)
 		expect(onlyData[0].entries.map((e) => e.id)).toEqual(['daten', 'sicherung'])
+	})
+
+	it('vermerkt ausgeschaltete Module, statt sie wegzulassen', () => {
+		const modules = tocGroups(settingsSections(), { off: new Set(['rechnungen']), hidden: new Set(['mandats-rechtstext']) })
+			.find((g) => g.entries.some((e) => e.id === 'rechnungen')).entries
+		expect(modules.find((e) => e.id === 'rechnungen').off).toBe(true)
+		expect(modules.find((e) => e.id === 'auslagen').off).toBe(false)
+		expect(modules.map((e) => e.id)).not.toContain('mandats-rechtstext')
 	})
 })

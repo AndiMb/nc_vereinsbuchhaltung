@@ -81,6 +81,19 @@ verwenden, z. B. `**Neu:**`.
   bzw. Verwaltung) und in welcher Reihenfolge; die veralteten Wege über das
   „Zahnrad" und die nie vorhandene Karte „Grundeinstellungen" sind durch die
   echten Abschnitts- und Kartennamen ersetzt.
+- **Ausgeschaltete Module ohne ihre Karten:** Ist ein Modul aus, zeigt die
+  Einstellungsseite nur seinen Schalter und einen Hinweis – bei Beiträge &
+  SEPA (samt Mandats-Rechtstext und Willkommens-Mail), Rechnungen,
+  Zuwendungsbestätigungen und den Auslagennummern. Das Inhaltsverzeichnis
+  vermerkt „ausgeschaltet". Gespeichertes bleibt erhalten.
+- **Einheitliches Speichern:** Modulschalter wirken jetzt überall sofort
+  (Rechnungsmodul, Kostenstellen, Auslagenerstattung, Zuwendungsbestätigungen –
+  wie zuvor schon das Beitragsmodul); scheitert das Speichern, springt der
+  Schalter zurück. Alle übrigen Angaben speichert der Knopf ihrer Karte, und
+  zwar nur deren Felder: Bisher nahm „Speichern" unter Verein, Darstellung,
+  Belege, Kontoauszüge oder Gläubiger-ID auch ungespeicherte Eingaben aller
+  anderen dieser Karten mit, und in den Rechnungskarten verwarf das Speichern
+  einer Karte die Eingaben der übrigen.
 
 ## [0.54.0] – 2026-11-17
 
