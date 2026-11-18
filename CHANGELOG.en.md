@@ -59,6 +59,33 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 - The file name of the treasurer's report PDF now transliterates umlauts
   (ä → ae, ö → oe, ü → ue, ß → ss), so it saves without special characters on
   every system.
+- **Amounts in imports** are now read by one shared parser with fixed rules
+  (CSV bank statement, CAMT.053, MT940, PayPal, XBUC, member CSV). If both a
+  dot and a comma occur, the last one is the decimal separator; "1.234" means
+  1,234.00 EUR in German exports (previously 1.23 EUR on some paths), while in
+  CAMT.053 the dot stays the decimal separator. A trailing minus ("12,50-")
+  and the typographic minus now count as negative. Values with other text
+  ("ca. 12,50") are no longer accepted as an amount.
+
+**Security:**
+- **GiroCode of an expense claim:** a line break in the account holder could
+  make the GiroCode show a different IBAN and a higher amount. The account
+  holder may no longer contain line breaks or control characters, and every
+  GiroCode removes them from all free-text fields.
+- **Backup from another Nextcloud:** confirmed links between members and
+  accounts no longer apply after the restore and have to be confirmed again;
+  the report lists every existing account and group that received a role.
+  Backups now record their origin for this; older backups count as foreign.
+
+**Fixed:**
+- **CAMT.053 and MT940:** an entry with a missing or unreadable amount was
+  silently dropped; the import now stops and names the entry.
+- **Assigning a bank transaction:** a database error while loading the old
+  booking could leave the booking in place when unassigning, or book twice
+  when reassigning; the operation now aborts completely.
+- **Raising the minimum of a contribution group** and changes to assignments
+  run in one transaction: an error halfway leaves no partly raised group and
+  no change without a history entry.
 
 ## [0.54.0] – 2026-11-17
 

@@ -62,6 +62,34 @@ verwenden, z. B. `**Neu:**`.
 - Der Dateiname des Kassenberichts als PDF schreibt Umlaute jetzt um
   (ä → ae, ö → oe, ü → ue, ß → ss), damit er auf jedem System ohne
   Sonderzeichen gespeichert wird.
+- **Beträge in Importen** liest jetzt ein gemeinsamer Leser mit festen Regeln
+  (Kontoauszug als CSV, CAMT.053, MT940, PayPal, XBUC, Mitglieder-CSV). Stehen
+  Punkt und Komma, ist das letzte der Dezimaltrenner; „1.234" ist in deutschen
+  Exporten 1.234,00 € (bisher je nach Weg auch 1,23 €), in CAMT.053 bleibt der
+  Punkt der Dezimaltrenner. Ein nachgestelltes Minus („12,50-") und das
+  typografische Minus zählen jetzt als negativ. Werte mit fremdem Text („ca.
+  12,50") gelten nicht mehr als Betrag.
+
+**Sicherheit:**
+- **GiroCode einer Auslage:** Ein Zeilenumbruch im Kontoinhaber konnte im
+  GiroCode eine fremde IBAN und einen höheren Betrag vortäuschen. Der
+  Kontoinhaber darf keine Zeilenumbrüche oder Steuerzeichen mehr enthalten,
+  und jeder GiroCode entfernt sie aus allen Freitextfeldern.
+- **Sicherung von einer anderen Nextcloud:** Bestätigte Verknüpfungen von
+  Mitgliedern mit Konten gelten nach dem Einspielen nicht mehr und werden neu
+  bestätigt; der Bericht nennt jedes vorhandene Konto und jede Gruppe, die
+  eine Rolle bekommen hat. Sicherungen tragen dafür ihre Herkunft; ältere
+  Sicherungen gelten als fremd.
+
+**Behoben:**
+- **CAMT.053 und MT940:** Eine Buchung mit fehlendem oder unlesbarem Betrag
+  fiel still weg; der Import bricht jetzt ab und nennt die Buchung.
+- **Zuordnung eines Bankumsatzes:** Ein Datenbankfehler beim Laden der alten
+  Buchung konnte beim Aufheben die Buchung stehen lassen oder beim erneuten
+  Zuordnen doppelt buchen; der Vorgang bricht jetzt vollständig ab.
+- **Untergrenze einer Beitragsgruppe anheben** und Änderungen an Zuweisungen
+  laufen in einer Transaktion: Ein Fehler mittendrin hinterlässt keine halb
+  angehobene Gruppe und keine Änderung ohne Eintrag in der Historie.
 
 ## [0.54.0] – 2026-11-17
 
