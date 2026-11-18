@@ -4,12 +4,27 @@
 	<div id="settings-section_rechnungen-angaben" class="vbh-card">
 		<h4>{{ t('Angaben des Vereins') }}</h4>
 		<NcLoadingIcon v-if="!loaded" :size="24" :name="t('Wird geladen…')" />
+		<div v-else-if="loadFailed">
+			<!-- Ohne geladenen Stand wären die Felder leer – nicht so tun, als
+			     wäre nichts eingetragen. -->
+			<p class="vbh-hint vbh-hint--error" role="alert">
+				{{ t('Die Einstellungen konnten nicht geladen werden.') }}
+			</p>
+			<NcButton @click="load">
+				{{ t('Erneut versuchen') }}
+			</NcButton>
+		</div>
 		<template v-else>
 			<p class="vbh-hint">
 				{{ t('Name, Anschrift und Steuernummer des Vereins stehen auf Rechnungen und Zuwendungsbestätigungen. Für Rechnungen sind Name und Anschrift sowie die Steuernummer oder USt-IdNr. Pflicht (§ 14 Abs. 4 UStG). Den Vereinsnamen pflegen Sie oben in der Karte „Vereinsname“.') }}
 			</p>
-			<p v-if="missing.length" class="vbh-hint vbh-hint--warning">
+			<!-- Die Warnung richtet sich nach dem Modul, das die Angaben braucht:
+			     ein Verein ohne Rechnungen soll nicht von Rechnungen lesen. -->
+			<p v-if="invoicesActive && missing.length" class="vbh-hint vbh-hint--warning">
 				{{ t('Es fehlen noch Angaben, ohne die sich keine Rechnung festschreiben lässt.') }}
+			</p>
+			<p v-else-if="donationsActive && addressMissing" class="vbh-hint vbh-hint--warning">
+				{{ t('Name und Anschrift des Vereins fehlen noch; ohne sie stellt die App keine Zuwendungsbestätigung aus.') }}
 			</p>
 			<div class="vbh-form">
 				<label class="vbh-grow">{{ t('Name auf Rechnungen (optional)') }}
@@ -145,6 +160,9 @@ export default {
 	props: {
 		// Vereinsname aus der Karte darüber (auch ungespeichert), als Platzhalter
 		clubName: { type: String, default: '' },
+		// Welche Module die Angaben gerade brauchen (für die passende Warnung)
+		invoicesActive: { type: Boolean, default: false },
+		donationsActive: { type: Boolean, default: false },
 	},
 
 	setup() {
@@ -154,6 +172,7 @@ export default {
 	data() {
 		return {
 			loaded: false,
+			loadFailed: false,
 			form: {},
 			missing: [],
 		}
@@ -163,15 +182,15 @@ export default {
 		invoiceName() { return (this.form.club_invoice_name || '').trim() || this.clubName },
 		// Ohne eigenen Kontoinhaber gilt der Name auf Rechnungen – der GiroCode fasst höchstens 70 Zeichen.
 		holderTooLong() { return !(this.form.club_account_holder || '').trim() && this.invoiceName.length > 70 },
+		// Wie DonationReceiptSettings::problems(): Name, Straße, PLZ und Ort sind Pflicht.
+		addressMissing() {
+			return [this.invoiceName, this.form.club_street, this.form.club_postal_code, this.form.club_city]
+				.some((value) => !(value || '').trim())
+		},
 	},
 
 	async mounted() {
-		try {
-			const { data } = await api.getSettings()
-			this.apply(data, ISSUER_KEYS)
-		} finally {
-			this.loaded = true
-		}
+		await this.load()
 		// Sprung aus der Prüfliste: die Karte steht erst jetzt in voller Höhe da.
 		await this.$nextTick()
 		if (location.hash === '#settings-section_rechnungen-angaben') {
@@ -180,6 +199,19 @@ export default {
 	},
 
 	methods: {
+		async load() {
+			this.loaded = false
+			try {
+				const { data } = await api.getSettings()
+				this.apply(data, ISSUER_KEYS)
+				this.loadFailed = false
+			} catch {
+				this.loadFailed = true
+			} finally {
+				this.loaded = true
+			}
+		},
+
 		apply(data, keys) {
 			for (const key of keys) { this.form[key] = data[key] ?? '' }
 			this.missing = data.invoice_missing_issuer_fields || []
@@ -197,8 +229,15 @@ export default {
 </script>
 
 <style scoped>
-/* Wie in SettingsInvoices.vue: Felder füllen ihre Zeile, kurze Angaben bleiben schmal. */
+/* Wie bisher in SettingsInvoices.vue: Felder füllen ihre Zeile – je Feld
+   mindestens 220 px, kurze Angaben (PLZ, Registernummer) nur 150 px – und das
+   Eingabefeld füllt sein Label, sonst blieben etwa Steuernummer und Telefon
+   schmal und Platzhalter abgeschnitten. */
 .vbh-form label { flex: 1 1 220px; min-width: 0; }
 
 .vbh-form label:has(> .vbh-short) { flex: 0 1 150px; }
+
+.vbh-form label > input:not([type="checkbox"]), .vbh-form label > select, .vbh-form label > textarea { width: 100%; min-width: 0; box-sizing: border-box; }
+
+.vbh-form label :deep(.v-select) { width: 100%; min-width: 0; }
 </style>

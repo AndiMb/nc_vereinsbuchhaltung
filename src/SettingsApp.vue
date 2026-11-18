@@ -19,7 +19,10 @@
 					@changed="loadSettings" />
 				<!-- Anschrift und Steuernummer: Rechnungen UND Zuwendungsbestätigungen
 				     brauchen sie, deshalb hier und unabhängig von jedem Modulschalter. -->
-				<SettingsClubIssuer :clubName="clubName" />
+				<SettingsClubIssuer
+					:clubName="clubName"
+					:invoicesActive="modules.rechnungen"
+					:donationsActive="modules.zuwendungen" />
 			</NcSettingsSection>
 		</div>
 

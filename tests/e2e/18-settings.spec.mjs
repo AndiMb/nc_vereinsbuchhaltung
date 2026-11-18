@@ -437,24 +437,28 @@ test.describe('Einstellungsseite: Inhaltsverzeichnis, Module und Speichern je Ka
 
 	test('Angaben des Vereins stehen unter „Verein“ – auch mit Rechnungen aus und Zuwendungsbestätigungen an', async ({ page, request }) => {
 		await api.raw(request, 'PUT', '/donation-receipts/settings', { data: { donation_receipts_enabled: true } })
-		await openSettingsPage(page, USERS.admin)
-		await expect(page.locator('#settings-section_rechnungen').getByTestId('settings-module-off-rechnungen')).toBeVisible()
-		await expect(page.locator('#settings-section_zuwendungen').getByTestId('settings-module-off-zuwendungen')).toHaveCount(0)
+		// Zurückschalten auch bei einem Fehlschlag, sonst scheitert der nächste Test (erwartet „aus“).
+		try {
+			await openSettingsPage(page, USERS.admin)
+			await expect(page.locator('#settings-section_rechnungen').getByTestId('settings-module-off-rechnungen')).toBeVisible()
+			await expect(page.locator('#settings-section_zuwendungen').getByTestId('settings-module-off-zuwendungen')).toHaveCount(0)
 
-		// Der alte Anker der Karte gilt weiter (Prüfliste des Rechnungseditors), jetzt im Abschnitt „Verein“.
-		const club = page.locator('#settings-section_verein #settings-section_rechnungen-angaben')
-		await expect(club.getByRole('heading', { name: 'Angaben des Vereins', exact: true })).toBeVisible()
-		const value = `Vereinsweg ${Date.now() % 1000}`
-		await club.getByLabel('Straße und Hausnummer').fill(value)
-		await club.getByRole('button', { name: 'Speichern' }).click()
-		await expect(savedToast(page)).toBeVisible()
-		await expect.poll(async () => (await api.getSettings(request)).club_street).toBe(value)
+			// Der alte Anker der Karte gilt weiter (Prüfliste des Rechnungseditors), jetzt im Abschnitt „Verein“.
+			const club = page.locator('#settings-section_verein #settings-section_rechnungen-angaben')
+			await expect(club.getByRole('heading', { name: 'Angaben des Vereins', exact: true })).toBeVisible()
+			const value = `Vereinsweg ${Date.now() % 1000}`
+			await club.getByLabel('Straße und Hausnummer').fill(value)
+			await club.getByRole('button', { name: 'Speichern' }).click()
+			await expect(savedToast(page)).toBeVisible()
+			await expect.poll(async () => (await api.getSettings(request)).club_street).toBe(value)
 
-		// Sprung der Prüfliste landet auf der Karte.
-		await page.goto(page.url().replace(/#.*$/, '') + '#settings-section_rechnungen-angaben')
-		await page.reload()
-		await expect(page.locator('#settings-section_rechnungen-angaben').getByRole('heading', { name: 'Angaben des Vereins', exact: true })).toBeInViewport()
-		await api.raw(request, 'PUT', '/donation-receipts/settings', { data: { donation_receipts_enabled: false } })
+			// Sprung der Prüfliste landet auf der Karte.
+			await page.goto(page.url().replace(/#.*$/, '') + '#settings-section_rechnungen-angaben')
+			await page.reload()
+			await expect(page.locator('#settings-section_rechnungen-angaben').getByRole('heading', { name: 'Angaben des Vereins', exact: true })).toBeInViewport()
+		} finally {
+			await api.raw(request, 'PUT', '/donation-receipts/settings', { data: { donation_receipts_enabled: false } })
+		}
 	})
 
 	test('Zuwendungsbestätigungen: der Schalter wirkt sofort und blendet die Angaben ein und aus', async ({ page, request }) => {
