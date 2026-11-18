@@ -107,6 +107,56 @@ class PayPalCsvParserTest extends TestCase {
 		$this->parser->parse(str_replace('kasse@example.org', '', $this->content));
 	}
 
+	/**
+	 * Baut aus der Fixture eine Variante: Zeilen (0 = erste Datenzeile) werden
+	 * in der angegebenen Reihenfolge ausgegeben, $edits ändert Spalten je Zeile.
+	 *
+	 * @param list<int> $order
+	 * @param array<int, array<int, string>> $edits Zeile => [Spalte => Wert]
+	 */
+	private function variant(array $order, array $edits = []): string {
+		$lines = preg_split('/\r\n/', trim($this->content));
+		$out = $lines[0] . "\r\n";
+		foreach ($order as $n) {
+			$cols = str_getcsv($lines[$n + 1], ',', '"', '\\');
+			foreach ($edits[$n] ?? [] as $col => $value) {
+				$cols[$col] = $value;
+			}
+			$out .= '"' . implode('","', array_map(static fn ($c) => str_replace('"', '""', (string)$c), $cols)) . "\"\r\n";
+		}
+		return $out;
+	}
+
+	public function testSaldenAusGuthaben(): void {
+		$balances = $this->parser->balances($this->content);
+		$this->assertCount(1, $balances);
+		$b = $balances[0];
+		$this->assertSame('PAYPALKASSEEXAMPLEORG', $b->ownAccount);
+		$this->assertSame(0, $b->openingCents);
+		$this->assertSame('2026-03-02', $b->openingDate);
+		$this->assertSame(4840, $b->closingCents);
+		$this->assertSame('2026-03-06', $b->closingDate);
+		$this->assertSame([], $b->gaps);
+	}
+
+	public function testGleicheSekundeUmgekehrt(): void {
+		// Zeilen 2 und 3 am selben Tag zur selben Sekunde, in der Datei vertauscht.
+		$same = [0 => [0 => '02.03.2026', 1 => '09:00:00'], 1 => [0 => '02.03.2026', 1 => '09:00:00']];
+		$b = $this->parser->balances($this->variant([1, 0, 2, 3, 4], $same))[0];
+		$this->assertSame([], $b->gaps);
+		$this->assertSame(0, $b->openingCents);
+		$this->assertSame(4840, $b->closingCents);
+	}
+
+	public function testLueckeWirdGemeldet(): void {
+		$b = $this->parser->balances($this->variant([0, 1, 2, 3, 4], [2 => [29 => '50,00']]))[0];
+		$this->assertSame([['date' => '2026-03-06', 'expectedCents' => 4840, 'actualCents' => 5000]], $b->gaps);
+	}
+
+	public function testKeineUebernommenenZeilenKeineSalden(): void {
+		$this->assertSame([], $this->parser->balances($this->variant([3, 4])));
+	}
+
 	public function testSemikolonUndOhneBom(): void {
 		$in = fopen('php://temp', 'r+');
 		fwrite($in, substr($this->content, 3));

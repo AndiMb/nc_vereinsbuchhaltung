@@ -37,7 +37,7 @@ use OCP\IL10N;
  * $l10n ist wie bei CamtCsvParser optional, damit der Parser ohne laufende
  * Nextcloud-Instanz instanziierbar bleibt.
  */
-final class PayPalCsvParser implements StatementParser {
+final class PayPalCsvParser implements StatementParser, StatementBalanceReader {
 
 	/** Pflichtspalten der Kopfzeile (klein geschrieben, getrimmt). */
 	private const COLUMNS = [
@@ -60,6 +60,8 @@ final class PayPalCsvParser implements StatementParser {
 		'related' => 'zugehöriger transaktionscode',
 		'subject' => 'betreff',
 		'note' => 'hinweis',
+		'time' => 'uhrzeit',
+		'balance' => 'guthaben',
 	];
 
 	public function __construct(
@@ -114,7 +116,84 @@ final class PayPalCsvParser implements StatementParser {
 	}
 
 	/**
-	 * @return array{rows: array<int, array<string, mixed>>, skipped: int}
+	 * Anfangs- und Endsaldo aus der Spalte „Guthaben" für die Kontoabstimmung.
+	 *
+	 * Die Kette läuft über die übernommenen CSV-Zeilen, nicht über die daraus
+	 * erzeugten Umsätze: Guthaben ist der Stand nach der ganzen Zeile, also
+	 * nach Brutto und Gebühr zusammen (Netto). Memo- und Fremdwährungszeilen
+	 * ändern das Guthaben in Vereinswährung nicht und bleiben außen vor.
+	 *
+	 * @return list<StatementBalance>
+	 * @throws UserFacingException bei unbrauchbarer Datei
+	 */
+	public function balances(string $content): array {
+		$read = $this->read($content);
+		$chain = $this->orderChain($read['chain']);
+		if ($chain === []) {
+			return [];
+		}
+		$gaps = [];
+		for ($i = 1; $i < count($chain); $i++) {
+			$expected = $chain[$i - 1]['balance'] + $chain[$i]['net'];
+			if ($expected !== $chain[$i]['balance']) {
+				$gaps[] = ['date' => $chain[$i]['date'], 'expectedCents' => $expected, 'actualCents' => $chain[$i]['balance']];
+			}
+		}
+		$first = $chain[0];
+		$last = $chain[count($chain) - 1];
+		return [new StatementBalance(
+			$read['ownAccount'],
+			$first['balance'] - $first['net'],
+			$first['date'],
+			$last['balance'],
+			$last['date'],
+			$gaps,
+		)];
+	}
+
+	/**
+	 * Zeitliche Reihenfolge der Kette. PayPal löst nur auf die Sekunde auf, und
+	 * Zeilen derselben Sekunde stehen in der Datei in beliebiger Folge. Innerhalb
+	 * einer solchen Gruppe wird daher die Zeile vorgezogen, deren Guthaben
+	 * abzüglich Netto dem laufenden Stand entspricht; passt keine, gilt die
+	 * Dateireihenfolge. Für die allererste Gruppe ist der Stand unbekannt: dort
+	 * beginnt die Zeile, deren Anfangsstand kein anderes Guthaben der Gruppe ist.
+	 *
+	 * @param list<array{date:string, time:string, net:int, balance:int}> $chain in Dateireihenfolge
+	 * @return list<array{date:string, time:string, net:int, balance:int}>
+	 */
+	private function orderChain(array $chain): array {
+		$groups = [];
+		foreach ($chain as $entry) {
+			$groups[$entry['date'] . ' ' . $entry['time']][] = $entry;
+		}
+		ksort($groups, SORT_STRING);
+
+		$ordered = [];
+		$running = null;
+		foreach ($groups as $group) {
+			while ($group !== []) {
+				$pick = array_key_first($group);
+				foreach ($group as $key => $candidate) {
+					$start = $candidate['balance'] - $candidate['net'];
+					$fits = $running !== null
+						? $start === $running
+						: !in_array($start, array_column(array_diff_key($group, [$key => true]), 'balance'), true);
+					if ($fits) {
+						$pick = $key;
+						break;
+					}
+				}
+				$ordered[] = $group[$pick];
+				$running = $group[$pick]['balance'];
+				unset($group[$pick]);
+			}
+		}
+		return $ordered;
+	}
+
+	/**
+	 * @return array{rows: array<int, array<string, mixed>>, skipped: int, chain: list<array{date:string, time:string, net:int, balance:int}>, ownAccount: string}
 	 */
 	private function read(string $content): array {
 		$records = $this->readRecords($this->prepare($content));
@@ -155,6 +234,8 @@ final class PayPalCsvParser implements StatementParser {
 				'related' => $this->cell($cols, $map, 'related'),
 				'subject' => $this->cell($cols, $map, 'subject'),
 				'note' => $this->cell($cols, $map, 'note'),
+				'time' => $this->cell($cols, $map, 'time'),
+				'balance' => $this->cell($cols, $map, 'balance'),
 			];
 			if ($entry['code'] !== '' && $entry['name'] !== '') {
 				$names[$entry['code']] = $entry['name'];
@@ -179,6 +260,7 @@ final class PayPalCsvParser implements StatementParser {
 		$ownAccount = PayPalAddresses::key($ownLabel);
 
 		$rows = [];
+		$chain = [];
 		$skipped = 0;
 		foreach ($entries as $entry) {
 			if ($this->side($entry['effect']) === null || $entry['currency'] !== $clubCurrency) {
@@ -198,6 +280,11 @@ final class PayPalCsvParser implements StatementParser {
 			// lieber abbrechen als falsche Beträge zu buchen.
 			if ($gross + $fee !== $net) {
 				throw new UserFacingException($this->msg('Zeile %d: Netto passt nicht zu Brutto und Gebühr.', [$entry['line']]));
+			}
+
+			$balance = $entry['balance'] === '' ? null : $this->parseAmount($entry['balance']);
+			if ($balance !== null) {
+				$chain[] = ['date' => $date, 'time' => $entry['time'], 'net' => $net, 'balance' => $balance];
 			}
 
 			$code = $entry['code'];
@@ -240,7 +327,7 @@ final class PayPalCsvParser implements StatementParser {
 			}
 		}
 
-		return ['rows' => $rows, 'skipped' => $skipped];
+		return ['rows' => $rows, 'skipped' => $skipped, 'chain' => $chain, 'ownAccount' => $ownAccount];
 	}
 
 	/** 'soll' oder 'haben'; alles andere (Memo, leer) wird nicht übernommen. */
