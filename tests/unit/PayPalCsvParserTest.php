@@ -48,6 +48,19 @@ class PayPalCsvParserTest extends TestCase {
 		$this->assertSame(hash('sha256', 'paypal|1AB23456CD7890123|fee'), $fee['hash']);
 	}
 
+	public function testWindows1252OhneBomWirdKonvertiert(): void {
+		// Pfad ohne gueltiges UTF-8: Umlaute muessen ueber die Umkodierung korrekt ankommen.
+		$utf8 = (string)preg_replace('/^\xEF\xBB\xBF/', '', $this->content);
+		$latin = mb_convert_encoding($utf8, 'Windows-1252', 'UTF-8');
+		$this->assertFalse(mb_check_encoding($latin, 'UTF-8'));
+		$this->assertTrue($this->parser->supports($latin));
+		$expected = $this->parser->parse($this->content);
+		$rows = $this->parser->parse($latin);
+		$this->assertSame(array_column($expected, 'purpose'), array_column($rows, 'purpose'));
+		$this->assertSame(array_column($expected, 'amountCents'), array_column($rows, 'amountCents'));
+		$this->assertStringContainsString('PayPal-Gebühr', $rows[1]['purpose']);
+	}
+
 	public function testTausenderpunkt(): void {
 		$rows = $this->parser->parse($this->content);
 		$this->assertSame(-125000, $rows[2]['amountCents']);

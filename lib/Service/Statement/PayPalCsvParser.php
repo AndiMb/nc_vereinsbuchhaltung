@@ -405,12 +405,16 @@ final class PayPalCsvParser implements StatementParser, StatementBalanceReader {
 
 	/** UTF-8 herstellen und BOM entfernen. */
 	private function prepare(string $content): string {
-		$encoding = mb_detect_encoding($content, ['UTF-8', 'Windows-1252', 'ISO-8859-1'], true);
-		if ($encoding !== false && $encoding !== 'UTF-8') {
-			$converted = mb_convert_encoding($content, 'UTF-8', $encoding);
-			$content = $converted === false ? $content : $converted;
+		// BOM zuerst entfernen: Unter PHP 8.1/8.2 stuft mb_detect_encoding gueltiges
+		// UTF-8 mit BOM als Windows-1252 ein und wuerde es doppelt kodieren (die
+		// Spaltenkoepfe passten dann nicht mehr). Echte PayPal-Exporte tragen ein BOM.
+		$content = (string)preg_replace('/^\xEF\xBB\xBF/', '', $content);
+		if (mb_check_encoding($content, 'UTF-8')) {
+			return $content;
 		}
-		return (string)preg_replace('/^\xEF\xBB\xBF/', '', $content);
+		$encoding = mb_detect_encoding($content, ['Windows-1252', 'ISO-8859-1'], true);
+		$converted = mb_convert_encoding($content, 'UTF-8', $encoding === false ? 'Windows-1252' : $encoding);
+		return $converted === false ? $content : $converted;
 	}
 
 	private function detectDelimiter(string $headerLine): string {
