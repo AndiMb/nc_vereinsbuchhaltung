@@ -87,6 +87,9 @@ export default {
 	color: var(--color-primary-element);
 	text-decoration: underline;
 	min-width: 0;
+	/* Lange Wörter wie „Zuwendungsbestätigungen“ trennen statt abschneiden. */
+	overflow-wrap: anywhere;
+	hyphens: auto;
 }
 
 .vbh-settings-toc .vbh-badge {
