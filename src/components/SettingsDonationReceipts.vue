@@ -1,6 +1,6 @@
 <template>
 	<div class="vbh-card">
-		<h4>{{ t('Zuwendungsbestätigungen') }}</h4>
+		<h4 class="vbh-donation-title">{{ t('Zuwendungsbestätigungen') }}</h4>
 		<p v-if="loadFailed" class="vbh-hint vbh-hint--error" role="alert">
 			{{ t('Die Einstellungen der Zuwendungsbestätigungen konnten nicht geladen werden.') }}
 		</p>
@@ -164,6 +164,12 @@ export default {
 </script>
 
 <style scoped>
+/* Ein Wort von 23 Zeichen: auf 375 px breiten Schirmen mit breiterer Schrift passte es nicht in die Karte. */
+.vbh-donation-title {
+	hyphens: auto;
+	overflow-wrap: break-word;
+}
+
 .vbh-donation-confirm {
 	margin-top: 12px;
 }

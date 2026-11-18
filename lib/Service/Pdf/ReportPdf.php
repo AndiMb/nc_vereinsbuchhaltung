@@ -139,7 +139,7 @@ final class ReportPdf {
 	 * darunter der Wert – wie die Felder eines amtlichen Vordrucks (Issue #10).
 	 *
 	 * @param list<array{label: string, value: string, width: float}> $fields
-	 *                                                                     `width` ist der Anteil an der Breite
+	 *                                                                        `width` ist der Anteil an der Breite
 	 */
 	public function boxes(array $fields, float $minHeight = 12): void {
 		$total = $this->contentWidth();
