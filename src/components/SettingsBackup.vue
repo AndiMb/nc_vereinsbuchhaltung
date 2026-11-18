@@ -153,9 +153,12 @@
 					<p class="vbh-hint">
 						{{ t('Beim Einspielen werden Rollen und Änderungsprotokoll dieser Buchhaltung durch die der Sicherung ersetzt. Sie selbst bleiben Verwalter.') }}
 					</p>
-					<!-- Herkunft unbekannt oder fremd: gleichnamige Konten können anderen Menschen gehören. -->
-					<p v-if="inspection.fromThisInstance === false" class="vbh-hint vbh-hint--warning" data-test="backup-foreign">
-						{{ t('Diese Sicherung stammt nicht nachweislich von dieser Nextcloud. Rollen gehen an gleichnamige Konten und Gruppen dieser Nextcloud – prüfen Sie sie nach dem Einspielen. Verknüpfungen von Mitgliedern mit Konten müssen die Mitglieder neu bestätigen.') }}
+					<!-- Fremd oder unbekannt: gleichnamige Konten können anderen Menschen gehören. -->
+					<p v-if="inspection.origin === 'foreign'" class="vbh-hint vbh-hint--warning" data-test="backup-foreign">
+						{{ t('Diese Sicherung stammt von einer anderen Nextcloud – dazu zählt auch eine neu installierte. Rollen gehen an gleichnamige Konten und Gruppen dieser Nextcloud; prüfen Sie sie nach dem Einspielen. Verknüpfungen von Mitgliedern mit Konten müssen die Mitglieder neu bestätigen.') }}
+					</p>
+					<p v-else-if="inspection.origin === 'unknown'" class="vbh-hint vbh-hint--warning" data-test="backup-unknown-origin">
+						{{ t('Woher diese Sicherung stammt, ist unbekannt. Rollen und bestätigte Verknüpfungen von Mitgliedern mit Konten werden unverändert übernommen, obwohl gleichnamige Konten und Gruppen dieser Nextcloud anderen Menschen gehören können. Prüfen Sie beides nach dem Einspielen.') }}
 					</p>
 					<NcButton
 						variant="primary"
@@ -195,6 +198,9 @@
 						</li>
 					</ul>
 				</template>
+				<p v-if="importResult.origin === 'unknown'" class="vbh-hint vbh-hint--warning" data-test="backup-result-unknown-origin">
+					<strong>{{ t('Achtung: Woher diese Sicherung stammt, ist unbekannt. Die Verknüpfungen von Mitgliedern mit Konten sind unverändert übernommen. Prüfen Sie unter „Mitglieder“, ob jedes verknüpfte Konto hier dem richtigen Menschen gehört.') }}</strong>
+				</p>
 				<template v-if="importResult.existingPrincipals && importResult.existingPrincipals.length">
 					<p>{{ t('Die Sicherung stammt nicht nachweislich von dieser Nextcloud. Diese Konten und Gruppen gibt es hier, und sie haben eine Rolle bekommen. Prüfen Sie unter „Berechtigungen“, ob sie hier denselben Menschen gehören:') }}</p>
 					<ul class="vbh-backup-list" data-test="backup-existing-principals">

@@ -21,6 +21,13 @@ use OCP\IConfig;
  */
 final class BackupInstanceMarker {
 
+	/** Der Abdruck in der Sicherung ist der dieser Nextcloud. */
+	public const ORIGIN_SAME = 'same';
+	/** Die Sicherung trägt den Abdruck einer anderen Nextcloud – auch einer neu installierten. */
+	public const ORIGIN_FOREIGN = 'foreign';
+	/** Kein Abdruck in der Sicherung, oder diese Nextcloud hat keine Kennung zum Vergleich. */
+	public const ORIGIN_UNKNOWN = 'unknown';
+
 	public function __construct(
 		private IConfig $config,
 	) {
@@ -33,12 +40,29 @@ final class BackupInstanceMarker {
 	}
 
 	/**
-	 * Stammt eine Sicherung mit diesem Abdruck von hier? Ohne Abdruck (ältere
-	 * Sicherungen) oder ohne eigene Kennung ist die Herkunft unbekannt und
-	 * gilt als fremd – das ist die vorsichtige Seite.
+	 * Woher stammt eine Sicherung mit diesem Abdruck?
+	 *
+	 * Fremd ist sie nur, wenn sie nachweislich von einer anderen Nextcloud
+	 * kommt. Fehlt der Abdruck (oder hat diese Nextcloud keine Kennung), ist
+	 * die Herkunft unbekannt: das Einspielen behält dann bestätigte
+	 * Verknüpfungen, warnt aber im Bericht.
+	 *
+	 * Kein Schutz gegen Fälschung: die Kennung steckt im Namen des
+	 * Sitzungs-Cookies, wer eine Sicherung präpariert, kann „dieselbe
+	 * Nextcloud“ vortäuschen. Der Abdruck verhindert nur, dass eine echte
+	 * Sicherung einer anderen Instanz unbemerkt Namen verknüpft, die hier
+	 * anderen Menschen gehören.
+	 *
+	 * @return self::ORIGIN_*
 	 */
-	public function isThisInstance(mixed $marker): bool {
+	public function origin(mixed $marker): string {
+		if (!is_string($marker) || $marker === '') {
+			return self::ORIGIN_UNKNOWN;
+		}
 		$own = $this->current();
-		return $own !== '' && is_string($marker) && hash_equals($own, $marker);
+		if ($own === '') {
+			return self::ORIGIN_UNKNOWN;
+		}
+		return hash_equals($own, $marker) ? self::ORIGIN_SAME : self::ORIGIN_FOREIGN;
 	}
 }

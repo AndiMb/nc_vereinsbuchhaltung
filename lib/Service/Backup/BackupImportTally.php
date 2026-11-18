@@ -23,8 +23,8 @@ final class BackupImportTally {
 	/** @var array<string, true> */
 	public array $groups = [];
 	public bool $importerFound = false;
-	/** Stammt die Sicherung von einer anderen oder unbekannten Nextcloud? */
-	public bool $foreign = true;
+	/** @var BackupInstanceMarker::ORIGIN_* Herkunft der Sicherung */
+	public string $origin = BackupInstanceMarker::ORIGIN_UNKNOWN;
 	/** @var list<array{type: string, id: string, role: string}> jede eingespielte Rolle */
 	public array $roles = [];
 	/** Mitglieder, deren bestätigte Verknüpfung zurückgesetzt wurde */

@@ -60,7 +60,7 @@ class BackupImportService {
 	 * Was steckt in der Sicherung, und ließe sie sich hier einspielen?
 	 * Verändert nichts.
 	 *
-	 * @return array{clubName: string, createdAt: string, appVersion: string, installedVersion: string, withFiles: bool, compatible: bool, targetEmpty: bool, fromThisInstance: bool, rows: int, counts: array<string, int>, files: int, missingFiles: int}
+	 * @return array{clubName: string, createdAt: string, appVersion: string, installedVersion: string, withFiles: bool, compatible: bool, targetEmpty: bool, origin: string, rows: int, counts: array<string, int>, files: int, missingFiles: int}
 	 * @throws UserFacingException keine Sicherungsdatei, falsches Passwort, beschädigt
 	 */
 	public function inspect(string $path, #[\SensitiveParameter] string $password): array {
@@ -78,7 +78,7 @@ class BackupImportService {
 				'withFiles' => ($manifest['withFiles'] ?? false) === true,
 				'compatible' => $manifest['appVersion'] === $installed,
 				'targetEmpty' => $this->wipe->isEmpty(),
-				'fromThisInstance' => $this->instance->isThisInstance($manifest['sourceInstance'] ?? null),
+				'origin' => $this->instance->origin($manifest['sourceInstance'] ?? null),
 				'rows' => array_sum(array_map(static fn ($t): int => is_array($t) ? (int)($t['rows'] ?? 0) : 0, $manifest['tables'])),
 				'counts' => $counts,
 				'files' => (int)($manifest['files']['count'] ?? 0),
@@ -88,13 +88,18 @@ class BackupImportService {
 	}
 
 	/**
-	 * Stammt die Sicherung von einer anderen (oder unbekannten) Nextcloud,
-	 * gelten bestätigte Mitglied-Verknüpfungen nicht weiter, und der Bericht
-	 * nennt in `existingPrincipals` jedes hier vorhandene Konto und jede
-	 * Gruppe, die eine Rolle bekommen hat (Review 2026-11-18, Sicherheit I-2).
+	 * Herkunft (Review 2026-11-18, Sicherheit I-2; `origin`, siehe
+	 * {@see BackupInstanceMarker::origin()}):
+	 * - von dieser Nextcloud: alles wie gesichert;
+	 * - nachweislich von einer anderen Nextcloud (auch einer neu
+	 *   installierten): bestätigte Mitglied-Verknüpfungen gelten nicht weiter
+	 *   (`memberLinksReset`);
+	 * - unbekannt (kein Abdruck in der Sicherung): Verknüpfungen bleiben.
+	 * Ist sie nicht von hier, nennt `existingPrincipals` jedes hier
+	 * vorhandene Konto und jede Gruppe, die eine Rolle bekommen hat.
 	 *
 	 * @param string $importerUid wer einspielt – ist danach in jedem Fall Verwalter
-	 * @return array{rows: int, tables: int, files: int, missingFiles: list<array{kind: string, id: int, label: string}>, unknownUsers: list<string>, unknownGroups: list<string>, foreignInstance: bool, existingPrincipals: list<array{type: string, id: string, role: string}>, memberLinksReset: int}
+	 * @return array{rows: int, tables: int, files: int, missingFiles: list<array{kind: string, id: int, label: string}>, unknownUsers: list<string>, unknownGroups: list<string>, origin: string, existingPrincipals: list<array{type: string, id: string, role: string}>, memberLinksReset: int}
 	 * @throws UserFacingException wenn die Sicherung nicht eingespielt werden kann; das Ziel ist dann unverändert
 	 */
 	public function import(string $path, #[\SensitiveParameter] string $password, string $importerUid): array {
@@ -134,7 +139,7 @@ class BackupImportService {
 				'missingFiles' => array_merge($this->missingFiles($manifest), $files['failed']),
 				'unknownUsers' => $db['unknownUsers'],
 				'unknownGroups' => $db['unknownGroups'],
-				'foreignInstance' => $db['foreignInstance'],
+				'origin' => $db['origin'],
 				'existingPrincipals' => $db['existingPrincipals'],
 				'memberLinksReset' => $db['memberLinksReset'],
 			];
@@ -228,7 +233,7 @@ class BackupImportService {
 	 * Läuft in der Transaktion: leert alle Tabellen und füllt sie aus der Sicherung.
 	 *
 	 * @param array<string, mixed> $manifest
-	 * @return array{rows: int, unknownUsers: list<string>, unknownGroups: list<string>, foreignInstance: bool, existingPrincipals: list<array{type: string, id: string, role: string}>, memberLinksReset: int}
+	 * @return array{rows: int, unknownUsers: list<string>, unknownGroups: list<string>, origin: string, existingPrincipals: list<array{type: string, id: string, role: string}>, memberLinksReset: int}
 	 */
 	private function fillTables(\ZipArchive $zip, array $manifest, string $importerUid): array {
 		foreach (array_merge(array_keys(BackupSchema::tables()), BackupSchema::excludedTables()) as $table) {
@@ -238,7 +243,7 @@ class BackupImportService {
 		}
 
 		$seen = new BackupImportTally();
-		$seen->foreign = !$this->instance->isThisInstance($manifest['sourceInstance'] ?? null);
+		$seen->origin = $this->instance->origin($manifest['sourceInstance'] ?? null);
 		$rows = 0;
 		foreach (BackupSchema::tables() as $table => $def) {
 			$count = $this->tables->insert($table, $this->rows($zip, $table, $def, $importerUid, $seen));
@@ -277,12 +282,12 @@ class BackupImportService {
 		sort($unknownUsers);
 		sort($unknownGroups);
 
-		// Von einer anderen Nextcloud: Rollen an Namen, die es hier gibt, gehen
+		// Nicht nachweislich von hier: Rollen an Namen, die es hier gibt, gehen
 		// womöglich an andere Menschen als in der Quelle. Der Bericht nennt sie
 		// alle, damit der Verwalter sie unter „Berechtigungen“ prüft. Der
 		// Importeur selbst fehlt darin; er ist ohnehin Verwalter.
 		$existing = [];
-		if ($seen->foreign) {
+		if ($seen->origin !== BackupInstanceMarker::ORIGIN_SAME) {
 			foreach ($seen->roles as $grant) {
 				$exists = $grant['type'] === 'user'
 					? $grant['id'] !== $importerUid && $this->userManager->userExists($grant['id'])
@@ -297,7 +302,7 @@ class BackupImportService {
 			'rows' => $rows,
 			'unknownUsers' => $unknownUsers,
 			'unknownGroups' => $unknownGroups,
-			'foreignInstance' => $seen->foreign,
+			'origin' => $seen->origin,
 			'existingPrincipals' => $existing,
 			'memberLinksReset' => $seen->linksReset,
 		];
@@ -373,7 +378,7 @@ class BackupImportService {
 						if (is_string($row['nc_user_id'] ?? null) && $row['nc_user_id'] !== '') {
 							$seen->users[$row['nc_user_id']] = true;
 						}
-						if ($seen->foreign) {
+						if ($seen->origin === BackupInstanceMarker::ORIGIN_FOREIGN) {
 							// Eine auf der Quelle bestätigte Verknüpfung (#295) gilt hier nicht:
 							// das gleichnamige Konto kann einem anderen Menschen gehören, der sonst
 							// Adresse, Beiträge und Mandate des Mitglieds sähe. Der Name bleibt als

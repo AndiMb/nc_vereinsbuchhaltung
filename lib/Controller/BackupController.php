@@ -176,7 +176,7 @@ class BackupController extends Controller {
 				'unbekannte_benutzer' => $result['unknownUsers'],
 				'unbekannte_gruppen' => $result['unknownGroups'],
 				// Von einer anderen Nextcloud: wer hier eine Rolle bekam, gehört ins Protokoll.
-				'fremde_instanz' => $result['foreignInstance'],
+				'herkunft' => $result['origin'],
 				'rollen_an_vorhandene' => array_map(
 					static fn (array $p): string => $p['type'] . ':' . $p['id'] . '=' . $p['role'],
 					$result['existingPrincipals'],

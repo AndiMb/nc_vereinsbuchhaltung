@@ -244,7 +244,7 @@ class BackupImportServiceTest extends TestCase {
 			$this->assertNull($member['nc_link_token_hash']);
 			$this->assertNull($member['nc_link_token_expires_at']);
 		}
-		$this->assertTrue($result['foreignInstance']);
+		$this->assertSame('foreign', $result['origin']);
 		$this->assertSame(1, $result['memberLinksReset']);
 	}
 
@@ -278,13 +278,17 @@ class BackupImportServiceTest extends TestCase {
 		$result = $target['import']->import($source['export']->export(self::PASSWORD, false)['path'], self::PASSWORD, 'importer');
 
 		$this->assertSame($source['tables']->all('vbh_members'), $target['tables']->all('vbh_members'));
-		$this->assertFalse($result['foreignInstance']);
+		$this->assertSame('same', $result['origin']);
 		$this->assertSame(0, $result['memberLinksReset']);
 		$this->assertSame([], $result['existingPrincipals']);
 	}
 
-	/** Ältere Sicherungen tragen keine Herkunft – sie gelten als fremd. */
-	public function testSicherungOhneHerkunftGiltAlsFremd(): void {
+	/**
+	 * Ohne Abdruck ist die Herkunft unbekannt (Entscheidung zum Review-Nachtrag
+	 * I-2): Verknüpfungen bleiben wie gesichert, der Bericht warnt aber und
+	 * nennt jedes vorhandene Konto und jede Gruppe mit Rolle.
+	 */
+	public function testSicherungOhneHerkunftBehaeltVerknuepfungenUndNenntRollen(): void {
 		$source = $this->instance('quelle', true, instanceId: 'ocdieselbe');
 		$this->withLinkedMembers($source);
 		$target = $this->instance('ziel', false, instanceId: 'ocdieselbe');
@@ -294,27 +298,34 @@ class BackupImportServiceTest extends TestCase {
 			$zip->addFromString('manifest.json', json_encode($manifest));
 		});
 
-		$this->assertFalse($target['import']->inspect($path, self::PASSWORD)['fromThisInstance']);
+		$this->assertSame('unknown', $target['import']->inspect($path, self::PASSWORD)['origin']);
 		$result = $target['import']->import($path, self::PASSWORD, 'importer');
 
-		$this->assertTrue($result['foreignInstance']);
-		$this->assertSame(1, $result['memberLinksReset']);
+		$this->assertSame('unknown', $result['origin']);
+		$this->assertSame(0, $result['memberLinksReset']);
+		$this->assertSame($source['tables']->all('vbh_members'), $target['tables']->all('vbh_members'));
+		$this->assertSame([
+			['type' => 'user', 'id' => 'alice', 'role' => 'verwalter'],
+			['type' => 'group', 'id' => 'vorstand', 'role' => 'revisor'],
+		], $result['existingPrincipals']);
 	}
 
 	public function testVorschauSagtObDieSicherungVonHierStammt(): void {
 		$source = $this->instance('quelle', true, instanceId: 'ocdieselbe');
 		$path = $source['export']->export(self::PASSWORD, false)['path'];
 
-		$this->assertTrue($this->instance('ziel', false, instanceId: 'ocdieselbe')['import']->inspect($path, self::PASSWORD)['fromThisInstance']);
-		$this->assertFalse($this->instance('ziel', false, instanceId: 'ocanders')['import']->inspect($path, self::PASSWORD)['fromThisInstance']);
+		$this->assertSame('same', $this->instance('ziel', false, instanceId: 'ocdieselbe')['import']->inspect($path, self::PASSWORD)['origin']);
+		$this->assertSame('foreign', $this->instance('ziel', false, instanceId: 'ocanders')['import']->inspect($path, self::PASSWORD)['origin']);
 	}
 
-	/** Ohne `instanceid` kann keine Sicherung als „von hier“ gelten, auch keine ohne Herkunft. */
-	public function testOhneEigeneInstanzkennungIstJedeSicherungFremd(): void {
-		$source = $this->instance('quelle', true, instanceId: '');
-		$path = $source['export']->export(self::PASSWORD, false)['path'];
+	/** Ohne `instanceid` lässt sich nichts vergleichen: die Herkunft ist unbekannt, nie „von hier“. */
+	public function testOhneInstanzkennungIstDieHerkunftUnbekannt(): void {
+		$withoutId = $this->instance('quelle', true, instanceId: '')['export']->export(self::PASSWORD, false)['path'];
+		$withId = $this->instance('quelle', true, instanceId: 'ocdieselbe')['export']->export(self::PASSWORD, false)['path'];
 
-		$this->assertFalse($this->instance('ziel', false, instanceId: '')['import']->inspect($path, self::PASSWORD)['fromThisInstance']);
+		$this->assertSame('unknown', $this->instance('ziel', false, instanceId: '')['import']->inspect($withoutId, self::PASSWORD)['origin']);
+		$this->assertSame('unknown', $this->instance('ziel', false, instanceId: '')['import']->inspect($withId, self::PASSWORD)['origin']);
+		$this->assertSame('unknown', $this->instance('ziel', false, instanceId: 'ocdieselbe')['import']->inspect($withoutId, self::PASSWORD)['origin']);
 	}
 
 	public function testAusgenommeneTabellenSindDanachLeer(): void {
