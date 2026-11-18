@@ -17,7 +17,9 @@ use OCP\IL10N;
  *
  * Die Reihenfolge ist wichtig: CSV erkennt sich am lockersten (irgendeine
  * Kopfzeile mit Buchungstag und Betrag) und steht deshalb am Ende, damit es
- * die spezifischeren Formate nicht wegschnappt.
+ * die spezifischeren Formate nicht wegschnappt. PayPal steht davor: es
+ * verlangt seine eigenen Spalten (Transaktionscode, Brutto, Netto, Auswirkung
+ * auf Guthaben) und ist damit eindeutig.
  */
 class StatementParserRegistry {
 
@@ -39,8 +41,9 @@ class StatementParserRegistry {
 		CamtCsvParser $csv,
 		private ?IL10N $l10n = null,
 		?StatementArchive $archive = null,
+		?PayPalCsvParser $paypal = null,
 	) {
-		$this->parsers = [$camt, $mt940, $csv];
+		$this->parsers = [$camt, $mt940, $paypal ?? new PayPalCsvParser(), $csv];
 		$this->archive = $archive ?? new StatementArchive($l10n);
 	}
 
@@ -62,8 +65,9 @@ class StatementParserRegistry {
 		}
 		throw new UserFacingException($this->msg(
 			'Das Dateiformat wurde nicht erkannt. Unterstützt werden CSV-CAMT, '
-			. 'CAMT.052 und CAMT.053 (XML, auch als ZIP-Archiv) und MT940 – im '
-			. 'Onlinebanking meist als „Umsätze exportieren" auswählbar.'
+			. 'CAMT.052 und CAMT.053 (XML, auch als ZIP-Archiv), MT940 und der '
+			. 'PayPal-Aktivitätsdownload (CSV) – im Onlinebanking meist als '
+			. '„Umsätze exportieren" auswählbar.'
 		));
 	}
 
@@ -97,6 +101,24 @@ class StatementParserRegistry {
 			throw new UserFacingException($this->msg('Das ZIP-Archiv enthält keine Buchungen.'));
 		}
 		return [$rows, $source];
+	}
+
+	/**
+	 * Zeilen, die der erkannte Parser bewusst nicht übernommen hat (bei PayPal
+	 * Memo-Zeilen und Fremdwährung), damit die Vorschau sie nennen kann.
+	 * Formate ohne solche Zeilen melden 0.
+	 */
+	public function skipped(string $content): int {
+		if (!StatementArchive::isZip($content)) {
+			$parser = $this->detect($content);
+			return $parser instanceof PayPalCsvParser ? $parser->skipped($content) : 0;
+		}
+		$count = 0;
+		foreach ($this->archiveFiles($content) as $file) {
+			$parser = $this->detect($file['content']);
+			$count += $parser instanceof PayPalCsvParser ? $parser->skipped($file['content']) : 0;
+		}
+		return $count;
 	}
 
 	/**

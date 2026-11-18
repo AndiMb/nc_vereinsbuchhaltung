@@ -48,7 +48,7 @@ class ImportService {
 	/**
 	 * Analysiert die Datei, ohne etwas zu speichern.
 	 *
-	 * @return array{total:int, new:int, duplicate:int, format:string, sample:array<int, array<string,mixed>>, unresolvedAccounts:array<int, array{ownAccount:string, count:int, message:string}>}
+	 * @return array{total:int, new:int, duplicate:int, format:string, skipped:int, sample:array<int, array<string,mixed>>, unresolvedAccounts:array<int, array{ownAccount:string, count:int, message:string}>}
 	 */
 	public function preview(string $userId, string $content): array {
 		[$rows, $format] = $this->parsers->parse($content);
@@ -70,6 +70,8 @@ class ImportService {
 			// davon: bereits als vorhandene Buchung erkannt (z. B. aus XBUC-Import)
 			'existingBookings' => $existingBookings,
 			'format' => $format,
+			// Zeilen, die das Format bewusst nicht übernimmt (PayPal: Memo, Fremdwährung)
+			'skipped' => $this->parsers->skipped($content),
 			'sample' => $sample,
 			'unresolvedAccounts' => $this->unresolvedAccounts($userId, $new),
 		];
@@ -86,9 +88,14 @@ class ImportService {
 	 */
 	private function unresolvedAccounts(string $userId, array $rows): array {
 		$counts = [];
+		$labels = [];
 		foreach ($rows as $row) {
 			$own = (string)($row['ownAccount'] ?? '');
 			$counts[$own] = ($counts[$own] ?? 0) + 1;
+			// PayPal: der Schlüssel (PAYPAL…) ist intern, der Nutzer kennt nur die Adresse.
+			if (!empty($row['ownAccountLabel'])) {
+				$labels[$own] = (string)$row['ownAccountLabel'];
+			}
 		}
 
 		$out = [];
@@ -96,7 +103,12 @@ class ImportService {
 			try {
 				$this->accounts->resolveBankAccount($userId, $own === '' ? null : (string)$own);
 			} catch (\InvalidArgumentException $e) {
-				$out[] = ['ownAccount' => (string)$own, 'count' => $count, 'message' => $e->getMessage()];
+				$label = $labels[$own] ?? null;
+				$out[] = [
+					'ownAccount' => $label ?? (string)$own,
+					'count' => $count,
+					'message' => $label !== null ? str_replace((string)$own, $label, $e->getMessage()) : $e->getMessage(),
+				];
 			} catch (DoesNotExistException) {
 				// Ohne Bankkonto meldet schon die Zuordnung selbst, was fehlt.
 			}
