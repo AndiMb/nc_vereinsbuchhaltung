@@ -287,6 +287,39 @@ class ReconciliationServiceTest extends TestCase {
 		$this->assertSame([], $second['surplus']);
 	}
 
+	/** Ein PayPal-Umsatz gehört nur zum Geldkonto mit dieser PayPal-Adresse, nie zum ersten Geldkonto. */
+	public function testPayPalUmsatzZaehltNichtZumGirokonto(): void {
+		$this->accounts[] = $this->account(3, '1220', 'PayPal', null);
+		$this->accounts[2]->setPaypalEmail('kasse@example.org');
+		$this->tx(8, '2026-01-03', 999, 'unassigned', 'PAYPALKASSEEXAMPLEORG');
+
+		$giro = $this->service()->reconcile(self::USER, 1, $this->twoRows(), null, null);
+		$this->assertSame([], $giro['surplus']);
+		$this->assertSame(0, $giro['counts']['skippedUnassigned']);
+
+		$paypal = $this->service()->reconcile(self::USER, 3, $this->csv([['03.01.2026', '9,99', '9,99', 'Spende', 'PAYPALKASSEEXAMPLEORG']], true), null, null);
+		$this->assertSame([], $paypal['surplus']);
+		$this->assertSame(0, $paypal['counts']['skippedUnassigned']);
+	}
+
+	/** Der Saldo einer PayPal-Zeile gilt nicht für das Girokonto, auch wenn die Kennung keine Ziffer enthält. */
+	public function testPayPalSaldoNurFuerPayPalKonto(): void {
+		$this->accounts[] = $this->account(3, '1220', 'PayPal', null);
+		$this->accounts[2]->setPaypalEmail('kasse@example.org');
+		$this->booking(10, '2026-01-02', 6000, 'Max Mustermann Beitrag');
+		$this->booking(11, '2026-01-05', -25000, 'Stadtwerke Beitrag');
+		$content = $this->csv([
+			['01.01.2026', '1,00', '9.999,00', 'Spende', 'PAYPALKASSEEXAMPLEORG'],
+			['02.01.2026', '60,00', '1.060,00'],
+			['05.01.2026', '-250,00', '810,00', 'Stadtwerke'],
+		]);
+
+		$r = $this->service()->reconcile(self::USER, 1, $content, null, null);
+
+		$this->assertSame(0, $r['balance']['diffClosingCents']);
+		$this->assertSame(81000, $r['balance']['appClosingCents']);
+	}
+
 	public function testFremdesKontoInDerDatei(): void {
 		$this->booking(10, '2026-01-02', 6000, 'Max Mustermann Beitrag');
 		$this->booking(11, '2026-01-05', -25000, 'Stadtwerke Beitrag');
@@ -302,6 +335,20 @@ class ReconciliationServiceTest extends TestCase {
 		$this->assertSame(1, $r['counts']['otherAccountRows']);
 		$this->assertSame([], $r['missing']);
 		$this->assertSame(0, $r['balance']['diffClosingCents']);
+	}
+
+	/** Eine PayPal-Datei am falschen Geldkonto nennt die Adresse, nicht die interne Kennung und keine IBAN. */
+	public function testPayPalDateiAmFalschenGeldkonto(): void {
+		$content = (string)file_get_contents(__DIR__ . '/../fixtures/beispiel-paypal.csv');
+		try {
+			$this->service()->reconcile(self::USER, 1, $content, null, null);
+			$this->fail('InvalidArgumentException erwartet');
+		} catch (\InvalidArgumentException $e) {
+			$this->assertStringContainsString('kasse@example.org', $e->getMessage());
+			$this->assertStringContainsString('PayPal-Adresse', $e->getMessage());
+			$this->assertStringNotContainsString('PAYPALKASSE', $e->getMessage());
+			$this->assertStringNotContainsString('IBAN', $e->getMessage());
+		}
 	}
 
 	public function testAuszugNurEinesAnderenKontos(): void {

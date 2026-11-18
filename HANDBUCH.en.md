@@ -381,6 +381,79 @@ their headers – that works with the common banks, but not with certainty.
   have judged it.
 - After the import, a preview shows *new* / *duplicates* / *total*.
 
+#### Importing PayPal transactions
+
+The PayPal activity download can also be loaded in the normal import
+(*Import transactions*); the app recognizes it from its content, and so
+does the watch folder (section 3.3). This brings the PayPal account into
+the books as a cash account of its own.
+
+1. **Export at PayPal:** *Activity* → *Reports* → *Activity download*. For
+   private accounts it also works via *Statements* → *Download activity*.
+   Choose the **CSV** format with "All transactions" and the period you
+   want. The German-language activity download is the one that is
+   recognized.
+2. **Create a cash account:** in the **Accounts** tab, create a cash
+   account for PayPal and enter the PayPal account's email address in the
+   field **PayPal address (optional)**, for example `kasse@example.org`.
+   The field only appears on bank accounts; separate several addresses with
+   commas. The import assigns the rows by this address. If no address
+   matches, the preview names the address from the file and asks you to
+   enter it. PayPal transactions never end up on the current account.
+3. **Load the file** like any bank statement and check the preview.
+
+**Which rows are taken over:**
+
+- Every row whose balance impact ("Auswirkung auf Guthaben" column) is
+  **Soll** (debit) or **Haben** (credit) in the club currency. This includes rows that are still
+  *pending*, so the PayPal balance in the app matches the balance at
+  PayPal.
+- Note rows ("Memo") and foreign-currency rows are skipped; the preview
+  shows how many ("{n} skipped"). With a currency conversion, the row in
+  the club currency carries the amount.
+
+**Fees:** a fee becomes a bank transaction of its own with the
+counterparty "PayPal" and the purpose "PayPal fee for <transaction code>".
+The main transaction carries the gross amount.
+
+All fees can be posted with *one* auto-assignment rule (chapter 4.1): it
+matches the purpose "PayPal fee" and points to a bank-fees account, for
+example "Nebenkosten des Geldverkehrs" (bank charges).
+
+The fee text follows the language at the time of import; the watch folder
+uses the instance's default language. With mixed languages, create the rule
+once per language, or use the payee instead of the purpose: rule
+field *Payee*, value "PayPal". That rule works regardless of the
+language, but it also matches any other transaction whose payee
+contains "PayPal", which is rare. The purpose rule remains the recommended
+default.
+
+**Purpose of the main transaction:** subject, note and item name (all
+non-empty ones, joined with " / "), followed
+by "· PayPal <transaction code>". If the name is empty (for example for
+"Bankgutschrift auf PayPal-Konto"), the name of the related transaction is
+used instead.
+
+**Duplicates:** the app recognizes transactions by the PayPal transaction
+code. Overlapping or repeated exports and a row changing from *pending* to
+*completed* create no duplicates.
+
+**Top-up from the bank account:** the "Bankgutschrift auf PayPal-Konto"
+also appears on the current account's statement. It is a transfer between
+two of your own cash accounts and is handled like any other transfer (rule
+or manual assignment, chapter 4.1).
+
+**Switching from your own conversion script:** data imported earlier by a
+script is not recognized as a duplicate. Export the first PayPal file
+starting the day after the last script import. If the own-account column of
+a bank CSV carries a label starting with "PayPal" (for example an account
+nickname), the app treats it as a PayPal account. Rename the nickname or
+include the IBAN column in the export.
+
+**Pending payments that fail later:** if PayPal adds no counter-row for
+them, the transaction stays in the app. The account reconciliation (section
+5.9) shows the difference.
+
 ### 3.3 Reading in bank statements automatically (watch folder)
 
 Anyone doing the same thing every month can skip the upload: gear icon →
@@ -1251,13 +1324,15 @@ may use it.
 
 **It only compares.** The statement is neither imported nor stored; entries
 and bank transactions stay as they are. To read in transactions, keep using
-the import (chapter 3.2).
+the import (chapter 3.2). A PayPal file can be compared too: the balances come
+from the "Guthaben" column, and only cash accounts with a matching PayPal
+address accept the file (chapter 3.2).
 
 **How it works:**
 
 1. **Accounts** tab → click the cash account → **Account reconciliation**.
 2. **Choose file**: the statement from your online banking, in the same
-   formats as the import (CSV-CAMT, CAMT.053, MT940). The comparison starts
+   formats as the import (CSV-CAMT, CAMT.053, MT940, PayPal CSV). The comparison starts
    immediately.
 3. Optionally narrow the period with **From** and **To** and **Compare**
    again. Without dates, the period of the statement applies; the

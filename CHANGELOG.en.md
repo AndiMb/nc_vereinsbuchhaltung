@@ -18,6 +18,14 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 ## [Unreleased]
 
 **New:**
+- **PayPal import** (#375): the German PayPal activity download (CSV) is
+  recognized by its content in the normal statement import and in the watch
+  folder and posted to the PayPal cash account. Fees become bank transactions
+  of their own ("PayPal fee for ..."), which one rule can post automatically;
+  duplicates are recognized by the PayPal transaction code. Assignment works
+  through the new field **PayPal address (optional)** on the bank account.
+  The account reconciliation accepts PayPal files too. Described in
+  chapter 3.2 of the manual.
 - **Donation receipts for membership fees** (#10, part A): a tax-privileged
   club issues the official **collective receipt for monetary
   donations/membership fees** under § 10b EStG per member and calendar year –

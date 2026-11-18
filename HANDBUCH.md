@@ -387,6 +387,78 @@ Instituten, aber eben nicht mit Sicherheit.
   verbucht wird erst nach Ihrem Urteil.
 - Nach dem Import erscheint eine Vorschau mit *neu* / *Dubletten* / *gesamt*.
 
+#### PayPal-Umsätze importieren
+
+Auch der Aktivitätsdownload von PayPal lässt sich im normalen Import laden
+(*Umsätze importieren*); die App erkennt ihn am Inhalt, ebenso der
+Wachordner (Kapitel 3.3). So kommt das PayPal-Konto als eigenes Geldkonto
+in die Buchhaltung.
+
+1. **Export bei PayPal:** *Aktivitäten* → *Berichte* → *Aktivitätsdownload*.
+   Bei privaten Konten geht es auch über *Kontoauszüge* → *Aktivitäten
+   herunterladen*. Wählen Sie das Format **CSV** mit „Alle Transaktionen"
+   und den gewünschten Zeitraum. Erkannt wird der deutschsprachige
+   Aktivitätsdownload.
+2. **Geldkonto anlegen:** Im Tab **Konten** ein Geldkonto für PayPal
+   anlegen und im Feld **PayPal-Adresse (optional)** die E-Mail-Adresse des
+   PayPal-Kontos eintragen, etwa `kasse@example.org`. Das Feld erscheint
+   nur bei Bankkonten; mehrere Adressen trennen Sie durch Kommas. Der Import
+   ordnet die Zeilen über diese Adresse zu. Fehlt eine passende Adresse,
+   nennt die Vorschau die Adresse aus der Datei und bittet Sie, sie
+   einzutragen. PayPal-Umsätze landen nie auf dem Girokonto.
+3. **Datei laden** wie jeden Kontoauszug und die Vorschau prüfen.
+
+**Welche Zeilen übernommen werden:**
+
+- Jede Zeile mit der *Auswirkung auf Guthaben* **Soll** oder **Haben** in
+  der Vereinswährung. Das schließt noch *ausstehende* Zeilen ein, damit das
+  PayPal-Guthaben in der App mit dem Guthaben bei PayPal übereinstimmt.
+- Hinweiszeilen („Memo") und Zeilen in Fremdwährung werden übersprungen; die
+  Vorschau zeigt, wie viele („{n} übersprungen"). Bei einer
+  Währungsumrechnung trägt die Zeile in Vereinswährung den Betrag.
+
+**Gebühren:** Eine Gebühr wird zu einer eigenen Bankbuchung mit dem
+Gegenüber „PayPal" und dem Verwendungszweck „PayPal-Gebühr zu
+<Transaktionscode>". Die Hauptbuchung steht mit dem Bruttobetrag.
+
+Alle Gebühren lassen sich mit *einer* Auto-Zuordnungsregel buchen (Kapitel
+4.1): Sie passt auf den Verwendungszweck „PayPal-Gebühr" und zeigt auf ein
+Konto für Bankgebühren, etwa „Nebenkosten des Geldverkehrs".
+
+Der Gebührentext folgt der Sprache beim Import; der Wachordner nutzt die
+Standardsprache der Instanz. Bei gemischten Sprachen legen Sie die Regel je
+Sprache an oder nehmen stattdessen den Zahlungspartner: Regelfeld *Zahlungspartner*,
+Wert „PayPal". Diese Regel trifft unabhängig von der Sprache, passt aber
+auch auf jeden anderen Umsatz, dessen Zahlungspartner „PayPal" enthält, was
+selten vorkommt. Als Standard empfiehlt sich die Regel auf den
+Verwendungszweck.
+
+**Verwendungszweck der Hauptbuchung:** Betreff, Hinweis und
+Artikelbezeichnung (alle nicht leeren, durch „ / " verbunden), gefolgt von „· PayPal <Transaktionscode>". Ist der Name
+leer (etwa bei „Bankgutschrift auf PayPal-Konto"), steht stattdessen der
+Name der zugehörigen Transaktion.
+
+**Dubletten:** Die App erkennt Umsätze am PayPal-Transaktionscode. Sich
+überschneidende oder wiederholte Exporte und der Wechsel einer Zeile von
+*Ausstehend* auf *Abgeschlossen* erzeugen keine Dubletten.
+
+**Aufladung vom Bankkonto:** Die „Bankgutschrift auf PayPal-Konto" steht
+auch im Auszug des Girokontos. Das ist eine Umbuchung zwischen zwei eigenen
+Geldkonten und wird wie jede andere Umbuchung behandelt (Regel oder
+manuelle Zuordnung, Kapitel 4.1).
+
+**Umstieg von einem eigenen Umwandlungsskript:** Was früher per Skript
+importiert wurde, erkennt die App nicht als Dublette. Exportieren Sie die
+erste PayPal-Datei deshalb ab dem Tag nach dem letzten Skript-Import.
+Steht in der Spalte für das eigene Konto einer Bank-CSV eine Bezeichnung, die
+mit „PayPal" beginnt (etwa ein Konto-Spitzname), behandelt die App sie als
+PayPal-Konto. Benennen Sie den Spitznamen dann um oder tragen Sie im Export
+die IBAN-Spalte ein.
+
+**Ausstehende Zahlungen, die später scheitern:** Legt PayPal dafür keine
+Gegenzeile an, bleibt die Buchung in der App stehen. Die Kontoabstimmung
+(Kapitel 5.9) zeigt die Differenz.
+
 ### 3.3 Kontoauszüge automatisch einlesen (Wachordner)
 
 Wer jeden Monat dasselbe tut, kann sich den Upload sparen: Zahnrad →
@@ -1281,13 +1353,15 @@ steht allen ab der Rolle Revisor offen.
 
 **Es wird nur verglichen.** Der Auszug wird weder importiert noch
 gespeichert; Buchungen und Bankumsätze bleiben, wie sie sind. Zum Einlesen
-von Umsätzen dient weiter der Import (Kapitel 3.2).
+von Umsätzen dient weiter der Import (Kapitel 3.2). Auch eine PayPal-Datei
+lässt sich abgleichen: Die Salden stammen aus der Spalte „Guthaben", und nur
+Geldkonten mit passender PayPal-Adresse nehmen die Datei an (Kapitel 3.2).
 
 **So geht es:**
 
 1. Reiter **Konten** → das Geldkonto anklicken → **Kontoabstimmung**.
 2. **Datei wählen**: den Kontoauszug aus dem Onlinebanking, in denselben
-   Formaten wie beim Import (CSV-CAMT, CAMT.053, MT940). Der Abgleich
+   Formaten wie beim Import (CSV-CAMT, CAMT.053, MT940, PayPal-CSV). Der Abgleich
    startet sofort.
 3. Optional den Zeitraum mit **Von** und **Bis** einengen und erneut
    **Abgleichen**. Ohne Angabe gilt der Zeitraum des Auszugs; über ihn

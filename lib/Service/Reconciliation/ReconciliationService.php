@@ -76,13 +76,25 @@ class ReconciliationService {
 		[$parsed] = $this->parsers->parse($content);
 		$rows = [];
 		$foreign = [];
+		$foreignPayPal = [];
 		foreach ($parsed as $row) {
 			$own = isset($row['ownAccount']) ? (string)$row['ownAccount'] : null;
 			if ($this->concerns($own, $account, $banks)) {
 				$rows[] = $row;
 			} else {
 				$foreign[(string)$own] = ($foreign[(string)$own] ?? 0) + 1;
+				// Nur der PayPal-Parser nennt die lesbare Adresse hinter der Kennung.
+				if (isset($row['ownAccountLabel']) && $row['ownAccountLabel'] !== '') {
+					$foreignPayPal[(string)$row['ownAccountLabel']] = true;
+				}
 			}
+		}
+		if ($rows === [] && $foreignPayPal !== []) {
+			// Die interne Kennung (PAYPAL…) und der IBAN-Hinweis helfen hier nicht.
+			throw new \InvalidArgumentException($this->l10n->t(
+				'Die Datei gehört zum PayPal-Konto %s. Tragen Sie diese Adresse als PayPal-Adresse am richtigen Geldkonto ein (Tab Konten).',
+				[implode(', ', array_keys($foreignPayPal))],
+			));
 		}
 		if ($rows === []) {
 			throw new \InvalidArgumentException($this->l10n->t(
@@ -292,6 +304,10 @@ class ReconciliationService {
 			return null;
 		}
 		$matcher = new BankAccountMatcher($this->normalizer);
+		if ($matcher->isPayPalKey($ownAccount)) {
+			$hits = $matcher->payPalCandidates((string)$ownAccount, $banks);
+			return count($hits) === 1 ? $hits[0] : null;
+		}
 		$hits = $matcher->candidates($ownAccount, $banks);
 		if (count($hits) === 1) {
 			return $hits[0];
@@ -315,6 +331,10 @@ class ReconciliationService {
 	 */
 	private function concerns(?string $ownAccount, Account $account, array $banks): bool {
 		$matcher = new BankAccountMatcher($this->normalizer);
+		if ($matcher->isPayPalKey($ownAccount)) {
+			$hits = $matcher->payPalCandidates((string)$ownAccount, $banks);
+			return in_array($account->getId(), array_map(static fn (Account $a): int => (int)$a->getId(), $hits), true);
+		}
 		if (!$matcher->identifiesAccount($ownAccount)) {
 			return true;
 		}

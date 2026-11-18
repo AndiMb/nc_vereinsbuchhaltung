@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Controller;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
+use OCA\Vereinsbuchhaltung\Exception\UserFacingException;
 use OCA\Vereinsbuchhaltung\Service\AccountService;
 use OCA\Vereinsbuchhaltung\Service\AuditService;
 use OCA\Vereinsbuchhaltung\Service\OpeningBalanceService;
@@ -45,11 +46,11 @@ class AccountController extends Controller {
 	}
 
 	#[NoAdminRequired]
-	public function create(string $number, string $name, string $type, ?string $category = null, bool $isBank = false, ?int $parentId = null, ?string $sphere = null, ?string $reserveKind = null, ?string $iban = null, ?int $costCenterId = null, bool $countInTotal = true, ?string $shortName = null, ?string $description = null, bool $costCenterRequired = false): DataResponse {
+	public function create(string $number, string $name, string $type, ?string $category = null, bool $isBank = false, ?int $parentId = null, ?string $sphere = null, ?string $reserveKind = null, ?string $iban = null, ?int $costCenterId = null, bool $countInTotal = true, ?string $shortName = null, ?string $description = null, bool $costCenterRequired = false, ?string $paypalEmail = null): DataResponse {
 		try {
-			$account = $this->service->create($this->userId(), $number, $name, $type, $category, $isBank, $parentId, $sphere, $reserveKind, $iban, $costCenterId, $countInTotal, shortName: $shortName, description: $description, costCenterRequired: $costCenterRequired);
+			$account = $this->service->create($this->userId(), $number, $name, $type, $category, $isBank, $parentId, $sphere, $reserveKind, $iban, $costCenterId, $countInTotal, shortName: $shortName, description: $description, costCenterRequired: $costCenterRequired, paypalEmail: $paypalEmail);
 			return new DataResponse($account, Http::STATUS_CREATED);
-		} catch (\InvalidArgumentException $e) {
+		} catch (\InvalidArgumentException|UserFacingException $e) {
 			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
 		}
 	}
@@ -60,6 +61,7 @@ class AccountController extends Controller {
 	 * @param string|null $sphere '' = nicht zugeordnet (löscht eine ggf. gesetzte Sphäre).
 	 * @param string|null $reserveKind '' = keine Rücklage (löscht eine ggf. gesetzte Rücklagen-Art).
 	 * @param string|null $iban '' = keine IBAN (löscht eine ggf. gesetzte).
+	 * @param string|null $paypalEmail '' = keine PayPal-Adresse (löscht eine ggf. gesetzte).
 	 * @param int|null $costCenterId 0 = keine Kostenstelle (löst eine ggf.
 	 *                               bestehende Zuordnung); nicht mitgesendet = unverändert. Anders als
 	 *                               parentId hat dieses Feld keinen „immer mitsenden"-Zwang, damit
@@ -69,7 +71,7 @@ class AccountController extends Controller {
 	 *                                nicht mitgesendet = unverändert.
 	 */
 	#[NoAdminRequired]
-	public function update(int $id, ?string $number = null, ?string $name = null, ?string $type = null, ?string $category = null, ?bool $isBank = null, ?bool $active = null, int $parentId = 0, ?string $sphere = null, ?string $reserveKind = null, ?string $iban = null, ?int $costCenterId = null, ?bool $countInTotal = null, ?string $shortName = null, ?string $description = null, ?bool $costCenterRequired = null): DataResponse {
+	public function update(int $id, ?string $number = null, ?string $name = null, ?string $type = null, ?string $category = null, ?bool $isBank = null, ?bool $active = null, int $parentId = 0, ?string $sphere = null, ?string $reserveKind = null, ?string $iban = null, ?int $costCenterId = null, ?bool $countInTotal = null, ?string $shortName = null, ?string $description = null, ?bool $costCenterRequired = null, ?string $paypalEmail = null): DataResponse {
 		$data = array_filter([
 			'number' => $number,
 			'name' => $name,
@@ -85,13 +87,14 @@ class AccountController extends Controller {
 			'sphere' => $sphere,
 			'reserveKind' => $reserveKind,
 			'iban' => $iban,
+			'paypalEmail' => $paypalEmail,
 			'costCenterId' => $costCenterId,
 		], static fn ($v) => $v !== null);
 		// parentId immer übernehmen (0 = Wurzel), damit Umhängen/Lösen möglich ist.
 		$data['parentId'] = $parentId;
 		try {
 			return new DataResponse($this->service->update($id, $this->userId(), $data));
-		} catch (\InvalidArgumentException $e) {
+		} catch (\InvalidArgumentException|UserFacingException $e) {
 			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
 		} catch (DoesNotExistException) {
 			return new DataResponse(['message' => $this->l10n->t('Konto nicht gefunden')], Http::STATUS_NOT_FOUND);
