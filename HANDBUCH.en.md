@@ -2105,6 +2105,17 @@ under *Permissions*, or create the accounts with the same name. Members' IBANs
 are re-encrypted in the target with its own key – the old Nextcloud's
 `config.php` is not needed for that.
 
+**Backup from another Nextcloud:** roles and member links are tied to user
+and group names, and on another Nextcloud the same name may belong to a
+different person. The app therefore records which Nextcloud a backup was made
+on. If it comes from another one (or its origin is unknown, as with backups
+from older versions), *Check backup* says so, and the restore resets
+confirmed links between members and accounts – every member confirms the
+link again (13.2). The report also lists **every existing account and
+group that received a role**. Check this list under *Permissions* before
+anyone continues working. A backup of the same Nextcloud is restored as
+before.
+
 **Clear data set completely:** prepares a restore and goes further than
 *Delete all data* (12.1): it also removes members, mandates, contribution
 groups and the club settings, together with the receipts and documents stored

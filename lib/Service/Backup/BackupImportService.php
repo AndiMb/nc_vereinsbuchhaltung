@@ -52,6 +52,7 @@ class BackupImportService {
 		private IUserManager $userManager,
 		private IGroupManager $groupManager,
 		private IL10N $l10n,
+		private BackupInstanceMarker $instance,
 	) {
 	}
 
@@ -59,7 +60,7 @@ class BackupImportService {
 	 * Was steckt in der Sicherung, und ließe sie sich hier einspielen?
 	 * Verändert nichts.
 	 *
-	 * @return array{clubName: string, createdAt: string, appVersion: string, installedVersion: string, withFiles: bool, compatible: bool, targetEmpty: bool, rows: int, counts: array<string, int>, files: int, missingFiles: int}
+	 * @return array{clubName: string, createdAt: string, appVersion: string, installedVersion: string, withFiles: bool, compatible: bool, targetEmpty: bool, fromThisInstance: bool, rows: int, counts: array<string, int>, files: int, missingFiles: int}
 	 * @throws UserFacingException keine Sicherungsdatei, falsches Passwort, beschädigt
 	 */
 	public function inspect(string $path, #[\SensitiveParameter] string $password): array {
@@ -77,6 +78,7 @@ class BackupImportService {
 				'withFiles' => ($manifest['withFiles'] ?? false) === true,
 				'compatible' => $manifest['appVersion'] === $installed,
 				'targetEmpty' => $this->wipe->isEmpty(),
+				'fromThisInstance' => $this->instance->isThisInstance($manifest['sourceInstance'] ?? null),
 				'rows' => array_sum(array_map(static fn ($t): int => is_array($t) ? (int)($t['rows'] ?? 0) : 0, $manifest['tables'])),
 				'counts' => $counts,
 				'files' => (int)($manifest['files']['count'] ?? 0),
@@ -86,8 +88,13 @@ class BackupImportService {
 	}
 
 	/**
+	 * Stammt die Sicherung von einer anderen (oder unbekannten) Nextcloud,
+	 * gelten bestätigte Mitglied-Verknüpfungen nicht weiter, und der Bericht
+	 * nennt in `existingPrincipals` jedes hier vorhandene Konto und jede
+	 * Gruppe, die eine Rolle bekommen hat (Review 2026-11-18, Sicherheit I-2).
+	 *
 	 * @param string $importerUid wer einspielt – ist danach in jedem Fall Verwalter
-	 * @return array{rows: int, tables: int, files: int, missingFiles: list<array{kind: string, id: int, label: string}>, unknownUsers: list<string>, unknownGroups: list<string>}
+	 * @return array{rows: int, tables: int, files: int, missingFiles: list<array{kind: string, id: int, label: string}>, unknownUsers: list<string>, unknownGroups: list<string>, foreignInstance: bool, existingPrincipals: list<array{type: string, id: string, role: string}>, memberLinksReset: int}
 	 * @throws UserFacingException wenn die Sicherung nicht eingespielt werden kann; das Ziel ist dann unverändert
 	 */
 	public function import(string $path, #[\SensitiveParameter] string $password, string $importerUid): array {
@@ -127,6 +134,9 @@ class BackupImportService {
 				'missingFiles' => array_merge($this->missingFiles($manifest), $files['failed']),
 				'unknownUsers' => $db['unknownUsers'],
 				'unknownGroups' => $db['unknownGroups'],
+				'foreignInstance' => $db['foreignInstance'],
+				'existingPrincipals' => $db['existingPrincipals'],
+				'memberLinksReset' => $db['memberLinksReset'],
 			];
 		});
 	}
@@ -218,7 +228,7 @@ class BackupImportService {
 	 * Läuft in der Transaktion: leert alle Tabellen und füllt sie aus der Sicherung.
 	 *
 	 * @param array<string, mixed> $manifest
-	 * @return array{rows: int, unknownUsers: list<string>, unknownGroups: list<string>}
+	 * @return array{rows: int, unknownUsers: list<string>, unknownGroups: list<string>, foreignInstance: bool, existingPrincipals: list<array{type: string, id: string, role: string}>, memberLinksReset: int}
 	 */
 	private function fillTables(\ZipArchive $zip, array $manifest, string $importerUid): array {
 		foreach (array_merge(array_keys(BackupSchema::tables()), BackupSchema::excludedTables()) as $table) {
@@ -228,6 +238,7 @@ class BackupImportService {
 		}
 
 		$seen = new BackupImportTally();
+		$seen->foreign = !$this->instance->isThisInstance($manifest['sourceInstance'] ?? null);
 		$rows = 0;
 		foreach (BackupSchema::tables() as $table => $def) {
 			$count = $this->tables->insert($table, $this->rows($zip, $table, $def, $importerUid, $seen));
@@ -265,7 +276,31 @@ class BackupImportService {
 		$unknownGroups = array_values(array_filter(array_keys($seen->groups), fn (string $gid): bool => !$this->groupManager->groupExists($gid)));
 		sort($unknownUsers);
 		sort($unknownGroups);
-		return ['rows' => $rows, 'unknownUsers' => $unknownUsers, 'unknownGroups' => $unknownGroups];
+
+		// Von einer anderen Nextcloud: Rollen an Namen, die es hier gibt, gehen
+		// womöglich an andere Menschen als in der Quelle. Der Bericht nennt sie
+		// alle, damit der Verwalter sie unter „Berechtigungen“ prüft. Der
+		// Importeur selbst fehlt darin; er ist ohnehin Verwalter.
+		$existing = [];
+		if ($seen->foreign) {
+			foreach ($seen->roles as $grant) {
+				$exists = $grant['type'] === 'user'
+					? $grant['id'] !== $importerUid && $this->userManager->userExists($grant['id'])
+					: $this->groupManager->groupExists($grant['id']);
+				if ($exists) {
+					$existing[] = $grant;
+				}
+			}
+			usort($existing, static fn (array $a, array $b): int => [$a['type'] === 'group', $a['id'], $a['role']] <=> [$b['type'] === 'group', $b['id'], $b['role']]);
+		}
+		return [
+			'rows' => $rows,
+			'unknownUsers' => $unknownUsers,
+			'unknownGroups' => $unknownGroups,
+			'foreignInstance' => $seen->foreign,
+			'existingPrincipals' => $existing,
+			'memberLinksReset' => $seen->linksReset,
+		];
 	}
 
 	/**
@@ -328,10 +363,30 @@ class BackupImportService {
 						} else {
 							$seen->groups[$principal] = true;
 						}
+						$seen->roles[] = [
+							'type' => ($row['principal_type'] ?? '') === 'user' ? 'user' : 'group',
+							'id' => $principal,
+							'role' => (string)($row['role'] ?? ''),
+						];
 						break;
 					case 'vbh_members':
 						if (is_string($row['nc_user_id'] ?? null) && $row['nc_user_id'] !== '') {
 							$seen->users[$row['nc_user_id']] = true;
+						}
+						if ($seen->foreign) {
+							// Eine auf der Quelle bestätigte Verknüpfung (#295) gilt hier nicht:
+							// das gleichnamige Konto kann einem anderen Menschen gehören, der sonst
+							// Adresse, Beiträge und Mandate des Mitglieds sähe. Der Name bleibt als
+							// Vorschlag stehen, das Mitglied bestätigt neu. Offene Links verweisen
+							// auf die Quelle und verfallen.
+							if (($row['nc_link_confirmed_at'] ?? null) !== null) {
+								$seen->linksReset++;
+							}
+							foreach (['nc_link_confirmed_at', 'nc_link_token_hash', 'nc_link_token_expires_at'] as $column) {
+								if (array_key_exists($column, $row)) {
+									$row[$column] = null;
+								}
+							}
 						}
 						break;
 				}
