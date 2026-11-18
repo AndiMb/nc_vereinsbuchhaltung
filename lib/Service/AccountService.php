@@ -13,6 +13,7 @@ use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
 use OCA\Vereinsbuchhaltung\Exception\UserFacingException;
 use OCA\Vereinsbuchhaltung\Service\Sepa\SepaImportSettingsService;
 use OCA\Vereinsbuchhaltung\Service\Statement\BankAccountMatcher;
+use OCA\Vereinsbuchhaltung\Service\Statement\PayPalAddresses;
 use OCA\Vereinsbuchhaltung\Service\Statement\RowNormalizer;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\DB\Exception as DbException;
@@ -100,7 +101,7 @@ class AccountService {
 	 *                    Standard-Kontenrahmens abschalten – der protokolliert sich als
 	 *                    Ganzes, sonst stünden dort 14 einzelne „Konto angelegt")
 	 */
-	public function create(string $userId, string $number, string $name, string $type, ?string $category, bool $isBank, ?int $parentId = null, ?string $sphere = null, ?string $reserveKind = null, ?string $iban = null, ?int $costCenterId = null, bool $countInTotal = true, bool $audit = true, ?string $shortName = null, ?string $description = null, bool $costCenterRequired = false): Account {
+	public function create(string $userId, string $number, string $name, string $type, ?string $category, bool $isBank, ?int $parentId = null, ?string $sphere = null, ?string $reserveKind = null, ?string $iban = null, ?int $costCenterId = null, bool $countInTotal = true, bool $audit = true, ?string $shortName = null, ?string $description = null, bool $costCenterRequired = false, ?string $paypalEmail = null): Account {
 		$account = new Account();
 		$account->setUserId($userId);
 		$account->setNumber(trim($number));
@@ -124,6 +125,7 @@ class AccountService {
 		// Eine IBAN ergibt nur an einem Geldkonto Sinn – nur dort werden
 		// Bankumsätze zugeordnet.
 		$account->setIban($isBank ? $this->ibanValidator->validate($iban) : null);
+		$account->setPaypalEmail($isBank ? PayPalAddresses::normalize($paypalEmail, $this->l10n) : null);
 		$account->setCostCenterId($this->costCenters->resolveId($userId, $costCenterId));
 		if ($parentId !== null && $parentId > 0) {
 			// Überkonto muss existieren und demselben Bestand gehören.
@@ -189,12 +191,16 @@ class AccountService {
 		if (array_key_exists('iban', $data)) {
 			$account->setIban($this->ibanValidator->validate($data['iban'] !== null ? (string)$data['iban'] : null));
 		}
+		if (array_key_exists('paypalEmail', $data)) {
+			$account->setPaypalEmail(PayPalAddresses::normalize($data['paypalEmail'] !== null ? (string)$data['paypalEmail'] : null, $this->l10n));
+		}
 		// Wird das Geldkonto-Kennzeichen entfernt, muss die IBAN mitgehen: an
 		// einem Aufwandskonto würde sie nie wieder ausgewertet und bliebe als
 		// stiller, irreführender Rest stehen. Steht hinter der isBank-Auswertung,
 		// damit der eben gesetzte Wert gilt und nicht der alte.
 		if (!$account->getIsBank()) {
 			$account->setIban(null);
+			$account->setPaypalEmail(null);
 			// Dasselbe Argument für das Kopfzeilen-Kennzeichen: an einem
 			// Konto ohne Bestand gibt es nichts zu summieren. Zurück auf die
 			// Vorgabe (an), damit ein später wieder gesetztes Geldkonto-

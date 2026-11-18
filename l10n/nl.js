@@ -742,6 +742,7 @@ OC.L10N.register("vereinsbuchhaltung", {
 	"Die Datei konnte nicht als XML gelesen werden.": "Het bestand kon niet als XML worden gelezen.",
 	"Kein <Projekt>-Element gefunden – ist das eine zero-Buchhaltung-Datei?": "Geen <Projekt>-element gevonden – is dit een bestand van “zero Buchhaltung”?",
 	"Konto nicht gefunden": "Rekening niet gevonden",
+	"Ungültige PayPal-Adresse: %s": "Ongeldig PayPal-adres: %s",
 	"Kein Logo hinterlegt": "Geen logo ingesteld",
 	"Zugriff verweigert": "Toegang geweigerd",
 	"Stand nicht gefunden.": "Moment niet gevonden.",
