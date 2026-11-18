@@ -45,7 +45,7 @@ class CamtCsvParser implements StatementParser, StatementBalanceReader {
 	) {
 	}
 
-	/** @param array<string,mixed> $params Parameter für sprintf, siehe {@see IL10N::t()} */
+	/** @param list<mixed> $params Parameter für sprintf in Reihenfolge, siehe {@see IL10N::t()} */
 	private function msg(string $text, array $params = []): string {
 		if ($this->l10n !== null) {
 			return $this->l10n->t($text, $params);
