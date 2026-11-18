@@ -60,7 +60,11 @@ trait BackupTestKit {
 	protected function tempManager(): ITempManager {
 		$temp = $this->createMock(ITempManager::class);
 		$temp->method('getTemporaryFile')->willReturnCallback(function (string $postFix = ''): string {
-			$path = tempnam(sys_get_temp_dir(), 'vbhtest') . $postFix;
+			$base = tempnam(sys_get_temp_dir(), 'vbhtest');
+			// Auch die Platzhalterdatei von tempnam() merken: Mit Endung bleibt sie
+			// sonst stehen, und unter Windows sind je Praefix nur 65.535 Namen frei.
+			$this->tempFiles[] = $base;
+			$path = $base . $postFix;
 			$this->tempFiles[] = $path;
 			return $path;
 		});

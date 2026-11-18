@@ -35,6 +35,21 @@ class CamtCsvParserTest extends TestCase {
 		$this->assertCount(count($first), array_unique($first), 'Beispielzeilen müssen eindeutige Hashes haben');
 	}
 
+	/**
+	 * Unter PHP 8.1/8.2 hielt mb_detect_encoding gueltiges UTF-8 mit BOM fuer
+	 * Windows-1252; der Inhalt wurde doppelt kodiert und der Spaltenkopf mit
+	 * Umlaut (Begünstigter) fand keine Zuordnung mehr.
+	 */
+	public function testUtf8MitBomUndUmlautenWirdErkannt(): void {
+		$csv = "\xEF\xBB\xBFBuchungstag;Betrag;Begünstigter/Zahlungspflichtiger;Info\n"
+			. "20.01.2026;60,00;Jürgen Müller;Umsatz gebucht\n";
+		$rows = $this->parser->parse($csv);
+
+		$this->assertCount(1, $rows);
+		$this->assertSame('Jürgen Müller', $rows[0]['counterparty']);
+		$this->assertSame(6000, $rows[0]['amountCents']);
+	}
+
 	public function testRejectsFileWithoutRows(): void {
 		$this->expectException(\RuntimeException::class);
 		$this->parser->parse('nur eine zeile');

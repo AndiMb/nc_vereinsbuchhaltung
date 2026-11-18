@@ -57,10 +57,12 @@ final class StatementArchive {
 			throw new \RuntimeException('ZIP-Archiv: temporäre Datei nicht beschreibbar.');
 		}
 		$zip = new \ZipArchive();
+		$opened = false;
 		try {
 			if ($zip->open($path, \ZipArchive::RDONLY) !== true) {
 				throw new UserFacingException($this->msg('Das ZIP-Archiv ist beschädigt und lässt sich nicht öffnen.'));
 			}
+			$opened = true;
 			$files = [];
 			$total = 0;
 			for ($i = 0; $i < $zip->numFiles; $i++) {
@@ -78,8 +80,12 @@ final class StatementArchive {
 				}
 				$files[] = ['name' => $name, 'content' => $data];
 			}
-			$zip->close();
 		} finally {
+			// Auch bei einer Ablehnung mitten im Entpacken schliessen: Unter Windows
+			// bleibt die geoeffnete Datei sonst gesperrt und das unlink() scheitert.
+			if ($opened) {
+				$zip->close();
+			}
 			@unlink($path);
 		}
 		usort($files, static fn (array $a, array $b): int => strcmp($a['name'], $b['name']));
