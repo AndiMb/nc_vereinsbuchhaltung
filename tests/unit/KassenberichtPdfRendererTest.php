@@ -131,5 +131,7 @@ class KassenberichtPdfRendererTest extends TestCase {
 		$period = new Period();
 		$period->setLabel('2025/26');
 		$this->assertSame('Kassenbericht-2025-26.pdf', $renderer->fileName($period));
+		$period->setLabel('Größe/Übersicht');
+		$this->assertSame('Kassenbericht-Groesse-Uebersicht.pdf', $renderer->fileName($period));
 	}
 }

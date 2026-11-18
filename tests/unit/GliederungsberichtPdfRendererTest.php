@@ -91,20 +91,20 @@ class GliederungsberichtPdfRendererTest extends TestCase {
 	/**
 	 * @param-out \ArrayObject<int, string> $texts bekommt jeden im PDF gesetzten Text
 	 */
-	private function renderer(mixed &$texts = null): GliederungsberichtPdfRenderer {
+	private function renderer(mixed &$texts = null, ?\ArrayObject $colors = null): GliederungsberichtPdfRenderer {
 		$texts = new \ArrayObject();
 		$log = $texts;
 		$config = $this->createMock(IAppConfig::class);
 		$config->method('getValueString')->willReturnCallback(static fn (string $app, string $key, string $default = ''): string => $key === 'club_name' ? 'Musterverein' : $default);
 		$l10n = $this->l10n();
 		$currency = ClubCurrencyStub::of($this);
-		$factory = new class($config, $l10n, $log) extends ReportPdfFactory {
-			public function __construct(IAppConfig $config, IL10N $l10n, private \ArrayObject $log) {
+		$factory = new class($config, $l10n, $log, $colors) extends ReportPdfFactory {
+			public function __construct(IAppConfig $config, IL10N $l10n, private \ArrayObject $log, private ?\ArrayObject $colors) {
 				parent::__construct($config, $l10n);
 			}
 
 			protected function newDocument(string $orientation): ReportPdfDocument {
-				return new RecordingPdfDocument($this->log, $orientation);
+				return new RecordingPdfDocument($this->log, $orientation, null, $this->colors);
 			}
 		};
 		$clock = ClubClockStub::at('2026-11-17 10:00:00');
@@ -183,15 +183,44 @@ class GliederungsberichtPdfRendererTest extends TestCase {
 
 	public function testDateinameMitSchraegstrichUndUmlaut(): void {
 		$report = $this->report();
-		$report['template']['name'] = 'Ergebnis/Größe Bereich';
+		$report['template']['name'] = 'Ergebnis/Größe Übersicht';
 		$period = new Period();
 		$period->setLabel('2025/26');
 		$report['period'] = $period;
 
 		$name = $this->renderer()->fileName($report);
 
-		$this->assertSame('Gliederungsbericht-Ergebnis-Gr-e-Bereich-2025-26.pdf', $name);
+		$this->assertSame('Gliederungsbericht-Ergebnis-Groesse-Uebersicht-2025-26.pdf', $name);
 		$this->assertMatchesRegularExpression('/^[A-Za-z0-9._-]+$/', $name);
+	}
+
+	/** Sehr viele Wertspalten: die Bezeichnung behält ihre Mindestbreite, alle Breiten bleiben positiv und füllen die Seite. */
+	public function testSpaltenbreitenBleibenBeiVielenWertspaltenPositivUndFuellenDieBreite(): void {
+		$method = new \ReflectionMethod(GliederungsberichtPdfRenderer::class, 'columns');
+		foreach ([2, 4, 5, 12, 15, 30] as $count) {
+			$columns = array_fill(0, $count, ['label' => 'Spalte']);
+			$widths = $method->invoke($this->renderer(), 257.0, $columns);
+
+			$this->assertCount($count + 2, $widths);
+			foreach ($widths as $w) {
+				$this->assertGreaterThan(0.0, $w['width'], "$count Wertspalten");
+			}
+			$this->assertEqualsWithDelta(1.0, array_sum(array_column($widths, 'width')), 0.0001, "$count Wertspalten");
+			$this->assertGreaterThanOrEqual(50.0 / 257.0 - 0.0001, $widths[1]['width'], "Bezeichnung bei $count Wertspalten");
+		}
+	}
+
+	/** Strukturelle Konten sind wie auf der Druckseite abgesetzt (grau). */
+	public function testStrukturelleKontenSindGrau(): void {
+		$report = $this->report();
+		$report['rows'][] = ['kind' => 'account', 'depth' => 2, 'accountId' => 77, 'number' => '9999', 'label' => 'Strukturkonto', 'values' => [1, 2], 'flags' => ['structural']];
+		/** @var \ArrayObject<string, string> $colors */
+		$colors = new \ArrayObject();
+		$texts = null;
+		$this->renderer($texts, $colors)->render($report, false);
+
+		$this->assertNotSame($colors['Erlöse Sparte 0'], $colors['Strukturkonto']);
+		$this->assertSame($colors['Erlöse Sparte 0'], $colors['Mitgliedsbeiträge † ⚠']);
 	}
 
 	/**

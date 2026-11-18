@@ -197,7 +197,7 @@ final class ReportPdf {
 	 * die Kopfzeile nicht: Sonst fehlten auf Folgeseiten die Spaltenköpfe.
 	 *
 	 * @param list<array{label?: string, width: float, align?: string}> $columns
-	 * @param list<array{cells: list<string>, style?: string, span?: list<int>, indent?: float, indentCell?: int, repeat?: bool, align?: string}> $rows
+	 * @param list<array{cells: list<string>, style?: string, span?: list<int>, indent?: float, indentCell?: int, repeat?: bool, align?: string, muted?: bool}> $rows
 	 */
 	public function table(array $columns, array $rows): void {
 		$total = $this->contentWidth();
@@ -210,13 +210,23 @@ final class ReportPdf {
 			$this->ensureSpace($this->rowHeight($widths, $repeat) * 2);
 			$this->row($widths, $aligns, $repeat);
 		}
-		foreach ($rows as $row) {
+		foreach ($rows as $index => $row) {
 			$style = $row['style'] ?? self::ROW_NORMAL;
 			$height = $this->rowHeight($widths, $row);
-			// Ein Zwischenkopf zieht wenigstens eine Zeile mit auf die Seite.
-			$heads = $style === self::ROW_HEAD || $style === self::ROW_SUBHEAD;
+			// Ein Zwischenkopf zieht wenigstens eine Zeile mit auf die Seite – und eine
+			// ganze Kette von Köpfen (Abschnitt, Unterabschnitt) die erste Zeile darunter,
+			// sonst bliebe der Abschnittstitel allein am Seitenende, wenn erst der
+			// Unterabschnitt umbricht.
 			$replaces = $style === self::ROW_HEAD && ($row['repeat'] ?? true);
-			$needed = $heads ? $height * 2 : $height;
+			$needed = $height;
+			if ($this->isHead($style)) {
+				for ($next = $index + 1; $next < count($rows); $next++) {
+					$needed += $this->rowHeight($widths, $rows[$next]);
+					if (!$this->isHead($rows[$next]['style'] ?? self::ROW_NORMAL)) {
+						break;
+					}
+				}
+			}
 			if ($this->pdf->GetY() + $needed > $this->bottom()) {
 				$this->pdf->AddPage();
 				if ($repeat !== null && !$replaces) {
@@ -297,6 +307,10 @@ final class ReportPdf {
 		return $this->pdf->Output('', 'S');
 	}
 
+	private function isHead(string $style): bool {
+		return $style === self::ROW_HEAD || $style === self::ROW_SUBHEAD;
+	}
+
 	private function bottom(): float {
 		return $this->pdf->getPageHeight() - $this->pdf->getBreakMargin();
 	}
@@ -341,12 +355,17 @@ final class ReportPdf {
 	/**
 	 * @param list<float> $widths
 	 * @param list<string> $aligns
-	 * @param array{cells: list<string>, style?: string, span?: list<int>, indent?: float, indentCell?: int, align?: string} $row
+	 * @param array{cells: list<string>, style?: string, span?: list<int>, indent?: float, indentCell?: int, align?: string, muted?: bool} $row
 	 */
 	private function row(array $widths, array $aligns, array $row, ?float $height = null): void {
 		$style = $row['style'] ?? self::ROW_NORMAL;
 		$height ??= $this->rowHeight($widths, $row);
 		$this->font($style);
+		// `muted`: graue Schrift, etwa für strukturelle Konten; danach wieder schwarz.
+		$muted = (bool)($row['muted'] ?? false);
+		if ($muted) {
+			$this->pdf->SetTextColor(110, 110, 110);
+		}
 		$fill = $style === self::ROW_HEAD || $style === self::ROW_RESULT;
 		$this->pdf->SetFillColor(242, 242, 242);
 		$y = $this->pdf->GetY();
@@ -369,6 +388,9 @@ final class ReportPdf {
 		};
 		$this->pdf->SetXY(self::MARGIN_LEFT, $bottom);
 		$this->pdf->SetFont(self::FONT, '', 9, '', true);
+		if ($muted) {
+			$this->pdf->SetTextColor(0, 0, 0);
+		}
 	}
 
 	/** @param array{0:int, 1:int, 2:int}|array<int, int> $rgb */

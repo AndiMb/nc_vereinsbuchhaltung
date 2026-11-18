@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Service\Export;
 
+use OCA\Vereinsbuchhaltung\Service\AsciiFileName;
 use OCA\Vereinsbuchhaltung\Service\ClubClock;
 use OCA\Vereinsbuchhaltung\Service\ClubCurrency;
 use OCA\Vereinsbuchhaltung\Service\Pdf\ReportPdf;
@@ -27,7 +28,6 @@ class GliederungsberichtPdfRenderer {
 	private const LABEL_MIN_MM = 50.0;
 	/** Breite einer Wertspalte in mm: reicht für „-1.234.567,89 €“, wird bei sehr vielen Spalten enger. */
 	private const VALUE_MAX_MM = 26.0;
-	private const VALUE_MIN_MM = 18.0;
 	/** Wie die Druckseite: tiefer eingerückt wird nicht mehr. */
 	private const MAX_DEPTH = 8;
 	private const INDENT_MM = 3.5;
@@ -42,15 +42,13 @@ class GliederungsberichtPdfRenderer {
 	}
 
 	/**
-	 * Dateiname, z. B. „Gliederungsbericht-Ergebnis-je-Bereich-2026.pdf“. Alles
-	 * außer Buchstaben, Ziffern, Punkt und Strich wird zu „-“ (wie beim Kassenbericht),
-	 * damit ein Schrägstrich im Vorlagen- oder Periodennamen keinen Pfad ergibt.
+	 * Dateiname, z. B. „Gliederungsbericht-Ergebnis-je-Bereich-2026.pdf“; Umlaute
+	 * ausgeschrieben, Rest siehe {@see AsciiFileName} (wie beim Kassenbericht).
 	 *
 	 * @param array<string, mixed> $report aus {@see StructuredReportService::build()}
 	 */
 	public function fileName(array $report): string {
-		$part = static fn (string $text): string => (string)preg_replace('/[^A-Za-z0-9._-]+/', '-', $text);
-		return 'Gliederungsbericht-' . $part((string)$report['template']['name']) . '-' . $part((string)$report['period']->getLabel()) . '.pdf';
+		return 'Gliederungsbericht-' . AsciiFileName::of((string)$report['template']['name']) . '-' . AsciiFileName::of((string)$report['period']->getLabel()) . '.pdf';
 	}
 
 	/**
@@ -100,7 +98,9 @@ class GliederungsberichtPdfRenderer {
 	 * @return list<array{label: string, width: float, align?: string}>
 	 */
 	private function columns(float $total, array $columns): array {
-		$value = max(self::VALUE_MIN_MM, min(self::VALUE_MAX_MM, ($total - self::NUMBER_MM - self::LABEL_MIN_MM) / max(1, count($columns))));
+		// Bei sehr vielen Spalten schrumpfen die Wertspalten gleichmäßig, statt dass die
+		// Bezeichnung unter ihre Mindestbreite (oder ins Negative) rutscht.
+		$value = min(self::VALUE_MAX_MM, ($total - self::NUMBER_MM - self::LABEL_MIN_MM) / max(1, count($columns)));
 		$out = [
 			['label' => $this->l10n->t('Nr.'), 'width' => self::NUMBER_MM / $total],
 			['label' => $this->l10n->t('Bezeichnung'), 'width' => ($total - self::NUMBER_MM - $value * count($columns)) / $total],
@@ -116,7 +116,7 @@ class GliederungsberichtPdfRenderer {
 	 * Konto, freie Zeile, Gesamtergebnis, sonst Summe.
 	 *
 	 * @param array<string, mixed> $row
-	 * @return array{cells: list<string>, style?: string, span?: list<int>, indent?: float, indentCell?: int, repeat?: bool, align?: string}
+	 * @return array{cells: list<string>, style?: string, span?: list<int>, indent?: float, indentCell?: int, repeat?: bool, align?: string, muted?: bool}
 	 */
 	private function row(array $row, int $width): array {
 		$indent = min((int)$row['depth'], self::MAX_DEPTH) * self::INDENT_MM;
@@ -135,7 +135,8 @@ class GliederungsberichtPdfRenderer {
 				$flags = $row['flags'];
 				$marks = (in_array(StructuredReportBuilder::FLAG_INACTIVE, $flags, true) ? ' †' : '')
 					. (in_array(StructuredReportBuilder::FLAG_DUPLICATE, $flags, true) ? ' ⚠' : '');
-				return ['indent' => $indent, 'indentCell' => 1, 'cells' => [(string)$row['number'], $label . $marks, ...$this->cells($row['values'])]];
+				// Wie die Druckseite (Klasse „structural“): strukturelle Konten grau absetzen.
+				return ['indent' => $indent, 'indentCell' => 1, 'muted' => in_array(StructuredReportBuilder::FLAG_STRUCTURAL, $flags, true), 'cells' => [(string)$row['number'], $label . $marks, ...$this->cells($row['values'])]];
 			case 'line':
 				return ['indent' => $indent, 'indentCell' => 1, 'cells' => ['', $label, ...$this->cells($row['values'])]];
 			case 'total':
