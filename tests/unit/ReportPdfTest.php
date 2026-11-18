@@ -7,8 +7,8 @@ namespace OCA\Vereinsbuchhaltung\Tests\Unit;
 use OCA\Vereinsbuchhaltung\Service\Pdf\ReportPdf;
 use OCA\Vereinsbuchhaltung\Service\Pdf\ReportPdfDocument;
 use OCA\Vereinsbuchhaltung\Service\Pdf\ReportPdfFactory;
-use OCA\Vereinsbuchhaltung\Tests\Unit\Support\RecordingPdfDocument;
 use OCA\Vereinsbuchhaltung\Tests\Unit\Support\KeepPdf;
+use OCA\Vereinsbuchhaltung\Tests\Unit\Support\RecordingPdfDocument;
 use OCP\IAppConfig;
 use OCP\IL10N;
 use PHPUnit\Framework\TestCase;
@@ -131,7 +131,11 @@ class ReportPdfTest extends TestCase {
 			/** @var \ArrayObject<string, int> $pages */
 			$pages = new \ArrayObject();
 			$factory = new class($appConfig, $this->l10n(), $pages) extends ReportPdfFactory {
-				public function __construct(IAppConfig $config, IL10N $l10n, private \ArrayObject $pages) {
+				public function __construct(
+					IAppConfig $config,
+					IL10N $l10n,
+					private \ArrayObject $pages,
+				) {
 					parent::__construct($config, $l10n);
 				}
 

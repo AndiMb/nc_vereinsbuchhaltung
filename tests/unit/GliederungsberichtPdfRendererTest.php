@@ -17,10 +17,9 @@ use OCA\Vereinsbuchhaltung\Service\Export\GliederungsberichtRenderer;
 use OCA\Vereinsbuchhaltung\Service\Export\GliederungsberichtVisuellRenderer;
 use OCA\Vereinsbuchhaltung\Service\Export\KassenberichtRenderer;
 use OCA\Vereinsbuchhaltung\Service\Export\KurzberichtRenderer;
-use OCA\Vereinsbuchhaltung\Service\PeriodService;
-use OCA\Vereinsbuchhaltung\Service\Pdf\ReportPdf;
 use OCA\Vereinsbuchhaltung\Service\Pdf\ReportPdfDocument;
 use OCA\Vereinsbuchhaltung\Service\Pdf\ReportPdfFactory;
+use OCA\Vereinsbuchhaltung\Service\PeriodService;
 use OCA\Vereinsbuchhaltung\Service\Report\ReportTemplateService;
 use OCA\Vereinsbuchhaltung\Service\Report\StructuredReportService;
 use OCA\Vereinsbuchhaltung\Service\Report\VisualReportService;
@@ -99,7 +98,12 @@ class GliederungsberichtPdfRendererTest extends TestCase {
 		$l10n = $this->l10n();
 		$currency = ClubCurrencyStub::of($this);
 		$factory = new class($config, $l10n, $log, $colors) extends ReportPdfFactory {
-			public function __construct(IAppConfig $config, IL10N $l10n, private \ArrayObject $log, private ?\ArrayObject $colors) {
+			public function __construct(
+				IAppConfig $config,
+				IL10N $l10n,
+				private \ArrayObject $log,
+				private ?\ArrayObject $colors,
+			) {
 				parent::__construct($config, $l10n);
 			}
 

@@ -18,7 +18,12 @@ class RecordingPdfDocument extends ReportPdfDocument {
 	 * Das Protokoll liegt in einem Objekt, das der Test selbst hält: TCPDF räumt
 	 * beim Ausgeben alle Eigenschaften des Dokuments weg.
 	 */
-	public function __construct(public \ArrayObject $log, string $orientation, public ?\ArrayObject $pageOf = null, public ?\ArrayObject $colorOf = null) {
+	public function __construct(
+		public \ArrayObject $log,
+		string $orientation,
+		public ?\ArrayObject $pageOf = null,
+		public ?\ArrayObject $colorOf = null,
+	) {
 		parent::__construct($orientation, 'mm', 'A4', true, 'UTF-8', false, 3);
 	}
 
