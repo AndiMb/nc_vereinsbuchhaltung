@@ -243,4 +243,30 @@ class Mt940ParserTest extends TestCase {
 		$this->assertSame(125050, $rows[0]['amountCents']);
 		$this->assertSame(100000, $rows[1]['amountCents']);
 	}
+
+	/**
+	 * SWIFT-Format 15d: das Komma ist Pflicht, Nachkommastellen nicht. Viele
+	 * Banken schreiben ganze Euro als „60," (Review-Nachtrag C-1) – in
+	 * Buchungen, Salden und den SEPA-Ursprungsbeträgen.
+	 */
+	public function testGanzeEuroOhneNachkommastellen(): void {
+		$sta = ":20:TEST\n:25:50010517/0648489890\n:60F:C260101EUR1000,\n"
+			. ":61:2601020102C60,NTRFNONREF\n:86:166?00GUTSCHRIFT?20Beitrag\n"
+			. ":61:2601030103D50,NTRFNONREF//OCMT/EUR45,/CHGS/EUR5,/\n:86:108?00RUECKLASTSCHRIFT?20EREF+E2E-5\n"
+			. ":61:2601040104D30,NTRFNONREF\n:86:108?00RUECKLASTSCHRIFT?20EREF+E2E-6 OAMT+EUR25, COAM+EUR5,\n"
+			. ":62F:C260131EUR980,\n";
+
+		$rows = $this->parser->parse($sta);
+
+		$this->assertSame([6000, -5000, -3000], array_column($rows, 'amountCents'));
+		$this->assertSame(4500, $rows[1]['sepaDetails'][0]['originalAmountCents']);
+		$this->assertSame(500, $rows[1]['sepaDetails'][0]['chargesCents']);
+		$this->assertSame(2500, $rows[2]['sepaDetails'][0]['originalAmountCents']);
+		$this->assertSame(500, $rows[2]['sepaDetails'][0]['chargesCents']);
+
+		$balances = $this->parser->balances($sta);
+		$this->assertCount(1, $balances);
+		$this->assertSame(100000, $balances[0]->openingCents);
+		$this->assertSame(98000, $balances[0]->closingCents);
+	}
 }

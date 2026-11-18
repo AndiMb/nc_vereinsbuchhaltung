@@ -26,8 +26,13 @@ namespace OCA\Vereinsbuchhaltung\Service\Text;
  *   Dreierblöcke („1.234", „12.345.678"): dann sind es Tausenderpunkte. Ein
  *   deutscher Export schreibt einen Dezimalbetrag nie mit Punkt, wohl aber
  *   glatte Tausender ohne Nachkommastellen.
- * - Vorzeichen: „-" oder „+" vorn, das typografische Minus (U+2212) und das
- *   nachgestellte Minus mancher Bankexporte („12,50-"). Höchstens eines.
+ * - Nachkommastellen dürfen fehlen: „60," (SWIFT-MT940, Format 15d: Komma
+ *   Pflicht, Nachkommastellen nicht) und „12." sind ganze Euro, ebenso die
+ *   Tabellenschreibweise „12,-" / „12,--" / „12,–" – der Strich direkt hinter
+ *   dem Komma ist dort kein nachgestelltes Minus.
+ * - Vorzeichen: „-" oder „+" vorn, das typografische Minus (U+2212), der
+ *   Halbgeviertstrich (U+2013, den Excel und Word gern aus „-" machen) und
+ *   das nachgestellte Minus mancher Bankexporte („12,50-"). Höchstens eines.
  * - Leerraum (auch geschützte und schmale Leerzeichen) zählt nicht; so sind
  *   auch „1 234,56" und „- 12,50" lesbar.
  * - Höchstens eine Währungsangabe vorn oder hinten: ein Währungszeichen
@@ -83,7 +88,9 @@ final class AmountParser {
 			return null;
 		}
 		$c = self::CURRENCY;
-		if (preg_match('/^(' . $c . ')?([-+\x{2212}])?(' . $c . ')?(\d[\d.,]*)(-|\x{2212})?(' . $c . ')?$/Du', $v, $m, PREG_UNMATCHED_AS_NULL) !== 1) {
+		// „12,-" / „12,--" / „12,–" sind ganze Euro, kein nachgestelltes Minus.
+		$v = (string)preg_replace('/,(?:-{1,2}|\x{2013}|\x{2014})(?=(?:' . $c . ')?$)/Du', ',', $v);
+		if (preg_match('/^(' . $c . ')?([-+\x{2212}\x{2013}])?(' . $c . ')?(\d[\d.,]*)([-\x{2212}\x{2013}])?(' . $c . ')?$/Du', $v, $m, PREG_UNMATCHED_AS_NULL) !== 1) {
 			return null;
 		}
 		[, $cur1, $sign1, $cur2, $number, $sign2, $cur3] = $m + [6 => null];
@@ -121,15 +128,15 @@ final class AmountParser {
 			}
 			[$integer, $fraction] = explode($decimal, $number);
 			$t = preg_quote($thousands, '/');
-			if (preg_match('/^\d{1,3}(?:' . $t . '\d{3})+$/D', $integer) !== 1 || preg_match('/^\d+$/D', $fraction) !== 1) {
+			if (preg_match('/^\d{1,3}(?:' . $t . '\d{3})+$/D', $integer) !== 1 || preg_match('/^\d*$/D', $fraction) !== 1) {
 				return null;
 			}
 			return [str_replace($thousands, '', $integer), $fraction];
 		}
 
 		if ($hasComma) {
-			// Nur Komma: Dezimalkomma, genau eines.
-			return preg_match('/^(\d+),(\d+)$/D', $number, $m) === 1 ? [$m[1], $m[2]] : null;
+			// Nur Komma: Dezimalkomma, genau eines; Nachkommastellen dürfen fehlen.
+			return preg_match('/^(\d+),(\d*)$/D', $number, $m) === 1 ? [$m[1], $m[2]] : null;
 		}
 
 		if ($hasDot) {
@@ -139,7 +146,7 @@ final class AmountParser {
 			if ($germanSource && preg_match('/^[1-9]\d{0,2}(?:\.\d{3})+$/D', $number) === 1) {
 				return [str_replace('.', '', $number), ''];
 			}
-			return preg_match('/^(\d+)\.(\d+)$/D', $number, $m) === 1 ? [$m[1], $m[2]] : null;
+			return preg_match('/^(\d+)\.(\d*)$/D', $number, $m) === 1 ? [$m[1], $m[2]] : null;
 		}
 
 		return [$number, ''];

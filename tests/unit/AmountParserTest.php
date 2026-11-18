@@ -70,6 +70,19 @@ class AmountParserTest extends TestCase {
 			'Dezimalkomma ohne Tausender' => ['1234,56', 123456],
 			'Komma mit drei Nachkommastellen bleibt Dezimalkomma' => ['1,234', 123],
 			'zwei Kommas ohne Punkt' => ['1,234,567', null],
+			// Ganze Euro ohne Nachkommastellen (Review-Nachtrag C-1): SWIFT-MT940
+			// schreibt „60," (Format 15d: Komma Pflicht, Nachkommastellen nicht),
+			// deutsche Tabellen „12,-" oder „12,--".
+			'Komma ohne Nachkommastellen (MT940)' => ['60,', 6000],
+			'großer Betrag ohne Nachkommastellen' => ['1000,', 100000],
+			'Währungscode und Komma ohne Nachkommastellen' => ['EUR1000,', 100000],
+			'Tausenderpunkt und Komma ohne Nachkommastellen' => ['1.000,', 100000],
+			'Strich für ganze Euro' => ['12,-', 1200],
+			'Doppelstrich für ganze Euro' => ['50,--', 5000],
+			'Halbgeviertstrich für ganze Euro' => ["12,\u{2013}", 1200],
+			'Strich für ganze Euro mit Währung' => ['12,- €', 1200],
+			'Strich für ganze Euro, negativ' => ['-12,-', -1200],
+			'Punkt ohne Nachkommastellen' => ['12.', 1200],
 			// nur Punkt, keine Dreiergruppen: Dezimalpunkt
 			'Dezimalpunkt' => ['1234.56', 123456],
 			'Dezimalpunkt eine Stelle' => ['12.5', 1250],
@@ -85,6 +98,9 @@ class AmountParserTest extends TestCase {
 			'Minus hinten (Bankexport)' => ['12,50-', -1250],
 			'typografisches Minus' => ["\u{2212}12,50", -1250],
 			'Minus mit Leerraum' => ['- 12,50', -1250],
+			// Excel und Word machen aus „-" gern einen Halbgeviertstrich.
+			'Halbgeviertstrich als Minus' => ["\u{2013}12,50", -1250],
+			'Halbgeviertstrich hinten als Minus' => ["12,50\u{2013}", -1250],
 			'zwei Vorzeichen' => ['-12,50-', null],
 			'Plus hinten gibt es nicht' => ['12,50+', null],
 			// Leerraum
@@ -110,8 +126,10 @@ class AmountParserTest extends TestCase {
 			'nur Leerraum' => ['   ', null],
 			'Text' => ['abc', null],
 			'Zahl mit Text' => ['ca. 12,50', null],
-			'Komma ohne Ziffer danach' => ['12,', null],
 			'Komma ohne Ziffer davor' => [',50', null],
+			'nur Komma' => [',', null],
+			'Soll-Kennzeichen' => ['12,50 S', null],
+			'Haben-Kennzeichen' => ['H 12,50', null],
 			'Exponent' => ['1e3', null],
 			'zu groß für Cent in int' => ['12345678901234567', null],
 			'kaputtes UTF-8' => ["12,50 \xC3\x28", null],
