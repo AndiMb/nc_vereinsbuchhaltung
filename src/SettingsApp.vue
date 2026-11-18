@@ -1,7 +1,13 @@
 <template>
 	<div>
+		<NcSettingsSection :name="t('Auf dieser Seite')">
+			<SettingsToc :groups="toc" />
+		</NcSettingsSection>
+
+		<!-- Reihenfolge und Überschriften stehen in lib/settingsSections.js;
+		     ein Unit-Test prüft, dass diese Liste und die Seite übereinstimmen. -->
 		<div id="settings-section_verein">
-			<NcSettingsSection :name="t('Verein')">
+			<NcSettingsSection :name="sec.verein.name" :docUrl="helpUrl('verein')">
 				<SettingsClub
 					v-model:clubName="clubName"
 					v-model:brandColor="brandColor"
@@ -14,23 +20,14 @@
 			</NcSettingsSection>
 		</div>
 
-		<div id="settings-section_darstellung">
-			<NcSettingsSection :name="t('Darstellung')">
-				<SettingsDisplay
-					v-model:amountDisplay="amountDisplay"
-					:storageSaving="storageSaving"
-					:saveStorageSettings="saveSettings" />
-			</NcSettingsSection>
-		</div>
-
-		<div id="settings-section_ampel">
-			<NcSettingsSection :name="t('Ampel im Gliederungsbericht')">
-				<SettingsBudgetStatus v-model:thresholds="budgetStatusThresholds" />
+		<div id="settings-section_berechtigungen">
+			<NcSettingsSection :name="sec.berechtigungen.name" :docUrl="helpUrl('berechtigungen')">
+				<SettingsPermissions @help="openHandbuch" />
 			</NcSettingsSection>
 		</div>
 
 		<div id="settings-section_belege">
-			<NcSettingsSection :name="t('Belege')">
+			<NcSettingsSection :name="sec.belege.name" :docUrl="helpUrl('belege')">
 				<SettingsAttachments
 					v-model:storageMode="storageMode"
 					v-model:storageUser="storageUser"
@@ -41,7 +38,7 @@
 		</div>
 
 		<div id="settings-section_bankdaten">
-			<NcSettingsSection :name="t('Bankdaten')">
+			<NcSettingsSection :name="sec.bankdaten.name" :docUrl="helpUrl('bankdaten')">
 				<SettingsStatementWatch
 					v-model:statementWatchUser="statementWatchUser"
 					v-model:statementWatchPath="statementWatchPath"
@@ -50,8 +47,29 @@
 			</NcSettingsSection>
 		</div>
 
+		<div id="settings-section_geschaeftsjahr">
+			<NcSettingsSection :name="sec.geschaeftsjahr.name" :docUrl="helpUrl('geschaeftsjahr')">
+				<SettingsPeriods :storageUser="storageUser" />
+			</NcSettingsSection>
+		</div>
+
+		<div id="settings-section_darstellung">
+			<NcSettingsSection :name="sec.darstellung.name" :docUrl="helpUrl('darstellung')">
+				<SettingsDisplay
+					v-model:amountDisplay="amountDisplay"
+					:storageSaving="storageSaving"
+					:saveStorageSettings="saveSettings" />
+			</NcSettingsSection>
+		</div>
+
+		<div id="settings-section_ampel">
+			<NcSettingsSection :name="sec.ampel.name" :docUrl="helpUrl('ampel')">
+				<SettingsBudgetStatus v-model:thresholds="budgetStatusThresholds" />
+			</NcSettingsSection>
+		</div>
+
 		<div id="settings-section_beitraege-sepa">
-			<NcSettingsSection :name="t('Beiträge & SEPA')">
+			<NcSettingsSection :name="sec['beitraege-sepa'].name" :docUrl="helpUrl('beitraege-sepa')">
 				<SettingsSepaBasics
 					v-model:sepaCreditorId="sepaCreditorId"
 					v-model:sepaDebtorAccountId="sepaDebtorAccountId"
@@ -61,67 +79,75 @@
 					:storageSaving="storageSaving"
 					:saveSettings="saveSettings" />
 				<SettingsSepaModule :storageUser="storageUser" />
-				<!-- Auch ohne Beitragsmodul: Spenden externer Spender (#10, Teil B). -->
-				<SettingsDonationReceipts :storageUser="storageUser" />
 			</NcSettingsSection>
 		</div>
 
-		<div id="settings-section_rechnungen">
-			<NcSettingsSection :name="t('Rechnungen')">
-				<SettingsInvoices :storageUser="storageUser" />
-			</NcSettingsSection>
-		</div>
-
-		<div id="settings-section_auslagen">
-			<NcSettingsSection :name="t('Auslagenerstattung')">
-				<SettingsReimbursements />
-			</NcSettingsSection>
-		</div>
-
-		<div id="settings-section_kostenstellen">
-			<NcSettingsSection :name="t('Kostenstellen')">
-				<SettingsCostCenters />
-			</NcSettingsSection>
-		</div>
-
+		<!-- Rechtstext und Willkommens-Mail gehören fachlich zum Beitragsmodul
+		     und stehen deshalb direkt darunter; eigene Abschnitte bleiben sie,
+		     weil ihre Anker von außen angesprungen werden. -->
 		<div id="settings-section_mandats-rechtstext">
-			<NcSettingsSection :name="t('Mandats-Rechtstext')">
+			<NcSettingsSection :name="sec['mandats-rechtstext'].name" :docUrl="helpUrl('mandats-rechtstext')">
 				<SettingsMandateLegalText :clubName="clubName" />
 			</NcSettingsSection>
 		</div>
 
 		<div id="settings-section_willkommens-mail">
-			<NcSettingsSection :name="t('Willkommens-Mail')">
+			<NcSettingsSection :name="sec['willkommens-mail'].name" :docUrl="helpUrl('willkommens-mail')">
 				<SettingsWelcomeMail />
 			</NcSettingsSection>
 		</div>
 
-		<div id="settings-section_berechtigungen">
-			<NcSettingsSection :name="t('Berechtigungen')">
-				<SettingsPermissions @help="openHandbuch" />
+		<!-- Eigener Abschnitt statt unter „Beiträge & SEPA“: Zuwendungsbestätigungen
+		     gibt es auch ohne Beitragsmodul, für Spenden externer Spender (#10, Teil B). -->
+		<div id="settings-section_zuwendungen">
+			<NcSettingsSection :name="sec.zuwendungen.name" :docUrl="helpUrl('zuwendungen')">
+				<SettingsDonationReceipts :storageUser="storageUser" />
 			</NcSettingsSection>
 		</div>
 
-		<div id="settings-section_geschaeftsjahr">
-			<NcSettingsSection :name="t('Geschäftsjahr')">
-				<SettingsPeriods :storageUser="storageUser" />
+		<div id="settings-section_rechnungen">
+			<NcSettingsSection :name="sec.rechnungen.name" :docUrl="helpUrl('rechnungen')">
+				<SettingsInvoices :storageUser="storageUser" />
+			</NcSettingsSection>
+		</div>
+
+		<div id="settings-section_auslagen">
+			<NcSettingsSection :name="sec.auslagen.name" :docUrl="helpUrl('auslagen')">
+				<SettingsReimbursements />
+			</NcSettingsSection>
+		</div>
+
+		<div id="settings-section_kostenstellen">
+			<NcSettingsSection :name="sec.kostenstellen.name" :docUrl="helpUrl('kostenstellen')">
+				<SettingsCostCenters />
+			</NcSettingsSection>
+		</div>
+
+		<div id="settings-section_daten">
+			<NcSettingsSection :name="sec.daten.name" :docUrl="helpUrl('daten')">
+				<!-- Der Import legt Zeiträume an und löscht sie mit „Vorher alle
+				     Daten löschen" – die Tabelle unter „Geschäftsjahr" hängt am
+				     selben Singleton und muss davon erfahren. -->
+				<SettingsXbucImport v-model:busy="busy" @changed="reloadPeriods" />
 			</NcSettingsSection>
 		</div>
 
 		<div id="settings-section_sicherung">
-			<NcSettingsSection :name="t('Sicherung und Umzug')">
+			<NcSettingsSection :name="sec.sicherung.name" :docUrl="helpUrl('sicherung')">
 				<!-- Leeren und Einspielen ersetzen den ganzen Bestand samt
 				     Geschäftsjahren – die Tabelle unter „Geschäftsjahr" muss davon erfahren. -->
 				<SettingsBackup v-model:busy="busy" @changed="reloadPeriods" />
 			</NcSettingsSection>
 		</div>
 
-		<div id="settings-section_daten">
-			<NcSettingsSection :name="t('Daten')">
-				<!-- Der Import legt Zeiträume an und löscht sie mit „Vorher alle
-				     Daten löschen" – die Tabelle unter „Geschäftsjahr" hängt am
-				     selben Singleton und muss davon erfahren. -->
-				<SettingsXbucImport v-model:busy="busy" @changed="reloadPeriods" />
+		<!-- Ganz am Ende und direkt unter „Bestand vollständig leeren“ (letzte
+		     Karte der Sicherung): die beiden Löschwege stehen nebeneinander, damit
+		     ihr unterschiedlicher Umfang auffällt, statt verwechselt zu werden. -->
+		<div id="settings-section_zuruecksetzen">
+			<NcSettingsSection :name="sec.zuruecksetzen.name" :docUrl="helpUrl('zuruecksetzen')">
+				<p class="vbh-hint">
+					{{ t('Es gibt zwei Löschwege: „Alle Daten löschen“ setzt nur die Buchhaltung zurück, Mitglieder, Mandate und Beitragsgruppen bleiben. „Bestand vollständig leeren“ (direkt darüber unter „Sicherung und Umzug“) entfernt auch Mitglieder und Einstellungen und bereitet das Einspielen einer Sicherung vor.') }}
+				</p>
 				<div class="vbh-card vbh-card--danger">
 					<h4>{{ t('Alle Daten löschen') }}</h4>
 					<p class="vbh-hint">
@@ -168,6 +194,7 @@ import SettingsReimbursements from './components/SettingsReimbursements.vue'
 import SettingsSepaBasics from './components/SettingsSepaBasics.vue'
 import SettingsSepaModule from './components/SettingsSepaModule.vue'
 import SettingsStatementWatch from './components/SettingsStatementWatch.vue'
+import SettingsToc from './components/SettingsToc.vue'
 import SettingsWelcomeMail from './components/SettingsWelcomeMail.vue'
 import SettingsXbucImport from './components/SettingsXbucImport.vue'
 import api from './api.js'
@@ -180,6 +207,7 @@ import { currencySettingsPayload, setClubCurrency } from './lib/clubCurrency.js'
 import { setClubTimeZone } from './lib/clubTime.js'
 import { errMsg } from './lib/format.js'
 import { withPasswordConfirmation } from './lib/passwordGate.js'
+import { settingsSections, tocGroups } from './lib/settingsSections.js'
 
 /**
  * Wurzelkomponente der Nextcloud-Einstellungsseite (Settings\AdminSettings /
@@ -215,6 +243,7 @@ export default {
 		SettingsSepaBasics,
 		SettingsSepaModule,
 		SettingsStatementWatch,
+		SettingsToc,
 		SettingsWelcomeMail,
 		SettingsXbucImport,
 	},
@@ -231,6 +260,8 @@ export default {
 
 	data() {
 		return {
+			// Überschriften und Handbuch-Kapitel der Abschnitte, siehe lib/settingsSections.js
+			sections: settingsSections(),
 			storageMode: 'appdata',
 			storageUser: '',
 			storagePath: '',
@@ -266,6 +297,17 @@ export default {
 			// Gemeinsames Ladeflag fuer xbuc-Import und "Alle Daten löschen".
 			busy: false,
 		}
+	},
+
+	computed: {
+		/** Abschnitte nach Anker-ID, für Überschrift und Hilfe-Link im Template. */
+		sec() {
+			return Object.fromEntries(this.sections.map((s) => [s.id, s]))
+		},
+
+		toc() {
+			return tocGroups(this.sections)
+		},
 	},
 
 	mounted() {
@@ -360,6 +402,11 @@ export default {
 				// Nichts gespeichert: die Währungsauswahl zeigt wieder den Stand des Servers.
 				this.clubCurrency = this.savedCurrency
 			} finally { this.storageSaving = false }
+		},
+
+		/** Hilfe-Symbol neben der Überschrift: das passende Handbuch-Kapitel. */
+		helpUrl(id) {
+			return api.handbuchUrl(this.sec[id].help)
 		},
 
 		openHandbuch() {

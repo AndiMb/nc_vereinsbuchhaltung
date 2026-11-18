@@ -39,7 +39,7 @@ Eine schlanke Buchhaltungs-App für Vereine, direkt in Nextcloud integriert. Kon
   - **Dublettenerkennung** per SHA-256-Hash, zusätzlich gegen bereits per xbuc importierte Buchungen und – formatübergreifend – gegen vorhandene Bankbuchungen über Datum/Betrag/Text (auch bei abweichendem Valutadatum). Derselbe Auszug lässt sich also gefahrlos in einem anderen Format erneut einlesen
   - 0-€-Buchungen (z. B. ABSCHLUSS) werden übersprungen; bank-interne Buchungen ohne Zahlungsbeteiligten (ENTGELTABSCHLUSS …) bleiben buchbar
   - Import direkt im Tab „Buchungen" mit Drag-&-Drop, Vorschau und Erfolgsübersicht
-- **Wachordner** (Zahnrad → *Bankdaten*): den heruntergeladenen Auszug in einen Nextcloud-Ordner legen genügt – ein stündlicher Hintergrundjob liest ihn ein, verschiebt ihn nach `verarbeitet/` und fehlerhafte Dateien mitsamt Begründung nach `fehler/`. Gelöscht wird nichts. Setzt System-Cron voraus
+- **Wachordner** (Einstellungen → Vereinsbuchhaltung → *Kontoauszüge automatisch einlesen*): den heruntergeladenen Auszug in einen Nextcloud-Ordner legen genügt – ein stündlicher Hintergrundjob liest ihn ein, verschiebt ihn nach `verarbeitet/` und fehlerhafte Dateien mitsamt Begründung nach `fehler/`. Gelöscht wird nichts. Setzt System-Cron voraus
 
 ### Buchhaltung
 - **Doppelte Buchführung**: Buchungssätze mit Soll-/Haben-Konten und fortlaufender Buchungsnummer (je Geschäftsjahr neu beginnend ab 1)
@@ -56,7 +56,7 @@ Eine schlanke Buchhaltungs-App für Vereine, direkt in Nextcloud integriert. Kon
 - **Offene Posten** (Tab Buchungen → Offene Posten): schlanke Ad-hoc-Liste unbezahlter Forderungen (z. B. Mitgliedsbeiträge, Rechnungen) mit Debitor, Betrag, Fälligkeit und optionalem Konto; Status offen/bezahlt/storniert, Dashboard-Hinweis bei überfälligen Posten – bewusst keine vollständige Mitgliederverwaltung
 - **Rücklagen** (§ 62 AO: freie / zweckgebundene / Wiederbeschaffungsrücklage): Eigenkapital-Konten entsprechend kennzeichenbar, eigener Bericht mit Saldo je Art; Zuweisungen sind normale Buchungen (Experten-Modus)
 - **Kommentar an Buchungen**: freier Hinweis zur Buchung (etwa für die Kassenprüfung), in den Listen als Symbol mit Tooltip; gehört nicht zum Buchungssatz und bleibt deshalb auch im abgeschlossenen Geschäftsjahr änderbar, jede Änderung wird protokolliert
-- **Abweichendes Geschäftsjahr** (Zahnrad → *Geschäftsjahr*): das Geschäftsjahr muss nicht dem Kalenderjahr entsprechen. Vorlagen für Kalenderjahr (Vorgabe), Oktober–September, Schuljahr August–Juli und halbjährliche Zeiträume (Semester), dazu eine eigene Regel mit beliebigem Starttag und einer Periodenlänge von 1 bis 12 Monaten (Teiler von 12). Jeder Zeitraum trägt eine frei änderbare Bezeichnung („2026", „2025/26", „2025/26-1"); die Umstellung zeigt vorher, wie viele Buchungen den Zeitraum wechseln (Issue #8)
+- **Abweichendes Geschäftsjahr** (Einstellungen → Vereinsbuchhaltung → *Geschäftsjahr*): das Geschäftsjahr muss nicht dem Kalenderjahr entsprechen. Vorlagen für Kalenderjahr (Vorgabe), Oktober–September, Schuljahr August–Juli und halbjährliche Zeiträume (Semester), dazu eine eigene Regel mit beliebigem Starttag und einer Periodenlänge von 1 bis 12 Monaten (Teiler von 12). Jeder Zeitraum trägt eine frei änderbare Bezeichnung („2026", „2025/26", „2025/26-1"); die Umstellung zeigt vorher, wie viele Buchungen den Zeitraum wechseln (Issue #8)
 - **Zeitraumfilter**: alle Auswertungen beziehen sich auf das im Header gewählte Geschäftsjahr; Bestandskonten kumulativ, Erfolgskonten zeitraumbezogen
 - **Festschreibung (Jahresabschluss)**: Verwalter schließen ein Geschäftsjahr ab – Buchungen, Belege und Zuordnungen dieses Zeitraums sind danach unveränderlich (Schreibversuche liefern HTTP 423); Wiedereröffnen nur durch Verwalter, beides wird protokolliert. Solange ein Zeitraum festgeschrieben ist, lässt sich die Geschäftsjahr-Regel nicht umstellen
 
@@ -71,7 +71,7 @@ Eine schlanke Buchhaltungs-App für Vereine, direkt in Nextcloud integriert. Kon
   - **Plan-Stände**: kompletten Plan als benannten, datierten Stand einfrieren (z. B. „Beschluss MV") und später mit dem aktuellen Plan vergleichen
 - **Gliederungsbericht nach Vorlage**: Plan und Buchungen nach einer Vorlage gegliedert – zwei Standardvorlagen (Haushaltsplan nach Titelgruppen für Zuwendungsgeber, Ergebnis je Bereich und Projekt), die sich wie jede Vorlage bearbeiten, löschen und zurückholen lassen; neue Vorlagen bei null oder als Kopie, mit frei wählbaren Abschnitten, Spalten (Plan/Ist, auch Vorperioden) und Gruppen; druckfertig und als CSV. Dazu eine **visuelle Ansicht** derselben Vorlage: Kennzahlen, Ampeln, Verlauf und Balken mit wählbarem Stand, druckfertig, mit Sprung von jedem Konto in die passenden Buchungen
 - **Kassenbericht (druckfertig)**: eigenständige Druckseite für die Mitgliederversammlung – Vereinsname, Vermögensübersicht der Geldkonten (Bestand 01.01./31.12.), Einnahmen-/Ausgaben-Rechnung, Soll-Ist-Vergleich, Sphärenübersicht (steuerlich) mit Freigrenzen-Hinweis, Vollständigkeitsvermerk, Abschlussvermerk und Unterschriftszeilen; Drucken über den Browser oder als fertige **PDF-Datei** (PDF/A, „Seite x von y“, Unterschriftsfelder bleiben beim Vollständigkeitsvermerk); auf Wunsch legt die App das PDF beim Jahresabschluss im Berichtsordner ab
-- **Kurzbericht für Vorstandssitzungen (druckfertig)**: kompakte Druckseite mit wählbarem Stichtag – Kontostände seither, Bewegungen, Finanzplan-Kurzfassung; optional im Corporate Design (Vereinslogo + Akzentfarbe, unter Zahnrad → Verein hinterlegbar)
+- **Kurzbericht für Vorstandssitzungen (druckfertig)**: kompakte Druckseite mit wählbarem Stichtag – Kontostände seither, Bewegungen, Finanzplan-Kurzfassung; optional im Corporate Design (Vereinslogo + Akzentfarbe, unter Einstellungen → Vereinsbuchhaltung → Verein hinterlegbar)
 - **CSV-Exporte** (für Kassenprüfung/Excel): Journal, Saldenliste, Einnahmen-/Ausgaben-Übersicht, Soll-Ist-Vergleich (inkl. Notizen)
 - **Kostenstellen** (optional, ab Werk aus): ein Betrag auf einem Einnahmen-/Ausgabenkonto lässt sich einer oder mehreren Kostenstellen zuordnen (1.000 € Ausrüstung, davon 600 € Senioren und 400 € A-Junioren – eine Buchung, ein Konto); eigener Bericht je Kostenstelle mit Abstimmung gegen die Kontensalden, Druckseite und CSV
 - **Mehrjahresübersicht** (CSV-Matrix, Spalten = Jahre): Erfolgsrechnung nach Konten (Einnahmen/Ausgaben/Ergebnis) + Vermögen zum Jahresende sowie Ergebnis je Auswertungsgruppe/Projekt und nach steuerlichen Sphären über alle Jahre; zusätzlich als Liniendiagramm (Berichte → Auswertung) für Sitzungspräsentationen
@@ -299,16 +299,16 @@ Auf eigenen Servern holt `deploy/vbh-deploy.sh` das neueste Release, prüft die 
 
 Beim allerersten Start begrüßt ein **Setup-Assistent** mit drei Wegen (xbuc übernehmen / neu anfangen / Beispieldaten). Wer ihn überspringt, arbeitet die folgenden Schritte ab – die **Einrichtungs-Checkliste** auf dem Dashboard zeigt dabei laufend, was noch offen ist.
 
-1. **Berechtigungen** (Zahnrad → Einstellungen → Berechtigungen) → Nutzer oder Gruppen als Buchhalter oder Verwalter eintragen.
-2. **Zahnrad → Daten → Aus „zero Buchhaltung" importieren** → `.xbuc`-Datei wählen → Vorschau prüfen → Importieren.
+1. **Berechtigungen** (Nextcloud-Einstellungen → Vereinsbuchhaltung → Berechtigungen; Verwalter ohne Nextcloud-Adminrechte finden die Seite unter *Persönlich*, Administratoren unter *Verwaltung*) → Nutzer oder Gruppen als Buchhalter oder Verwalter eintragen.
+2. **Einstellungen → Vereinsbuchhaltung → Datenübernahme → Aus „zero Buchhaltung" importieren** → `.xbuc`-Datei wählen → Vorschau prüfen → Importieren.
    - Mehrere Jahres-Dateien nacheinander importieren: der Merge-Modus (Standard) übernimmt nur fehlende Konten und neue Buchungen.
    - Alternativ: Tab **Konten** → *Standard-Kontenrahmen anlegen* und Konten manuell erstellen.
-3. Tab **Buchungen** → *Kontoumsätze importieren* → Kontoauszug der Bank hochladen (CSV-CAMT, CAMT.053 oder MT940). Wer das regelmäßig tut: Zahnrad → *Bankdaten* erspart den Upload.
+3. Tab **Buchungen** → *Kontoumsätze importieren* → Kontoauszug der Bank hochladen (CSV-CAMT, CAMT.053 oder MT940). Wer das regelmäßig tut: Einstellungen → Vereinsbuchhaltung → *Kontoauszüge automatisch einlesen* erspart den Upload.
 4. Tab **Buchungen → Zuzuordnen** → jede Bankbuchung einem Gegenkonto zuordnen (Vorschläge per Klick übernehmen; Regeln automatisieren wiederkehrende Buchungen).
 5. Tab **Übersicht** → Dashboard mit KPI-Kacheln und Monatschart.
 6. Tab **Berichte** → Auswertung (inkl. Kassenbericht, Kurzbericht, Beleg-ZIP und Prüfleitfaden), Auswertungsgruppen, Finanzplan (inkl. Plan-Notizen, Plan-Ständen und CSV-Export), Gliederung, Sphären, Rücklagen, Protokoll.
-7. Werden Mitgliedsbeiträge per SEPA-Lastschrift eingezogen: Reiter **„Beiträge"** (erscheint nach Zahnrad → Beiträge & SEPA → Schalter, oder automatisch beim ersten Mandat).
-8. Nach Kassenprüfung und Entlastung: **Zahnrad → Jahresabschluss** → Jahr abschließen (festschreiben).
+7. Werden Mitgliedsbeiträge per SEPA-Lastschrift eingezogen: Reiter **„Beiträge"** (erscheint nach Einstellungen → Vereinsbuchhaltung → Beiträge & SEPA → Schalter im *Beitragsmodul*, oder automatisch beim ersten Mandat).
+8. Nach Kassenprüfung und Entlastung: **Einstellungen → Vereinsbuchhaltung → Geschäftsjahr → Zeiträume** → Zeitraum abschließen (festschreiben).
 
 ## Roadmap
 

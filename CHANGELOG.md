@@ -41,7 +41,7 @@ verwenden, z. B. `**Neu:**`.
   Zahlung. Das PDF wird mit fortlaufender Nummer (*ZB-2026-0001*) als Doppel
   abgelegt, eine fehlerhafte Bestätigung wird mit Grund storniert. Mitglieder
   laden ihre Bestätigungen unter *Mein Beitrag* herunter. Eingerichtet wird es
-  unter *Beiträge & SEPA → Zuwendungsbestätigungen* (Freistellungsbescheid oder
+  im Einstellungsabschnitt *Zuwendungsbestätigungen* (Freistellungsbescheid oder
   Feststellung nach § 60a AO, Finanzamt, Zwecke, Unterschrift). Beiträge
   bestätigt die App nur, wenn bestätigt ist, dass sie abziehbar sind (keine
   Sport-, Kultur-, Freizeit- oder Heimatpflegezwecke); bei zu altem Bescheid
@@ -62,6 +62,25 @@ verwenden, z. B. `**Neu:**`.
 - Der Dateiname des Kassenberichts als PDF schreibt Umlaute jetzt um
   (ä → ae, ö → oe, ü → ue, ß → ss), damit er auf jedem System ohne
   Sonderzeichen gespeichert wird.
+- **Einstellungsseite neu geordnet:** Die Abschnitte folgen jetzt der Aufgabe
+  statt der Entstehungsgeschichte – *Grundlagen* (Verein, Berechtigungen,
+  Belege, Kontoauszüge automatisch einlesen, Geschäftsjahr), *Listen und
+  Berichte* (Darstellung, Ampel), *Module* (Beiträge & SEPA mit
+  Mandats-Rechtstext und Willkommens-Mail direkt darunter,
+  Zuwendungsbestätigungen als eigener Abschnitt, Rechnungen, Auslagen,
+  Kostenstellen) und *Daten und Sicherung* (Datenübernahme, Sicherung und
+  Umzug, Zurücksetzen). Ganz oben steht ein Inhaltsverzeichnis mit
+  Sprunglinks, neben jeder Abschnittsüberschrift ein Fragezeichen zum
+  passenden Handbuch-Kapitel. „Alle Daten löschen" steht jetzt im eigenen
+  Abschnitt *Zurücksetzen* direkt unter „Bestand vollständig leeren", mit
+  einem Hinweis, worin sich die beiden Löschwege unterscheiden. „Bankdaten"
+  heißt jetzt „Kontoauszüge automatisch einlesen", „Daten" heißt
+  „Datenübernahme". Alle bisherigen Sprungadressen
+  (`#settings-section_…`) gelten weiter.
+- **Handbuch:** Kapitel 2 erklärt, wo die Einstellungen stehen (Persönlich
+  bzw. Verwaltung) und in welcher Reihenfolge; die veralteten Wege über das
+  „Zahnrad" und die nie vorhandene Karte „Grundeinstellungen" sind durch die
+  echten Abschnitts- und Kartennamen ersetzt.
 
 ## [0.54.0] – 2026-11-17
 

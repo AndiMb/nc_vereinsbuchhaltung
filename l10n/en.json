@@ -1175,7 +1175,6 @@
         "Neue IBAN": "New IBAN",
         "Wechseln": "Change",
         "Wechseln fehlgeschlagen": "Change failed",
-        "Bankdaten": "Bank data",
         "Beiträge": "Contributions",
         "Bestimmt, wie dieser Bericht die Konten gruppiert": "Determines how this report groups accounts",
         "Daten": "Data",
@@ -1217,7 +1216,7 @@
         "Übernehmen": "Apply",
         "Was ist neu in Version {v}?": "What's new in version {v}?",
         "Nextcloud-Einstellungen → Vereinsbuchhaltung → Berechtigungen: Nutzer/Gruppen als Verwalter, Buchhalter oder Revisor eintragen.": "Nextcloud settings → Vereinsbuchhaltung → Permissions: add users or groups as administrator, bookkeeper or auditor.",
-        "Tab Konten → „Standard-Kontenrahmen anlegen\" – oder Nextcloud-Einstellungen → Vereinsbuchhaltung → Daten → „Aus zero Buchhaltung importieren\", falls vorhanden.": "Accounts tab → “Create standard chart of accounts” – or Nextcloud settings → Vereinsbuchhaltung → Data → “Import from zero Buchhaltung” if you have such a file.",
+        "Tab Konten → „Standard-Kontenrahmen anlegen\" – oder Nextcloud-Einstellungen → Vereinsbuchhaltung → Datenübernahme → „Aus zero Buchhaltung importieren\", falls vorhanden.": "Accounts tab → “Create standard chart of accounts” – or Nextcloud settings → Vereinsbuchhaltung → Data import → “Import from zero Buchhaltung” if you have such a file.",
         "Nextcloud-Einstellungen → Vereinsbuchhaltung → Belege und Verein: Speicherort für Belege und Vereinsnamen festlegen.": "Nextcloud settings → Vereinsbuchhaltung → Receipts and club: set where receipts are stored and the club's name.",
         "Nextcloud-Einstellungen → Vereinsbuchhaltung → Beiträge & SEPA: Gläubiger-ID, einziehendes Konto und der Schalter für den Reiter „Beiträge\" in der Hauptnavigation.": "Nextcloud settings → Vereinsbuchhaltung → Fees & SEPA: creditor identifier, collecting account, and the switch for the “Contributions” tab in the main navigation.",
         "fällig {date}": "due {date}",
@@ -4947,7 +4946,7 @@
         "Zuwendender": "Donor",
         "Spende vom {date}": "Donation of {date}",
         "Neuer externer Spender": "New external donor",
-        "Noch keine Spendenkonten festgelegt: Einstellungen → Beiträge & SEPA → Zuwendungsbestätigungen.": "No donation accounts set yet: Settings → Fees & SEPA → Donation receipts.",
+        "Noch keine Spendenkonten festgelegt: Nextcloud-Einstellungen → Vereinsbuchhaltung → Zuwendungsbestätigungen.": "No donation accounts set yet: Nextcloud settings → Vereinsbuchhaltung → Donation receipts.",
         "Spenden {year}": "Donations {year}",
         "Spender": "Donor",
         "Verzicht auf Erstattung von Aufwendungen": "Waiver of expense reimbursement",
@@ -4992,7 +4991,14 @@
         "Zeile %d: Transaktionscode %s kommt mehrfach vor.": "Row %d: transaction code %s occurs more than once.",
         "Zeile %d: Netto passt nicht zu Brutto und Gebühr.": "Row %d: net does not match gross and fee.",
         "PayPal-Adresse (optional)": "PayPal address (optional)",
-        "E-Mail-Adresse(n) des PayPal-Kontos für den PayPal-Import; mehrere durch Komma trennen.": "Email address(es) of the PayPal account for the PayPal import; separate multiple addresses with a comma."
+        "E-Mail-Adresse(n) des PayPal-Kontos für den PayPal-Import; mehrere durch Komma trennen.": "Email address(es) of the PayPal account for the PayPal import; separate multiple addresses with a comma.",
+        "Auf dieser Seite": "On this page",
+        "Datenübernahme": "Data import",
+        "Grundlagen": "Basics",
+        "Listen und Berichte": "Lists and reports",
+        "Module": "Modules",
+        "Daten und Sicherung": "Data and backup",
+        "Es gibt zwei Löschwege: „Alle Daten löschen“ setzt nur die Buchhaltung zurück, Mitglieder, Mandate und Beitragsgruppen bleiben. „Bestand vollständig leeren“ (direkt darüber unter „Sicherung und Umzug“) entfernt auch Mitglieder und Einstellungen und bereitet das Einspielen einer Sicherung vor.": "There are two ways to delete: “Delete all data” only resets the bookkeeping; members, mandates and contribution groups remain. “Clear data set completely” (directly above under “Backup and migration”) also removes members and settings and prepares for restoring a backup."
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

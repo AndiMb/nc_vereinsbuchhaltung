@@ -38,8 +38,8 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   with the amount in figures and words and the annex listing every single
   payment. The payment date counts. The PDF is stored as the duplicate with a
   sequential number (*ZB-2026-0001*); a wrong receipt is voided with a reason.
-  Members download their receipts under *My contribution*. Set it up under
-  *Fees & SEPA → Donation receipts* (exemption notice or assessment under
+  Members download their receipts under *My contribution*. Set it up in the
+  *Donation receipts* settings section (exemption notice or assessment under
   § 60a AO, tax office, purposes, signature). The app only confirms fees once
   it is confirmed that they are deductible (no sports, culture, leisure or
   local heritage purposes); with a notice that is too old (§ 63 (5) AO) it
@@ -59,6 +59,23 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 - The file name of the treasurer's report PDF now transliterates umlauts
   (ä → ae, ö → oe, ü → ue, ß → ss), so it saves without special characters on
   every system.
+- **Settings page reordered:** the sections now follow the task instead of
+  the order they were built in – *Basics* (club, permissions, receipts,
+  automatic bank statement import, fiscal year), *Lists and reports*
+  (display, status), *Modules* (fees & SEPA with the mandate legal text and
+  the welcome email directly below, donation receipts as a section of their
+  own, invoices, expenses, cost centres) and *Data and backup* (data import,
+  backup and migration, reset). A table of contents with jump links sits at
+  the top, and a question mark next to each section heading opens the
+  matching handbook chapter. "Delete all data" now has its own *Reset*
+  section directly below "Clear data set completely", with a note on how the
+  two ways of deleting differ. "Bank data" is now called "Automatically import
+  bank statements", "Data" is now "Data import". All existing jump addresses
+  (`#settings-section_…`) keep working.
+- **Handbook:** chapter 2 explains where the settings are (Personal or
+  Administration) and in which order; the outdated paths via the "gear icon"
+  and the never-existing "Basic settings" card are replaced by the real
+  section and card names.
 
 ## [0.54.0] – 2026-11-17
 
