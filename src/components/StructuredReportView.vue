@@ -12,6 +12,13 @@
 					:title="t('Druckfertiger Gliederungsbericht (öffnet in neuem Tab, dort drucken oder als PDF speichern)')"><NcIconSvgWrapper :path="mdiPrinter" :size="16" inline /> {{ t('Drucken / PDF') }}</a>
 				<a
 					v-if="selected && view === 'table'"
+					:href="pdfUrl"
+					download=""
+					class="vbh-export-btn"
+					data-testid="structured-report-pdf"
+					:title="t('Gliederungsbericht als PDF-Datei herunterladen (mit Seitenzahlen)')"><NcIconSvgWrapper :path="mdiFilePdfBox" :size="16" inline /> {{ t('PDF') }}</a>
+				<a
+					v-if="selected && view === 'table'"
 					:href="csvUrl"
 					download
 					class="vbh-export-btn"
@@ -185,7 +192,7 @@
 </template>
 
 <script>
-import { mdiDelete, mdiDownload, mdiFileRestore, mdiFileTreeOutline, mdiPlus, mdiPrinter } from '@mdi/js'
+import { mdiDelete, mdiDownload, mdiFilePdfBox, mdiFileRestore, mdiFileTreeOutline, mdiPlus, mdiPrinter } from '@mdi/js'
 import { showError, showSuccess, showWarning } from '@nextcloud/dialogs'
 import { toRefs } from 'vue'
 import NcActionButton from '@nextcloud/vue/components/NcActionButton'
@@ -242,6 +249,7 @@ export default {
 		return {
 			mdiDelete,
 			mdiDownload,
+			mdiFilePdfBox,
 			mdiFileRestore,
 			mdiFileTreeOutline,
 			mdiPlus,
@@ -292,6 +300,7 @@ export default {
 			return api.gliederungsberichtUrl(this.templateId, this.selectedPeriodId)
 		},
 
+		pdfUrl() { return api.gliederungsberichtPdfUrl(this.templateId, this.selectedPeriodId) },
 		csvUrl() { return api.gliederungsberichtCsvUrl(this.templateId, this.selectedPeriodId) },
 	},
 

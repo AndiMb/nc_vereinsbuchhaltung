@@ -414,6 +414,7 @@ export default {
 	exportFinanzplanUrl: (period, depth = 'plan', compare = 0, basis = 'actual') => generateUrl(base + '/export/finanzplan') + `?depth=${encodeURIComponent(depth)}&compare=${compare}&basis=${basis}` + (period ? `&period=${period}` : ''),
 	exportMultiyearUrl: () => generateUrl(base + '/export/multiyear'),
 	gliederungsberichtUrl: (template, period) => generateUrl(base + '/export/gliederungsbericht') + `?template=${encodeURIComponent(template)}` + (period ? `&period=${period}` : ''),
+	gliederungsberichtPdfUrl: (template, period) => generateUrl(base + '/export/gliederungsbericht/pdf') + `?template=${encodeURIComponent(template)}` + (period ? `&period=${period}` : ''),
 	gliederungsberichtCsvUrl: (template, period) => generateUrl(base + '/export/gliederungsbericht-csv') + `?template=${encodeURIComponent(template)}` + (period ? `&period=${period}` : ''),
 	// Visuelle Ansicht (Plan gegen Ist): Stand `YYYY-MM`/`current` (leer = Vorgabe), Basis `year`/`time`.
 	gliederungsberichtVisuellUrl: (template, period, asOf, basis = 'year') => generateUrl(base + '/export/gliederungsbericht-visuell') + `?template=${encodeURIComponent(template)}` + (period ? `&period=${period}` : '') + (asOf ? `&asOf=${encodeURIComponent(asOf)}` : '') + `&basis=${encodeURIComponent(basis)}`,

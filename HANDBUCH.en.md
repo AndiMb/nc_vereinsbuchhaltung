@@ -1588,6 +1588,12 @@ appears at the end under "Accounts not covered" and a notice names it. An
 account counted in several sections is marked. The grand total always
 covers all income and expenses and matches the financial plan.
 
+**PDF** (table view only) downloads the report as a finished PDF file – with
+page numbers, a table header repeated on every page and automatically in
+landscape format from five value columns on. The file is named
+*Gliederungsbericht-<template>-<period>.pdf* (umlauts are transliterated). The
+visual view (chapter 7.5) remains a print page only.
+
 **Print / PDF** opens the report as a print-ready page (landscape from five
 columns on), **CSV** delivers the same lines with a "level" column for
 outlining in a spreadsheet.

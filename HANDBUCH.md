@@ -1619,6 +1619,12 @@ es am Ende unter „Nicht erfasste Konten", und ein Hinweis nennt es. Zählt ein
 Konto in mehreren Abschnitten, wird es markiert. Die Gesamtzeile umfasst
 immer alle Einnahmen und Ausgaben und stimmt mit dem Finanzplan überein.
 
+**PDF** (nur in der Tabellenansicht) lädt den Bericht als fertige PDF-Datei
+herunter – mit Seitenzahlen, auf jeder Seite wiederholtem Tabellenkopf und ab
+fünf Wertspalten automatisch im Querformat. Der Dateiname lautet
+*Gliederungsbericht-<Vorlage>-<Zeitraum>.pdf* (Umlaute werden umschrieben). Die
+visuelle Ansicht (Kapitel 7.5) gibt es weiterhin nur als Druckseite.
+
 **Drucken / PDF** öffnet den Bericht als druckfertige Seite (ab fünf Spalten
 im Querformat), **CSV** liefert dieselben Zeilen mit einer Spalte „Ebene" zum
 Gliedern in der Tabellenkalkulation.

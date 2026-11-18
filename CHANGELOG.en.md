@@ -18,6 +18,11 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 ## [Unreleased]
 
 **New:**
+- **Structured report as PDF:** in the table view, the new **PDF** button next
+  to *Print / PDF* and *CSV* downloads the report as a finished PDF file –
+  with page numbers, a repeated table header and landscape format from five
+  value columns on. The visual view stays a print page. Described in chapter
+  7.4 of the manual.
 - **PayPal import** (#375): the German PayPal activity download (CSV) is
   recognized by its content in the normal statement import and in the watch
   folder and posted to the PayPal cash account. Fees become bank transactions
@@ -49,6 +54,11 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   their fees. If membership fees are not deductible (as for sports clubs), the
   app only confirms donations and the informal contribution confirmation stays.
   Donations in kind are not covered.
+
+**Changed:**
+- The file name of the treasurer's report PDF now transliterates umlauts
+  (ä → ae, ö → oe, ü → ue, ß → ss), so it saves without special characters on
+  every system.
 
 ## [0.54.0] – 2026-11-17
 
