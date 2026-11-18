@@ -3223,6 +3223,7 @@ export default {
 				// identifiziert genau ein Bankkonto und darf nicht an zwei
 				// Konten haengen.
 				iban: '',
+				paypalEmail: '',
 				// Kostenstelle dagegen schon: ein Unterkonto gehoert in aller
 				// Regel zum selben Projekt wie sein Ueberkonto.
 				costCenterId: parent ? (parent.costCenterId || null) : null,
@@ -3247,6 +3248,7 @@ export default {
 				sphere: acc.sphere || '',
 				reserveKind: acc.reserveKind || '',
 				iban: acc.iban || '',
+				paypalEmail: acc.paypalEmail || '',
 				costCenterId: acc.costCenterId || null,
 				// Altbestand ohne gesetztes Feld gilt als aktiv.
 				active: acc.active !== false,
@@ -3282,6 +3284,8 @@ export default {
 						// Leerstring statt null: der Controller verwirft null-Werte,
 						// eine geleerte IBAN wuerde sonst nicht geloescht.
 						iban: f.iban || '',
+						// Wie bei der IBAN: Leerstring loescht die PayPal-Adresse.
+						paypalEmail: f.paypalEmail || '',
 						// 0 statt null aus demselben Grund: null hiesse
 						// "unveraendert", 0 loest die Zuordnung.
 						costCenterId: f.costCenterId || 0,
@@ -3294,11 +3298,11 @@ export default {
 					// mit (unten), sonst bleibt der Request wie vor der Funktion.
 					// eslint-disable-next-line no-unused-vars -- active und costCenterRequired werden bewusst nur herausdestrukturiert, um sie aus rest auszuschliessen
 					const { active, costCenterRequired, ...rest } = f
-					await api.createAccount({ ...rest, parentId: f.parentId || null, sphere: f.sphere || null, reserveKind: f.reserveKind || null, iban: f.iban || null, costCenterId: f.costCenterId || null, ...(this.costCentersEnabled ? { costCenterRequired: !!costCenterRequired } : {}) })
+					await api.createAccount({ ...rest, parentId: f.parentId || null, sphere: f.sphere || null, reserveKind: f.reserveKind || null, iban: f.iban || null, paypalEmail: f.paypalEmail || null, costCenterId: f.costCenterId || null, ...(this.costCentersEnabled ? { costCenterRequired: !!costCenterRequired } : {}) })
 				}
 				this.showAccount = false
 				this.accountEditId = null
-				this.newAccount = { number: '', name: '', type: 'income', category: '', isBank: false, countInTotal: true, parentId: null, sphere: '', reserveKind: '', iban: '', costCenterId: null }
+				this.newAccount = { number: '', name: '', type: 'income', category: '', isBank: false, countInTotal: true, parentId: null, sphere: '', reserveKind: '', iban: '', paypalEmail: '', costCenterId: null }
 				await Promise.all([this.loadAccounts(), this.loadBalances(), this.loadSphereReport()])
 				showSuccess(this.t('Konto gespeichert.'))
 			} catch (e) { showError(this.errMsg(e, this.t('Konto konnte nicht gespeichert werden'))) }
