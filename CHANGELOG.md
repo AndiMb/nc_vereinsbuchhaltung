@@ -63,27 +63,46 @@ verwenden, z. B. `**Neu:**`.
   (ä → ae, ö → oe, ü → ue, ß → ss), damit er auf jedem System ohne
   Sonderzeichen gespeichert wird.
 - **Beträge in Importen** liest jetzt ein gemeinsamer Leser mit festen Regeln
-  (Kontoauszug als CSV, CAMT.053, MT940, PayPal, XBUC, Mitglieder-CSV). Stehen
-  Punkt und Komma, ist das letzte der Dezimaltrenner; „1.234" ist in deutschen
-  Exporten 1.234,00 € (bisher je nach Weg auch 1,23 €), in CAMT.053 bleibt der
-  Punkt der Dezimaltrenner. Ein nachgestelltes Minus („12,50-") und das
-  typografische Minus zählen jetzt als negativ. Werte mit fremdem Text („ca.
-  12,50") gelten nicht mehr als Betrag.
+  (Kontoauszug als CSV, CAMT.053, MT940, PayPal, XBUC, Mitglieder-CSV). Was
+  sich dadurch ändert:
+  - „1.234" ist im Kontoauszug als CSV, in XBUC und in der Mitglieder-CSV
+    jetzt 1.234,00 € (bisher 1,23 €). Stehen Punkt und Komma, ist das letzte
+    der Dezimaltrenner.
+  - Ein nachgestelltes Minus („12,50-"), das typografische Minus und der
+    Halbgeviertstrich („–12,50") zählen jetzt als negativ; bisher wurde der
+    Betrag dort teils als positiv gelesen.
+  - Ganze Euro ohne Nachkommastellen („60," wie in MT940, „12,-") bleiben
+    lesbar.
+  - Werte mit fremdem Text („ca. 12,50", „12,50 S") gelten nicht mehr als
+    Betrag. Im Kontoauszug als CSV und in XBUC bricht der Import dann ab und
+    nennt die Zeile bzw. die Buchung; bisher wurde der Text still entfernt.
+    Eine leere Betragszelle (etwa eine Summenzeile) wird weiter übersprungen.
+  - CAMT.053 mit Komma als Dezimaltrenner („<Amt>12,50</Amt>"), das der
+    Standard nicht erlaubt, das manche Programme aber erzeugen, bricht jetzt
+    ab und nennt die Buchung, statt eingelesen zu werden.
+  - In MT940 und im SEPA-Verwendungszweck ist „12.50" jetzt 12,50 € (bisher
+    1.250,00 €); Banken schreiben dort aber ohnehin das Komma.
 
 **Sicherheit:**
 - **GiroCode einer Auslage:** Ein Zeilenumbruch im Kontoinhaber konnte im
   GiroCode eine fremde IBAN und einen höheren Betrag vortäuschen. Der
   Kontoinhaber darf keine Zeilenumbrüche oder Steuerzeichen mehr enthalten,
   und jeder GiroCode entfernt sie aus allen Freitextfeldern.
-- **Sicherung von einer anderen Nextcloud:** Bestätigte Verknüpfungen von
-  Mitgliedern mit Konten gelten nach dem Einspielen nicht mehr und werden neu
-  bestätigt; der Bericht nennt jedes vorhandene Konto und jede Gruppe, die
-  eine Rolle bekommen hat. Sicherungen tragen dafür ihre Herkunft; ältere
-  Sicherungen gelten als fremd.
+- **Sicherung von einer anderen Nextcloud:** Sicherungen merken sich jetzt,
+  auf welcher Nextcloud sie entstanden sind. Stammt eine Sicherung von einer
+  anderen Nextcloud – dazu zählt auch eine nach einem Ausfall neu
+  installierte –, gelten bestätigte Verknüpfungen von Mitgliedern mit Konten
+  nach dem Einspielen nicht mehr und werden neu bestätigt. Fehlt die Angabe
+  zur Herkunft, bleiben die Verknüpfungen, aber Prüfung und Bericht warnen
+  deutlich. In beiden Fällen nennt der Bericht jedes vorhandene Konto und jede
+  Gruppe, die eine Rolle bekommen hat. Eine Sicherung derselben Nextcloud
+  spielt sich unverändert ein (Handbuch 12.3).
 
 **Behoben:**
 - **CAMT.053 und MT940:** Eine Buchung mit fehlendem oder unlesbarem Betrag
   fiel still weg; der Import bricht jetzt ab und nennt die Buchung.
+- **Auslagen:** Der Kontoinhaber darf schon im Entwurf keine Zeilenumbrüche
+  oder Steuerzeichen enthalten.
 - **Zuordnung eines Bankumsatzes:** Ein Datenbankfehler beim Laden der alten
   Buchung konnte beim Aufheben die Buchung stehen lassen oder beim erneuten
   Zuordnen doppelt buchen; der Vorgang bricht jetzt vollständig ab.
