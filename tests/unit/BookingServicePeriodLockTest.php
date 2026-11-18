@@ -18,6 +18,7 @@ use OCA\Vereinsbuchhaltung\Service\BookingService;
 use OCA\Vereinsbuchhaltung\Service\EntryNumberService;
 use OCA\Vereinsbuchhaltung\Service\PeriodService;
 use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubCurrencyStub;
+use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\IL10N;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -53,6 +54,7 @@ class BookingServicePeriodLockTest extends TestCase {
 	private function service(): BookingService {
 		$runner = $this->createMock(TransactionRunner::class);
 		$runner->method('run')->willReturnCallback(static fn (callable $fn) => $fn());
+		$runner->method('runWithRetry')->willReturnCallback(static fn (callable $fn) => $fn());
 		return new BookingService(
 			$this->journals,
 			$this->lines,
@@ -109,6 +111,41 @@ class BookingServicePeriodLockTest extends TestCase {
 		$tx = $this->service()->unassign($this->transaction('2013-01-02', 9));
 
 		$this->assertNull($tx->getJournalId());
+		$this->assertSame('unassigned', $tx->getStatus());
+	}
+
+	/**
+	 * Review 2026-11-18 (Backend 2): ein Datenbankfehler beim Laden des alten
+	 * Buchungssatzes ist kein „gibt es nicht". Er muss die Transaktion
+	 * abbrechen – sonst stünde der Umsatz als offen da, während die Buchung
+	 * bleibt, oder eine erneute Zuordnung buchte den Betrag ein zweites Mal.
+	 */
+	public function testUnassignBrichtBeiDatenbankfehlerAb(): void {
+		$this->journals->method('find')->willThrowException(new \RuntimeException('Verbindung verloren'));
+		$this->txs->expects($this->never())->method('update');
+
+		$this->expectException(\RuntimeException::class);
+		$this->expectExceptionMessage('Verbindung verloren');
+		$this->service()->unassign($this->transaction('2013-01-02', 9));
+	}
+
+	public function testErneuteZuordnungBuchtBeiDatenbankfehlerNichtDoppelt(): void {
+		$this->journals->method('find')->willThrowException(new \RuntimeException('Verbindung verloren'));
+		$this->journals->expects($this->never())->method('insert');
+		$this->txs->expects($this->never())->method('update');
+
+		$this->expectException(\RuntimeException::class);
+		$this->service()->assign($this->transaction('2013-01-02', 9), 42);
+	}
+
+	/** Ist der alte Buchungssatz schon weg, gibt es nichts zu löschen – das bleibt still. */
+	public function testUnassignOhneVorhandenenBuchungssatzGehtDurch(): void {
+		$this->journals->method('find')->willThrowException(new DoesNotExistException('weg'));
+		$this->journals->expects($this->never())->method('delete');
+		$this->txs->expects($this->once())->method('update')->willReturnArgument(0);
+
+		$tx = $this->service()->unassign($this->transaction('2013-01-02', 9));
+
 		$this->assertSame('unassigned', $tx->getStatus());
 	}
 }
