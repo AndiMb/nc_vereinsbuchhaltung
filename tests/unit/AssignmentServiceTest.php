@@ -12,12 +12,14 @@ use OCA\Vereinsbuchhaltung\Db\ContributionGroup;
 use OCA\Vereinsbuchhaltung\Db\ContributionGroupMapper;
 use OCA\Vereinsbuchhaltung\Db\OpenItem;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
+use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
 use OCA\Vereinsbuchhaltung\Service\AssignmentService;
 use OCA\Vereinsbuchhaltung\Service\ContributionYearService;
 use OCA\Vereinsbuchhaltung\Service\DueDateScheduleService;
 use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubClockStub;
 use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubCurrencyStub;
 use OCP\AppFramework\Utility\ITimeFactory;
+use OCP\IDBConnection;
 use OCP\IL10N;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -36,6 +38,8 @@ class AssignmentServiceTest extends TestCase {
 	private AssignmentEventMapper&MockObject $eventMapper;
 	private ContributionGroupMapper&MockObject $groupMapper;
 	private OpenItemMapper&MockObject $openItemMapper;
+	private IDBConnection&MockObject $db;
+	private TransactionRunner $runner;
 	/** @var array<int, list<OpenItem>> assignmentId => Perioden, siehe findByAssignment()-Stub */
 	private array $openItemsByAssignment = [];
 
@@ -44,6 +48,8 @@ class AssignmentServiceTest extends TestCase {
 		$this->eventMapper = $this->createMock(AssignmentEventMapper::class);
 		$this->groupMapper = $this->createMock(ContributionGroupMapper::class);
 		$this->openItemMapper = $this->createMock(OpenItemMapper::class);
+		$this->db = $this->createMock(IDBConnection::class);
+		$this->runner = new TransactionRunner($this->db);
 		// willReturnCallback statt willReturn([]), damit einzelne Tests per
 		// $this->openItemsByAssignment[$id] eigene Perioden hinterlegen können -
 		// ein zweites method('findByAssignment') im Test würde sonst nie
@@ -92,7 +98,7 @@ class AssignmentServiceTest extends TestCase {
 		);
 		$contributionYear = new ContributionYearService($config, ClubClockStub::system());
 		$dueDateSchedule = new DueDateScheduleService($config, $contributionYear, $l10n);
-		return new AssignmentService($this->mapper, $this->eventMapper, $this->groupMapper, $this->openItemMapper, $contributionYear, $dueDateSchedule, $time, $l10n, ClubCurrencyStub::of($this, $this->currencyCode));
+		return new AssignmentService($this->mapper, $this->eventMapper, $this->groupMapper, $this->openItemMapper, $contributionYear, $dueDateSchedule, $time, $l10n, ClubCurrencyStub::of($this, $this->currencyCode), $this->runner);
 	}
 
 	public function testCreateLegtDieZuweisungAnUndLogtEinEreignis(): void {
@@ -778,5 +784,78 @@ class AssignmentServiceTest extends TestCase {
 
 		$this->assertSame(7000, $assignment->getAnnualAmountCents());
 		$this->assertSame(583, $assignment->getMonthlyAmountCents());
+	}
+
+	// ---- Zuweisung und Ereignis gemeinsam (Review 2026-11-18, Backend 1) ----
+
+	/**
+	 * Das Ereignis ist die Historie der Beitragsänderungen. Scheitert einer der
+	 * beiden Schreibvorgänge, darf der andere nicht stehen bleiben: eine
+	 * geänderte Zuweisung ohne Ereignis oder ein Ereignis ohne Änderung.
+	 */
+	private function expectRollback(): void {
+		$this->db->expects($this->once())->method('beginTransaction');
+		$this->db->expects($this->once())->method('rollBack');
+		$this->db->expects($this->never())->method('commit');
+		$this->expectException(\RuntimeException::class);
+	}
+
+	private function failingEventInsert(): void {
+		$this->eventMapper->method('insert')->willThrowException(new \RuntimeException('Ereignis nicht gespeichert'));
+	}
+
+	public function testCreateRolltZurueckWennDasEreignisScheitert(): void {
+		$this->groupMapper->method('find')->willReturn($this->group());
+		$this->mapper->method('findByMemberAndGroup')->willReturn([]);
+		$this->mapper->method('insert')->willReturnCallback($this->stubInsertAssignsId(101));
+		$this->failingEventInsert();
+		$this->expectRollback();
+
+		$this->service()->create(7, 1, 12, 800, Assignment::PAYMENT_METHOD_TRANSFER, '2026-06-15', null, null, null, AssignmentEvent::ACTOR_STAFF, 'kassenwart');
+	}
+
+	public function testUpdateRolltDasEreignisZurueckWennDasSpeichernScheitert(): void {
+		$this->mapper->method('find')->willReturn($this->assignmentInGroup1());
+		$this->mapper->method('update')->willThrowException(new \RuntimeException('Zuweisung nicht gespeichert'));
+		$this->groupMapper->method('find')->willReturn($this->group());
+		$this->expectRollback();
+
+		$this->service()->update(5, null, null, null, AssignmentEvent::ACTOR_STAFF, 'buchhalter', null, Assignment::PAYMENT_METHOD_TRANSFER);
+	}
+
+	public function testSetMinAmountOverrideRolltZurueckWennDasSpeichernScheitert(): void {
+		$this->mapper->method('find')->willReturn($this->assignmentInGroup1());
+		$this->mapper->method('update')->willThrowException(new \RuntimeException('Zuweisung nicht gespeichert'));
+		$this->expectRollback();
+
+		$this->service()->setMinAmountOverride(5, 1200, 'Förderer', AssignmentEvent::ACTOR_STAFF, 'buchhalter');
+	}
+
+	public function testEndRolltZurueckWennDasSpeichernScheitert(): void {
+		$this->mapper->method('find')->willReturn($this->assignmentInGroup1());
+		$this->mapper->method('update')->willThrowException(new \RuntimeException('Zuweisung nicht gespeichert'));
+		$this->expectRollback();
+
+		$this->service()->end(5, '2026-06-30', AssignmentEvent::ACTOR_STAFF, 'buchhalter');
+	}
+
+	public function testOnMemberLeftRolltAlleZuweisungenZurueckWennEinEreignisScheitert(): void {
+		$first = $this->assignmentInGroup1();
+		$second = $this->assignmentInGroup1();
+		$second->setId(6);
+		$this->mapper->method('findOpenAsOf')->willReturn([$first, $second]);
+		$this->mapper->method('update')->willReturnArgument(0);
+		$this->failingEventInsert();
+		$this->expectRollback();
+
+		$this->service()->onMemberLeft(7, '2026-06-01');
+	}
+
+	public function testRaiseToMinimumRolltZurueckWennDasEreignisScheitert(): void {
+		$this->mapper->method('update')->willReturnArgument(0);
+		$this->failingEventInsert();
+		$this->expectRollback();
+
+		$this->service()->raiseToMinimum($this->assignmentInGroup1(), 1200, 'kassenwart');
 	}
 }
