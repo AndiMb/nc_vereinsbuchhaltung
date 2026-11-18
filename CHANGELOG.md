@@ -29,11 +29,21 @@ verwenden, z. B. `**Neu:**`.
   abgelegt, eine fehlerhafte Bestätigung wird mit Grund storniert. Mitglieder
   laden ihre Bestätigungen unter *Mein Beitrag* herunter. Eingerichtet wird es
   unter *Beiträge & SEPA → Zuwendungsbestätigungen* (Freistellungsbescheid oder
-  Feststellung nach § 60a AO, Finanzamt, Zwecke, Unterschrift). Die App stellt
-  nichts aus, solange die Bestätigung fehlt, dass Mitgliedsbeiträge abziehbar
-  sind (keine Sport-, Kultur-, Freizeit- oder Heimatpflegezwecke), oder wenn der
-  Bescheid zu alt ist (§ 63 Abs. 5 AO). Solange die Funktion an ist, entfällt
-  die informelle Beitragsbestätigung.
+  Feststellung nach § 60a AO, Finanzamt, Zwecke, Unterschrift). Beiträge
+  bestätigt die App nur, wenn bestätigt ist, dass sie abziehbar sind (keine
+  Sport-, Kultur-, Freizeit- oder Heimatpflegezwecke); bei zu altem Bescheid
+  (§ 63 Abs. 5 AO) stellt sie nichts aus. Dann entfällt die informelle
+  Beitragsbestätigung.
+- **Zuwendungsbestätigung über Geldspenden** (#10, Teil B): Unter *Buchungen →
+  Spenden* stehen alle Buchungen auf den in den Einstellungen gewählten
+  **Spendenkonten**; je Spende wird der Spender zugeordnet – ein Mitglied oder
+  ein **externer Spender** (Empfänger aus den Rechnungen, etwa ein Sponsor) –,
+  auf Wunsch mit **Verzicht auf Erstattung von Aufwendungen**. Eine Spende lässt
+  sich sofort **einzeln bestätigen** (BMF-Muster für Einzelbestätigungen); nach
+  Jahresende erhält jeder Spender eine **Sammelbestätigung**, bei Mitgliedern
+  zusammen mit den Beiträgen. Sind Mitgliedsbeiträge nicht abziehbar (etwa bei
+  Sportvereinen), bestätigt die App nur Spenden, und die informelle
+  Beitragsbestätigung bleibt. Sachspenden sind nicht enthalten.
 
 ## [0.54.0] – 2026-11-17
 

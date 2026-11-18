@@ -4,7 +4,9 @@
 			{{ t('Zuwendungsbestätigung') }}
 		</h3>
 		<p class="vbh-hint">
-			{{ t('Amtliche Sammelbestätigung über die in einem Kalenderjahr gezahlten Mitgliedsbeiträge (§ 10b EStG). Das PDF wird als Doppel abgelegt.') }}
+			{{ state.feesIncluded
+				? t('Amtliche Sammelbestätigung über die in einem Kalenderjahr gezahlten Mitgliedsbeiträge und Spenden (§ 10b EStG). Das PDF wird als Doppel abgelegt.')
+				: t('Amtliche Sammelbestätigung über die in einem Kalenderjahr zugeordneten Spenden (§ 10b EStG); Mitgliedsbeiträge sind bei diesem Verein nicht abziehbar. Das PDF wird als Doppel abgelegt.') }}
 		</p>
 		<ul v-if="state.problems.length" class="vbh-hint vbh-hint--warning vbh-donation-problems">
 			<li v-for="(p, i) in state.problems" :key="i">
@@ -18,7 +20,7 @@
 					<tr>
 						<th>{{ t('Jahr') }}</th>
 						<th class="num">
-							{{ t('Gezahlte Beiträge') }}
+							{{ t('Zuwendungen') }}
 						</th>
 						<th />
 					</tr>
@@ -42,72 +44,10 @@
 			</table>
 		</div>
 		<p v-else-if="!state.receipts.length" class="vbh-hint">
-			{{ t('Noch keine abgeschlossenen Kalenderjahre mit gezahlten Beiträgen.') }}
+			{{ t('Noch keine abgeschlossenen Kalenderjahre mit Zuwendungen.') }}
 		</p>
 
-		<div v-if="state.receipts.length" class="vbh-tablecard">
-			<table class="vbh-table">
-				<thead>
-					<tr>
-						<th>{{ t('Nummer') }}</th>
-						<th>{{ t('Jahr') }}</th>
-						<th class="num">
-							{{ t('Betrag') }}
-						</th>
-						<th>{{ t('Status') }}</th>
-						<th />
-					</tr>
-				</thead>
-				<tbody>
-					<tr v-for="r in state.receipts" :key="r.id" :class="{ 'vbh-muted': r.voidedAt }">
-						<td class="nowrap">
-							{{ r.number }}
-						</td>
-						<td>{{ r.year }}</td>
-						<td class="num">
-							{{ formatCents(r.amountCents) }}
-						</td>
-						<td>
-							<span v-if="r.voidedAt" :title="r.voidReason">{{ t('storniert am {date}', { date: formatDateTime(r.voidedAt) }) }}</span>
-							<span v-else-if="r.outdated" class="vbh-text-warning">{{ t('überholt – eine bestätigte Zahlung hat sich geändert') }}</span>
-							<span v-else>{{ t('ausgestellt am {date}', { date: formatDateTime(r.issuedAt) }) }}</span>
-							<span v-if="r.integrity && r.integrity !== 'ok'" class="vbh-text-warning">
-								· {{ r.integrity === 'missing' ? t('Datei fehlt') : t('Datei verändert') }}
-							</span>
-						</td>
-						<td class="vbh-actions">
-							<NcButton variant="tertiary" :href="pdfUrl(r.id)" :download="true">
-								<template #icon>
-									<NcIconSvgWrapper :path="mdiFilePdfBox" :size="20" />
-								</template>
-								{{ t('PDF') }}
-							</NcButton>
-							<NcButton
-								v-if="!r.voidedAt && voidingId !== r.id"
-								variant="tertiary"
-								@click="startVoid(r.id)">
-								{{ t('Stornieren …') }}
-							</NcButton>
-						</td>
-					</tr>
-				</tbody>
-			</table>
-		</div>
-
-		<div v-if="voidingId !== null" class="vbh-form">
-			<label for="vbh-donation-void-reason">{{ t('Grund der Stornierung') }}</label>
-			<input
-				id="vbh-donation-void-reason"
-				v-model="voidReason"
-				type="text"
-				maxlength="500">
-			<NcButton variant="error" :disabled="busy || !voidReason.trim()" @click="confirmVoid">
-				{{ t('Stornieren') }}
-			</NcButton>
-			<NcButton variant="tertiary" @click="voidingId = null">
-				{{ t('Abbrechen') }}
-			</NcButton>
-		</div>
+		<DonationReceiptTable v-if="state.receipts.length" :receipts="state.receipts" @changed="load" />
 		<p v-if="error" class="vbh-hint vbh-hint--error" role="alert">
 			{{ error }}
 		</p>
@@ -115,36 +55,33 @@
 </template>
 
 <script>
-import { mdiFilePdfBox } from '@mdi/js'
 import { showSuccess } from '@nextcloud/dialogs'
 import NcButton from '@nextcloud/vue/components/NcButton'
-import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
+import DonationReceiptTable from './DonationReceiptTable.vue'
 import api from '../api.js'
-import { errMsg, formatDateTime, formatMoney } from '../lib/format.js'
+import { errMsg, formatMoney } from '../lib/format.js'
 
 /**
  * Zuwendungsbestätigungen eines Mitglieds in der Akte (Issue #10): ausstellbare
- * Kalenderjahre, ausgestellte Bestätigungen mit PDF und Stornieren. Meldet über
- * `enabled`, ob die Funktion eingeschaltet ist – dann blendet die Akte die
- * informelle Beitragsbestätigung aus.
+ * Kalenderjahre (Beiträge und zugeordnete Spenden), ausgestellte Bestätigungen
+ * mit PDF und Stornieren. Meldet über `replacesInformal`, ob die amtliche
+ * Bestätigung die Beiträge enthält – dann blendet die Akte die informelle
+ * Beitragsbestätigung aus.
  */
 export default {
 	name: 'DonationReceiptSection',
-	components: { NcButton, NcIconSvgWrapper },
+	components: { DonationReceiptTable, NcButton },
 	props: {
 		memberId: { type: Number, required: true },
 	},
 
-	emits: ['enabled'],
+	emits: ['replacesInformal'],
 
 	data() {
 		return {
-			mdiFilePdfBox,
 			state: null,
 			busy: false,
 			error: '',
-			voidingId: null,
-			voidReason: '',
 		}
 	},
 
@@ -164,25 +101,19 @@ export default {
 	},
 
 	methods: {
-		formatDateTime,
 		formatCents(cents) {
 			return formatMoney(cents / 100)
 		},
 
-		pdfUrl(id) {
-			return api.donationReceiptPdfUrl(id)
-		},
-
 		async load() {
 			this.error = ''
-			this.voidingId = null
 			try {
 				const { data } = await api.memberDonationReceipts(this.memberId)
 				this.state = data
 			} catch {
 				this.state = null
 			}
-			this.$emit('enabled', !!this.state?.enabled)
+			this.$emit('replacesInformal', !!(this.state?.enabled && this.state?.feesIncluded))
 		},
 
 		async issue(year) {
@@ -194,26 +125,6 @@ export default {
 				await this.load()
 			} catch (e) {
 				this.error = errMsg(e, this.t('Die Zuwendungsbestätigung konnte nicht ausgestellt werden.'))
-			} finally {
-				this.busy = false
-			}
-		},
-
-		startVoid(id) {
-			this.voidingId = id
-			this.voidReason = ''
-			this.error = ''
-		},
-
-		async confirmVoid() {
-			this.busy = true
-			this.error = ''
-			try {
-				await api.voidDonationReceipt(this.voidingId, this.voidReason)
-				showSuccess(this.t('Zuwendungsbestätigung storniert.'))
-				await this.load()
-			} catch (e) {
-				this.error = errMsg(e, this.t('Die Zuwendungsbestätigung konnte nicht storniert werden.'))
 			} finally {
 				this.busy = false
 			}
@@ -231,13 +142,5 @@ export default {
 .vbh-donation-receipts .vbh-actions {
 	text-align: end;
 	white-space: nowrap;
-}
-
-.vbh-muted {
-	opacity: .6;
-}
-
-.vbh-text-warning {
-	color: var(--color-warning-text);
 }
 </style>

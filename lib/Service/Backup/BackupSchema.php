@@ -84,6 +84,8 @@ final class BackupSchema {
 			'vbh_tasks' => $plain,
 			// Zuwendungsbestätigungen (Issue #10): das PDF wie bei Rechnungsdokumenten
 			'vbh_donation_receipts' => ['encrypted' => [], 'replace' => ['file_id' => self::APPDATA_FILE_ID]],
+			// Spender je Spendenbuchung (Issue #10, Teil B)
+			'vbh_donations' => $plain,
 			// Rechnungen
 			'vbh_number_ranges' => $plain,
 			'vbh_debtors' => $plain,

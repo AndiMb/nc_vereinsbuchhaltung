@@ -27,11 +27,20 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   sequential number (*ZB-2026-0001*); a wrong receipt is voided with a reason.
   Members download their receipts under *My contribution*. Set it up under
   *Fees & SEPA → Donation receipts* (exemption notice or assessment under
-  § 60a AO, tax office, purposes, signature). The app issues nothing until it
-  is confirmed that membership fees are deductible (no sports, culture,
-  leisure or local heritage purposes), or when the notice is too old
-  (§ 63 (5) AO). While the feature is on, the informal contribution
-  confirmation is not offered.
+  § 60a AO, tax office, purposes, signature). The app only confirms fees once
+  it is confirmed that they are deductible (no sports, culture, leisure or
+  local heritage purposes); with a notice that is too old (§ 63 (5) AO) it
+  issues nothing. The informal contribution confirmation is then not offered.
+- **Donation receipts for monetary donations** (#10, part B): *Bookings →
+  Donations* lists all bookings on the **donation accounts** chosen in the
+  settings; for each donation you assign the donor – a member or an **external
+  donor** (an invoice recipient, such as a sponsor) – optionally with a
+  **waiver of expense reimbursement**. A donation can be **confirmed
+  individually** right away (official single-receipt template); after the year
+  ends, each donor gets a **collective receipt**, for members together with
+  their fees. If membership fees are not deductible (as for sports clubs), the
+  app only confirms donations and the informal contribution confirmation stays.
+  Donations in kind are not covered.
 
 ## [0.54.0] – 2026-11-17
 

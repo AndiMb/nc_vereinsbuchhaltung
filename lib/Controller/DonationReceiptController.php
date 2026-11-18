@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Controller;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
+use OCA\Vereinsbuchhaltung\Db\Donation;
 use OCA\Vereinsbuchhaltung\Exception\UserFacingException;
 use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
 use OCA\Vereinsbuchhaltung\Service\DonationReceipt\DonationReceiptService;
 use OCA\Vereinsbuchhaltung\Service\DonationReceipt\DonationReceiptSettings;
+use OCA\Vereinsbuchhaltung\Service\DonationReceipt\DonationService;
 use OCA\Vereinsbuchhaltung\Service\ForeignHomeGuard;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
 use OCP\AppFramework\Controller;
@@ -37,6 +39,7 @@ class DonationReceiptController extends Controller {
 		private ForeignHomeGuard $foreignHomeGuard,
 		private IUserSession $userSession,
 		private IL10N $l10n,
+		private DonationService $donations,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -82,13 +85,59 @@ class DonationReceiptController extends Controller {
 
 	#[NoAdminRequired]
 	#[RequiresRole(PermissionService::ROLE_WRITE)]
-	public function issue(int $memberId, int $year): DataResponse {
+	public function issue(int $year, int $memberId = 0, int $debtorId = 0): DataResponse {
 		try {
-			$receipt = $this->service->issue($memberId, $year, $this->actor());
+			$receipt = $debtorId > 0
+				? $this->service->issueCollective(Donation::DONOR_DEBTOR, $debtorId, $year, $this->actor())
+				: $this->service->issue($memberId, $year, $this->actor());
 			return new DataResponse($receipt->jsonSerialize(), Http::STATUS_CREATED);
 		} catch (DoesNotExistException) {
 			return new DataResponse(['message' => $this->l10n->t('Mitglied nicht gefunden')], Http::STATUS_NOT_FOUND);
 		} catch (\InvalidArgumentException|UserFacingException $e) {
+			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
+		}
+	}
+
+	/** Bestätigung über eine einzelne Geldspende (Teil B). */
+	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_WRITE)]
+	public function issueSingle(int $journalId): DataResponse {
+		try {
+			return new DataResponse($this->service->issueSingle($journalId, $this->actor())->jsonSerialize(), Http::STATUS_CREATED);
+		} catch (DoesNotExistException) {
+			return new DataResponse(['message' => $this->l10n->t('Spender nicht gefunden')], Http::STATUS_NOT_FOUND);
+		} catch (\InvalidArgumentException|UserFacingException $e) {
+			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
+		}
+	}
+
+	/** Spendenbuchungen eines Jahres mit Spendern und Bestätigungen (Teil B). */
+	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_WRITE)]
+	public function donations(int $year = 0): DataResponse {
+		return new DataResponse($this->donations->overview($year));
+	}
+
+	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_WRITE)]
+	public function assignDonation(int $journalId, int $memberId = 0, int $debtorId = 0, bool $waiver = false): DataResponse {
+		try {
+			$this->donations->assign($journalId, $memberId, $debtorId, $waiver, $this->actor());
+			return new DataResponse(['ok' => true]);
+		} catch (DoesNotExistException) {
+			return new DataResponse(['message' => $this->l10n->t('Spender nicht gefunden')], Http::STATUS_NOT_FOUND);
+		} catch (\InvalidArgumentException $e) {
+			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
+		}
+	}
+
+	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_WRITE)]
+	public function unassignDonation(int $journalId): DataResponse {
+		try {
+			$this->donations->unassign($journalId, $this->actor());
+			return new DataResponse(['ok' => true]);
+		} catch (\InvalidArgumentException $e) {
 			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
 		}
 	}

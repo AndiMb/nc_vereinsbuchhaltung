@@ -321,7 +321,7 @@
 					v-if="show"
 					:key="member.id"
 					:memberId="member.id"
-					@enabled="donationReceiptsEnabled = $event" />
+					@replacesInformal="donationReceiptsEnabled = $event" />
 
 				<section v-if="!donationReceiptsEnabled" class="vbh-akte-section">
 					<h3 class="vbh-modal-subtitle">
@@ -608,7 +608,7 @@ export default {
 			assignmentPreview: null,
 			certificateYears: [],
 			certificateYear: null,
-			/** Zuwendungsbestätigungen eingeschaltet (meldet DonationReceiptSection). */
+			/** Amtliche Bestätigung enthält die Beiträge und ersetzt die informelle (meldet DonationReceiptSection). */
 			donationReceiptsEnabled: false,
 			anonymizationStatus: null,
 			anonymizing: false,

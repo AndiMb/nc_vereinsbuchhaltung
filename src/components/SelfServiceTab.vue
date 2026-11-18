@@ -238,7 +238,7 @@
 			<div v-if="donationReceipts.enabled" class="vbh-card">
 				<h4>{{ t('Meine Zuwendungsbestätigungen') }}</h4>
 				<p class="vbh-hint">
-					{{ t('Amtliche Bestätigung über die in einem Kalenderjahr gezahlten Mitgliedsbeiträge, zur Vorlage beim Finanzamt. Der Verein stellt sie nach Ablauf des Jahres aus.') }}
+					{{ t('Amtliche Bestätigungen über Beiträge und Spenden, zur Vorlage beim Finanzamt. Sammelbestätigungen stellt der Verein nach Ablauf des Jahres aus.') }}
 				</p>
 				<ul v-if="donationReceipts.receipts.length" class="vbh-self-receipts">
 					<li v-for="r in donationReceipts.receipts" :key="r.id">
@@ -252,7 +252,8 @@
 				</p>
 			</div>
 
-			<div v-else class="vbh-card">
+			<!-- Die amtliche Bestätigung ersetzt die informelle nur, wenn sie die Beiträge enthält (#10). -->
+			<div v-if="!donationReceipts.replacesInformal" class="vbh-card">
 				<h4>{{ t('Meine Beitragsbestätigung') }}</h4>
 				<p class="vbh-hint">
 					{{ t('Informelle Bestätigung der bezahlten Beiträge eines Beitragsjahres – kein amtlicher Spendennachweis nach § 10b EStG.') }}
@@ -422,7 +423,7 @@ export default {
 			certificateYears: [],
 			certificateYear: null,
 			/** Zuwendungsbestätigungen (Issue #10); eingeschaltet ersetzen sie die informelle Bestätigung. */
-			donationReceipts: { enabled: false, receipts: [] },
+			donationReceipts: { enabled: false, replacesInformal: false, receipts: [] },
 		}
 	},
 

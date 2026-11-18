@@ -21,6 +21,7 @@ export default createRouter({
 		{ path: '/bookings/open-items', name: 'bookings-open-items', component: RouteHost },
 		{ path: '/bookings/rules', name: 'bookings-rules', component: RouteHost },
 		{ path: '/bookings/reimbursements', name: 'bookings-reimbursements', component: RouteHost },
+		{ path: '/bookings/donations', name: 'bookings-donations', component: RouteHost },
 
 		{ path: '/invoices', name: 'invoices', component: RouteHost },
 		{ path: '/invoices/:invoiceId(\\d+)', name: 'invoices-detail', component: RouteHost },

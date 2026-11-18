@@ -438,6 +438,10 @@ return [
 		['name' => 'donationReceipt#updateSettings', 'url' => '/api/donation-receipts/settings', 'verb' => 'PUT'],
 		['name' => 'donationReceipt#member', 'url' => '/api/donation-receipts/member/{memberId}', 'verb' => 'GET'],
 		['name' => 'donationReceipt#issue', 'url' => '/api/donation-receipts', 'verb' => 'POST'],
+		['name' => 'donationReceipt#issueSingle', 'url' => '/api/donation-receipts/single', 'verb' => 'POST'],
+		['name' => 'donationReceipt#donations', 'url' => '/api/donations', 'verb' => 'GET'],
+		['name' => 'donationReceipt#assignDonation', 'url' => '/api/donations/{journalId}', 'verb' => 'PUT'],
+		['name' => 'donationReceipt#unassignDonation', 'url' => '/api/donations/{journalId}', 'verb' => 'DELETE'],
 		['name' => 'donationReceipt#void', 'url' => '/api/donation-receipts/{id}/void', 'verb' => 'POST'],
 		['name' => 'donationReceipt#pdf', 'url' => '/api/donation-receipts/{id}/pdf', 'verb' => 'GET'],
 

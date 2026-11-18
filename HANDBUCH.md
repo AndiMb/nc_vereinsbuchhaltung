@@ -1976,6 +1976,7 @@ Ebenso bleiben die **Entwürfe von Auslagen**, die Mitglieder noch nicht
 eingereicht haben (4.6) – sie gehören den Mitgliedern, nicht der Buchhaltung.
 Auch ausgestellte **Zuwendungsbestätigungen** (13.12) bleiben samt PDF: Ihr
 Doppel ist zehn Jahre aufzubewahren, und es enthält die bestätigten Zahlungen selbst.
+Die **Spenderzuordnungen** der Buchungen dagegen werden mit den Buchungen gelöscht.
 Gleiches gilt für den Reset-Modus beim xbuc-Import. Beides ist
 unwiderruflich – also nur nach Rücksprache und nie aus Versehen. Wer wirklich
 alles entfernen will, auch Mitglieder, Mandate und Einstellungen – etwa um
@@ -3062,12 +3063,15 @@ Betrag, am Ende die **Summe**. Dabei gilt:
 Fehlt dem Mitglied die Adresse, weist ein Hinweis auf dem Bildschirm („Adresse
 jetzt hinterlegen") darauf hin; im Ausdruck erscheint er nicht.
 
-#### Zuwendungsbestätigung über Mitgliedsbeiträge
+#### Zuwendungsbestätigungen über Beiträge und Spenden
 
-Ist der Verein steuerbegünstigt, kann die App statt der informellen Bestätigung
-die **amtliche Sammelbestätigung über Geldzuwendungen/Mitgliedsbeiträge** nach
-§ 10b EStG ausstellen – nach dem verbindlichen Muster des BMF (Schreiben vom
-07.11.2013), je Mitglied und **Kalenderjahr** eine. *Keine Steuerberatung:*
+Ist der Verein steuerbegünstigt, kann die App die **amtliche Bestätigung über
+Geldzuwendungen/Mitgliedsbeiträge** nach § 10b EStG ausstellen – nach den
+verbindlichen Mustern des BMF (Schreiben vom 07.11.2013): als
+**Sammelbestätigung** je Zuwendendem und **Kalenderjahr** oder als
+**Einzelbestätigung** über eine einzelne Geldspende. Bestätigt werden
+Mitgliedsbeiträge und **Geldspenden** von Mitgliedern wie von externen Spendern
+(etwa Sponsoren); Sachspenden nicht. *Keine Steuerberatung:*
 Klären Sie im Zweifel mit Finanzamt oder Steuerberatung, ob Ihre
 Mitgliedsbeiträge abziehbar sind und wer unterschreibt.
 
@@ -3086,7 +3090,12 @@ Verwalter). Dort stehen:
 - die Bestätigung, dass der Verein **keine Zwecke fördert, bei denen
   Mitgliedsbeiträge nicht abziehbar sind** – Sport, kulturelle Betätigungen der
   Freizeitgestaltung, Heimatpflege, Freizeitzwecke (§ 10b Abs. 1 Satz 8 EStG).
-  Ohne diesen Haken stellt die App nichts aus;
+  Mit diesem Haken enthalten die Sammelbestätigungen der Mitglieder auch ihre
+  Beiträge. Ohne ihn bestätigt die App nur Spenden und druckt den Satz des
+  Musters, dass es sich nicht um einen nicht abziehbaren Mitgliedsbeitrag
+  handelt;
+- die **Spendenkonten**: Ertragskonten, auf denen Geldspenden gebucht werden
+  (etwa *4100 Spenden*);
 - der **Ablageordner** (Standard *Vereinsbuchhaltung/Zuwendungsbestätigungen*,
   je Jahr ein Unterordner; ohne Belegablage-Nutzer app-intern).
 
@@ -3095,15 +3104,35 @@ Fehlt etwas, nennt die Akte es, statt auszustellen. Ist der Bescheid älter als
 **5 Jahre** (Freistellung) bzw. **3 Jahre** (§ 60a AO), stellt die App ebenfalls
 nichts aus – solche Bestätigungen erkennt das Finanzamt nicht an (§ 63 Abs. 5 AO).
 
+**Spender zuordnen.** Unter *Buchungen* → **„Spenden"** (nur sichtbar, solange
+die Funktion an ist; Buchhalter und Verwalter) stehen je Jahr alle Buchungen mit
+Haben auf einem Spendenkonto – maßgeblich ist der Anteil auf den Spendenkonten,
+bei einer Splitbuchung also nur dieser. Je Spende wird der **Spender** gewählt:
+ein Mitglied oder ein Empfänger aus den Rechnungen als **externer Spender**
+(**„Neuer externer Spender"** legt ihn mit Anschrift an). Das Häkchen
+**„Verzicht auf Erstattung von Aufwendungen"** kennzeichnet eine
+Aufwandsspende. Betrag und Datum kommen immer aus der Buchung; ändert sie sich,
+gilt der neue Stand. Ist eine Spende bereits bestätigt, lässt sich ihr Spender
+erst nach dem Stornieren der Bestätigung ändern; einen Empfänger, der als
+Spender eingetragen ist, kann man nicht löschen.
+
+**Einzelbestätigung.** **„Einzeln bestätigen"** stellt für eine Spende sofort die
+Bestätigung nach dem Einzelmuster aus (frühestens ab dem Tag der Gutschrift) –
+ohne Anlage, mit Betrag, Tag der Zuwendung und der Angabe zum Verzicht. Diese
+Spende fehlt dann in der Sammelbestätigung des Jahres.
+
 **Ausstellen.** In der Akte (13.2) zeigt der Abschnitt
-**„Zuwendungsbestätigung"** jedes abgeschlossene Kalenderjahr mit gezahlten
-Beiträgen und deren Summe; **„Ausstellen"** erzeugt die Bestätigung mit einer
+**„Zuwendungsbestätigung"** jedes abgeschlossene Kalenderjahr mit Zuwendungen
+(Beiträge und zugeordnete Spenden) und deren Summe; unter *Buchungen → Spenden*
+stehen für das gewählte abgeschlossene Jahr alle Spender, auch die externen.
+**„Ausstellen"** erzeugt die Sammelbestätigung mit einer
 fortlaufenden Nummer (*ZB-2026-0001*) und legt das PDF als **Doppel** ab
 (§ 50 Abs. 7 EStDV, zehn Jahre aufzubewahren). Das laufende Jahr lässt sich erst
 nach seinem Ende bestätigen. Seite 1 ist die Bestätigung mit dem Betrag in
 Ziffern und Buchstaben, danach folgt die **Anlage** mit jeder einzelnen Zahlung
-(Datum, Art, Verzicht auf Erstattung von Aufwendungen: nein, Betrag) und der
-Gesamtsumme. Das Mitglied lädt sie unter *Mein Beitrag* herunter (13.11);
+(Datum, Verzicht auf Erstattung von Aufwendungen, Art – *Geldzuwendung* oder
+*Mitgliedsbeitrag* –, Betrag) und der Gesamtsumme. Je Zuwendendem und Jahr gibt
+es eine gültige Sammelbestätigung; einzeln bestätigte Spenden fehlen darin. Das Mitglied lädt sie unter *Mein Beitrag* herunter (13.11);
 Mitglieder ohne Nextcloud-Konto bekommen das PDF aus der Akte.
 
 **Welche Zahlungen.** Anders als bei der informellen Bestätigung zählt der
@@ -3115,12 +3144,15 @@ wurde. Gebühren, stornierte und erlassene Forderungen zählen nie.
 falsch – oder hat sich eine bestätigte Zahlung später geändert (etwa durch eine
 Rücklastschrift; die Akte markiert sie dann als *überholt*) –, wird sie mit
 Grund **storniert**; das PDF bleibt als Doppel erhalten. Danach lässt sich für
-das Jahr eine neue ausstellen. Ausstellen und Stornieren stehen im
+das Jahr (bzw. die Spende) eine neue ausstellen. Als *überholt* gilt eine
+Bestätigung auch, wenn sich Betrag oder Verzicht einer bestätigten Spende
+geändert haben. Ausstellen und Stornieren stehen im
 Änderungsprotokoll.
 
 **Die informelle Beitragsbestätigung entfällt**, solange Zuwendungsbestätigungen
-eingeschaltet sind: Das amtliche Muster bestätigt, dass über die Beiträge keine
-weiteren Bestätigungen oder Beitragsquittungen ausgestellt werden.
+eingeschaltet sind und die Beiträge enthalten: Das amtliche Muster bestätigt,
+dass über die Beiträge keine weiteren Bestätigungen oder Beitragsquittungen
+ausgestellt werden. Sind Mitgliedsbeiträge nicht abziehbar, bleibt sie.
 
 ### 13.13 Datenschutz: Datenübersicht und Anonymisierung
 

@@ -14,6 +14,10 @@ use OCP\AppFramework\Db\Entity;
  *
  * @method int getMemberId()
  * @method void setMemberId(int $memberId)
+ * @method int getDebtorId()
+ * @method void setDebtorId(int $debtorId)
+ * @method string getReceiptType()
+ * @method void setReceiptType(string $receiptType)
  * @method int getReceiptYear()
  * @method void setReceiptYear(int $receiptYear)
  * @method string getNumber()
@@ -45,7 +49,17 @@ use OCP\AppFramework\Db\Entity;
  */
 class DonationReceipt extends Entity implements \JsonSerializable {
 
+	/** Sammelbestätigung über die Zuwendungen eines Kalenderjahres. */
+	public const TYPE_COLLECTIVE = 'sammel';
+	/** Bestätigung über eine einzelne Geldzuwendung. */
+	public const TYPE_SINGLE = 'einzel';
+
+	// Mitglied bzw. Debitor (externer Spender, Teil B) als Zuwendender, sonst 0.
+	// Bewusst ohne Vorgabe 0: Entity::setter() übergeht einen unveränderten Wert,
+	// setMemberId(0) käme sonst nicht ins INSERT (member_id hat keinen Default).
 	protected $memberId;
+	protected $debtorId;
+	protected $receiptType = self::TYPE_COLLECTIVE;
 	protected $receiptYear;
 	protected $number;
 	protected $amountCents;
@@ -63,6 +77,7 @@ class DonationReceipt extends Entity implements \JsonSerializable {
 
 	public function __construct() {
 		$this->addType('memberId', 'integer');
+		$this->addType('debtorId', 'integer');
 		$this->addType('receiptYear', 'integer');
 		$this->addType('amountCents', 'integer');
 		$this->addType('fileId', 'integer');
@@ -72,10 +87,25 @@ class DonationReceipt extends Entity implements \JsonSerializable {
 		return $this->voidedAt !== null;
 	}
 
+	public function isSingle(): bool {
+		return $this->receiptType === self::TYPE_SINGLE;
+	}
+
+	/** @return array{0: string, 1: int} Art und Id des Zuwendenden ({@see Donation::DONOR_MEMBER}) */
+	public function donor(): array {
+		return $this->memberId > 0 ? [Donation::DONOR_MEMBER, (int)$this->memberId] : [Donation::DONOR_DEBTOR, (int)$this->debtorId];
+	}
+
+	/** Schlüssel einer bestätigten Position: `o:<OpenItem-Id>` (Beitrag) oder `j:<Buchungs-Id>` (Spende). */
+	public static function itemKey(array $item): string {
+		return isset($item['journalId']) ? 'j:' . (int)$item['journalId'] : 'o:' . (int)($item['openItemId'] ?? 0);
+	}
+
 	/**
-	 * Die bestätigten Zahlungen.
+	 * Die bestätigten Zahlungen: Beiträge mit `openItemId`, Spenden (Teil B)
+	 * mit `journalId`, `type` (`beitrag`/`spende`) und `waiver`.
 	 *
-	 * @return list<array{openItemId: int, date: string, amountCents: int, description: string}>
+	 * @return list<array<string, mixed>>
 	 */
 	public function itemList(): array {
 		$items = json_decode((string)$this->items, true);
@@ -86,6 +116,8 @@ class DonationReceipt extends Entity implements \JsonSerializable {
 		return [
 			'id' => $this->id,
 			'memberId' => $this->memberId,
+			'debtorId' => $this->debtorId,
+			'type' => $this->receiptType,
 			'year' => $this->receiptYear,
 			'number' => $this->number,
 			'amountCents' => $this->amountCents,

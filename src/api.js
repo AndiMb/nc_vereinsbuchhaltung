@@ -435,6 +435,11 @@ export default {
 	saveDonationReceiptSettings: (data) => axios.put(url('/donation-receipts/settings'), data),
 	memberDonationReceipts: (memberId) => axios.get(url(`/donation-receipts/member/${memberId}`)),
 	issueDonationReceipt: (memberId, year) => axios.post(url('/donation-receipts'), { memberId, year }),
+	issueDebtorDonationReceipt: (debtorId, year) => axios.post(url('/donation-receipts'), { debtorId, year }),
+	issueSingleDonationReceipt: (journalId) => axios.post(url('/donation-receipts/single'), { journalId }),
+	donations: (year) => axios.get(url('/donations'), { params: { year } }),
+	assignDonation: (journalId, { memberId = 0, debtorId = 0, waiver = false }) => axios.put(url(`/donations/${journalId}`), { memberId, debtorId, waiver }),
+	unassignDonation: (journalId) => axios.delete(url(`/donations/${journalId}`)),
 	voidDonationReceipt: (id, reason) => axios.post(url(`/donation-receipts/${id}/void`), { reason }),
 	donationReceiptPdfUrl: (id) => generateUrl(base + `/donation-receipts/${id}/pdf`),
 

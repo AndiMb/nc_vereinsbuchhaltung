@@ -15,6 +15,7 @@ use OCA\Vereinsbuchhaltung\Db\CostCenterBudgetMapper;
 use OCA\Vereinsbuchhaltung\Db\CostCenterMapper;
 use OCA\Vereinsbuchhaltung\Db\DebitBatchMapper;
 use OCA\Vereinsbuchhaltung\Db\DebitItemMapper;
+use OCA\Vereinsbuchhaltung\Db\DonationMapper;
 use OCA\Vereinsbuchhaltung\Db\DunningNoticeMapper;
 use OCA\Vereinsbuchhaltung\Db\IncomingPaymentRejectionMapper;
 use OCA\Vereinsbuchhaltung\Db\InvoiceBatchMapper;
@@ -113,6 +114,8 @@ class ResetServiceTest extends TestCase {
 		'vbh_reimbursements',
 		'vbh_reimbursement_events',
 		'vbh_reimbursement_files',
+		// Spender je Spendenbuchung (#10): hängen an den gelöschten Buchungen.
+		'vbh_donations',
 	];
 
 	/**
@@ -345,6 +348,7 @@ class ResetServiceTest extends TestCase {
 			new BookingCostCenterMapper($this->db),
 			new ContributionGroupMapper($this->db),
 			new CostCenterBudgetMapper($this->db),
+			new DonationMapper($this->db),
 		);
 	}
 

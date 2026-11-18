@@ -33,6 +33,25 @@ class DonationReceiptMapper extends QBMapper {
 		return array_values($this->findEntities($qb));
 	}
 
+	/** @return list<DonationReceipt> neueste zuerst */
+	public function findByDebtor(int $debtorId): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('*')->from($this->getTableName())
+			->where($qb->expr()->eq('debtor_id', $qb->createNamedParameter($debtorId, IQueryBuilder::PARAM_INT)))
+			->orderBy('receipt_year', 'DESC')
+			->addOrderBy('id', 'DESC');
+		return array_values($this->findEntities($qb));
+	}
+
+	/** @return list<DonationReceipt> eines Jahres, neueste zuerst */
+	public function findByYear(int $year): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('*')->from($this->getTableName())
+			->where($qb->expr()->eq('receipt_year', $qb->createNamedParameter($year, IQueryBuilder::PARAM_INT)))
+			->orderBy('id', 'DESC');
+		return array_values($this->findEntities($qb));
+	}
+
 	/** @return list<DonationReceipt> */
 	public function findAll(): array {
 		$qb = $this->db->getQueryBuilder();

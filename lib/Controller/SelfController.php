@@ -422,9 +422,14 @@ class SelfController extends Controller {
 		$memberId = $this->requireMemberId();
 		$service = $this->donationReceipts;
 		if ($service === null || !$service->isEnabled()) {
-			return new DataResponse(['enabled' => false, 'receipts' => []]);
+			return new DataResponse(['enabled' => false, 'replacesInformal' => false, 'receipts' => []]);
 		}
-		return new DataResponse(['enabled' => true, 'receipts' => $service->forMember($memberId)]);
+		return new DataResponse([
+			'enabled' => true,
+			// Ohne abziehbare Beiträge bleibt die informelle Beitragsbestätigung (#10, Teil B).
+			'replacesInformal' => $service->replacesInformal(),
+			'receipts' => $service->forMember($memberId),
+		]);
 	}
 
 	/**
