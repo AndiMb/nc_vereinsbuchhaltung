@@ -202,7 +202,7 @@ final class PayPalCsvParser implements StatementParser {
 
 			$code = $entry['code'];
 			$counterparty = $entry['name'] !== '' ? $entry['name'] : ($names[$entry['related']] ?? '');
-			$text = $entry['subject'] !== '' ? $entry['subject'] : ($entry['note'] !== '' ? $entry['note'] : $entry['item']);
+			$text = implode(' / ', array_filter([$entry['subject'], $entry['note'], $entry['item']], static fn (string $s) => $s !== ''));
 			$purpose = ($text !== '' ? $text . ' · ' : '') . 'PayPal ' . $code;
 
 			$row = $this->normalizer->build([

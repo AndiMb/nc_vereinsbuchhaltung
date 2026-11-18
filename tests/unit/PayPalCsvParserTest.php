@@ -57,6 +57,16 @@ class PayPalCsvParserTest extends TestCase {
 		$this->assertSame('Erika Muster', $rows[0]['counterparty']);
 	}
 
+	public function testVerwendungszweckVerbindetFelder(): void {
+		$lines = preg_split('/\r\n/', trim($this->content));
+		$cols = str_getcsv($lines[1], ',', '"', '\\');
+		$cols[37] = 'Sommerfest';
+		$cols[15] = 'Eintrittskarte';
+		$line = '"' . implode('","', $cols) . '"';
+		$rows = $this->parser->parse($lines[0] . "\r\n" . $line . "\r\n");
+		$this->assertSame('Sommerfest / Eintrittskarte · PayPal 1AB23456CD7890123', $rows[0]['purpose']);
+	}
+
 	public function testNameAusZugehoerigerTransaktion(): void {
 		$rows = $this->parser->parse($this->content);
 		$this->assertSame('Druckerei Beispiel', $rows[3]['counterparty']);
