@@ -1,18 +1,38 @@
 <template>
 	<div class="vbh-card">
-		<h4 class="vbh-donation-title">{{ t('Zuwendungsbestätigungen') }}</h4>
+		<h4 class="vbh-donation-title">
+			{{ t('Zuwendungsbestätigungen') }}
+		</h4>
 		<p v-if="loadFailed" class="vbh-hint vbh-hint--error" role="alert">
 			{{ t('Die Einstellungen der Zuwendungsbestätigungen konnten nicht geladen werden.') }}
 		</p>
 		<NcLoadingIcon v-else-if="!loaded" :size="24" :name="t('Wird geladen…')" />
 		<template v-else>
-			<SettingsToggle v-model="form.donation_receipts_enabled" :label="t('Zuwendungsbestätigungen über Mitgliedsbeiträge ausstellen')">
-				{{ t('Die Akte eines Mitglieds bietet dann je abgeschlossenem Kalenderjahr die amtliche Sammelbestätigung nach § 10b EStG an; Mitglieder laden sie unter „Mein Beitrag“ herunter. Die informelle Beitragsbestätigung entfällt, solange der Schalter an ist. Keine Steuerberatung – im Zweifel mit Finanzamt oder Steuerberatung klären.') }}
+			<SettingsToggle v-model="form.donation_receipts_enabled" :label="t('Zuwendungsbestätigungen ausstellen')">
+				{{ t('Mitgliedsbeiträge (in der Akte eines Mitglieds) und Geldspenden (unter Buchungen → Spenden) lassen sich dann amtlich nach § 10b EStG bestätigen; Mitglieder laden ihre Bestätigungen unter „Mein Beitrag“ herunter. Keine Steuerberatung – im Zweifel mit Finanzamt oder Steuerberatung klären.') }}
 			</SettingsToggle>
 
 			<NcCheckboxRadioSwitch v-model="form.donation_fees_deductible" class="vbh-donation-confirm">
 				{{ t('Der Verein fördert keine Zwecke, bei denen Mitgliedsbeiträge nicht abziehbar sind (Sport, kulturelle Betätigungen der Freizeitgestaltung, Heimatpflege, Freizeitzwecke – § 10b Abs. 1 Satz 8 EStG).') }}
 			</NcCheckboxRadioSwitch>
+			<p class="vbh-hint">
+				{{ t('Mit diesem Häkchen enthalten die Sammelbestätigungen auch die Beiträge und ersetzen die informelle Beitragsbestätigung. Ohne es bestätigt die App nur Spenden, mit dem Satz für Vereine, deren Mitgliedsbeiträge nicht abziehbar sind.') }}
+			</p>
+
+			<div class="vbh-form">
+				<label class="vbh-grow">{{ t('Spendenkonten') }}
+					<NcSelect
+						v-model="selectedAccounts"
+						:options="accountOptions"
+						:multiple="true"
+						:keepOpen="true"
+						label="label"
+						:placeholder="t('– Konten wählen –')" />
+				</label>
+			</div>
+			<p class="vbh-hint">
+				{{ t('Buchungen mit Haben auf diesen Konten erscheinen unter Buchungen → Spenden; dort wird der Spender zugeordnet.') }}
+			</p>
 
 			<fieldset class="vbh-donation-basis">
 				<legend>{{ t('Grundlage der Steuerbegünstigung') }}</legend>
@@ -106,19 +126,21 @@ import { showSuccess } from '@nextcloud/dialogs'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcCheckboxRadioSwitch from '@nextcloud/vue/components/NcCheckboxRadioSwitch'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
+import NcSelect from '@nextcloud/vue/components/NcSelect'
 import FolderPathField from './FolderPathField.vue'
 import SettingsToggle from './SettingsToggle.vue'
 import api from '../api.js'
+import { accountLabel } from '../lib/accountLabel.js'
 import { errMsg } from '../lib/format.js'
 
 /**
  * Einstellungen der Zuwendungsbestätigungen (Issue #10): Grundlage der
- * Steuerbegünstigung, Zwecke, Unterschrift, Ablage. Eigener Endpunkt, nur für
- * Verwalter speicherbar.
+ * Steuerbegünstigung, Zwecke, Unterschrift, Ablage und die Spendenkonten
+ * (Teil B). Eigener Endpunkt, nur für Verwalter speicherbar.
  */
 export default {
 	name: 'SettingsDonationReceipts',
-	components: { FolderPathField, NcButton, NcCheckboxRadioSwitch, NcLoadingIcon, SettingsToggle },
+	components: { FolderPathField, NcButton, NcCheckboxRadioSwitch, NcLoadingIcon, NcSelect, SettingsToggle },
 	props: {
 		storageUser: { type: String, default: '' },
 	},
@@ -130,13 +152,26 @@ export default {
 			saving: false,
 			error: '',
 			form: {},
+			accounts: [],
+			selectedAccounts: [],
 		}
+	},
+
+	computed: {
+		/** Ertragskonten, dazu bereits gewählte (auch wenn inzwischen anders eingeordnet). */
+		accountOptions() {
+			const chosen = new Set(this.form.donation_accounts || [])
+			return this.accounts
+				.filter((a) => !a.isBank && ((a.type === 'income' && a.active) || chosen.has(a.id)))
+				.map((a) => ({ id: a.id, label: accountLabel(a) }))
+		},
 	},
 
 	async mounted() {
 		try {
-			const { data } = await api.donationReceiptSettings()
-			this.form = { ...data }
+			const [{ data }, accounts] = await Promise.all([api.donationReceiptSettings(), api.listAccounts()])
+			this.accounts = accounts.data
+			this.applyForm(data)
 			this.loaded = true
 		} catch {
 			this.loadFailed = true
@@ -144,14 +179,20 @@ export default {
 	},
 
 	methods: {
+		applyForm(data) {
+			this.form = { ...data }
+			const ids = new Set(data.donation_accounts || [])
+			this.selectedAccounts = this.accountOptions.filter((o) => ids.has(o.id))
+		},
+
 		async save() {
 			this.saving = true
 			this.error = ''
-			const payload = { ...this.form }
+			const payload = { ...this.form, donation_accounts: this.selectedAccounts.map((o) => o.id) }
 			delete payload.club_tax_number
 			try {
 				const { data } = await api.saveDonationReceiptSettings(payload)
-				this.form = { ...data }
+				this.applyForm(data)
 				showSuccess(this.t('Einstellungen gespeichert.'))
 			} catch (e) {
 				this.error = errMsg(e, this.t('Die Einstellungen konnten nicht gespeichert werden.'))

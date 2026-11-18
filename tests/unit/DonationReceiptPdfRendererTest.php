@@ -72,6 +72,43 @@ class DonationReceiptPdfRendererTest extends TestCase {
 		$this->assertSame(2, preg_match_all('/\/Type\s*\/Page\b/', $bytes), 'Seite 1 Bestätigung, Seite 2 Anlage');
 	}
 
+	public function testEinzelbestaetigungUeberEineSpendePasstAufEineSeite(): void {
+		$bytes = $this->renderer()->render([
+			'type' => 'einzel',
+			'number' => 'ZB-2026-0002',
+			'issueDate' => '2026-11-18',
+			'periodFrom' => '2026-11-03',
+			'periodTo' => '2026-11-03',
+			'amountCents' => 25000,
+			'donorLines' => ['Autohaus Beispiel GmbH', 'Industriestraße 3', '12345 Musterstadt'],
+			'donorLabel' => 'Autohaus Beispiel GmbH',
+			'items' => [['journalId' => 9, 'type' => 'spende', 'date' => '2026-11-03', 'amountCents' => 25000, 'description' => 'Spende', 'waiver' => false]],
+		], ['feesDeductible' => false] + $this->club(), false);
+		KeepPdf::to('zuwendungsbestaetigung-einzeln.pdf', $bytes);
+
+		$this->assertStringStartsWith('%PDF-', $bytes);
+		$this->assertSame(1, preg_match_all('/\/Type\s*\/Page\b/', $bytes), 'Einzelbestätigung ohne Anlage');
+	}
+
+	public function testSammelbestaetigungMitBeitraegenUndSpenden(): void {
+		$bytes = $this->renderer()->render([
+			'type' => 'sammel',
+			'number' => 'ZB-2026-0003',
+			'issueDate' => '2026-01-15',
+			'periodFrom' => '2025-01-01',
+			'periodTo' => '2025-12-31',
+			'amountCents' => 16000,
+			'donorLines' => ['Erika Mustermann', 'Hauptstraße 5', '12345 Musterstadt'],
+			'donorLabel' => 'Erika Mustermann (Mitgliedsnummer 42)',
+			'items' => [
+				['openItemId' => 1, 'type' => 'beitrag', 'date' => '2025-01-15', 'amountCents' => 6000, 'description' => 'Jahresbeitrag', 'waiver' => false],
+				['journalId' => 7, 'type' => 'spende', 'date' => '2025-06-01', 'amountCents' => 10000, 'description' => 'Spende', 'waiver' => true],
+			],
+		], $this->club(), false);
+		KeepPdf::to('zuwendungsbestaetigung-gemischt.pdf', $bytes);
+		$this->assertSame(2, preg_match_all('/\/Type\s*\/Page\b/', $bytes));
+	}
+
 	public function testSatzZurFreistellungImWortlautDesMusters(): void {
 		$sentence = $this->renderer()->basisSentence($this->club());
 		$this->assertSame(

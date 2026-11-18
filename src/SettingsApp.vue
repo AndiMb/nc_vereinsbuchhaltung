@@ -61,7 +61,8 @@
 					:storageSaving="storageSaving"
 					:saveSettings="saveSettings" />
 				<SettingsSepaModule :storageUser="storageUser" />
-				<SettingsDonationReceipts v-if="membershipEnabled" :storageUser="storageUser" />
+				<!-- Auch ohne Beitragsmodul: Spenden externer Spender (#10, Teil B). -->
+				<SettingsDonationReceipts :storageUser="storageUser" />
 			</NcSettingsSection>
 		</div>
 

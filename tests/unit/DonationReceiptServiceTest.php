@@ -4,9 +4,15 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Tests\Unit;
 
+use OCA\Vereinsbuchhaltung\Db\Debtor;
+use OCA\Vereinsbuchhaltung\Db\DebtorMapper;
+use OCA\Vereinsbuchhaltung\Db\Donation;
+use OCA\Vereinsbuchhaltung\Db\DonationMapper;
 use OCA\Vereinsbuchhaltung\Db\DonationReceipt;
 use OCA\Vereinsbuchhaltung\Db\DonationReceiptMapper;
 use OCA\Vereinsbuchhaltung\Db\Journal;
+use OCA\Vereinsbuchhaltung\Db\JournalLine;
+use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Db\Member;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
@@ -16,6 +22,7 @@ use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
 use OCA\Vereinsbuchhaltung\Exception\UserFacingException;
 use OCA\Vereinsbuchhaltung\Service\AuditService;
+use OCA\Vereinsbuchhaltung\Service\DonationReceipt\DonationLedger;
 use OCA\Vereinsbuchhaltung\Service\DonationReceipt\DonationReceiptPdfRenderer;
 use OCA\Vereinsbuchhaltung\Service\DonationReceipt\DonationReceiptService;
 use OCA\Vereinsbuchhaltung\Service\DonationReceipt\DonationReceiptSettings;
@@ -43,7 +50,19 @@ class DonationReceiptServiceTest extends TestCase {
 		DonationReceiptSettings::SETTING_NOTICE_DATE => '2024-03-01',
 		DonationReceiptSettings::SETTING_ASSESSMENT_PERIOD => '2022',
 		DonationReceiptSettings::SETTING_PURPOSES => 'der Bildung und Erziehung',
+		DonationReceiptSettings::SETTING_ACCOUNTS => '50',
 	];
+
+	/** Spendenkonto der Tests. */
+	private const DONATIONS = 50;
+
+	/** @var array<int, Donation> journalId => Spenderzuordnung */
+	private array $donations = [];
+	/** @var array<int, list<JournalLine>> journalId => Zeilen */
+	private array $lines = [];
+	private ?Debtor $debtor = null;
+	private ?bool $renderedFeesDeductible = null;
+	private ?string $renderedType = null;
 
 	/** @var list<OpenItem> */
 	private array $items = [];
@@ -65,7 +84,8 @@ class DonationReceiptServiceTest extends TestCase {
 		$journals->method('findByIds')->willReturnCallback(fn (string $user, array $ids): array => array_intersect_key($this->journals, array_flip($ids)));
 
 		$receipts = $this->createMock(DonationReceiptMapper::class);
-		$receipts->method('findByMember')->willReturnCallback(fn (): array => array_reverse($this->stored));
+		$receipts->method('findByMember')->willReturnCallback(fn (int $id): array => array_values(array_filter(array_reverse($this->stored), static fn (DonationReceipt $r): bool => $r->getMemberId() === $id)));
+		$receipts->method('findByDebtor')->willReturnCallback(fn (int $id): array => array_values(array_filter(array_reverse($this->stored), static fn (DonationReceipt $r): bool => $r->getDebtorId() === $id)));
 		$receipts->method('find')->willReturnCallback(fn (int $id): DonationReceipt => $this->stored[$id - 1]);
 		$receipts->method('update')->willReturnArgument(0);
 
@@ -80,7 +100,9 @@ class DonationReceiptServiceTest extends TestCase {
 		$storage->method('verify')->willReturn('ok');
 
 		$renderer = $this->createMock(DonationReceiptPdfRenderer::class);
-		$renderer->method('render')->willReturnCallback(function (array $receipt): string {
+		$renderer->method('render')->willReturnCallback(function (array $receipt, array $club): string {
+			$this->renderedFeesDeductible = $club['feesDeductible'];
+			$this->renderedType = $receipt['type'];
 			$this->renderedFor = $receipt['number'] . '|' . implode(',', array_column($receipt['items'], 'date')) . '|' . $receipt['amountCents'];
 			return '%PDF-test';
 		});
@@ -107,10 +129,22 @@ class DonationReceiptServiceTest extends TestCase {
 			'name' => 'Förderverein Musterschule e. V.', 'street' => 'Schulweg 1', 'postalCode' => '12345', 'city' => 'Musterstadt',
 		]);
 
+		$settings = new DonationReceiptSettings(AppConfigStub::create($this, $config), $invoiceSettings, $this->l10n());
+		$donations = $this->createMock(DonationMapper::class);
+		$donations->method('findByDonor')->willReturnCallback(fn (string $kind, int $id): array => array_values(array_filter(
+			$this->donations,
+			static fn (Donation $d): bool => $d->donor() === [$kind, $id],
+		)));
+		$donations->method('findByJournal')->willReturnCallback(fn (int $id): ?Donation => $this->donations[$id] ?? null);
+		$lines = $this->createMock(JournalLineMapper::class);
+		$lines->method('findByJournals')->willReturnCallback(fn (array $ids): array => array_intersect_key($this->lines, array_flip($ids)));
+		$debtors = $this->createMock(DebtorMapper::class);
+		$debtors->method('find')->willReturnCallback(fn (): Debtor => $this->debtor ?? throw new \OCP\AppFramework\Db\DoesNotExistException('debtor'));
+
 		return new DonationReceiptService(
 			$receipts,
 			$storage,
-			new DonationReceiptSettings(AppConfigStub::create($this, $config), $invoiceSettings, $this->l10n()),
+			$settings,
 			$renderer,
 			$members,
 			$openItems,
@@ -120,7 +154,45 @@ class DonationReceiptServiceTest extends TestCase {
 			$audit,
 			ClubClockStub::at($today),
 			$this->l10n(),
+			new DonationLedger($settings, $donations, $journals, $lines),
+			$donations,
+			$debtors,
 		);
+	}
+
+	/** Eine Spendenbuchung: Haben auf dem Spendenkonto, dazu eine fremde Zeile. */
+	private function donation(int $journalId, string $date, int $cents, string $kind = Donation::DONOR_MEMBER, int $donorId = 7, bool $waiver = false): void {
+		$this->journal($journalId, $date);
+		$this->lines[$journalId] = [$this->line($journalId, 1, $cents, 0), $this->line($journalId, self::DONATIONS, 0, $cents)];
+		$d = new Donation();
+		$d->setJournalId($journalId);
+		$d->setMemberId($kind === Donation::DONOR_MEMBER ? $donorId : 0);
+		$d->setDebtorId($kind === Donation::DONOR_DEBTOR ? $donorId : 0);
+		$d->setWaiver($waiver ? 1 : 0);
+		$this->donations[$journalId] = $d;
+	}
+
+	private function line(int $journalId, int $account, int $debit, int $credit): JournalLine {
+		$l = new JournalLine();
+		$l->setJournalId($journalId);
+		$l->setAccountId($account);
+		$l->setDebitCents($debit);
+		$l->setCreditCents($credit);
+		return $l;
+	}
+
+	private function sponsor(bool $address = true): Debtor {
+		$d = new Debtor();
+		$d->setId(3);
+		$d->setKind(Debtor::KIND_ORGANISATION);
+		$d->setName('Autohaus Beispiel GmbH');
+		$d->setCountry('DE');
+		if ($address) {
+			$d->setStreet('Industriestraße 3');
+			$d->setPostalCode('12345');
+			$d->setCity('Musterstadt');
+		}
+		return $d;
 	}
 
 	private function l10n(): IL10N&MockObject {
@@ -218,11 +290,106 @@ class DonationReceiptServiceTest extends TestCase {
 		$this->service()->issue(7, 2026, 'kassenwart');
 	}
 
-	public function testOhneBestaetigungDerAbziehbarkeitWirdNichtsAusgestellt(): void {
+	public function testOhneAbziehbareBeitraegeNurSpenden(): void {
 		$config = self::COMPLETE;
 		unset($config[DonationReceiptSettings::SETTING_FEES_DEDUCTIBLE]);
-		$this->expectExceptionMessage('§ 10b Abs. 1 Satz 8 EStG');
-		$this->service($config)->issue(7, 2025, 'kassenwart');
+		$this->journal(100, '2025-03-01');
+		$this->items = [$this->paid(1, 6000, 100)];
+		$service = $this->service($config);
+		try {
+			$service->issue(7, 2025, 'kassenwart');
+			$this->fail('Beiträge eines Sportvereins dürfen nicht bestätigt werden');
+		} catch (\InvalidArgumentException $e) {
+			$this->assertStringContainsString('keine Zuwendungen', $e->getMessage());
+		}
+
+		$this->donation(200, '2025-06-01', 10000);
+		$receipt = $service->issue(7, 2025, 'kassenwart');
+		$this->assertSame(10000, $receipt->getAmountCents());
+		$this->assertSame(['j:200'], array_map([DonationReceipt::class, 'itemKey'], $receipt->itemList()));
+		$this->assertFalse($this->renderedFeesDeductible, 'Satz für nicht abziehbare Beiträge gehört aufs PDF');
+	}
+
+	public function testSammelbestaetigungEnthaeltBeitraegeUndSpendenNurVomSpendenkonto(): void {
+		$this->journal(100, '2025-03-01');
+		$this->items = [$this->paid(1, 6000, 100)];
+		$this->donation(200, '2025-06-01', 10000, waiver: true);
+		// Eine Buchung mit nur 30 € auf dem Spendenkonto, 70 € auf einem anderen.
+		$this->donation(201, '2025-07-01', 3000);
+		$this->lines[201][] = $this->line(201, 1, 7000, 0);
+		$this->lines[201][] = $this->line(201, 60, 0, 7000);
+
+		$overview = $this->service()->overview(7);
+		$this->assertSame([['year' => 2025, 'amountCents' => 19000, 'count' => 3, 'receiptId' => null]], $overview['years']);
+
+		$receipt = $this->service()->issue(7, 2025, 'kassenwart');
+		$this->assertSame(19000, $receipt->getAmountCents());
+		$items = $receipt->itemList();
+		$this->assertSame(['beitrag', 'spende', 'spende'], array_column($items, 'type'));
+		$this->assertSame([false, true, false], array_column($items, 'waiver'));
+		$this->assertSame('sammel', $this->renderedType);
+	}
+
+	public function testEinzelbestaetigungSofortUndNichtNochEinmalInDerSammelbestaetigung(): void {
+		$this->donation(200, '2025-06-01', 10000);
+		$this->donation(201, '2025-08-01', 2500);
+		$service = $this->service();
+
+		$single = $service->issueSingle(200, 'kassenwart');
+		$this->assertSame(DonationReceipt::TYPE_SINGLE, $single->getReceiptType());
+		$this->assertSame(['2025-06-01', '2025-06-01'], [$single->getPeriodFrom(), $single->getPeriodTo()]);
+		$this->assertSame('einzel', $this->renderedType);
+
+		try {
+			$service->issueSingle(200, 'kassenwart');
+			$this->fail('Dieselbe Spende zweimal bestätigt');
+		} catch (\InvalidArgumentException $e) {
+			$this->assertStringContainsString($single->getNumber(), $e->getMessage());
+		}
+
+		$this->assertSame(2500, $service->overview(7)['years'][0]['amountCents']);
+		$collective = $service->issue(7, 2025, 'kassenwart');
+		$this->assertSame(['j:201'], array_map([DonationReceipt::class, 'itemKey'], $collective->itemList()));
+	}
+
+	public function testEinzelbestaetigungAuchImLaufendenJahrAberNichtVorDerGutschrift(): void {
+		$this->donation(200, '2026-11-03', 5000);
+		$this->donation(201, '2026-12-01', 5000);
+		$service = $this->service();
+		$this->assertSame(2026, $service->issueSingle(200, 'kassenwart')->getReceiptYear());
+		$this->expectExceptionMessage('Tag der Gutschrift');
+		$service->issueSingle(201, 'kassenwart');
+	}
+
+	public function testExternerSpenderBrauchtEineAnschrift(): void {
+		$this->donation(200, '2025-06-01', 10000, Donation::DONOR_DEBTOR, 3);
+		$this->debtor = $this->sponsor(false);
+		$service = $this->service();
+		try {
+			$service->issueCollective(Donation::DONOR_DEBTOR, 3, 2025, 'kassenwart');
+			$this->fail('Ohne Anschrift');
+		} catch (\InvalidArgumentException $e) {
+			$this->assertStringContainsString('Anschrift des Spenders', $e->getMessage());
+		}
+
+		$this->debtor = $this->sponsor();
+		$receipt = $service->issueCollective(Donation::DONOR_DEBTOR, 3, 2025, 'kassenwart');
+		$this->assertSame([0, 3], [$receipt->getMemberId(), $receipt->getDebtorId()]);
+		$this->assertStringContainsString('Autohaus Beispiel GmbH', $receipt->getFileName());
+		$this->assertSame(['Autohaus Beispiel GmbH', 'Industriestraße 3', '12345 Musterstadt'], DonationReceiptService::debtorLines($this->debtor));
+	}
+
+	public function testGeaenderteSpendenbuchungMachtDieBestaetigungUeberholt(): void {
+		$this->donation(200, '2025-06-01', 10000);
+		$service = $this->service();
+		$service->issueSingle(200, 'kassenwart');
+		$this->assertFalse($service->overview(7)['receipts'][0]['outdated']);
+
+		$this->lines[200][1]->setCreditCents(9000);
+		$this->assertTrue($service->overview(7)['receipts'][0]['outdated']);
+		$this->lines[200][1]->setCreditCents(10000);
+		$this->donations[200]->setWaiver(1);
+		$this->assertTrue($service->overview(7)['receipts'][0]['outdated']);
 	}
 
 	public function testAbgelaufenerFreistellungsbescheidSperrt(): void {

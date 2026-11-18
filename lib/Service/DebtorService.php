@@ -6,6 +6,9 @@ namespace OCA\Vereinsbuchhaltung\Service;
 
 use OCA\Vereinsbuchhaltung\Db\Debtor;
 use OCA\Vereinsbuchhaltung\Db\DebtorMapper;
+use OCA\Vereinsbuchhaltung\Db\Donation;
+use OCA\Vereinsbuchhaltung\Db\DonationMapper;
+use OCA\Vereinsbuchhaltung\Db\DonationReceiptMapper;
 use OCA\Vereinsbuchhaltung\Db\Invoice;
 use OCA\Vereinsbuchhaltung\Db\InvoiceMapper;
 use OCA\Vereinsbuchhaltung\Db\InvoicePlanMapper;
@@ -32,6 +35,8 @@ class DebtorService {
 		private InvoiceMapper $invoiceMapper,
 		private ?IL10N $l10n = null,
 		private ?InvoicePlanMapper $plans = null,
+		private ?DonationMapper $donations = null,
+		private ?DonationReceiptMapper $donationReceipts = null,
 	) {
 	}
 
@@ -113,6 +118,12 @@ class DebtorService {
 		}
 		if ($this->plans !== null && $this->plans->countByDebtor($id) > 0) {
 			throw new \InvalidArgumentException($this->msg('Der Empfänger wird noch in einem Plan für wiederkehrende Rechnungen verwendet.'));
+		}
+		// Spender mit Spenden oder Zuwendungsbestätigungen (#10): das Doppel
+		// verweist auf ihn, die Zuordnung der Spenden ginge verloren.
+		if (($this->donations !== null && $this->donations->findByDonor(Donation::DONOR_DEBTOR, $id) !== [])
+			|| ($this->donationReceipts !== null && $this->donationReceipts->findByDebtor($id) !== [])) {
+			throw new \InvalidArgumentException($this->msg('Der Empfänger ist als Spender eingetragen und lässt sich deshalb nicht löschen.'));
 		}
 		$this->mapper->delete($debtor);
 	}

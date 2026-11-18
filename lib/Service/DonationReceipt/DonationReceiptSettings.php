@@ -28,8 +28,15 @@ class DonationReceiptSettings {
 	public const SETTING_NOTICE_DATE = 'donation_notice_date';
 	public const SETTING_ASSESSMENT_PERIOD = 'donation_assessment_period';
 	public const SETTING_PURPOSES = 'donation_purposes';
-	/** Bestätigung: Der Verein fördert keine Zwecke nach § 10b Abs. 1 Satz 8 EStG. */
+	/**
+	 * Bestätigung: Der Verein fördert keine Zwecke nach § 10b Abs. 1 Satz 8 EStG,
+	 * Mitgliedsbeiträge sind also abziehbar. Ohne sie bestätigt die App nur
+	 * Geldspenden und druckt den Satz für Vereine, deren Beiträge nicht
+	 * abziehbar sind.
+	 */
 	public const SETTING_FEES_DEDUCTIBLE = 'donation_fees_deductible';
+	/** Konten, auf denen Geldspenden gebucht werden (Ids, kommagetrennt; Teil B). */
+	public const SETTING_ACCOUNTS = 'donation_accounts';
 	public const SETTING_SIGNATORY = 'donation_signatory';
 	public const SETTING_PLACE = 'donation_place';
 	/** Maschinelles Verfahren ohne Unterschrift, beim Finanzamt angezeigt (R 10b.1 Abs. 4 EStR). */
@@ -88,6 +95,18 @@ class DonationReceiptSettings {
 		return $this->get(self::SETTING_FEES_DEDUCTIBLE) === '1';
 	}
 
+	/** @return list<int> Ids der Spendenkonten */
+	public function donationAccountIds(): array {
+		$ids = [];
+		foreach (explode(',', $this->get(self::SETTING_ACCOUNTS)) as $part) {
+			$id = (int)trim($part);
+			if ($id > 0) {
+				$ids[$id] = $id;
+			}
+		}
+		return array_values($ids);
+	}
+
 	public function machineSigned(): bool {
 		return $this->get(self::SETTING_MACHINE) === '1';
 	}
@@ -95,7 +114,7 @@ class DonationReceiptSettings {
 	/**
 	 * Alles, was die Bestätigung braucht, ein Wert je Feld.
 	 *
-	 * @return array{basis: string, taxOffice: string, taxNumber: string, noticeDate: string, assessmentPeriod: string, purposes: string, signatory: string, place: string, machineSigned: bool, issuer: array<string, string>}
+	 * @return array{basis: string, taxOffice: string, taxNumber: string, noticeDate: string, assessmentPeriod: string, purposes: string, signatory: string, place: string, machineSigned: bool, feesDeductible: bool, issuer: array<string, string>}
 	 */
 	public function data(): array {
 		return [
@@ -108,11 +127,12 @@ class DonationReceiptSettings {
 			'signatory' => trim($this->get(self::SETTING_SIGNATORY)),
 			'place' => trim($this->get(self::SETTING_PLACE)),
 			'machineSigned' => $this->machineSigned(),
+			'feesDeductible' => $this->feesDeductible(),
 			'issuer' => $this->invoiceSettings->issuer(),
 		];
 	}
 
-	/** @return array<string, string|bool> für die Einstellungsseite */
+	/** @return array<string, string|bool|list<int>> für die Einstellungsseite */
 	public function all(): array {
 		return [
 			self::SETTING_ENABLED => $this->isEnabled(),
@@ -127,6 +147,7 @@ class DonationReceiptSettings {
 			self::SETTING_PLACE => $this->get(self::SETTING_PLACE),
 			self::SETTING_MACHINE => $this->machineSigned(),
 			self::SETTING_FOLDER => $this->folder(),
+			self::SETTING_ACCOUNTS => $this->donationAccountIds(),
 			// Nur lesbar: Rückfall der Steuernummer, Hinweis in der Oberfläche.
 			'club_tax_number' => trim($this->get('club_tax_number')),
 		];
@@ -151,6 +172,18 @@ class DonationReceiptSettings {
 				throw new \InvalidArgumentException($this->l10n->t('Unbekannte Grundlage der Steuerbegünstigung.'));
 			}
 			$write[self::SETTING_BASIS] = $basis;
+		}
+		if (array_key_exists(self::SETTING_ACCOUNTS, $values)) {
+			$raw = $values[self::SETTING_ACCOUNTS];
+			$list = is_array($raw) ? $raw : explode(',', (string)$raw);
+			$ids = [];
+			foreach ($list as $id) {
+				if (!is_numeric($id) || (int)$id <= 0) {
+					throw new \InvalidArgumentException($this->l10n->t('Ungültiges Spendenkonto.'));
+				}
+				$ids[(int)$id] = (int)$id;
+			}
+			$write[self::SETTING_ACCOUNTS] = implode(',', array_values($ids));
 		}
 		if (array_key_exists(self::SETTING_NOTICE_DATE, $values)) {
 			$date = trim((string)$values[self::SETTING_NOTICE_DATE]);
@@ -187,9 +220,6 @@ class DonationReceiptSettings {
 		$problems = [];
 		if ($this->currency !== null && !$this->currency->isEuro()) {
 			$problems[] = $this->l10n->t('Zuwendungsbestätigungen gibt es nur für Vereine, die in Euro buchen.');
-		}
-		if (!$this->feesDeductible()) {
-			$problems[] = $this->l10n->t('Die Bestätigung fehlt, dass der Verein keine Zwecke fördert, bei denen Mitgliedsbeiträge nicht abziehbar sind (Sport, Kultur, Freizeit, Heimatpflege – § 10b Abs. 1 Satz 8 EStG).');
 		}
 		$d = $this->data();
 		$issuer = $d['issuer'];

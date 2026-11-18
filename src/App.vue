@@ -177,6 +177,7 @@
 					:removeTxPendingFile="removeTxPendingFile"
 					:openFolderPickerForBookings="openFolderPickerForBookings"
 					:reimbursementsReloadKey="reimbursementsReloadKey"
+					:donationsVisible="donationsActive"
 					:filterAccountId="bookingFilterAccountId"
 					:filterFrom="bookingFilterFrom"
 					:filterTo="bookingFilterTo"
@@ -566,6 +567,7 @@ const ROUTE_META = {
 	'bookings-open-items': { tab: 'bookings', bookingView: 'openitems' },
 	'bookings-rules': { tab: 'bookings', bookingView: 'rules' },
 	'bookings-reimbursements': { tab: 'bookings', bookingView: 'reimbursements' },
+	'bookings-donations': { tab: 'bookings', bookingView: 'donations' },
 	invoices: { tab: 'invoices' },
 	'invoices-detail': { tab: 'invoices', hasInvoiceId: true },
 	accounts: { tab: 'accounts' },
@@ -745,6 +747,8 @@ export default {
 			// Auslage, deren Auszahlung gerade im Buchungsdialog gebucht wird (siehe saveBooking)
 			reimbursementPayment: null,
 			reimbursementsReloadKey: 0,
+			/** Zuwendungsbestätigungen eingeschaltet: Unterreiter „Spenden“ (#10, Teil B). */
+			donationsActive: false,
 			reportView: 'summary',
 			// Gliederungsbericht laedt selbst; hochzaehlen = neu laden (fremde Aenderungen)
 			structuredRefreshKey: 0,
@@ -1204,7 +1208,7 @@ export default {
 			if (this.showBooking) { query.booking = this.bookingForm.id || 'new' }
 
 			if (this.activeTab === 'bookings') {
-				const names = { unassigned: 'bookings-unassigned', openitems: 'bookings-open-items', rules: 'bookings-rules', reimbursements: 'bookings-reimbursements' }
+				const names = { unassigned: 'bookings-unassigned', openitems: 'bookings-open-items', rules: 'bookings-rules', reimbursements: 'bookings-reimbursements', donations: 'bookings-donations' }
 				if (this.bookingView === 'journal' && this.bookingFilterAccountId !== null) {
 					query.account = this.bookingFilterAccountId
 					if (this.bookingFilterSub) { query.sub = 1 }
@@ -1831,6 +1835,7 @@ export default {
 				this.demoActive = !!data.demo_active
 				this.membershipActive = !!data.membership_active
 				this.invoicesActive = !!data.invoice_module_active
+				this.donationsActive = !!data.donation_receipts_enabled
 				// Kostenstellen an der Buchungszeile (Issue #7): standardmaessig aus;
 				// ausgeschaltet gibt es den Bericht nicht, ein Deep-Link dorthin
 				// faellt auf die Auswertung zurueck.

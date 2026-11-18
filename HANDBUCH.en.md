@@ -1928,7 +1928,8 @@ assignments (chapter 13) are not part of the posting records and stay untouched
 drafts** that members have not submitted yet (4.6) stay – they belong to the
 members, not to the bookkeeping. Issued **donation receipts** (13.12) stay as
 well, including their PDF: the duplicate must be kept for ten years and contains
-the confirmed payments itself. The same applies to
+the confirmed payments itself. The **donor assignments** of the bookings, however,
+are deleted along with the bookings. The same applies to
 reset mode during the xbuc import. Both are irreversible – so only after
 checking with others, and never by accident. If you really want to remove
 everything, including members, mandates and settings – for instance to restore
@@ -3023,14 +3024,16 @@ If the member's address is missing, a notice on the screen ("Adresse jetzt
 hinterlegen" – "enter the address now") points it out; it doesn't appear in the
 printout.
 
-#### Donation receipt for membership fees
+#### Donation receipts for fees and donations
 
-If the club is tax-privileged, the app can issue the **official collective
-receipt for monetary donations/membership fees** (*Sammelbestätigung über
-Geldzuwendungen/Mitgliedsbeiträge*) under § 10b EStG instead of the informal
-confirmation – following the binding template of the German Federal Ministry of
-Finance (letter of 07.11.2013), one per member and **calendar year**. The
-receipt itself is always in German. *Not tax advice:* if in doubt, ask your tax
+If the club is tax-privileged, the app can issue the **official receipt for
+monetary donations/membership fees** (*Bestätigung über
+Geldzuwendungen/Mitgliedsbeiträge*) under § 10b EStG – following the binding
+templates of the German Federal Ministry of Finance (letter of 07.11.2013): as a
+**collective receipt** per donor and **calendar year**, or as a **single
+receipt** for one monetary donation. It confirms membership fees and **monetary
+donations** from members as well as from external donors (such as sponsors);
+donations in kind are not covered. The receipt itself is always in German. *Not tax advice:* if in doubt, ask your tax
 office or tax advisor whether your membership fees are deductible and who signs.
 
 **Turning it on.** Gear icon → *Fees & SEPA* → **"Donation receipts"**
@@ -3046,8 +3049,12 @@ office or tax advisor whether your membership fees are deductible and who signs.
   tax office (R 10b.1 (4) EStR);
 - the confirmation that the club does **not promote purposes for which
   membership fees are not deductible** – sports, cultural leisure activities,
-  local heritage, leisure purposes (§ 10b (1) sentence 8 EStG). Without this
-  tick the app issues nothing;
+  local heritage, leisure purposes (§ 10b (1) sentence 8 EStG). With this tick,
+  members' collective receipts include their fees as well. Without it, the app
+  only confirms donations and prints the template's sentence that the amount is
+  not a non-deductible membership fee;
+- the **donation accounts**: income accounts on which monetary donations are
+  booked (such as *4100 Donations*);
 - the **storage folder** (default *Vereinsbuchhaltung/Zuwendungsbestätigungen*,
   one subfolder per year; without a receipt storage user, inside the app).
 
@@ -3056,13 +3063,34 @@ missing, the record names it instead of issuing. If the notice is older than
 **5 years** (exemption) or **3 years** (§ 60a AO), the app doesn't issue either –
 the tax office does not accept such receipts (§ 63 (5) AO).
 
+**Assigning donors.** Under *Bookings* → **"Donations"** (only visible while
+the feature is on; bookkeepers and administrators) you see, per year, every
+booking with a credit on a donation account – what counts is the share on the
+donation accounts, so for a split booking only that part. For each donation you
+choose the **donor**: a member, or a recipient from the invoices as an
+**external donor** (**"New external donor"** creates one with an address). The
+tick **"Waiver of expense reimbursement"** marks a donation made by waiving
+reimbursement. Amount and date always come from the booking; if it changes, the
+new state applies. Once a donation is confirmed, its donor can only be changed
+after voiding the receipt; a recipient recorded as a donor cannot be deleted.
+
+**Single receipt.** **"Issue single receipt"** immediately issues the receipt
+for one donation following the single template (at the earliest from the day it
+was credited) – without an annex, with the amount, the date of the donation and
+the waiver statement. That donation is then left out of the year's collective
+receipt.
+
 **Issuing.** In the record (13.2), the **"Donation receipt"** section lists every
-completed calendar year with paid contributions and their total; **"Issue"**
-creates the receipt with a sequential number (*ZB-2026-0001*) and stores the PDF
+completed calendar year with contributions (fees and assigned donations) and
+their total; under *Bookings → Donations* the selected completed year lists all
+donors, including external ones. **"Issue"** creates the collective receipt with
+a sequential number (*ZB-2026-0001*) and stores the PDF
 as the **duplicate** (§ 50 (7) EStDV, to be kept for ten years). The current year
 can only be confirmed after it has ended. Page 1 is the receipt with the amount
 in figures and words, followed by the **annex** listing every single payment
-(date, type, waiver of reimbursement: no, amount) and the total. Members
+(date, waiver of reimbursement, type – *Geldzuwendung* or *Mitgliedsbeitrag* –,
+amount) and the total. There is one valid collective receipt per donor and year;
+donations confirmed individually are left out of it. Members
 download it under *My contribution* (13.11); members without a Nextcloud
 account get the PDF from the record.
 
@@ -3074,12 +3102,15 @@ cancelled and waived claims never count.
 **Correcting.** An issued receipt no longer changes. If it is wrong – or a
 confirmed payment changed later (for instance through a returned direct debit;
 the record then marks it as *outdated*) – it is **voided** with a reason; the PDF
-stays as the duplicate. A new one can then be issued for that year. Issuing and
+stays as the duplicate. A new one can then be issued for that year (or that
+donation). A receipt is also *outdated* when the amount or waiver of a confirmed
+donation has changed. Issuing and
 voiding are recorded in the change log.
 
 **The informal contribution confirmation is not offered** while donation receipts
-are turned on: the official template confirms that no further confirmations or
-contribution receipts are issued for the fees.
+are turned on and include the fees: the official template confirms that no
+further confirmations or contribution receipts are issued for the fees. If
+membership fees are not deductible, it stays.
 
 ### 13.13 Data protection: data overview and anonymization
 
