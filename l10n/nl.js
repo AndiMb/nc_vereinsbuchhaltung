@@ -4977,5 +4977,11 @@ OC.L10N.register("vereinsbuchhaltung", {
 	"Für die Zuwendungsbestätigung fehlt die Anschrift des Spenders (Straße, PLZ und Ort).": "Voor de giftbevestiging ontbreekt het adres van de gever (straat, postcode en plaats).",
 	"Ungültiges Spendenkonto.": "Ongeldige giftenrekening.",
 	"Bitte genau einen Spender wählen: ein Mitglied oder einen Debitor.": "Kies precies één gever: een lid of een debiteur.",
-	"Diese Spende ist bereits in der Zuwendungsbestätigung %s enthalten. Für eine Änderung zuerst diese stornieren.": "Deze gift is al opgenomen in giftbevestiging %s. Annuleer deze eerst om iets te wijzigen."
+	"Diese Spende ist bereits in der Zuwendungsbestätigung %s enthalten. Für eine Änderung zuerst diese stornieren.": "Deze gift is al opgenomen in giftbevestiging %s. Annuleer deze eerst om iets te wijzigen.",
+	"PayPal-Gebühr": "PayPal-kosten",
+	"PayPal-Gebühr zu %s": "PayPal-kosten voor %s",
+	"Die Datei ist kein PayPal-Aktivitätsdownload: Spalten fehlen.": "Het bestand is geen PayPal-activiteitsdownload: kolommen ontbreken.",
+	"In der Datei steht keine eigene PayPal-Adresse (Absender bzw. Empfänger E-Mail-Adresse).": "Het bestand bevat geen eigen PayPal-adres (e-mailadres van afzender of ontvanger).",
+	"Zeile %d: Datum oder Betrag sind nicht lesbar.": "Rij %d: datum of bedrag is niet leesbaar.",
+	"Zeile %d: Netto passt nicht zu Brutto und Gebühr.": "Rij %d: netto komt niet overeen met bruto en kosten."
 }, "nplurals=2; plural=(n != 1);");

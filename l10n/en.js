@@ -4977,5 +4977,11 @@ OC.L10N.register("vereinsbuchhaltung", {
 	"Für die Zuwendungsbestätigung fehlt die Anschrift des Spenders (Straße, PLZ und Ort).": "The donor's address (street, postal code and city) is missing for the donation receipt.",
 	"Ungültiges Spendenkonto.": "Invalid donation account.",
 	"Bitte genau einen Spender wählen: ein Mitglied oder einen Debitor.": "Please choose exactly one donor: a member or a debtor.",
-	"Diese Spende ist bereits in der Zuwendungsbestätigung %s enthalten. Für eine Änderung zuerst diese stornieren.": "This donation is already included in donation receipt %s. Void it first to make a change."
+	"Diese Spende ist bereits in der Zuwendungsbestätigung %s enthalten. Für eine Änderung zuerst diese stornieren.": "This donation is already included in donation receipt %s. Void it first to make a change.",
+	"PayPal-Gebühr": "PayPal fee",
+	"PayPal-Gebühr zu %s": "PayPal fee for %s",
+	"Die Datei ist kein PayPal-Aktivitätsdownload: Spalten fehlen.": "The file is not a PayPal activity download: columns are missing.",
+	"In der Datei steht keine eigene PayPal-Adresse (Absender bzw. Empfänger E-Mail-Adresse).": "The file contains no PayPal address of your own (sender or recipient email address).",
+	"Zeile %d: Datum oder Betrag sind nicht lesbar.": "Row %d: date or amount cannot be read.",
+	"Zeile %d: Netto passt nicht zu Brutto und Gebühr.": "Row %d: net does not match gross and fee."
 }, "nplurals=2; plural=(n != 1);");
