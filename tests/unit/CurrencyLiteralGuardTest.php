@@ -36,6 +36,8 @@ class CurrencyLiteralGuardTest extends TestCase {
 	private const ALLOWED_LINES = [
 		'Service/Export/KassenberichtRenderer.php' => 'Freigrenze',
 		'Service/Invoice/InvoicePdfRenderer.php' => "getCurrency()) !== 'EUR'",
+		// Die Zuwendungsbestätigung ist ein deutsches Steuerdokument (#10).
+		'Service/DonationReceipt/DonationReceiptPdfRenderer.php' => '// Zuwendungsbestätigung',
 	];
 
 	public function testKeinFestesEuroImServercode(): void {

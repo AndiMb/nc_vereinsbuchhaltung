@@ -16,6 +16,7 @@ use OCA\Vereinsbuchhaltung\Db\Member;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
 use OCA\Vereinsbuchhaltung\Db\ReimbursementMapper;
+use OCA\Vereinsbuchhaltung\Service\DonationReceipt\DonationReceiptService;
 use OCA\Vereinsbuchhaltung\Db\ReturnedDebitMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
 use OCP\AppFramework\Db\DoesNotExistException;
@@ -117,6 +118,7 @@ class MemberAnonymizationService {
 		private IL10N $l10n,
 		private DebtorMapper $debtors,
 		private ?ReimbursementDraftCleaner $drafts = null,
+		private ?DonationReceiptService $donationReceipts = null,
 	) {
 	}
 
@@ -141,6 +143,10 @@ class MemberAnonymizationService {
 			$this->redactReimbursements($memberId);
 			// Entwürfe (#356) wurden nie eingereicht: nichts davon ist aufzubewahren.
 			$this->drafts?->deleteAllForMember($memberId);
+			// Zuwendungsbestätigungen (Issue #10) tragen Name und Anschrift. Ihr Doppel
+			// ist 10 Jahre aufzubewahren (§ 50 Abs. 7 EStDV) – dieselbe Frist, nach der
+			// die Anonymisierung überhaupt erst möglich ist.
+			$this->donationReceipts?->deleteForMember($memberId);
 			$this->redactAssignments($memberId);
 			$this->redactDebtors($memberId, $now);
 			$this->redactMember($member, $now);

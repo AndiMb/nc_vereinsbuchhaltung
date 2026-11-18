@@ -316,7 +316,14 @@
 					</NcButton>
 				</section>
 
-				<section class="vbh-akte-section">
+				<!-- Zuwendungsbestätigung (Issue #10); ersetzt, wenn eingeschaltet, die informelle Bestätigung darunter. -->
+				<DonationReceiptSection
+					v-if="show"
+					:key="member.id"
+					:memberId="member.id"
+					@enabled="donationReceiptsEnabled = $event" />
+
+				<section v-if="!donationReceiptsEnabled" class="vbh-akte-section">
 					<h3 class="vbh-modal-subtitle">
 						{{ t('Beitragsbestätigung') }}
 					</h3>
@@ -476,6 +483,7 @@ import NcModal from '@nextcloud/vue/components/NcModal'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import AmountInput from './AmountInput.vue'
 import CountrySelect from './CountrySelect.vue'
+import DonationReceiptSection from './DonationReceiptSection.vue'
 import MandatePanel from './MandatePanel.vue'
 import NextcloudAccountDialog from './NextcloudAccountDialog.vue'
 import NextcloudAccountFields from './NextcloudAccountFields.vue'
@@ -563,6 +571,7 @@ export default {
 		NcNoteCard,
 		AmountInput,
 		CountrySelect,
+		DonationReceiptSection,
 		MandatePanel,
 		NextcloudAccountDialog,
 		NextcloudAccountFields,
@@ -599,6 +608,8 @@ export default {
 			assignmentPreview: null,
 			certificateYears: [],
 			certificateYear: null,
+			/** Zuwendungsbestätigungen eingeschaltet (meldet DonationReceiptSection). */
+			donationReceiptsEnabled: false,
 			anonymizationStatus: null,
 			anonymizing: false,
 			/** Auswahlen und Rechte für „Nextcloud-Konto anlegen“; null, solange nicht geladen (oder nicht erlaubt). */

@@ -61,6 +61,7 @@
 					:storageSaving="storageSaving"
 					:saveSettings="saveSettings" />
 				<SettingsSepaModule :storageUser="storageUser" />
+				<SettingsDonationReceipts v-if="membershipEnabled" :storageUser="storageUser" />
 			</NcSettingsSection>
 		</div>
 
@@ -157,6 +158,7 @@ import SettingsBudgetStatus from './components/SettingsBudgetStatus.vue'
 import SettingsClub from './components/SettingsClub.vue'
 import SettingsCostCenters from './components/SettingsCostCenters.vue'
 import SettingsDisplay from './components/SettingsDisplay.vue'
+import SettingsDonationReceipts from './components/SettingsDonationReceipts.vue'
 import SettingsInvoices from './components/SettingsInvoices.vue'
 import SettingsMandateLegalText from './components/SettingsMandateLegalText.vue'
 import SettingsPeriods from './components/SettingsPeriods.vue'
@@ -202,6 +204,7 @@ export default {
 		SettingsBudgetStatus,
 		SettingsClub,
 		SettingsCostCenters,
+		SettingsDonationReceipts,
 		SettingsDisplay,
 		SettingsInvoices,
 		SettingsReimbursements,

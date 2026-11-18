@@ -1974,6 +1974,8 @@ Mandate, Beitragsgruppen und Zuweisungen (Kapitel 13) gehören nicht zum
 Buchungsbestand und bleiben unberührt (der Einzug wird mitgeräumt, siehe unten).
 Ebenso bleiben die **Entwürfe von Auslagen**, die Mitglieder noch nicht
 eingereicht haben (4.6) – sie gehören den Mitgliedern, nicht der Buchhaltung.
+Auch ausgestellte **Zuwendungsbestätigungen** (13.12) bleiben samt PDF: Ihr
+Doppel ist zehn Jahre aufzubewahren, und es enthält die bestätigten Zahlungen selbst.
 Gleiches gilt für den Reset-Modus beim xbuc-Import. Beides ist
 unwiderruflich – also nur nach Rücksprache und nie aus Versehen. Wer wirklich
 alles entfernen will, auch Mitglieder, Mandate und Einstellungen – etwa um
@@ -3059,6 +3061,66 @@ Betrag, am Ende die **Summe**. Dabei gilt:
 
 Fehlt dem Mitglied die Adresse, weist ein Hinweis auf dem Bildschirm („Adresse
 jetzt hinterlegen") darauf hin; im Ausdruck erscheint er nicht.
+
+#### Zuwendungsbestätigung über Mitgliedsbeiträge
+
+Ist der Verein steuerbegünstigt, kann die App statt der informellen Bestätigung
+die **amtliche Sammelbestätigung über Geldzuwendungen/Mitgliedsbeiträge** nach
+§ 10b EStG ausstellen – nach dem verbindlichen Muster des BMF (Schreiben vom
+07.11.2013), je Mitglied und **Kalenderjahr** eine. *Keine Steuerberatung:*
+Klären Sie im Zweifel mit Finanzamt oder Steuerberatung, ob Ihre
+Mitgliedsbeiträge abziehbar sind und wer unterschreibt.
+
+**Einschalten.** Zahnrad → *Beiträge & SEPA* → **„Zuwendungsbestätigungen"** (nur
+Verwalter). Dort stehen:
+
+- die **Grundlage der Steuerbegünstigung**: *Freistellungsbescheid* (bzw. Anlage
+  zum Körperschaftsteuerbescheid, mit dem **Veranlagungszeitraum**) oder
+  *Feststellung nach § 60a AO*; dazu **Finanzamt**, **Steuernummer** (ohne
+  Angabe die aus den Rechnungseinstellungen) und **Datum des Bescheids**;
+- die **begünstigten Zwecke**, so wie sie im Bescheid stehen (z. B. „der
+  Bildung und Erziehung (§ 52 Abs. 2 Satz 1 Nr. 7 AO)");
+- **Ort** und **wer unterschreibt** (Name und Funktion unter der
+  Unterschriftslinie) – oder das **maschinelle Verfahren** ohne Unterschrift,
+  wenn es dem Finanzamt angezeigt ist (R 10b.1 Abs. 4 EStR);
+- die Bestätigung, dass der Verein **keine Zwecke fördert, bei denen
+  Mitgliedsbeiträge nicht abziehbar sind** – Sport, kulturelle Betätigungen der
+  Freizeitgestaltung, Heimatpflege, Freizeitzwecke (§ 10b Abs. 1 Satz 8 EStG).
+  Ohne diesen Haken stellt die App nichts aus;
+- der **Ablageordner** (Standard *Vereinsbuchhaltung/Zuwendungsbestätigungen*,
+  je Jahr ein Unterordner; ohne Belegablage-Nutzer app-intern).
+
+Name und Anschrift des Vereins kommen aus *Rechnungen → Angaben des Vereins*.
+Fehlt etwas, nennt die Akte es, statt auszustellen. Ist der Bescheid älter als
+**5 Jahre** (Freistellung) bzw. **3 Jahre** (§ 60a AO), stellt die App ebenfalls
+nichts aus – solche Bestätigungen erkennt das Finanzamt nicht an (§ 63 Abs. 5 AO).
+
+**Ausstellen.** In der Akte (13.2) zeigt der Abschnitt
+**„Zuwendungsbestätigung"** jedes abgeschlossene Kalenderjahr mit gezahlten
+Beiträgen und deren Summe; **„Ausstellen"** erzeugt die Bestätigung mit einer
+fortlaufenden Nummer (*ZB-2026-0001*) und legt das PDF als **Doppel** ab
+(§ 50 Abs. 7 EStDV, zehn Jahre aufzubewahren). Das laufende Jahr lässt sich erst
+nach seinem Ende bestätigen. Seite 1 ist die Bestätigung mit dem Betrag in
+Ziffern und Buchstaben, danach folgt die **Anlage** mit jeder einzelnen Zahlung
+(Datum, Art, Verzicht auf Erstattung von Aufwendungen: nein, Betrag) und der
+Gesamtsumme. Das Mitglied lädt sie unter *Mein Beitrag* herunter (13.11);
+Mitglieder ohne Nextcloud-Konto bekommen das PDF aus der Akte.
+
+**Welche Zahlungen.** Anders als bei der informellen Bestätigung zählt der
+**Tag der Zahlung**, nicht die Fälligkeitsperiode: das Datum der Buchung, die
+den Beitrag beglichen hat, ohne Buchung der Tag, an dem er als bezahlt markiert
+wurde. Gebühren, stornierte und erlassene Forderungen zählen nie.
+
+**Korrigieren.** Eine ausgestellte Bestätigung ändert sich nicht mehr. Ist sie
+falsch – oder hat sich eine bestätigte Zahlung später geändert (etwa durch eine
+Rücklastschrift; die Akte markiert sie dann als *überholt*) –, wird sie mit
+Grund **storniert**; das PDF bleibt als Doppel erhalten. Danach lässt sich für
+das Jahr eine neue ausstellen. Ausstellen und Stornieren stehen im
+Änderungsprotokoll.
+
+**Die informelle Beitragsbestätigung entfällt**, solange Zuwendungsbestätigungen
+eingeschaltet sind: Das amtliche Muster bestätigt, dass über die Beiträge keine
+weiteren Bestätigungen oder Beitragsquittungen ausgestellt werden.
 
 ### 13.13 Datenschutz: Datenübersicht und Anonymisierung
 

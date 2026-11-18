@@ -9,6 +9,7 @@ use OCA\Vereinsbuchhaltung\Db\BudgetMapper;
 use OCA\Vereinsbuchhaltung\Db\BudgetSnapshotMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
+use OCA\Vereinsbuchhaltung\Service\DonationReceipt\DonationReceiptSettings;
 use OCA\Vereinsbuchhaltung\Service\Export\KassenberichtArchive;
 use OCP\IAppConfig;
 
@@ -196,6 +197,8 @@ class FrontendStateService {
 			// Kassenbericht beim Jahresabschluss als PDF ablegen (Issue #364), standardmäßig aus.
 			KassenberichtArchive::SETTING_ENABLED => $this->config->getValueString(Application::APP_ID, KassenberichtArchive::SETTING_ENABLED, '0') === '1',
 			KassenberichtArchive::SETTING_FOLDER => $this->config->getValueString(Application::APP_ID, KassenberichtArchive::SETTING_FOLDER, KassenberichtArchive::DEFAULT_FOLDER),
+			// Zuwendungsbestätigungen (Issue #10): ersetzen in der Akte die informelle Beitragsbestätigung.
+			DonationReceiptSettings::SETTING_ENABLED => $this->config->getValueString(Application::APP_ID, DonationReceiptSettings::SETTING_ENABLED, '0') === '1',
 		] + $this->invoiceSettings->all();
 	}
 

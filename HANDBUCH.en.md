@@ -1926,7 +1926,9 @@ again) and the year-end closing markers.
 assignments (chapter 13) are not part of the posting records and stay untouched
 (the collection is cleared with it, see below). Likewise, the **expense claim
 drafts** that members have not submitted yet (4.6) stay – they belong to the
-members, not to the bookkeeping. The same applies to
+members, not to the bookkeeping. Issued **donation receipts** (13.12) stay as
+well, including their PDF: the duplicate must be kept for ten years and contains
+the confirmed payments itself. The same applies to
 reset mode during the xbuc import. Both are irreversible – so only after
 checking with others, and never by accident. If you really want to remove
 everything, including members, mandates and settings – for instance to restore
@@ -3020,6 +3022,64 @@ amount, finally the **total**. The following applies:
 If the member's address is missing, a notice on the screen ("Adresse jetzt
 hinterlegen" – "enter the address now") points it out; it doesn't appear in the
 printout.
+
+#### Donation receipt for membership fees
+
+If the club is tax-privileged, the app can issue the **official collective
+receipt for monetary donations/membership fees** (*Sammelbestätigung über
+Geldzuwendungen/Mitgliedsbeiträge*) under § 10b EStG instead of the informal
+confirmation – following the binding template of the German Federal Ministry of
+Finance (letter of 07.11.2013), one per member and **calendar year**. The
+receipt itself is always in German. *Not tax advice:* if in doubt, ask your tax
+office or tax advisor whether your membership fees are deductible and who signs.
+
+**Turning it on.** Gear icon → *Fees & SEPA* → **"Donation receipts"**
+(*Zuwendungsbestätigungen*, administrators only). There you enter:
+
+- the **basis of the tax privilege**: *exemption notice* (or annex to the
+  corporation tax assessment, with the **assessment period**) or *assessment
+  under § 60a AO*; plus **tax office**, **tax number** (if empty, the one from
+  the invoice settings) and **date of the notice**;
+- the **privileged purposes** as worded in the notice;
+- **place** and **who signs** (name and role below the signature line) – or the
+  **automated procedure** without a signature, if it has been notified to the
+  tax office (R 10b.1 (4) EStR);
+- the confirmation that the club does **not promote purposes for which
+  membership fees are not deductible** – sports, cultural leisure activities,
+  local heritage, leisure purposes (§ 10b (1) sentence 8 EStG). Without this
+  tick the app issues nothing;
+- the **storage folder** (default *Vereinsbuchhaltung/Zuwendungsbestätigungen*,
+  one subfolder per year; without a receipt storage user, inside the app).
+
+The club's name and address come from *Invoices → Club details*. If anything is
+missing, the record names it instead of issuing. If the notice is older than
+**5 years** (exemption) or **3 years** (§ 60a AO), the app doesn't issue either –
+the tax office does not accept such receipts (§ 63 (5) AO).
+
+**Issuing.** In the record (13.2), the **"Donation receipt"** section lists every
+completed calendar year with paid contributions and their total; **"Issue"**
+creates the receipt with a sequential number (*ZB-2026-0001*) and stores the PDF
+as the **duplicate** (§ 50 (7) EStDV, to be kept for ten years). The current year
+can only be confirmed after it has ended. Page 1 is the receipt with the amount
+in figures and words, followed by the **annex** listing every single payment
+(date, type, waiver of reimbursement: no, amount) and the total. Members
+download it under *My contribution* (13.11); members without a Nextcloud
+account get the PDF from the record.
+
+**Which payments.** Unlike the informal confirmation, the **payment date**
+counts, not the due period: the date of the posting that settled the
+contribution, or without a posting the day it was marked as paid. Fees,
+cancelled and waived claims never count.
+
+**Correcting.** An issued receipt no longer changes. If it is wrong – or a
+confirmed payment changed later (for instance through a returned direct debit;
+the record then marks it as *outdated*) – it is **voided** with a reason; the PDF
+stays as the duplicate. A new one can then be issued for that year. Issuing and
+voiding are recorded in the change log.
+
+**The informal contribution confirmation is not offered** while donation receipts
+are turned on: the official template confirms that no further confirmations or
+contribution receipts are issued for the fees.
 
 ### 13.13 Data protection: data overview and anonymization
 
