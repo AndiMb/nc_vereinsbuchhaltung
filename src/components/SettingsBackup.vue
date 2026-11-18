@@ -153,6 +153,13 @@
 					<p class="vbh-hint">
 						{{ t('Beim Einspielen werden Rollen und Änderungsprotokoll dieser Buchhaltung durch die der Sicherung ersetzt. Sie selbst bleiben Verwalter.') }}
 					</p>
+					<!-- Fremd oder unbekannt: gleichnamige Konten können anderen Menschen gehören. -->
+					<p v-if="inspection.origin === 'foreign'" class="vbh-hint vbh-hint--warning" data-test="backup-foreign">
+						{{ t('Diese Sicherung stammt von einer anderen Nextcloud – dazu zählt auch eine neu installierte. Rollen gehen an gleichnamige Konten und Gruppen dieser Nextcloud; prüfen Sie sie nach dem Einspielen. Verknüpfungen von Mitgliedern mit Konten müssen die Mitglieder neu bestätigen.') }}
+					</p>
+					<p v-else-if="inspection.origin === 'unknown'" class="vbh-hint vbh-hint--warning" data-test="backup-unknown-origin">
+						{{ t('Woher diese Sicherung stammt, ist unbekannt. Rollen und bestätigte Verknüpfungen von Mitgliedern mit Konten werden unverändert übernommen, obwohl gleichnamige Konten und Gruppen dieser Nextcloud anderen Menschen gehören können. Prüfen Sie beides nach dem Einspielen.') }}
+					</p>
 					<NcButton
 						variant="primary"
 						:disabled="busy"
@@ -191,6 +198,25 @@
 						</li>
 					</ul>
 				</template>
+				<p v-if="importResult.origin === 'unknown'" class="vbh-hint vbh-hint--warning" data-test="backup-result-unknown-origin">
+					<strong>{{ t('Achtung: Woher diese Sicherung stammt, ist unbekannt. Die Verknüpfungen von Mitgliedern mit Konten sind unverändert übernommen. Prüfen Sie unter „Mitglieder“, ob jedes verknüpfte Konto hier dem richtigen Menschen gehört.') }}</strong>
+				</p>
+				<template v-if="importResult.existingPrincipals && importResult.existingPrincipals.length">
+					<p>{{ t('Die Sicherung stammt nicht nachweislich von dieser Nextcloud. Diese Konten und Gruppen gibt es hier, und sie haben eine Rolle bekommen. Prüfen Sie unter „Berechtigungen“, ob sie hier denselben Menschen gehören:') }}</p>
+					<ul class="vbh-backup-list" data-test="backup-existing-principals">
+						<li v-for="p in importResult.existingPrincipals" :key="p.type + ':' + p.id + ':' + p.role">
+							<template v-if="p.type === 'group'">
+								{{ tRaw('Gruppe {name}: {role}', { name: p.id }, { role: roleLabel(p.role) }) }}
+							</template>
+							<template v-else>
+								{{ tRaw('Benutzer {name}: {role}', { name: p.id }, { role: roleLabel(p.role) }) }}
+							</template>
+						</li>
+					</ul>
+				</template>
+				<p v-if="importResult.memberLinksReset > 0" data-test="backup-links-reset">
+					{{ n('Die Verknüpfung von %n Mitglied mit einem Konto muss das Mitglied neu bestätigen.', 'Die Verknüpfungen von %n Mitgliedern mit Konten müssen die Mitglieder neu bestätigen.', importResult.memberLinksReset) }}
+				</p>
 				<p>
 					{{ t('Belege und Dokumente liegen jetzt in der app-internen Ablage. Belegablage, Wächter-Ordner und die Ordner für Mandatsnachweise, Rechnungen und SEPA-Dateien gehören zur jeweiligen Nextcloud und sind hier neu einzustellen.') }}
 				</p>
@@ -275,7 +301,7 @@ import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import NcModal from '@nextcloud/vue/components/NcModal'
 import api from '../api.js'
 import { importBlocker, missingByKind, outcomeUnknown, passwordProblem, wipeWord } from '../lib/backup.js'
-import { errMsg, formatDateTime, formatFileSize } from '../lib/format.js'
+import { errMsg, formatDateTime, formatFileSize, roleLabel } from '../lib/format.js'
 import { withPasswordConfirmation } from '../lib/passwordGate.js'
 
 /**
@@ -364,6 +390,7 @@ export default {
 	methods: {
 		formatDateTime,
 		formatFileSize,
+		roleLabel,
 
 		kindLabel(kind, count) {
 			return {

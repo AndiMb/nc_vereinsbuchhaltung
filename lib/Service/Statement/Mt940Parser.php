@@ -7,6 +7,7 @@ namespace OCA\Vereinsbuchhaltung\Service\Statement;
 use OCA\Vereinsbuchhaltung\Exception\UserFacingException;
 use OCA\Vereinsbuchhaltung\Service\Sepa\DkReturnReasonCodes;
 use OCA\Vereinsbuchhaltung\Service\Sepa\SepaPurposeFields;
+use OCA\Vereinsbuchhaltung\Service\Text\AmountParser;
 use OCP\IL10N;
 
 /**
@@ -36,8 +37,12 @@ class Mt940Parser implements StatementParser, StatementBalanceReader {
 	) {
 	}
 
-	private function msg(string $text): string {
-		return $this->l10n !== null ? $this->l10n->t($text) : $text;
+	/** @param list<int|string> $params */
+	private function msg(string $text, array $params = []): string {
+		if ($this->l10n !== null) {
+			return $this->l10n->t($text, $params);
+		}
+		return $params === [] ? $text : vsprintf($text, $params);
 	}
 
 	public function sourceKey(): string {
@@ -59,6 +64,7 @@ class Mt940Parser implements StatementParser, StatementBalanceReader {
 		$rows = [];
 		$ownAccount = null;
 		$pending = null;
+		$position = 0;
 
 		foreach ($fields as [$tag, $value]) {
 			if ($tag === '25') {
@@ -71,7 +77,7 @@ class Mt940Parser implements StatementParser, StatementBalanceReader {
 				if ($pending !== null) {
 					$rows[] = $pending;
 				}
-				$pending = $this->parseEntry($value, $ownAccount);
+				$pending = $this->parseEntry($value, $ownAccount, ++$position);
 				continue;
 			}
 			if ($tag === '86' && $pending !== null) {
@@ -226,12 +232,18 @@ class Mt940Parser implements StatementParser, StatementBalanceReader {
 	 * :61: – Valutadatum (JJMMTT), optionales Buchungsdatum (MMTT), Richtung,
 	 * Betrag, Geschäftsvorfall.
 	 *
-	 * @return array<string, mixed>|null
+	 * Eine unlesbare Zeile fiel früher still weg, und der Auszug kam ohne die
+	 * Buchung herein (Review 2026-11-18). Jetzt bricht der Import ab und nennt
+	 * sie, wie der PayPal-Import.
+	 *
+	 * @param int $position laufende Nummer der :61:-Zeile in der Datei (ab 1)
+	 * @return array<string, mixed>
+	 * @throws UserFacingException wenn Zeile oder Betrag nicht lesbar sind
 	 */
-	private function parseEntry(string $value, ?string $ownAccount): ?array {
+	private function parseEntry(string $value, ?string $ownAccount, int $position): array {
 		$line = trim(explode("\n", $value)[0]);
 		if (!preg_match('/^(\d{6})(\d{4})?(RC|RD|C|D)([A-Z])?([\d.,]+)([A-Z][A-Za-z0-9]{3})?(.*)$/', $line, $m)) {
-			return null;
+			throw new UserFacingException($this->msg('Buchung %1$d der MT940-Datei ist nicht lesbar: :61:%2$s', [$position, $line]));
 		}
 
 		$valueDate = $this->dateFromYymmdd($m[1]);
@@ -239,7 +251,7 @@ class Mt940Parser implements StatementParser, StatementBalanceReader {
 
 		$cents = $this->toCents($m[5]);
 		if ($cents === null) {
-			return null;
+			throw new UserFacingException($this->msg('Buchung %1$d der MT940-Datei: Der Betrag „%2$s“ ist nicht lesbar.', [$position, $m[5]]));
 		}
 		$mark = $m[3];
 		// D = Belastung. R davor kennzeichnet eine Stornobuchung, die die
@@ -445,13 +457,12 @@ class Mt940Parser implements StatementParser, StatementBalanceReader {
 		return checkdate($month, $day, $year) ? sprintf('%04d-%02d-%02d', $year, $month, $day) : null;
 	}
 
+	/**
+	 * MT940 nutzt das Komma als Dezimaltrenner; Tausenderpunkte kommen bei
+	 * deutschen Banken vor. Deshalb die deutschen Textregeln von
+	 * {@see AmountParser}: „1.250,50" und „1.000" sind Tausender.
+	 */
 	private function toCents(string $value): ?int {
-		// MT940 nutzt das Komma als Dezimaltrenner; Tausenderpunkte kommen vor.
-		$v = str_replace('.', '', trim($value));
-		$v = str_replace(',', '.', $v);
-		if (!is_numeric($v)) {
-			return null;
-		}
-		return (int)round(((float)$v) * 100);
+		return AmountParser::germanText($value);
 	}
 }

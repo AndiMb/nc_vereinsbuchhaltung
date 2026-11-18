@@ -2155,6 +2155,32 @@ Namen an. Die IBANs der Mitglieder werden im Ziel mit dessen eigenem Schlüssel
 neu verschlüsselt – die `config.php` der alten Nextcloud braucht es dafür
 nicht.
 
+**Sicherung von einer anderen Nextcloud:** Rollen und Mitglied-Verknüpfungen
+hängen an Benutzer- und Gruppennamen, und auf einer anderen Nextcloud kann
+derselbe Name einem anderen Menschen gehören. Die App merkt sich deshalb beim
+Sichern, auf welcher Nextcloud die Datei entstanden ist (erkannt an der
+Kennung der Nextcloud-Installation). Beim Einspielen gibt es drei Fälle:
+
+- **Dieselbe Nextcloud** (etwa nach *Bestand vollständig leeren*): Alles wird
+  wie gesichert übernommen, auch die Verknüpfungen.
+- **Eine andere Nextcloud:** *Sicherung prüfen* weist darauf hin. Bestätigte
+  Verknüpfungen von Mitgliedern mit Konten werden zurückgesetzt – jedes
+  Mitglied bestätigt sie neu (13.2). Das gilt auch, wenn Sie Ihre Nextcloud
+  nach einem Ausfall **neu installiert** haben: Eine neue Installation hat
+  eine neue Kennung und zählt als andere Nextcloud. Stellen Sie dagegen die
+  ganze Nextcloud samt `config.php` wieder her, bleibt es dieselbe.
+- **Unbekannte Herkunft** (die Datei enthält keine Angabe dazu, etwa weil die
+  Quelle keine Kennung hatte): Verknüpfungen werden wie gesichert
+  übernommen, *Sicherung prüfen* und der Bericht warnen aber deutlich.
+  Prüfen Sie dann unter *Mitglieder*, ob jedes verknüpfte Konto dem richtigen
+  Menschen gehört.
+
+Stammt die Sicherung nicht nachweislich von dieser Nextcloud, nennt der
+Bericht außerdem **jedes vorhandene Konto und jede vorhandene Gruppe, die eine
+Rolle bekommen hat**. Prüfen Sie diese Liste unter *Berechtigungen*, bevor
+jemand weiterarbeitet. Sicherungen einer anderen App-Version lassen sich
+ohnehin nicht einspielen (siehe oben).
+
 **Bestand vollständig leeren:** bereitet das Einspielen vor und geht weiter
 als *Alle Daten löschen* (12.1): Es entfernt auch Mitglieder, Mandate,
 Beitragsgruppen und die Einstellungen des Vereins samt der von der App

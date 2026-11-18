@@ -45,6 +45,7 @@ class BackupExportService {
 		private IAppManager $appManager,
 		private ITempManager $tempManager,
 		private IL10N $l10n,
+		private BackupInstanceMarker $instance,
 	) {
 	}
 
@@ -121,6 +122,9 @@ class BackupExportService {
 				'appVersion' => $this->appManager->getAppVersion(Application::APP_ID),
 				'createdAt' => date('c'),
 				'clubName' => $clubName,
+				// Herkunft: das Einspielen auf einer anderen Nextcloud traut Benutzer- und
+				// Gruppennamen nicht blind (siehe BackupInstanceMarker).
+				'sourceInstance' => $this->instance->current(),
 				'withFiles' => $withFiles,
 				'tables' => $tableInfo,
 				'files' => ['count' => $fileCount, 'bytes' => $fileBytes],

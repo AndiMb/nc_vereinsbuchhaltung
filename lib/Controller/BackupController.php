@@ -175,6 +175,13 @@ class BackupController extends Controller {
 				'dateien' => $result['files'],
 				'unbekannte_benutzer' => $result['unknownUsers'],
 				'unbekannte_gruppen' => $result['unknownGroups'],
+				// Von einer anderen Nextcloud: wer hier eine Rolle bekam, gehört ins Protokoll.
+				'herkunft' => $result['origin'],
+				'rollen_an_vorhandene' => array_map(
+					static fn (array $p): string => $p['type'] . ':' . $p['id'] . '=' . $p['role'],
+					$result['existingPrincipals'],
+				),
+				'verknuepfungen_zurueckgesetzt' => $result['memberLinksReset'],
 			]);
 			return new DataResponse($result);
 		} catch (\Throwable $e) {

@@ -134,6 +134,18 @@ class ReimbursementDraftServiceTest extends TestCase {
 		$this->service->save(null, 7, self::fields(['expenseDate' => '2026-02-30']), [], []);
 	}
 
+	/**
+	 * Ein Zeilenumbruch im Kontoinhaber konnte im GiroCode eine fremde IBAN
+	 * vortäuschen (Review 2026-11-18). Schon der Entwurf lehnt ihn ab, damit
+	 * er nicht erst beim Einreichen auffällt.
+	 */
+	public function testSteuerzeichenImKontoinhaberWirdSchonImEntwurfAbgelehnt(): void {
+		$this->drafts->expects($this->never())->method('insert');
+		$this->expectException(\InvalidArgumentException::class);
+		$this->expectExceptionMessage('Der Kontoinhaber darf keine Zeilenumbrüche oder Steuerzeichen enthalten.');
+		$this->service->save(null, 7, self::fields(['accountHolder' => "Max\nDE89370400440532013000"]), [], []);
+	}
+
 	public function testNichtBehalteneBelegeVerschwinden(): void {
 		$draft = self::draft(5);
 		$this->drafts->method('findForMember')->willReturn($draft);

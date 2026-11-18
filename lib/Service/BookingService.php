@@ -12,6 +12,7 @@ use OCA\Vereinsbuchhaltung\Db\JournalLineMapper;
 use OCA\Vereinsbuchhaltung\Db\JournalMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
 use OCA\Vereinsbuchhaltung\Service\CostCenter\LineAllocationWriter;
+use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\IL10N;
 
 /**
@@ -317,9 +318,14 @@ class BookingService {
 	private function removeJournal(int $journalId, string $userId): void {
 		try {
 			$journal = $this->journalMapper->find($journalId, $userId);
-		} catch (\Throwable) {
+		} catch (DoesNotExistException) {
+			// Schon gelöscht: es gibt nichts zurückzunehmen.
 			return;
 		}
+		// Jeder andere Fehler (Datenbank, Mehrfachtreffer) läuft weiter und rollt
+		// die Transaktion des Aufrufers zurück. Als „gibt es nicht" verstanden,
+		// stünde der Umsatz sonst als offen da, während die Buchung bliebe, oder
+		// eine erneute Zuordnung buchte den Betrag doppelt (Review 2026-11-18).
 		// Der Buchungssatz kann in einem anderen Geschäftsjahr liegen als der
 		// Umsatz (das Datum lässt sich verschieben). Geprüft wird deshalb auch
 		// sein eigenes Datum – sonst ließe sich über den Umsatz eine Buchung
