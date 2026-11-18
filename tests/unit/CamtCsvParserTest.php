@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Tests\Unit;
 
+use OCA\Vereinsbuchhaltung\Exception\UserFacingException;
 use OCA\Vereinsbuchhaltung\Service\CamtCsvParser;
 use PHPUnit\Framework\TestCase;
 
@@ -104,6 +105,34 @@ class CamtCsvParserTest extends TestCase {
 		$this->assertStringContainsString('Rechnung 4711', (string)$rows[0]['purpose']);
 		$this->assertSame('Max Mustermann', $rows[0]['counterparty']);
 		$this->assertSame('Erika Musterfrau', $rows[1]['counterparty']);
+	}
+
+	/**
+	 * Review-Nachtrag I-1: eine leere Betragszelle (Summen- oder Fußzeile)
+	 * bleibt still draußen; ein angegebener, aber unlesbarer Betrag bricht den
+	 * Import mit der Zeilennummer der Datei ab, statt die Buchung zu verlieren.
+	 */
+	public function testLeereBetragszelleBleibtStillDraussen(): void {
+		$csv = "Buchungstag;Betrag;Beguenstigter/Zahlungspflichtiger\n"
+			. "05.01.2026;10,00;Max Mustermann\n"
+			. "06.01.2026;;Summe\n"
+			. "07.01.2026;12,-;Erika Musterfrau\n";
+		$rows = $this->parser->parse($csv);
+
+		$this->assertSame([1000, 1200], array_column($rows, 'amountCents'));
+	}
+
+	public function testUnlesbarerBetragBrichtMitZeilennummerAb(): void {
+		// Der erste Datensatz umfasst zwei Zeilen der Datei, die Leerzeile zählt mit.
+		$csv = "Buchungstag;Betrag;Verwendungszweck\n"
+			. "05.01.2026;10,00;\"Beitrag\nJanuar\"\n"
+			. "\n"
+			. "06.01.2026;12,50 S;Gebühr\n";
+
+		$this->expectException(UserFacingException::class);
+		$this->expectExceptionMessage('Zeile 5: Der Betrag „12,50 S“ ist nicht lesbar.');
+
+		$this->parser->parse($csv);
 	}
 
 	public function testZweistelligeJahreszahlWirdErgaenzt(): void {

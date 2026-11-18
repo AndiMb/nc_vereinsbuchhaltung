@@ -25,8 +25,12 @@ class XbucParser {
 	) {
 	}
 
-	private function msg(string $text): string {
-		return $this->l10n !== null ? $this->l10n->t($text) : $text;
+	/** @param array<int,mixed> $params Parameter für sprintf, siehe {@see IL10N::t()} */
+	private function msg(string $text, array $params = []): string {
+		if ($this->l10n !== null) {
+			return $this->l10n->t($text, $params);
+		}
+		return $params === [] ? $text : vsprintf($text, $params);
 	}
 
 	/**
@@ -74,10 +78,12 @@ class XbucParser {
 		$openingContra = array_key_first($equityNumbers);
 
 		$bookings = [];
+		$position = 0;
 		if ($projekt->Ordner_Buchungen) {
 			foreach ($projekt->Ordner_Buchungen->Buchungsgruppe as $gruppe) {
 				foreach ($gruppe->Buchung as $b) {
-					$booking = $this->parseBooking($b, $numbers, $openingContra, $equityNumbers, $bestandNumbers);
+					$position++;
+					$booking = $this->parseBooking($b, $numbers, $openingContra, $equityNumbers, $bestandNumbers, $position);
 					if ($booking !== null) {
 						$bookings[] = $booking;
 					}
@@ -186,11 +192,20 @@ class XbucParser {
 	/**
 	 * @param string[] $numbers längste zuerst
 	 * @param array<string,true> $equityNumbers Kontonummern der Eigenkapitalkonten
+	 * @param int $position laufende Nummer der Buchung in der Datei (für Fehlermeldungen)
 	 * @return array<string,mixed>|null
+	 * @throws UserFacingException wenn ein angegebener Betrag nicht lesbar ist
 	 */
-	private function parseBooking(\SimpleXMLElement $b, array $numbers, ?string $openingContra = null, array $equityNumbers = [], array $bestandNumbers = []): ?array {
+	private function parseBooking(\SimpleXMLElement $b, array $numbers, ?string $openingContra = null, array $equityNumbers = [], array $bestandNumbers = [], int $position = 0): ?array {
 		$date = $this->parseDate((string)$b['Datum']);
-		$amount = $this->parseAmount((string)$b->Betrag_als_Zahl);
+		$rawAmount = trim((string)$b->Betrag_als_Zahl);
+		$amount = $this->parseAmount($rawAmount);
+		// Ein leerer Betrag ist keine Buchung und bleibt still draußen. Ein
+		// angegebener, aber unlesbarer Betrag ist ein Fehler der Datei: still
+		// übergangen fehlte sonst ein ganzer Buchungssatz im übernommenen Buch.
+		if ($amount === null && $rawAmount !== '') {
+			throw new UserFacingException($this->msg('Buchung %1$d der XBUC-Datei: Der Betrag „%2$s“ ist nicht lesbar.', [$position, $rawAmount]));
+		}
 		if ($date === null || $amount === null) {
 			return null;
 		}

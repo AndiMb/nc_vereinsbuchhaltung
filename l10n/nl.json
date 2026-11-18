@@ -1,5 +1,7 @@
 {
     "translations": {
+        "Zeile %1$d: Der Betrag „%2$s“ ist nicht lesbar.": "Regel %1$d: het bedrag “%2$s” is niet leesbaar.",
+        "Buchung %1$d der XBUC-Datei: Der Betrag „%2$s“ ist nicht lesbar.": "Boeking %1$d van het XBUC-bestand: het bedrag “%2$s” is niet leesbaar.",
         "Buchung %d der CAMT-Datei hat keinen Betrag.": "Boeking %d van het CAMT-bestand heeft geen bedrag.",
         "Buchung %1$d der CAMT-Datei: Der Betrag „%2$s“ ist nicht lesbar.": "Boeking %1$d van het CAMT-bestand: het bedrag “%2$s” is niet leesbaar.",
         "Buchung %1$d der MT940-Datei ist nicht lesbar: :61:%2$s": "Boeking %1$d van het MT940-bestand is niet leesbaar: :61:%2$s",

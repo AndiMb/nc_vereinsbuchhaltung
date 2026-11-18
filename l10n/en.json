@@ -1,5 +1,7 @@
 {
     "translations": {
+        "Zeile %1$d: Der Betrag „%2$s“ ist nicht lesbar.": "Line %1$d: the amount “%2$s” cannot be read.",
+        "Buchung %1$d der XBUC-Datei: Der Betrag „%2$s“ ist nicht lesbar.": "Entry %1$d of the XBUC file: the amount “%2$s” cannot be read.",
         "Buchung %d der CAMT-Datei hat keinen Betrag.": "Entry %d of the CAMT file has no amount.",
         "Buchung %1$d der CAMT-Datei: Der Betrag „%2$s“ ist nicht lesbar.": "Entry %1$d of the CAMT file: the amount “%2$s” cannot be read.",
         "Buchung %1$d der MT940-Datei ist nicht lesbar: :61:%2$s": "Entry %1$d of the MT940 file cannot be read: :61:%2$s",

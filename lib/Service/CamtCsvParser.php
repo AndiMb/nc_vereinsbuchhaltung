@@ -112,7 +112,8 @@ class CamtCsvParser implements StatementParser, StatementBalanceReader {
 		$content = $this->toUtf8($content);
 		$content = preg_replace('/^\xEF\xBB\xBF/', '', $content); // BOM entfernen
 
-		$records = $this->readRecords($content);
+		$lines = [];
+		$records = $this->readRecords($content, $lines);
 		if (count($records) < 2) {
 			throw new UserFacingException($this->msg('Die Datei enthält keine Buchungszeilen.'));
 		}
@@ -128,7 +129,7 @@ class CamtCsvParser implements StatementParser, StatementBalanceReader {
 			if (count($cols) === 1 && trim((string)$cols[0]) === '') {
 				continue;
 			}
-			$row = $this->buildRow($cols, $map);
+			$row = $this->buildRow($cols, $map, $lines[$i]);
 			if ($row !== null) {
 				$rows[] = $row;
 			}
@@ -234,9 +235,11 @@ class CamtCsvParser implements StatementParser, StatementBalanceReader {
 	 * bekam verschobene Spalten, und beides fiel erst beim Abgleich der Salden
 	 * auf.
 	 *
+	 * @param array<int, int> $lines wird gefüllt: Zeilennummer in der Datei, in
+	 *                               der der Datensatz gleichen Index' beginnt
 	 * @return array<int, array<int, string|null>>
 	 */
-	private function readRecords(string $content): array {
+	private function readRecords(string $content, array &$lines = []): array {
 		$firstLine = strtok($content, "\r\n");
 		$delimiter = $this->detectDelimiter($firstLine === false ? '' : $firstLine);
 
@@ -248,7 +251,15 @@ class CamtCsvParser implements StatementParser, StatementBalanceReader {
 		rewind($handle);
 
 		$records = [];
+		$lines = [];
+		$line = 1;
+		$offset = 0;
 		while (($cols = fgetcsv($handle, 0, $delimiter, '"', '\\')) !== false) {
+			// Zeilennummer mitzählen: ein Datensatz kann mehrere Zeilen umfassen.
+			$start = $line;
+			$end = (int)ftell($handle);
+			$line += substr_count($content, "\n", $offset, max(0, $end - $offset));
+			$offset = $end;
 			// Vollständig leere Zeilen überspringen (fgetcsv liefert [null]).
 			if ($cols === [null]) {
 				continue;
@@ -258,6 +269,7 @@ class CamtCsvParser implements StatementParser, StatementBalanceReader {
 				continue;
 			}
 			$records[] = $cols;
+			$lines[] = $start;
 		}
 		fclose($handle);
 
@@ -267,9 +279,11 @@ class CamtCsvParser implements StatementParser, StatementBalanceReader {
 	/**
 	 * @param string[] $cols
 	 * @param array<string, int> $map
+	 * @param int $line Zeilennummer in der Datei (für Fehlermeldungen)
 	 * @return array<string, mixed>|null
+	 * @throws UserFacingException wenn ein angegebener Betrag nicht lesbar ist
 	 */
-	private function buildRow(array $cols, array $map): ?array {
+	private function buildRow(array $cols, array $map, int $line): ?array {
 		$get = static function (string $field) use ($cols, $map): ?string {
 			if (!isset($map[$field])) {
 				return null;
@@ -298,7 +312,15 @@ class CamtCsvParser implements StatementParser, StatementBalanceReader {
 			return null;
 		}
 
-		$amountCents = $this->parseAmount($get('amount'));
+		$rawAmount = $get('amount');
+		$amountCents = $this->parseAmount($rawAmount);
+		// Eine leere Betragszelle (Summen- oder Fußzeile) bleibt still draußen.
+		// Ein angegebener, aber unlesbarer Betrag ist ein Fehler der Datei:
+		// still übergangen, fehlte die Buchung, und erst der Saldenabgleich
+		// fiele auf.
+		if ($amountCents === null && $rawAmount !== null) {
+			throw new UserFacingException($this->msg('Zeile %1$d: Der Betrag „%2$s“ ist nicht lesbar.', [$line, $rawAmount]));
+		}
 		return $this->normalizer->build([
 			'ownAccount' => $get('ownAccount'),
 			'bookingDate' => $this->parseDate($get('bookingDate')),
