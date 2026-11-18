@@ -10,7 +10,10 @@ namespace OCA\Vereinsbuchhaltung\Service\Text;
  *
  * Vorher hatte jeder Import seinen eigenen Betragsleser, und dieselbe Angabe
  * „1.234" ergab je nach Weg 1,23 € (CSV-Kontoauszug, Mitglieder-CSV, XBUC,
- * CAMT.053) oder 1.234,00 € (PayPal, MT940). Hier stehen die Regeln einmal:
+ * CAMT.053) oder 1.234,00 € (PayPal, MT940). Hier stehen die Regeln für
+ * diese sechs Importe einmal (die Tabellen des Rechnungsstapels liest
+ * {@see \OCA\Vereinsbuchhaltung\Service\InvoiceBatch\BatchSheetParser} noch
+ * mit eigenen Regeln):
  *
  * **XML** ({@see xml()}, CAMT.053): der Wert ist ein xs:decimal – nur der
  * Punkt als Dezimaltrenner, keine Tausendertrenner, kein Währungszeichen.

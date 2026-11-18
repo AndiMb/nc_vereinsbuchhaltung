@@ -19,7 +19,6 @@ use OCA\Vereinsbuchhaltung\Db\ReimbursementFileMapper;
 use OCA\Vereinsbuchhaltung\Db\ReimbursementMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
 use OCA\Vereinsbuchhaltung\Exception\ForbiddenException;
-use OCA\Vereinsbuchhaltung\Exception\UserFacingException;
 use OCA\Vereinsbuchhaltung\Service\Text\Utf8;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Utility\ITimeFactory;
@@ -239,7 +238,7 @@ class ReimbursementService {
 		// Sicherheit I-1). Der Generator entschärft das ebenfalls; hier wird es
 		// gar nicht erst gespeichert, damit auch die Anzeige zum Abtippen stimmt.
 		if ($accountHolder !== null && preg_match('/[\p{Cc}\p{Zl}\p{Zp}]/u', $accountHolder) === 1) {
-			throw new UserFacingException($this->l10n->t('Der Kontoinhaber darf keine Zeilenumbrüche oder Steuerzeichen enthalten.'));
+			throw new \InvalidArgumentException($this->l10n->t('Der Kontoinhaber darf keine Zeilenumbrüche oder Steuerzeichen enthalten.'));
 		}
 		$accountHolder ??= $member->displayName();
 		if (!$declarationAccepted) {

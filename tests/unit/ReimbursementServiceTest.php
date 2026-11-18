@@ -21,7 +21,6 @@ use OCA\Vereinsbuchhaltung\Db\ReimbursementMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
 use OCA\Vereinsbuchhaltung\Exception\ForbiddenException;
 use OCA\Vereinsbuchhaltung\Exception\PeriodClosedException;
-use OCA\Vereinsbuchhaltung\Exception\UserFacingException;
 use OCA\Vereinsbuchhaltung\Service\AuditService;
 use OCA\Vereinsbuchhaltung\Service\BookingService;
 use OCA\Vereinsbuchhaltung\Service\IbanValidator;
@@ -348,7 +347,7 @@ class ReimbursementServiceTest extends TestCase {
 	 */
 	#[DataProvider('kontoinhaberMitSteuerzeichen')]
 	public function testKontoinhaberMitSteuerzeichenWirdAbgelehnt(string $holder): void {
-		$this->expectException(UserFacingException::class);
+		$this->expectException(\InvalidArgumentException::class);
 		$this->expectExceptionMessage('Der Kontoinhaber darf keine Zeilenumbrüche oder Steuerzeichen enthalten.');
 		$this->submitWith($this->service(), ['accountHolder' => $holder]);
 	}
