@@ -1,4 +1,17 @@
 OC.L10N.register("vereinsbuchhaltung", {
+	"Buchung %d der CAMT-Datei hat keinen Betrag.": "Boeking %d van het CAMT-bestand heeft geen bedrag.",
+	"Buchung %1$d der CAMT-Datei: Der Betrag „%2$s“ ist nicht lesbar.": "Boeking %1$d van het CAMT-bestand: het bedrag “%2$s” is niet leesbaar.",
+	"Buchung %1$d der MT940-Datei ist nicht lesbar: :61:%2$s": "Boeking %1$d van het MT940-bestand is niet leesbaar: :61:%2$s",
+	"Buchung %1$d der MT940-Datei: Der Betrag „%2$s“ ist nicht lesbar.": "Boeking %1$d van het MT940-bestand: het bedrag “%2$s” is niet leesbaar.",
+	"Diese Sicherung stammt nicht nachweislich von dieser Nextcloud. Rollen gehen an gleichnamige Konten und Gruppen dieser Nextcloud – prüfen Sie sie nach dem Einspielen. Verknüpfungen von Mitgliedern mit Konten müssen die Mitglieder neu bestätigen.": "Deze back-up komt niet aantoonbaar van deze Nextcloud. Rollen gaan naar accounts en groepen met dezelfde naam op deze Nextcloud – controleer ze na het terugzetten. Leden moeten de koppeling van hun lidmaatschap met een account opnieuw bevestigen.",
+	"Die Sicherung stammt nicht nachweislich von dieser Nextcloud. Diese Konten und Gruppen gibt es hier, und sie haben eine Rolle bekommen. Prüfen Sie unter „Berechtigungen“, ob sie hier denselben Menschen gehören:": "De back-up komt niet aantoonbaar van deze Nextcloud. Deze accounts en groepen bestaan hier en hebben een rol gekregen. Controleer onder “Rechten” of ze hier bij dezelfde mensen horen:",
+	"Gruppe {name}: {role}": "Groep {name}: {role}",
+	"Benutzer {name}: {role}": "Gebruiker {name}: {role}",
+	"_Die Verknüpfung von %n Mitglied mit einem Konto muss das Mitglied neu bestätigen._::_Die Verknüpfungen von %n Mitgliedern mit Konten müssen die Mitglieder neu bestätigen._": [
+		"%n lid moet de koppeling met zijn account opnieuw bevestigen.",
+		"%n leden moeten de koppeling met hun account opnieuw bevestigen."
+	],
+	"Der Kontoinhaber darf keine Zeilenumbrüche oder Steuerzeichen enthalten.": "De rekeninghouder mag geen regeleinden of stuurtekens bevatten.",
 	"Diese Buchung gehört schon zu einer anderen Auslage.": "Deze boeking hoort al bij een andere declaratie.",
 	"Bestätigung ausstehend": "Bevestiging in afwachting",
 	"Vorschlag {uid} verknüpfen": "Suggestie {uid} koppelen",

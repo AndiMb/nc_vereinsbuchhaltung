@@ -1,4 +1,17 @@
 OC.L10N.register("vereinsbuchhaltung", {
+	"Buchung %d der CAMT-Datei hat keinen Betrag.": "Entry %d of the CAMT file has no amount.",
+	"Buchung %1$d der CAMT-Datei: Der Betrag „%2$s“ ist nicht lesbar.": "Entry %1$d of the CAMT file: the amount “%2$s” cannot be read.",
+	"Buchung %1$d der MT940-Datei ist nicht lesbar: :61:%2$s": "Entry %1$d of the MT940 file cannot be read: :61:%2$s",
+	"Buchung %1$d der MT940-Datei: Der Betrag „%2$s“ ist nicht lesbar.": "Entry %1$d of the MT940 file: the amount “%2$s” cannot be read.",
+	"Diese Sicherung stammt nicht nachweislich von dieser Nextcloud. Rollen gehen an gleichnamige Konten und Gruppen dieser Nextcloud – prüfen Sie sie nach dem Einspielen. Verknüpfungen von Mitgliedern mit Konten müssen die Mitglieder neu bestätigen.": "This backup is not known to come from this Nextcloud. Roles go to accounts and groups of the same name on this Nextcloud – please check them after restoring. Members will have to confirm the links between their member record and an account again.",
+	"Die Sicherung stammt nicht nachweislich von dieser Nextcloud. Diese Konten und Gruppen gibt es hier, und sie haben eine Rolle bekommen. Prüfen Sie unter „Berechtigungen“, ob sie hier denselben Menschen gehören:": "The backup is not known to come from this Nextcloud. These accounts and groups exist here and have been given a role. Under “Permissions”, check that they belong to the same people here:",
+	"Gruppe {name}: {role}": "Group {name}: {role}",
+	"Benutzer {name}: {role}": "User {name}: {role}",
+	"_Die Verknüpfung von %n Mitglied mit einem Konto muss das Mitglied neu bestätigen._::_Die Verknüpfungen von %n Mitgliedern mit Konten müssen die Mitglieder neu bestätigen._": [
+		"%n member will have to confirm the link to their account again.",
+		"%n members will have to confirm the links to their accounts again."
+	],
+	"Der Kontoinhaber darf keine Zeilenumbrüche oder Steuerzeichen enthalten.": "The account holder must not contain line breaks or control characters.",
 	"Diese Buchung gehört schon zu einer anderen Auslage.": "This entry already belongs to another expense.",
 	"Bestätigung ausstehend": "Confirmation pending",
 	"Vorschlag {uid} verknüpfen": "Link suggestion {uid}",
