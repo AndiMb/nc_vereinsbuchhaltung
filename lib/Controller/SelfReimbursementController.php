@@ -8,6 +8,7 @@ use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\MandateMapper;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Db\ReimbursementMapper;
+use OCA\Vereinsbuchhaltung\Exception\UserFacingException;
 use OCA\Vereinsbuchhaltung\Http\ReceiptPreviewPolicy;
 use OCA\Vereinsbuchhaltung\Service\ActorContextService;
 use OCA\Vereinsbuchhaltung\Service\ReimbursementDraftService;
@@ -314,6 +315,10 @@ class SelfReimbursementController extends Controller {
 		} catch (DoesNotExistException) {
 			return $this->notFound();
 		} catch (\InvalidArgumentException $e) {
+			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
+		} catch (UserFacingException $e) {
+			// Eine für Menschen geschriebene Ablehnung (etwa ein Kontoinhaber mit
+			// Zeilenumbruch) ist ein Eingabefehler, kein Serverfehler.
 			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
 		} catch (\RuntimeException $e) {
 			return $this->internalError($e, Http::STATUS_INTERNAL_SERVER_ERROR, $this->l10n->t('Die Aktion ist fehlgeschlagen.'));

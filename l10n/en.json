@@ -1,5 +1,6 @@
 {
     "translations": {
+        "Der Kontoinhaber darf keine Zeilenumbrüche oder Steuerzeichen enthalten.": "The account holder must not contain line breaks or control characters.",
         "Diese Buchung gehört schon zu einer anderen Auslage.": "This entry already belongs to another expense.",
         "Bestätigung ausstehend": "Confirmation pending",
         "Vorschlag {uid} verknüpfen": "Link suggestion {uid}",

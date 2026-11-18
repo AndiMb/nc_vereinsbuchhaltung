@@ -227,4 +227,45 @@ class EpcQrCodeGeneratorTest extends TestCase {
 		$this->expectException(\InvalidArgumentException::class);
 		$this->generator()->buildPayload('Musterverein', 'DE02120300000000202051', null, 4599, 'Beitrag');
 	}
+
+	/**
+	 * Feldinjektion (Review 2026-11-18, Sicherheit I-1): ein Zeilenumbruch im
+	 * Empfängernamen darf keine eigene IBAN- und Betragszeile erzeugen. Die
+	 * Banking-App liest die Felder nach ihrer Position.
+	 */
+	public function testZeilenumbruchImNamenErzeugtKeineZusaetzlichenFelder(): void {
+		$lines = $this->lines($this->generator()->buildPayload(
+			"Max\nDE89370400440532013000\nEUR1234.00",
+			'DE02120300000000202051',
+			null,
+			1234,
+			'Auslage',
+		));
+
+		$this->assertCount(11, $lines);
+		$this->assertSame('Max DE89370400440532013000 EUR1234.00', $lines[5]);
+		$this->assertSame('DE02120300000000202051', $lines[6]);
+		$this->assertSame('EUR12.34', $lines[7]);
+		$this->assertSame('Auslage', $lines[10]);
+	}
+
+	/** Dasselbe für Verwendungszweck, Referenz und andere Steuerzeichen (CR, Tab, NUL, NEL, U+2028). */
+	public function testSteuerzeichenInAllenFreitextfeldernWerdenZuLeerzeichen(): void {
+		$lines = $this->lines($this->generator()->buildPayload(
+			"Muster\r\nverein\te.V.",
+			'DE02120300000000202051',
+			null,
+			100,
+			"Beitrag\n2026\x00Q1\u{0085}x\u{2028}y",
+		));
+
+		$this->assertCount(11, $lines);
+		$this->assertSame('Muster verein e.V.', $lines[5]);
+		$this->assertSame('EUR1.00', $lines[7]);
+		$this->assertSame('Beitrag 2026 Q1 x y', $lines[10]);
+
+		$lines = $this->lines($this->generator()->buildPayload('Musterverein', 'DE02120300000000202051', null, 100, '', "RF18\n5390\r0754 7034"));
+		$this->assertCount(10, $lines);
+		$this->assertSame('RF18539007547034', $lines[9]);
+	}
 }

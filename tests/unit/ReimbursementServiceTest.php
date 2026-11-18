@@ -21,6 +21,7 @@ use OCA\Vereinsbuchhaltung\Db\ReimbursementMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
 use OCA\Vereinsbuchhaltung\Exception\ForbiddenException;
 use OCA\Vereinsbuchhaltung\Exception\PeriodClosedException;
+use OCA\Vereinsbuchhaltung\Exception\UserFacingException;
 use OCA\Vereinsbuchhaltung\Service\AuditService;
 use OCA\Vereinsbuchhaltung\Service\BookingService;
 use OCA\Vereinsbuchhaltung\Service\IbanValidator;
@@ -338,6 +339,28 @@ class ReimbursementServiceTest extends TestCase {
 		$r = $this->submitWith($this->service(), ['accountHolder' => ' Familie Musterfrau ']);
 
 		$this->assertSame('Familie Musterfrau', $r->getAccountHolder());
+	}
+
+	/**
+	 * Feldinjektion in den GiroCode (Review 2026-11-18, Sicherheit I-1): der
+	 * Kontoinhaber ist ein einzeiliges Feld. Ein Zeilenumbruch könnte im
+	 * GiroCode eine eigene IBAN- und Betragszeile vortäuschen.
+	 */
+	#[DataProvider('kontoinhaberMitSteuerzeichen')]
+	public function testKontoinhaberMitSteuerzeichenWirdAbgelehnt(string $holder): void {
+		$this->expectException(UserFacingException::class);
+		$this->expectExceptionMessage('Der Kontoinhaber darf keine Zeilenumbrüche oder Steuerzeichen enthalten.');
+		$this->submitWith($this->service(), ['accountHolder' => $holder]);
+	}
+
+	public static function kontoinhaberMitSteuerzeichen(): array {
+		return [
+			'LF' => ["Max\nDE89370400440532013000\nEUR1234.00"],
+			'CR' => ["Max\rMuster"],
+			'Tab' => ["Max\tMuster"],
+			'NUL' => ["Max\x00Muster"],
+			'Zeilentrenner U+2028' => ["Max\u{2028}Muster"],
+		];
 	}
 
 	public function testDieBestaetigteErklaerungStehtInDerHistorie(): void {
