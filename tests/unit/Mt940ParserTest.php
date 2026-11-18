@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Tests\Unit;
 
+use OCA\Vereinsbuchhaltung\Exception\UserFacingException;
 use OCA\Vereinsbuchhaltung\Service\Statement\Mt940Parser;
 use PHPUnit\Framework\TestCase;
 
@@ -208,5 +209,38 @@ class Mt940ParserTest extends TestCase {
 	public function testWirftOhneBuchungen(): void {
 		$this->expectException(\RuntimeException::class);
 		$this->parser->parse(":20:TEST\n:25:50010517/0648489890\n:62F:C260131EUR0,00\n");
+	}
+
+	/**
+	 * Review 2026-11-18 (Backend 4): eine :61:-Zeile mit unlesbarem Betrag
+	 * fiel bisher still weg. Wie beim PayPal-Import bricht der Import jetzt
+	 * ab und nennt die Buchung.
+	 */
+	public function testUnlesbarerBetragBrichtMitNummerDerBuchungAb(): void {
+		$sta = str_replace(':61:2601050105D250,00NDDT', ':61:2601050105D25,0,0NDDT', $this->fixture());
+
+		$this->expectException(UserFacingException::class);
+		$this->expectExceptionMessage('Buchung 2 der MT940-Datei: Der Betrag „25,0,0“ ist nicht lesbar.');
+		$this->parser->parse($sta);
+	}
+
+	public function testUnlesbareBuchungszeileBrichtAb(): void {
+		$sta = ":20:TEST\n:25:50010517/0648489890\n"
+			. ":61:2602010201C60,00NTRFNONREF\n"
+			. ":61:26020X0202D25,00NTRFNONREF\n";
+
+		$this->expectException(UserFacingException::class);
+		$this->expectExceptionMessage('Buchung 2 der MT940-Datei ist nicht lesbar: :61:26020X0202D25,00NTRFNONREF');
+		$this->parser->parse($sta);
+	}
+
+	/** Tausenderpunkte im Betrag (deutsche Schreibweise) bleiben Tausender. */
+	public function testTausenderpunktImBetrag(): void {
+		$sta = ":20:TEST\n:25:50010517/0648489890\n:61:2602010201C1.250,50NTRFNONREF\n:61:2602010201C1.000NTRFNONREF\n";
+
+		$rows = $this->parser->parse($sta);
+
+		$this->assertSame(125050, $rows[0]['amountCents']);
+		$this->assertSame(100000, $rows[1]['amountCents']);
 	}
 }

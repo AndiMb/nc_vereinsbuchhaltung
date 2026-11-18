@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Service;
 
 use OCA\Vereinsbuchhaltung\Exception\UserFacingException;
+use OCA\Vereinsbuchhaltung\Service\Text\AmountParser;
 use OCA\Vereinsbuchhaltung\Service\Text\EntityDecoder;
 use OCA\Vereinsbuchhaltung\Service\Text\SafeXml;
 use OCP\IL10N;
@@ -353,25 +354,12 @@ class XbucParser {
 		return null;
 	}
 
+	/**
+	 * `Betrag_als_Zahl` schreibt das Programm deutsch („12,00"), also gelten
+	 * die deutschen Textregeln von {@see AmountParser}.
+	 */
 	private function parseAmount(?string $value): ?int {
-		if ($value === null || trim($value) === '') {
-			return null;
-		}
-		$v = trim($value);
-		$negative = str_starts_with($v, '-');
-		$v = preg_replace('/[^0-9,.]/', '', $v) ?? '';
-		if ($v === '') {
-			return null;
-		}
-		if (str_contains($v, ',')) {
-			$v = str_replace('.', '', $v);
-			$v = str_replace(',', '.', $v);
-		}
-		if (!is_numeric($v)) {
-			return null;
-		}
-		$cents = (int)round(((float)$v) * 100);
-		return $negative ? -abs($cents) : $cents;
+		return $value === null ? null : AmountParser::germanText($value);
 	}
 
 	/**

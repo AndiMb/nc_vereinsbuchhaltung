@@ -9,6 +9,7 @@ use OCA\Vereinsbuchhaltung\Service\Statement\RowNormalizer;
 use OCA\Vereinsbuchhaltung\Service\Statement\StatementBalance;
 use OCA\Vereinsbuchhaltung\Service\Statement\StatementBalanceReader;
 use OCA\Vereinsbuchhaltung\Service\Statement\StatementParser;
+use OCA\Vereinsbuchhaltung\Service\Text\AmountParser;
 use OCP\IL10N;
 
 /**
@@ -421,31 +422,11 @@ class CamtCsvParser implements StatementParser, StatementBalanceReader {
 	}
 
 	/**
-	 * Wandelt "1.234,56" oder "-1234,56" oder "1234.56" in Cent (int) um.
+	 * "1.234,56", "-1234,56" oder "1234.56" in Cent. Bank-CSV ist deutsch
+	 * formatiert: „1.234" ist 1.234,00 € (Regeln: {@see AmountParser}).
 	 */
 	private function parseAmount(?string $value): ?int {
-		if ($value === null || $value === '') {
-			return null;
-		}
-		$v = trim($value);
-		$negative = false;
-		if (str_starts_with($v, '-')) {
-			$negative = true;
-		}
-		$v = preg_replace('/[^0-9,.]/', '', $v) ?? '';
-		if ($v === '') {
-			return null;
-		}
-		if (str_contains($v, ',')) {
-			// deutsches Format: Punkt = Tausender, Komma = Dezimal
-			$v = str_replace('.', '', $v);
-			$v = str_replace(',', '.', $v);
-		}
-		if (!is_numeric($v)) {
-			return null;
-		}
-		$cents = (int)round(((float)$v) * 100);
-		return $negative ? -abs($cents) : $cents;
+		return $value === null ? null : AmountParser::germanText($value);
 	}
 
 	private function normalizeKey(string $name): string {

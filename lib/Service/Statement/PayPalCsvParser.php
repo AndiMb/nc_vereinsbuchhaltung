@@ -6,6 +6,7 @@ namespace OCA\Vereinsbuchhaltung\Service\Statement;
 
 use OCA\Vereinsbuchhaltung\Exception\UserFacingException;
 use OCA\Vereinsbuchhaltung\Service\ClubCurrency;
+use OCA\Vereinsbuchhaltung\Service\Text\AmountParser;
 use OCP\IL10N;
 
 /**
@@ -349,15 +350,11 @@ final class PayPalCsvParser implements StatementParser, StatementBalanceReader {
 
 	/**
 	 * „1.250,00" / „-1,60" → Cent; null bei nicht lesbarem Wert. Das Format
-	 * ist bewusst das des deutschen Exports (Tausenderpunkt, Dezimalkomma).
+	 * ist bewusst das des deutschen Exports (Tausenderpunkt, Dezimalkomma),
+	 * Regeln: {@see AmountParser}.
 	 */
 	private function parseAmount(string $value): ?int {
-		$v = str_replace(['.', ' ', "\xC2\xA0"], '', trim($value));
-		$v = str_replace(',', '.', $v);
-		if (!preg_match('/^[-+]?\d+(\.\d+)?$/', $v)) {
-			return null;
-		}
-		return (int)round((float)$v * 100);
+		return AmountParser::germanText($value);
 	}
 
 	/** „TT.MM.JJJJ" → „JJJJ-MM-TT"; null bei ungültigem Datum. */
