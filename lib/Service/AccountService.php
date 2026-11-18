@@ -521,6 +521,20 @@ class AccountService {
 		}
 
 		$matcher = new BankAccountMatcher($this->normalizer);
+		if ($matcher->isPayPalKey($ownAccount)) {
+			// Nur die PayPal-Adressen der Geldkonten zählen – kein Rückfall aufs erste Geldkonto.
+			$hits = $matcher->payPalCandidates((string)$ownAccount, $banks);
+			if (count($hits) === 1) {
+				return $hits[0];
+			}
+			if ($hits === []) {
+				throw new \InvalidArgumentException($this->l10n->t('Der Umsatz gehört zum PayPal-Konto %s. Tragen Sie diese Adresse als PayPal-Adresse am richtigen Geldkonto ein (Tab Konten).', [(string)$ownAccount]));
+			}
+			throw new \InvalidArgumentException($this->l10n->t('Der Umsatz gehört zum PayPal-Konto %s, das zu mehreren Geldkonten passt (%s). Prüfen Sie die PayPal-Adressen der Geldkonten (Tab Konten).', [
+				(string)$ownAccount,
+				implode(', ', array_map(static fn (Account $a): string => $a->getNumber() . ' ' . $a->getName(), $hits)),
+			]));
+		}
 		$hits = $matcher->candidates($ownAccount, $banks);
 		if (count($hits) === 1) {
 			return $hits[0];

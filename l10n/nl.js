@@ -3132,6 +3132,8 @@ OC.L10N.register("vereinsbuchhaltung", {
 	"am {day}. des ersten Periodenmonats": "op de {day}e van de eerste maand van de periode",
 	"Der Umsatz gehört zum Konto %s, das zu keinem Geldkonto passt. Tragen Sie dessen IBAN am richtigen Geldkonto ein (Tab Konten).": "De transactie hoort bij rekening %s, die bij geen enkele geldrekening past. Vul de IBAN ervan in bij de juiste geldrekening (tabblad Rekeningen).",
 	"Der Umsatz gehört zum Konto %s, das zu mehreren Geldkonten passt (%s). Prüfen Sie die IBANs der Geldkonten (Tab Konten).": "De transactie hoort bij rekening %s, die bij meerdere geldrekeningen past (%s). Controleer de IBAN's van de geldrekeningen (tabblad Rekeningen).",
+	"Der Umsatz gehört zum PayPal-Konto %s. Tragen Sie diese Adresse als PayPal-Adresse am richtigen Geldkonto ein (Tab Konten).": "De transactie hoort bij PayPal-rekening %s. Voer dit adres in als PayPal-adres bij de juiste geldrekening (tabblad Rekeningen).",
+	"Der Umsatz gehört zum PayPal-Konto %s, das zu mehreren Geldkonten passt (%s). Prüfen Sie die PayPal-Adressen der Geldkonten (Tab Konten).": "De transactie hoort bij PayPal-rekening %s, die bij meerdere geldrekeningen past (%s). Controleer de PayPal-adressen van de geldrekeningen (tabblad Rekeningen).",
 	"Nicht jeder Umsatz lässt sich einem Geldkonto zuordnen. Die Datei wird trotzdem eingelesen; zuordnen können Sie diese Umsätze, sobald die IBAN am richtigen Geldkonto steht.": "Niet elke transactie kan aan een geldrekening worden toegewezen. Het bestand wordt toch ingelezen; u kunt deze transacties toewijzen zodra de IBAN bij de juiste geldrekening staat.",
 	"_%n Umsatz: {message}_::_%n Umsätze: {message}_": [
 		"%n transactie: {message}",

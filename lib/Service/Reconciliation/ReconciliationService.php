@@ -292,6 +292,10 @@ class ReconciliationService {
 			return null;
 		}
 		$matcher = new BankAccountMatcher($this->normalizer);
+		if ($matcher->isPayPalKey($ownAccount)) {
+			$hits = $matcher->payPalCandidates((string)$ownAccount, $banks);
+			return count($hits) === 1 ? $hits[0] : null;
+		}
 		$hits = $matcher->candidates($ownAccount, $banks);
 		if (count($hits) === 1) {
 			return $hits[0];
@@ -315,6 +319,10 @@ class ReconciliationService {
 	 */
 	private function concerns(?string $ownAccount, Account $account, array $banks): bool {
 		$matcher = new BankAccountMatcher($this->normalizer);
+		if ($matcher->isPayPalKey($ownAccount)) {
+			$hits = $matcher->payPalCandidates((string)$ownAccount, $banks);
+			return in_array($account->getId(), array_map(static fn (Account $a): int => (int)$a->getId(), $hits), true);
+		}
 		if (!$matcher->identifiesAccount($ownAccount)) {
 			return true;
 		}

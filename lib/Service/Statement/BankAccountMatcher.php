@@ -64,6 +64,30 @@ class BankAccountMatcher {
 	}
 
 	/**
+	 * Ob die Kontoangabe eine PayPal-Kennung ist (Issue #375). Sie wird wie
+	 * jedes eigene Konto normalisiert, bevor sie am Vorsatz erkannt wird – so
+	 * wie sie in `own_account` steht. Eine IBAN beginnt nie mit PAYPAL.
+	 */
+	public function isPayPalKey(?string $ownAccount): bool {
+		$wanted = $this->normalizer->normalizeOwnAccount($ownAccount);
+		return $wanted !== null && str_starts_with($wanted, PayPalAddresses::PREFIX);
+	}
+
+	/**
+	 * Die Geldkonten, an denen die PayPal-Adresse hinter der Kennung steht.
+	 * Eine PayPal-Kennung entscheidet allein hierüber: PayPal-Umsätze tragen
+	 * keine IBAN, ein Rückfall auf das erste Geldkonto würde sie auf die Bank
+	 * buchen.
+	 *
+	 * @param Account[] $bankAccounts
+	 * @return list<Account>
+	 */
+	public function payPalCandidates(string $ownAccount, array $bankAccounts): array {
+		$wanted = $this->normalizer->normalizeOwnAccount($ownAccount);
+		return array_values(array_filter($bankAccounts, static fn (Account $a): bool => in_array($wanted, PayPalAddresses::keys($a->getPaypalEmail()), true)));
+	}
+
+	/**
 	 * Ob der Wert überhaupt auf ein bestimmtes Konto zeigt. Eine bloße
 	 * Bezeichnung wie „Girokonto" (CSV-Spalte „Bezeichnung Auftragskonto")
 	 * tut das nicht – sie gilt wie ein fehlender Wert.
