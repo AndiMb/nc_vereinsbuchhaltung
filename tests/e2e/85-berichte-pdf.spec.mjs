@@ -1,7 +1,8 @@
 import { expect, test } from '@playwright/test'
 import { api, dav, openApp, switchTab, USERS, visibleSection } from './fixtures/nextcloud.mjs'
 
-// Issue #364: Kassenbericht und Beitragsbestätigung als PDF, dazu die Ablage
+// Issue #364: Kassenbericht, Gliederungsbericht (Tabellenansicht) und
+// Beitragsbestätigung als PDF, dazu die Ablage
 // des Kassenberichts beim Abschluss eines Geschäftsjahres im Berichtsordner
 // der Belegablage.
 
@@ -57,6 +58,7 @@ test.describe.serial('Berichte als PDF (#364)', () => {
 
 	test('Gliederungsbericht als PDF-Datei, unbekannte Vorlage 404', async ({ request }) => {
 		const { templates } = await api.getJson(request, '/report-templates')
+		expect(templates.length, 'Es muss mindestens eine Gliederungsvorlage geben').toBeGreaterThan(0)
 		const template = templates[0]
 		const disposition = await expectPdf(await api.raw(request, 'GET', `/export/gliederungsbericht/pdf?template=${template.id}&period=${period.id}`))
 		expect(disposition).toContain('Gliederungsbericht-')

@@ -1593,6 +1593,7 @@ page numbers, a table header repeated on every page and automatically in
 landscape format from five value columns on. The file is named
 *Gliederungsbericht-<template>-<period>.pdf* (umlauts are transliterated). The
 visual view (chapter 7.5) remains a print page only.
+
 **Print / PDF** opens the report as a print-ready page (landscape from five
 columns on), **CSV** delivers the same lines with a "level" column for
 outlining in a spreadsheet.
