@@ -14,6 +14,7 @@ use OCA\Vereinsbuchhaltung\Exception\ForbiddenException;
 use OCA\Vereinsbuchhaltung\Exception\UserFacingException;
 use OCA\Vereinsbuchhaltung\Middleware\NoRevisionBump;
 use OCA\Vereinsbuchhaltung\Service\ActorContextService;
+use OCA\Vereinsbuchhaltung\Service\DonationReceipt\DonationReceiptService;
 use OCA\Vereinsbuchhaltung\Service\Export\BeitragsbescheinigungPdfRenderer;
 use OCA\Vereinsbuchhaltung\Service\Export\BeitragsbescheinigungRenderer;
 use OCA\Vereinsbuchhaltung\Service\Export\DatenuebersichtRenderer;
@@ -83,6 +84,7 @@ class SelfController extends Controller {
 		private SelfServiceService $selfService,
 		private IL10N $l10n,
 		private ?BeitragsbescheinigungPdfRenderer $certificatePdf = null,
+		private ?DonationReceiptService $donationReceipts = null,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -405,6 +407,46 @@ class SelfController extends Controller {
 			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_INTERNAL_SERVER_ERROR);
 		} catch (\RuntimeException) {
 			return new DataResponse(['message' => $this->l10n->t('Das PDF konnte nicht erzeugt werden.')], Http::STATUS_INTERNAL_SERVER_ERROR);
+		}
+		return new DataDownloadResponse($pdf['content'], $pdf['fileName'], 'application/pdf');
+	}
+
+	/**
+	 * Die eigenen Zuwendungsbestätigungen (Issue #10): nur ausgestellte, nicht
+	 * stornierte. `enabled` sagt der Oberfläche, ob es sie im Verein gibt –
+	 * dann entfällt die informelle Beitragsbestätigung (das amtliche Muster
+	 * bestätigt, dass keine weiteren Beitragsquittungen ausgestellt werden).
+	 */
+	#[NoAdminRequired]
+	public function donationReceipts(): DataResponse {
+		$memberId = $this->requireMemberId();
+		$service = $this->donationReceipts;
+		if ($service === null || !$service->isEnabled()) {
+			return new DataResponse(['enabled' => false, 'receipts' => []]);
+		}
+		return new DataResponse(['enabled' => true, 'receipts' => $service->forMember($memberId)]);
+	}
+
+	/**
+	 * PDF einer eigenen Zuwendungsbestätigung. Die ID kommt aus der Anfrage,
+	 * deshalb prüft {@see DonationReceiptService::assertBelongsTo()} gegen die
+	 * member_id aus dem ActorContextService (IDOR-Schutz).
+	 */
+	#[NoAdminRequired]
+	#[NoCSRFRequired]
+	public function donationReceiptPdf(int $id): DataDownloadResponse|DataResponse {
+		$memberId = $this->requireMemberId();
+		$service = $this->donationReceipts;
+		$notFound = new DataResponse(['message' => $this->l10n->t('Zuwendungsbestätigung nicht gefunden')], Http::STATUS_NOT_FOUND);
+		if ($service === null || !$service->isEnabled()) {
+			return $notFound;
+		}
+		try {
+			$receipt = $service->find($id);
+			$service->assertBelongsTo($receipt, $memberId);
+			$pdf = $service->pdf($receipt);
+		} catch (DoesNotExistException|UserFacingException) {
+			return $notFound;
 		}
 		return new DataDownloadResponse($pdf['content'], $pdf['fileName'], 'application/pdf');
 	}

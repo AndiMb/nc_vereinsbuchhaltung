@@ -146,6 +146,9 @@ class ResetServiceTest extends TestCase {
 		// bleiben; sie verweisen auf nichts, was der Reset löscht.
 		'vbh_reimb_drafts',
 		'vbh_reimb_draft_files',
+		// Zuwendungsbestätigungen (#10): das Doppel ist 10 Jahre aufzubewahren
+		// (§ 50 Abs. 7 EStDV) und trägt die bestätigten Zahlungen selbst.
+		'vbh_donation_receipts',
 	];
 
 	/** @var list<string> Reihenfolge aller Wirkungen des Resets, siehe record() */

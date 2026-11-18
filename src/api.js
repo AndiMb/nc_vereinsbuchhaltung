@@ -393,6 +393,10 @@ export default {
 	selfCertificateUrl: (year) => generateUrl(base + '/self/certificate') + (year ? `?year=${year}` : ''),
 	selfCertificatePdfUrl: (year) => generateUrl(base + '/self/certificate/pdf') + (year ? `?year=${year}` : ''),
 
+	// Eigene Zuwendungsbestätigungen (Issue #10): Liste und PDF; die ID prüft der Server.
+	selfDonationReceipts: () => axios.get(url('/self/donation-receipts')),
+	selfDonationReceiptPdfUrl: (id) => generateUrl(base + `/self/donation-receipts/${id}/pdf`),
+
 	// "Datenübersicht" (Issue #78, Spec §3.8): Art.-15-DSGVO-Auskunft als
 	// druckfertige Live-Ansicht, hier unter "Meine Daten".
 	selfDataOverviewUrl: () => generateUrl(base + '/self/data-overview'),
@@ -425,6 +429,14 @@ export default {
 	memberCertificateYears: (memberId) => axios.get(url(`/export/beitragsbescheinigung/${memberId}/years`)),
 	memberCertificateUrl: (memberId, year) => generateUrl(base + `/export/beitragsbescheinigung/${memberId}`) + (year ? `?year=${year}` : ''),
 	memberCertificatePdfUrl: (memberId, year) => generateUrl(base + `/export/beitragsbescheinigung/${memberId}/pdf`) + (year ? `?year=${year}` : ''),
+
+	// Zuwendungsbestätigungen über Mitgliedsbeiträge (Issue #10).
+	donationReceiptSettings: () => axios.get(url('/donation-receipts/settings')),
+	saveDonationReceiptSettings: (data) => axios.put(url('/donation-receipts/settings'), data),
+	memberDonationReceipts: (memberId) => axios.get(url(`/donation-receipts/member/${memberId}`)),
+	issueDonationReceipt: (memberId, year) => axios.post(url('/donation-receipts'), { memberId, year }),
+	voidDonationReceipt: (id, reason) => axios.post(url(`/donation-receipts/${id}/void`), { reason }),
+	donationReceiptPdfUrl: (id) => generateUrl(base + `/donation-receipts/${id}/pdf`),
 
 	// "Datenübersicht" eines Mitglieds, Stellvertretung durch den Kassenwart
 	// über die Admin-Akte (Issue #78, Spec §3.8).

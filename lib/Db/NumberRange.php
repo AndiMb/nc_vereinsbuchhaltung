@@ -32,9 +32,11 @@ class NumberRange extends Entity implements \JsonSerializable {
 	public const KIND_CREDIT = 'storno';
 	/** Auslagenanträge: `AUSL-{JJJJ}-{NNNN}`, vergeben beim Einreichen. */
 	public const KIND_REIMBURSEMENT = 'auslage';
+	/** Zuwendungsbestätigungen (Issue #10): `ZB-{JJJJ}-{NNNN}`, vergeben beim Ausstellen. */
+	public const KIND_DONATION_RECEIPT = 'zuwendung';
 	/** Die Kreise der Rechnungsstellung (Einstellungen → Rechnungen). */
 	public const INVOICE_KINDS = [self::KIND_INVOICE, self::KIND_CREDIT];
-	public const KINDS = [self::KIND_INVOICE, self::KIND_CREDIT, self::KIND_REIMBURSEMENT];
+	public const KINDS = [self::KIND_INVOICE, self::KIND_CREDIT, self::KIND_REIMBURSEMENT, self::KIND_DONATION_RECEIPT];
 
 	public const RESET_YEARLY = 'yearly';
 	public const RESET_MONTHLY = 'monthly';

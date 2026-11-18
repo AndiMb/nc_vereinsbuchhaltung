@@ -135,6 +135,49 @@ final class ReportPdf {
 	}
 
 	/**
+	 * Eine Reihe umrahmter Felder nebeneinander, oben klein die Beschriftung,
+	 * darunter der Wert – wie die Felder eines amtlichen Vordrucks (Issue #10).
+	 *
+	 * @param list<array{label: string, value: string, width: float}> $fields
+	 *                                                                        `width` ist der Anteil an der Breite
+	 */
+	public function boxes(array $fields, float $minHeight = 12): void {
+		$total = $this->contentWidth();
+		$padding = $this->pdf->getCellPaddings();
+		// Die Werte stehen auf einer Höhe, auch wenn eine Beschriftung umbricht.
+		$labelHeight = 0.0;
+		$this->pdf->SetFont(self::FONT, '', 6.5, '', true);
+		foreach ($fields as $field) {
+			$labelHeight = max($labelHeight, $this->pdf->getStringHeight($field['width'] * $total, $field['label']));
+		}
+		$height = $minHeight;
+		$this->pdf->SetFont(self::FONT, '', 9.5, '', true);
+		foreach ($fields as $field) {
+			$height = max($height, $labelHeight + $this->pdf->getStringHeight($field['width'] * $total, $field['value']) + 1);
+		}
+		$this->ensureSpace($height + 2);
+		$y = $this->pdf->GetY();
+		$x = (float)self::MARGIN_LEFT;
+		$this->pdf->SetDrawColor(0, 0, 0);
+		$this->pdf->SetLineWidth(0.2);
+		foreach ($fields as $field) {
+			$width = $field['width'] * $total;
+			$this->pdf->Rect($x, $y, $width, $height);
+			$this->pdf->SetFont(self::FONT, '', 6.5, '', true);
+			$this->pdf->SetTextColor(90, 90, 90);
+			$this->pdf->MultiCell($width, 3, $field['label'], 0, 'L', false, 1, $x, $y + 0.3, true, 0, false, true, 0, 'T');
+			$this->pdf->SetFont(self::FONT, '', 9.5, '', true);
+			$this->pdf->SetTextColor(0, 0, 0);
+			$this->pdf->MultiCell($width, 4.6, $field['value'], 0, 'L', false, 1, $x, $y + 0.3 + $labelHeight + 0.5, true, 0, false, true, 0, 'T');
+			$x += $width;
+		}
+		$this->pdf->setCellPaddings($padding['L'], $padding['T'], $padding['R'], $padding['B']);
+		$this->pdf->SetFont(self::FONT, '', 9, '', true);
+		$this->pdf->SetXY(self::MARGIN_LEFT, $y + $height);
+		$this->pdf->Ln(2.5);
+	}
+
+	/**
 	 * Eine Tabelle über die volle Breite.
 	 *
 	 * Spalten: Anteil an der Breite und Ausrichtung ('L'/'R'), Beschriftung für die

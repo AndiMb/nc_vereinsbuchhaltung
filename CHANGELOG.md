@@ -19,6 +19,22 @@ verwenden, z. B. `**Neu:**`.
 
 ## [Unreleased]
 
+**Neu:**
+- **Zuwendungsbestätigung über Mitgliedsbeiträge** (#10, Teil A): Ein
+  steuerbegünstigter Verein stellt je Mitglied und Kalenderjahr die amtliche
+  **Sammelbestätigung über Geldzuwendungen/Mitgliedsbeiträge** nach § 10b EStG
+  aus – nach dem verbindlichen BMF-Muster, mit Betrag in Ziffern und Buchstaben
+  und der Anlage mit jeder einzelnen Zahlung. Maßgeblich ist der Tag der
+  Zahlung. Das PDF wird mit fortlaufender Nummer (*ZB-2026-0001*) als Doppel
+  abgelegt, eine fehlerhafte Bestätigung wird mit Grund storniert. Mitglieder
+  laden ihre Bestätigungen unter *Mein Beitrag* herunter. Eingerichtet wird es
+  unter *Beiträge & SEPA → Zuwendungsbestätigungen* (Freistellungsbescheid oder
+  Feststellung nach § 60a AO, Finanzamt, Zwecke, Unterschrift). Die App stellt
+  nichts aus, solange die Bestätigung fehlt, dass Mitgliedsbeiträge abziehbar
+  sind (keine Sport-, Kultur-, Freizeit- oder Heimatpflegezwecke), oder wenn der
+  Bescheid zu alt ist (§ 63 Abs. 5 AO). Solange die Funktion an ist, entfällt
+  die informelle Beitragsbestätigung.
+
 ## [0.54.0] – 2026-11-17
 
 **Neu:**

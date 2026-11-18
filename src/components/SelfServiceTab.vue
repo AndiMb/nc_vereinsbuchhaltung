@@ -235,7 +235,24 @@
 				</p>
 			</div>
 
-			<div class="vbh-card">
+			<div v-if="donationReceipts.enabled" class="vbh-card">
+				<h4>{{ t('Meine Zuwendungsbestätigungen') }}</h4>
+				<p class="vbh-hint">
+					{{ t('Amtliche Bestätigung über die in einem Kalenderjahr gezahlten Mitgliedsbeiträge, zur Vorlage beim Finanzamt. Der Verein stellt sie nach Ablauf des Jahres aus.') }}
+				</p>
+				<ul v-if="donationReceipts.receipts.length" class="vbh-self-receipts">
+					<li v-for="r in donationReceipts.receipts" :key="r.id">
+						<NcButton variant="secondary" :href="donationReceiptPdfUrl(r.id)" :download="true">
+							{{ t('{year}: {number} (PDF)', { year: r.year, number: r.number }) }}
+						</NcButton>
+					</li>
+				</ul>
+				<p v-else class="vbh-hint">
+					{{ t('Bisher wurde noch keine Zuwendungsbestätigung ausgestellt.') }}
+				</p>
+			</div>
+
+			<div v-else class="vbh-card">
 				<h4>{{ t('Meine Beitragsbestätigung') }}</h4>
 				<p class="vbh-hint">
 					{{ t('Informelle Bestätigung der bezahlten Beiträge eines Beitragsjahres – kein amtlicher Spendennachweis nach § 10b EStG.') }}
@@ -404,6 +421,8 @@ export default {
 			requestingLink: false,
 			certificateYears: [],
 			certificateYear: null,
+			/** Zuwendungsbestätigungen (Issue #10); eingeschaltet ersetzen sie die informelle Bestätigung. */
+			donationReceipts: { enabled: false, receipts: [] },
 		}
 	},
 
@@ -492,9 +511,19 @@ export default {
 		} catch (e) {
 			showError(errMsg(e, this.t('Beitragsjahre konnten nicht geladen werden')))
 		}
+		try {
+			const { data } = await api.selfDonationReceipts()
+			this.donationReceipts = data
+		} catch {
+			// Ohne Liste bleibt die informelle Beitragsbestätigung sichtbar.
+		}
 	},
 
 	methods: {
+		donationReceiptPdfUrl(id) {
+			return api.selfDonationReceiptPdfUrl(id)
+		},
+
 		isEuro,
 		currencySymbol,
 		amountFieldLabel,
@@ -752,6 +781,15 @@ export default {
 </script>
 
 <style scoped>
+.vbh-self-receipts {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin: 8px 0 0;
+	padding: 0;
+	list-style: none;
+}
+
 .vbh-selfservice-card-header {
 	display: flex;
 	align-items: center;

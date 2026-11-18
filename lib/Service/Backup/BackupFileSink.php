@@ -8,6 +8,7 @@ use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\AttachmentMapper;
 use OCA\Vereinsbuchhaltung\Db\ReimbursementFileMapper;
 use OCA\Vereinsbuchhaltung\Service\AttachmentStorageService;
+use OCA\Vereinsbuchhaltung\Service\DonationReceipt\DonationReceiptStorage;
 use OCA\Vereinsbuchhaltung\Service\Invoice\InvoiceDocumentStorage;
 use OCA\Vereinsbuchhaltung\Service\ReimbursementDraftCleaner;
 use OCP\Files\AppData\IAppDataFactory;
@@ -37,6 +38,7 @@ class BackupFileSink {
 		private ReimbursementFileMapper $reimbursementFiles,
 		private AttachmentStorageService $attachmentStorage,
 		private InvoiceDocumentStorage $invoiceDocuments,
+		private ?DonationReceiptStorage $donationReceipts = null,
 	) {
 		$this->appData = $appDataFactory->get(Application::APP_ID);
 	}
@@ -90,12 +92,14 @@ class BackupFileSink {
 		$attachments = $this->attachments->findAllForUser(Application::BOOK);
 		$reimbursementFiles = $this->reimbursementFiles->findAll();
 		$invoiceDocuments = $this->invoiceDocuments->all();
+		$donationReceipts = $this->donationReceipts?->all() ?? [];
 
-		return function () use ($attachments, $reimbursementFiles, $invoiceDocuments): void {
+		return function () use ($attachments, $reimbursementFiles, $invoiceDocuments, $donationReceipts): void {
 			foreach ([
 				fn () => $this->attachmentStorage->deleteAllFiles($attachments),
 				fn () => $this->attachmentStorage->deleteAllReimbursementFiles($reimbursementFiles),
 				fn () => $this->invoiceDocuments->deleteFiles($invoiceDocuments),
+				fn () => $this->donationReceipts?->deleteFiles($donationReceipts),
 				fn () => $this->clearAppData(),
 			] as $task) {
 				try {

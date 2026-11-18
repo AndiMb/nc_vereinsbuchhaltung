@@ -17,6 +17,22 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 
 ## [Unreleased]
 
+**New:**
+- **Donation receipts for membership fees** (#10, part A): a tax-privileged
+  club issues the official **collective receipt for monetary
+  donations/membership fees** under § 10b EStG per member and calendar year –
+  following the binding template of the German Federal Ministry of Finance,
+  with the amount in figures and words and the annex listing every single
+  payment. The payment date counts. The PDF is stored as the duplicate with a
+  sequential number (*ZB-2026-0001*); a wrong receipt is voided with a reason.
+  Members download their receipts under *My contribution*. Set it up under
+  *Fees & SEPA → Donation receipts* (exemption notice or assessment under
+  § 60a AO, tax office, purposes, signature). The app issues nothing until it
+  is confirmed that membership fees are deductible (no sports, culture,
+  leisure or local heritage purposes), or when the notice is too old
+  (§ 63 (5) AO). While the feature is on, the informal contribution
+  confirmation is not offered.
+
 ## [0.54.0] – 2026-11-17
 
 **New:**

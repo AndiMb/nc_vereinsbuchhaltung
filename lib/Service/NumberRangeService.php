@@ -40,6 +40,7 @@ class NumberRangeService {
 		NumberRange::KIND_INVOICE => 'RE-{JJJJ}-{NNNN}',
 		NumberRange::KIND_CREDIT => 'ST-{JJJJ}-{NNNN}',
 		NumberRange::KIND_REIMBURSEMENT => 'AUSL-{JJJJ}-{NNNN}',
+		NumberRange::KIND_DONATION_RECEIPT => 'ZB-{JJJJ}-{NNNN}',
 	];
 
 	private const MAX_ATTEMPTS = 5;
