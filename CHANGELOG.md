@@ -20,6 +20,14 @@ verwenden, z. B. `**Neu:**`.
 ## [Unreleased]
 
 **Neu:**
+- **PayPal-Import** (#375): Der deutsche PayPal-Aktivitätsdownload (CSV) wird
+  im normalen Kontoauszugs-Import und im Wachordner am Inhalt erkannt und auf
+  das PayPal-Geldkonto gebucht. Gebühren werden zu eigenen Bankbuchungen
+  („PayPal-Gebühr zu …"), die sich mit einer Regel automatisch buchen lassen;
+  Dubletten erkennt die App am PayPal-Transaktionscode. Die Zuordnung läuft
+  über das neue Feld **PayPal-Adresse (optional)** am Bankkonto. Auch die
+  Kontoabstimmung nimmt PayPal-Dateien an. Beschrieben in Kapitel 3.2 des
+  Handbuchs.
 - **Zuwendungsbestätigung über Mitgliedsbeiträge** (#10, Teil A): Ein
   steuerbegünstigter Verein stellt je Mitglied und Kalenderjahr die amtliche
   **Sammelbestätigung über Geldzuwendungen/Mitgliedsbeiträge** nach § 10b EStG
