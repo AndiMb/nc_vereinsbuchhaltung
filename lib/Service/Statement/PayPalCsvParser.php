@@ -207,7 +207,7 @@ final class PayPalCsvParser implements StatementParser, StatementBalanceReader {
 			}
 		}
 
-		$clubCurrency = strtoupper($this->currency?->code() ?? 'EUR');
+		$clubCurrency = strtoupper($this->currency?->code() ?? ClubCurrency::DEFAULT);
 
 		// Namen je Code: Zeilen wie „Bankgutschrift auf PayPal-Konto" tragen
 		// keinen Namen, verweisen aber auf die Transaktion, die ihn hat.
