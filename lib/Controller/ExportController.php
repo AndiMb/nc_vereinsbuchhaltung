@@ -15,6 +15,7 @@ use OCA\Vereinsbuchhaltung\Service\Export\CsvExportService;
 use OCA\Vereinsbuchhaltung\Service\Export\CsvFile;
 use OCA\Vereinsbuchhaltung\Service\Export\DatenuebersichtRenderer;
 use OCA\Vereinsbuchhaltung\Service\Export\FinanzplanRenderer;
+use OCA\Vereinsbuchhaltung\Service\Export\GliederungsberichtPdfRenderer;
 use OCA\Vereinsbuchhaltung\Service\Export\GliederungsberichtRenderer;
 use OCA\Vereinsbuchhaltung\Service\Export\GliederungsberichtVisuellRenderer;
 use OCA\Vereinsbuchhaltung\Service\Export\KassenberichtPdfRenderer;
@@ -78,6 +79,7 @@ class ExportController extends Controller {
 		private PeriodService $periods,
 		private IL10N $l10n,
 		private ?KassenberichtPdfRenderer $kassenberichtPdf = null,
+		private ?GliederungsberichtPdfRenderer $gliederungsberichtPdf = null,
 		private ?BeitragsbescheinigungPdfRenderer $beitragsbescheinigungPdf = null,
 		private ?LoggerInterface $logger = null,
 	) {
@@ -203,6 +205,23 @@ class ExportController extends Controller {
 	public function gliederungsberichtCsv(string $template, ?int $period = null): DataDownloadResponse|DataResponse {
 		$report = $this->structuredReport($template, $period);
 		return $report === null ? $this->templateNotFound() : $this->download($this->csv->gliederungsbericht($report));
+	}
+
+	/**
+	 * Gliederungsbericht einer Vorlage als PDF: derselbe Inhalt wie die Druckseite,
+	 * als Datei mit Seitenzahlen. Unbekannte Vorlage: dieselbe Antwort wie dort.
+	 */
+	#[NoAdminRequired]
+	#[NoCSRFRequired]
+	public function gliederungsberichtPdf(string $template, ?int $period = null): DataDownloadResponse|DataResponse {
+		$report = $this->structuredReport($template, $period);
+		if ($report === null) {
+			return $this->templateNotFound();
+		}
+		return $this->pdfResponse(function () use ($report): array {
+			$renderer = $this->gliederungsberichtPdf ?? throw new \RuntimeException('GliederungsberichtPdfRenderer fehlt');
+			return ['content' => $renderer->render($report), 'fileName' => $renderer->fileName($report)];
+		});
 	}
 
 	/**

@@ -423,6 +423,7 @@ return [
 		['name' => 'export#gliederungsberichtVisuell', 'url' => '/api/export/gliederungsbericht-visuell', 'verb' => 'GET'],
 		['name' => 'export#multiyear', 'url' => '/api/export/multiyear', 'verb' => 'GET'],
 		['name' => 'export#kassenbericht', 'url' => '/api/export/kassenbericht', 'verb' => 'GET'],
+		['name' => 'export#gliederungsberichtPdf', 'url' => '/api/export/gliederungsbericht/pdf', 'verb' => 'GET'],
 		['name' => 'export#kassenberichtPdf', 'url' => '/api/export/kassenbericht/pdf', 'verb' => 'GET'],
 		['name' => 'export#kurzbericht', 'url' => '/api/export/kurzbericht', 'verb' => 'GET'],
 		['name' => 'export#attachments', 'url' => '/api/export/attachments', 'verb' => 'GET'],

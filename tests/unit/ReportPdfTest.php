@@ -114,4 +114,15 @@ class ReportPdfTest extends TestCase {
 		$pdf->titleBlock('TSV Beispiel e. V.', 'Testbericht', '', 'kein Bild');
 		$this->assertStringStartsWith('%PDF-', $pdf->output());
 	}
+
+	/** Querformat für breite Tabellen: Seite breiter als hoch, Inhaltsbreite wächst mit. */
+	public function testQuerformatVergroessertDieInhaltsbreite(): void {
+		$hoch = $this->pdf();
+		$quer = $this->factory()->create('Titel', 'Vermerk', false, true);
+
+		$this->assertGreaterThan($hoch->contentWidth(), $quer->contentWidth());
+		$this->assertEqualsWithDelta(257.0, $quer->contentWidth(), 0.01);
+		$this->assertGreaterThan($quer->document()->getPageHeight(), $quer->document()->getPageWidth());
+		$this->assertLessThan($hoch->document()->getPageHeight(), $hoch->document()->getPageWidth());
+	}
 }
