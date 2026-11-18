@@ -116,21 +116,24 @@ class GliederungsberichtPdfRenderer {
 	 * Konto, freie Zeile, Gesamtergebnis, sonst Summe.
 	 *
 	 * @param array<string, mixed> $row
-	 * @return array{cells: list<string>, style?: string, span?: list<int>, indent?: float, indentCell?: int, repeat?: bool, align?: string, muted?: bool}
+	 * @return array{cells: list<string>, style?: string, span?: list<int>, indent?: float, indentCell?: int, repeat?: bool, align?: string, muted?: bool, size?: float}
 	 */
 	private function row(array $row, int $width): array {
 		$indent = min((int)$row['depth'], self::MAX_DEPTH) * self::INDENT_MM;
 		$label = (string)$row['label'];
+		// Überschriften und Erläuterungen laufen über die ganze Breite, beginnen aber wie
+		// auf der Druckseite in der Bezeichnungsspalte, nicht unter der Nummer.
+		$labelIndent = self::NUMBER_MM + $indent;
 		$wide = [$width + 2];
 		switch ($row['kind']) {
 			case 'heading':
 				// Ein Abschnittstitel über die volle Breite würde als Zwischenkopf die
 				// Spaltenköpfe ersetzen; `repeat => false` hält sie auf Folgeseiten.
 				return $row['depth'] === 0
-					? ['style' => ReportPdf::ROW_HEAD, 'repeat' => false, 'span' => $wide, 'align' => 'L', 'cells' => [$label]]
-					: ['style' => ReportPdf::ROW_SUBHEAD, 'span' => $wide, 'align' => 'L', 'indent' => $indent, 'cells' => [$label]];
+					? ['style' => ReportPdf::ROW_HEAD, 'repeat' => false, 'span' => $wide, 'align' => 'L', 'indent' => $labelIndent, 'size' => 10.0, 'cells' => [$label]]
+					: ['style' => ReportPdf::ROW_SUBHEAD, 'span' => $wide, 'align' => 'L', 'indent' => $labelIndent, 'size' => 9.0, 'cells' => [$label]];
 			case 'note':
-				return ['style' => ReportPdf::ROW_NOTE, 'span' => $wide, 'align' => 'L', 'indent' => $indent, 'cells' => [$label]];
+				return ['style' => ReportPdf::ROW_NOTE, 'span' => $wide, 'align' => 'L', 'indent' => $labelIndent, 'cells' => [$label]];
 			case 'account':
 				$flags = $row['flags'];
 				$marks = (in_array(StructuredReportBuilder::FLAG_INACTIVE, $flags, true) ? ' †' : '')

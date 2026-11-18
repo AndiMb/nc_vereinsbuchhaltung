@@ -189,7 +189,8 @@ final class ReportPdf {
 	 * optional `span` (je Zelle die Zahl der Spalten, die sie einnimmt) und
 	 * `indent` (Einzug in mm; gilt für die erste Zelle, oder für die in `indentCell`
 	 * genannte – etwa die Bezeichnung hinter einer Nummernspalte) und `align` (Ausrichtung
-	 * der ersten Zelle, wenn die der letzten überspannten Spalte nicht passt).
+	 * der ersten Zelle, wenn die der letzten überspannten Spalte nicht passt), `muted`
+	 * (graue Schrift) und `size` (Schriftgröße in pt, sonst die der Zeilenart).
 	 *
 	 * Bricht die Tabelle um, steht oben auf der neuen Seite wieder der letzte
 	 * Zwischenkopf – oder die Kopfzeile, wenn es keinen gab. Ein Zwischenkopf mit
@@ -197,7 +198,7 @@ final class ReportPdf {
 	 * die Kopfzeile nicht: Sonst fehlten auf Folgeseiten die Spaltenköpfe.
 	 *
 	 * @param list<array{label?: string, width: float, align?: string}> $columns
-	 * @param list<array{cells: list<string>, style?: string, span?: list<int>, indent?: float, indentCell?: int, repeat?: bool, align?: string, muted?: bool}> $rows
+	 * @param list<array{cells: list<string>, style?: string, span?: list<int>, indent?: float, indentCell?: int, repeat?: bool, align?: string, muted?: bool, size?: float}> $rows
 	 */
 	public function table(array $columns, array $rows): void {
 		$total = $this->contentWidth();
@@ -340,10 +341,10 @@ final class ReportPdf {
 
 	/**
 	 * @param list<float> $widths
-	 * @param array{cells: list<string>, style?: string, span?: list<int>, indent?: float, indentCell?: int, repeat?: bool, align?: string} $row
+	 * @param array{cells: list<string>, style?: string, span?: list<int>, indent?: float, indentCell?: int, repeat?: bool, align?: string, muted?: bool, size?: float} $row
 	 */
 	private function rowHeight(array $widths, array $row): float {
-		$this->font($row['style'] ?? self::ROW_NORMAL);
+		$this->font($row['style'] ?? self::ROW_NORMAL, $row['size'] ?? null);
 		$height = 0.0;
 		foreach ($this->cells($widths, array_fill(0, count($widths), 'L'), $row) as $i => [$width]) {
 			$indent = $i === (int)($row['indentCell'] ?? 0) ? (float)($row['indent'] ?? 0) : 0.0;
@@ -355,12 +356,12 @@ final class ReportPdf {
 	/**
 	 * @param list<float> $widths
 	 * @param list<string> $aligns
-	 * @param array{cells: list<string>, style?: string, span?: list<int>, indent?: float, indentCell?: int, align?: string, muted?: bool} $row
+	 * @param array{cells: list<string>, style?: string, span?: list<int>, indent?: float, indentCell?: int, align?: string, muted?: bool, size?: float} $row
 	 */
 	private function row(array $widths, array $aligns, array $row, ?float $height = null): void {
 		$style = $row['style'] ?? self::ROW_NORMAL;
 		$height ??= $this->rowHeight($widths, $row);
-		$this->font($style);
+		$this->font($style, $row['size'] ?? null);
 		// `muted`: graue Schrift, etwa für strukturelle Konten; danach wieder schwarz.
 		$muted = (bool)($row['muted'] ?? false);
 		if ($muted) {
@@ -401,12 +402,13 @@ final class ReportPdf {
 		$this->pdf->SetLineWidth(0.2);
 	}
 
-	private function font(string $style): void {
+	/** @param ?float $size Schriftgröße der Zeile in pt; ohne Angabe die der Zeilenart */
+	private function font(string $style, ?float $size = null): void {
 		if ($style === self::ROW_NOTE) {
-			$this->pdf->SetFont(self::FONT, 'I', 7.5, '', true);
+			$this->pdf->SetFont(self::FONT, 'I', $size ?? 7.5, '', true);
 			return;
 		}
 		$bold = $style === self::ROW_HEAD || $style === self::ROW_SUBHEAD || $style === self::ROW_SUM || $style === self::ROW_RESULT;
-		$this->pdf->SetFont(self::FONT, $bold ? 'B' : '', $style === self::ROW_HEAD ? 8 : 8.5, '', true);
+		$this->pdf->SetFont(self::FONT, $bold ? 'B' : '', $size ?? ($style === self::ROW_HEAD ? 8 : 8.5), '', true);
 	}
 }
