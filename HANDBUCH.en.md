@@ -391,8 +391,8 @@ the books as a cash account of its own.
 1. **Export at PayPal:** *Activity* → *Reports* → *Activity download*. For
    private accounts it also works via *Statements* → *Download activity*.
    Choose the **CSV** format with "All transactions" and the period you
-   want. (The German PayPal activity download is the one that is
-   recognized.)
+   want. The German-language activity download is the one that is
+   recognized.
 2. **Create a cash account:** in the **Accounts** tab, create a cash
    account for PayPal and enter the PayPal account's email address in the
    field **PayPal address (optional)**, for example `kasse@example.org`.
@@ -404,8 +404,8 @@ the books as a cash account of its own.
 
 **Which rows are taken over:**
 
-- Every row whose balance impact ("Auswirkung auf Guthaben") is **Soll** or
-  **Haben** in the club currency. This includes rows that are still
+- Every row whose balance impact ("Auswirkung auf Guthaben" column) is
+  **Soll** (debit) or **Haben** (credit) in the club currency. This includes rows that are still
   *pending*, so the PayPal balance in the app matches the balance at
   PayPal.
 - Note rows ("Memo") and foreign-currency rows are skipped; the preview
@@ -414,12 +414,22 @@ the books as a cash account of its own.
 
 **Fees:** a fee becomes a bank transaction of its own with the
 counterparty "PayPal" and the purpose "PayPal fee for <transaction code>".
-The main transaction carries the gross amount. With *one* auto-assignment rule
-matching the purpose "PayPal fee" pointing to a bank-fees account (for
-example "Nebenkosten des Geldverkehrs"), all fees are posted automatically
-(chapter 4.1).
+The main transaction carries the gross amount.
 
-**Purpose of the main transaction:** subject, note or item name, followed
+All fees can be posted with *one* auto-assignment rule (chapter 4.1): it
+matches the purpose "PayPal fee" and points to a bank-fees account, for
+example "Nebenkosten des Geldverkehrs" (bank charges).
+
+The fee text follows the language at the time of import; the watch folder
+uses the instance's default language. With mixed languages, create the rule
+once per language, or use the payee instead of the purpose: rule
+field *Payee*, value "PayPal". That rule works regardless of the
+language, but it also matches any other transaction whose payee
+contains "PayPal", which is rare. The purpose rule remains the recommended
+default.
+
+**Purpose of the main transaction:** subject, note and item name (all
+non-empty ones, joined with " / "), followed
 by "· PayPal <transaction code>". If the name is empty (for example for
 "Bankgutschrift auf PayPal-Konto"), the name of the related transaction is
 used instead.
@@ -435,7 +445,10 @@ or manual assignment, chapter 4.1).
 
 **Switching from your own conversion script:** data imported earlier by a
 script is not recognized as a duplicate. Export the first PayPal file
-starting the day after the last script import.
+starting the day after the last script import. If the own-account column of
+a bank CSV carries a label starting with "PayPal" (for example an account
+nickname), the app treats it as a PayPal account. Rename the nickname or
+include the IBAN column in the export.
 
 **Pending payments that fail later:** if PayPal adds no counter-row for
 them, the transaction stays in the app. The account reconciliation (section
@@ -1319,7 +1332,7 @@ address accept the file (chapter 3.2).
 
 1. **Accounts** tab → click the cash account → **Account reconciliation**.
 2. **Choose file**: the statement from your online banking, in the same
-   formats as the import (CSV-CAMT, CAMT.053, MT940). The comparison starts
+   formats as the import (CSV-CAMT, CAMT.053, MT940, PayPal CSV). The comparison starts
    immediately.
 3. Optionally narrow the period with **From** and **To** and **Compare**
    again. Without dates, the period of the statement applies; the

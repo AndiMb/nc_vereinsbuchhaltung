@@ -397,7 +397,8 @@ in die Buchhaltung.
 1. **Export bei PayPal:** *Aktivitäten* → *Berichte* → *Aktivitätsdownload*.
    Bei privaten Konten geht es auch über *Kontoauszüge* → *Aktivitäten
    herunterladen*. Wählen Sie das Format **CSV** mit „Alle Transaktionen"
-   und den gewünschten Zeitraum.
+   und den gewünschten Zeitraum. Erkannt wird der deutschsprachige
+   Aktivitätsdownload.
 2. **Geldkonto anlegen:** Im Tab **Konten** ein Geldkonto für PayPal
    anlegen und im Feld **PayPal-Adresse (optional)** die E-Mail-Adresse des
    PayPal-Kontos eintragen, etwa `kasse@example.org`. Das Feld erscheint
@@ -418,13 +419,22 @@ in die Buchhaltung.
 
 **Gebühren:** Eine Gebühr wird zu einer eigenen Bankbuchung mit dem
 Gegenüber „PayPal" und dem Verwendungszweck „PayPal-Gebühr zu
-<Transaktionscode>". Die Hauptbuchung steht mit dem Bruttobetrag. Mit
-*einer* Auto-Zuordnungsregel, die auf den Verwendungszweck „PayPal-Gebühr" passt, auf ein
-Konto für Bankgebühren (etwa „Nebenkosten des Geldverkehrs") werden alle
-Gebühren automatisch gebucht (Kapitel 4.1).
+<Transaktionscode>". Die Hauptbuchung steht mit dem Bruttobetrag.
 
-**Verwendungszweck der Hauptbuchung:** Betreff, Hinweis oder
-Artikelbezeichnung, gefolgt von „· PayPal <Transaktionscode>". Ist der Name
+Alle Gebühren lassen sich mit *einer* Auto-Zuordnungsregel buchen (Kapitel
+4.1): Sie passt auf den Verwendungszweck „PayPal-Gebühr" und zeigt auf ein
+Konto für Bankgebühren, etwa „Nebenkosten des Geldverkehrs".
+
+Der Gebührentext folgt der Sprache beim Import; der Wachordner nutzt die
+Standardsprache der Instanz. Bei gemischten Sprachen legen Sie die Regel je
+Sprache an oder nehmen stattdessen den Zahlungspartner: Regelfeld *Zahlungspartner*,
+Wert „PayPal". Diese Regel trifft unabhängig von der Sprache, passt aber
+auch auf jeden anderen Umsatz, dessen Zahlungspartner „PayPal" enthält, was
+selten vorkommt. Als Standard empfiehlt sich die Regel auf den
+Verwendungszweck.
+
+**Verwendungszweck der Hauptbuchung:** Betreff, Hinweis und
+Artikelbezeichnung (alle nicht leeren, durch „ / " verbunden), gefolgt von „· PayPal <Transaktionscode>". Ist der Name
 leer (etwa bei „Bankgutschrift auf PayPal-Konto"), steht stattdessen der
 Name der zugehörigen Transaktion.
 
@@ -440,6 +450,10 @@ manuelle Zuordnung, Kapitel 4.1).
 **Umstieg von einem eigenen Umwandlungsskript:** Was früher per Skript
 importiert wurde, erkennt die App nicht als Dublette. Exportieren Sie die
 erste PayPal-Datei deshalb ab dem Tag nach dem letzten Skript-Import.
+Steht in der Spalte für das eigene Konto einer Bank-CSV eine Bezeichnung, die
+mit „PayPal" beginnt (etwa ein Konto-Spitzname), behandelt die App sie als
+PayPal-Konto. Benennen Sie den Spitznamen dann um oder tragen Sie im Export
+die IBAN-Spalte ein.
 
 **Ausstehende Zahlungen, die später scheitern:** Legt PayPal dafür keine
 Gegenzeile an, bleibt die Buchung in der App stehen. Die Kontoabstimmung
@@ -1347,7 +1361,7 @@ Geldkonten mit passender PayPal-Adresse nehmen die Datei an (Kapitel 3.2).
 
 1. Reiter **Konten** → das Geldkonto anklicken → **Kontoabstimmung**.
 2. **Datei wählen**: den Kontoauszug aus dem Onlinebanking, in denselben
-   Formaten wie beim Import (CSV-CAMT, CAMT.053, MT940). Der Abgleich
+   Formaten wie beim Import (CSV-CAMT, CAMT.053, MT940, PayPal-CSV). Der Abgleich
    startet sofort.
 3. Optional den Zeitraum mit **Von** und **Bis** einengen und erneut
    **Abgleichen**. Ohne Angabe gilt der Zeitraum des Auszugs; über ihn
