@@ -60,7 +60,7 @@ class PayPalCsvParserTest extends TestCase {
 	}
 
 	public function testVerwendungszweckVerbindetFelder(): void {
-		$lines = preg_split('/\r\n/', trim($this->content));
+		$lines = preg_split('/\r?\n/', trim($this->content));
 		$cols = str_getcsv($lines[1], ',', '"', '\\');
 		$cols[37] = 'Sommerfest';
 		$cols[15] = 'Eintrittskarte';
@@ -117,7 +117,7 @@ class PayPalCsvParserTest extends TestCase {
 	 * @param array<int, array<int, string>> $edits Zeile => [Spalte => Wert]
 	 */
 	private function variant(array $order, array $edits = []): string {
-		$lines = preg_split('/\r\n/', trim($this->content));
+		$lines = preg_split('/\r?\n/', trim($this->content));
 		$out = $lines[0] . "\r\n";
 		foreach ($order as $n) {
 			$cols = str_getcsv($lines[$n + 1], ',', '"', '\\');
