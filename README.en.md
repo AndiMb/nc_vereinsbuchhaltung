@@ -39,7 +39,7 @@ A lightweight accounting app for nonprofit clubs, integrated directly into Nextc
   - **Duplicate detection** via SHA-256 hash, additionally against postings already imported via xbuc and – across formats – against existing bank transactions by date/amount/text (even with a differing value date). The same statement can therefore be safely re-imported in a different format
   - Zero-amount postings (e.g. ABSCHLUSS) are skipped; bank-internal postings without a payment party (ENTGELTABSCHLUSS …) remain bookable
   - Import directly in the "Bookings" tab with drag & drop, preview and a success summary
-- **Watch folder** (gear icon → *Bank data*): just drop the downloaded statement into a Nextcloud folder – an hourly background job reads it, moves it to `verarbeitet/`, and moves faulty files together with a reason to `fehler/`. Nothing is deleted. Requires system cron
+- **Watch folder** (Settings → Vereinsbuchhaltung → *Automatically import bank statements*): just drop the downloaded statement into a Nextcloud folder – an hourly background job reads it, moves it to `verarbeitet/`, and moves faulty files together with a reason to `fehler/`. Nothing is deleted. Requires system cron
 
 ### Bookkeeping
 - **Double-entry bookkeeping**: postings with debit/credit accounts and a continuous posting number (restarting at 1 each fiscal year)
@@ -56,7 +56,7 @@ A lightweight accounting app for nonprofit clubs, integrated directly into Nextc
 - **Open items** (Bookings tab → Open items): a lean ad-hoc list of unpaid receivables (e.g. membership fees, invoices) with debtor, amount, due date and optional account; status open/paid/cancelled, dashboard notice for overdue items – deliberately not a full member-management system
 - **Reserves** (§ 62 AO: free / earmarked / replacement reserve): equity accounts can be flagged accordingly, own report with balance by type; allocations are normal postings (expert mode)
 - **Comments on postings**: a free note on the posting (e.g. for the audit), shown in the lists as an icon with tooltip; not part of the posting itself and therefore still editable in a closed fiscal year, every change is logged
-- **Deviating fiscal year** (gear icon → *Fiscal year*): the fiscal year does not have to match the calendar year. Presets for calendar year (default), October–September, school year August–July and half-year periods (semesters), plus a custom rule with any start day and a period length of 1 to 12 months (divisors of 12). Every period carries a freely editable label ("2026", "2025/26", "2025/26-1"); switching shows in advance how many postings will change period (issue #8)
+- **Deviating fiscal year** (Settings → Vereinsbuchhaltung → *Fiscal year*): the fiscal year does not have to match the calendar year. Presets for calendar year (default), October–September, school year August–July and half-year periods (semesters), plus a custom rule with any start day and a period length of 1 to 12 months (divisors of 12). Every period carries a freely editable label ("2026", "2025/26", "2025/26-1"); switching shows in advance how many postings will change period (issue #8)
 - **Period filter**: all reports relate to the fiscal year chosen in the header; balance-sheet accounts cumulative, income/expense accounts period-specific
 - **Finalization (year-end closing)**: administrators close a fiscal year – postings, receipts and assignments of that period are immutable afterwards (write attempts return HTTP 423); reopening only by administrators, both are logged. While a period is finalized, the fiscal-year rule cannot be changed
 - **Year-end closing (finalization)**: administrators close a fiscal year – postings, attachments and assignments for that year become immutable afterwards (write attempts return HTTP 423); reopening only by administrators, both actions are logged
@@ -72,7 +72,7 @@ A lightweight accounting app for nonprofit clubs, integrated directly into Nextc
   - **Plan snapshots**: freeze the entire plan as a named, dated snapshot (e.g. "resolved at the general assembly") and compare it later against the current plan
 - **Structured report by template**: budget and postings structured by a template – two standard templates (budget by title groups for funding bodies, result by area and project) that can be edited, deleted and restored like any template; new templates from scratch or as a copy, with freely chosen sections, columns (budget/actual, also earlier periods) and groups; print-ready and as CSV. Plus a **visual view** of the same template: key figures, traffic lights, trend and bars with a selectable snapshot, print-ready, with a jump from every account to the matching postings
 - **Treasurer's report (print-ready)**: a standalone print page for the general assembly – club name, cash-account overview (balance on 01/01 and 12/31), income/expense statement, plan/actual comparison, tax-sphere overview with an exemption-threshold notice, completeness note, closing note and signature lines; print via the browser or download a finished **PDF file** (PDF/A, "Page x of y", signature fields stay with the completeness note); optionally the app files the PDF in the report folder when a fiscal year is closed
-- **Short report for board meetings (print-ready)**: a compact print page with a selectable reference date – account balances since then, movements, short financial-plan summary; optionally in your corporate design (club logo + accent color, configurable under gear icon → Club)
+- **Short report for board meetings (print-ready)**: a compact print page with a selectable reference date – account balances since then, movements, short financial-plan summary; optionally in your corporate design (club logo + accent color, configurable under Settings → Vereinsbuchhaltung → Club)
 - **CSV exports** (for the audit / Excel): journal, trial balance, income/expense overview, plan/actual comparison (including notes)
 - **Cost centres** (optional, off by default): an amount on an income/expense account can be allocated to one or more cost centres (€1,000 equipment, of which €600 seniors and €400 under-19s – one entry, one account); separate report per cost centre with reconciliation against the account balances, print page and CSV
 - **Multi-year overview** (CSV matrix, columns = years): income statement by account (income/expenses/result) + assets at year-end, plus result per reporting group/project and by tax sphere across all years; also as a line chart (Reports → Evaluation) for meeting presentations
@@ -299,16 +299,16 @@ On your own servers, `deploy/vbh-deploy.sh` fetches the latest release, verifies
 
 On the very first start, a **setup wizard** greets you with three options (take over xbuc / start fresh / sample data). Anyone who skips it works through the following steps – the **setup checklist** on the dashboard keeps showing what's still open.
 
-1. **Permissions** (gear icon → Settings → Permissions) → assign users or groups the bookkeeper or administrator role.
-2. **Gear icon → Data → Import from "zero Buchhaltung"** → choose the `.xbuc` file → check the preview → import.
+1. **Permissions** (Nextcloud settings → Vereinsbuchhaltung → Permissions; administrators without Nextcloud admin rights find the page under *Personal*, Nextcloud admins under *Administration*) → assign users or groups the bookkeeper or administrator role.
+2. **Settings → Vereinsbuchhaltung → Data import → Import from "zero Buchhaltung"** → choose the `.xbuc` file → check the preview → import.
    - Import several yearly files one after another: merge mode (default) only takes over missing accounts and new postings.
    - Alternatively: tab **Accounts** → *Create standard chart of accounts* and create accounts manually.
-3. Tab **Bookings** → *Import bank transactions* → upload your bank statement (CSV-CAMT, CAMT.053 or MT940). Doing this regularly: gear icon → *Bank data* saves you the manual upload.
+3. Tab **Bookings** → *Import bank transactions* → upload your bank statement (CSV-CAMT, CAMT.053 or MT940). Doing this regularly: Settings → Vereinsbuchhaltung → *Automatically import bank statements* saves you the manual upload.
 4. Tab **Bookings → To assign** → assign each bank transaction a counter-account (apply suggestions with one click; rules automate recurring postings).
 5. Tab **Overview** → dashboard with KPI tiles and monthly chart.
 6. Tab **Reports** → evaluation (incl. treasurer's report, short report, receipt ZIP and audit guide), reporting groups, financial plan (incl. plan notes, plan snapshots and CSV export), structured report, spheres, reserves, log.
-7. If membership fees are collected via SEPA direct debit: the **"Contributions"** tab (appears after gear icon → Fees & SEPA → toggle, or automatically on the first mandate).
-8. After the audit and formal discharge: **gear icon → Year-end closing** → close (finalize) the year.
+7. If membership fees are collected via SEPA direct debit: the **"Contributions"** tab (appears after Settings → Vereinsbuchhaltung → Fees & SEPA → toggle in the *Contributions module* card, or automatically on the first mandate).
+8. After the audit and formal discharge: **Settings → Vereinsbuchhaltung → Fiscal year → Periods** → close (finalize) the period.
 
 ## Roadmap
 

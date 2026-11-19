@@ -224,7 +224,7 @@ class DonationReceiptSettings {
 		$d = $this->data();
 		$issuer = $d['issuer'];
 		if ($issuer['name'] === '' || $issuer['street'] === '' || $issuer['postalCode'] === '' || $issuer['city'] === '') {
-			$problems[] = $this->l10n->t('Name und Anschrift des Vereins fehlen (Einstellungen → Rechnungen → Angaben des Vereins).');
+			$problems[] = $this->l10n->t('Name und Anschrift des Vereins fehlen (Einstellungen → Verein → Angaben des Vereins).');
 		}
 		if ($d['taxOffice'] === '') {
 			$problems[] = $this->l10n->t('Das Finanzamt fehlt.');

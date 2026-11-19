@@ -6,7 +6,7 @@
 				<label class="vbh-grow">{{ t('Vereinsname (erscheint im Kopf des Kassenberichts)') }}
 					<input v-model="clubNameModel" type="text" :placeholder="t('z. B. Musterverein e. V.')">
 				</label>
-				<NcButton variant="primary" :disabled="storageSaving" @click="saveStorageSettings">
+				<NcButton variant="primary" :disabled="storageSaving" @click="saveStorageSettings('club')">
 					{{ t('Speichern') }}
 				</NcButton>
 			</div>
@@ -25,7 +25,7 @@
 						</option>
 					</select>
 				</label>
-				<NcButton variant="primary" :disabled="storageSaving" @click="saveStorageSettings">
+				<NcButton variant="primary" :disabled="storageSaving" @click="saveStorageSettings('currency')">
 					{{ t('Speichern') }}
 				</NcButton>
 			</div>
@@ -67,7 +67,7 @@
 				<label>{{ t('Akzentfarbe') }}
 					<input v-model="brandColorModel" type="color">
 				</label>
-				<NcButton variant="primary" :disabled="storageSaving" @click="saveStorageSettings">
+				<NcButton variant="primary" :disabled="storageSaving" @click="saveStorageSettings('brand')">
 					{{ t('Speichern') }}
 				</NcButton>
 			</div>
@@ -104,8 +104,9 @@ export default {
 		// hasLogo per loadStorageSettings() neu zu laden.
 		hasLogo: { type: Boolean, required: true },
 		storageSaving: { type: Boolean, required: true },
-		// gemeinsame Speichern-Funktion des Elternteils (schreibt den
-		// vollstaendigen Einstellungssatz, siehe App.vue::saveStorageSettings())
+		// Speichern-Funktion des Elternteils (SettingsApp.vue::saveSettings());
+		// jede Karte nennt ihren Teil, damit nur ihre Felder gespeichert werden
+		// (lib/settingsSave.js)
 		saveStorageSettings: { type: Function, required: true },
 	},
 

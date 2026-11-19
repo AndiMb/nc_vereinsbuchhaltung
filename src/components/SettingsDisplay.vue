@@ -11,7 +11,7 @@
 					<option value="signed">{{ t('Mit Vorzeichen und Farbe: Einnahmen grün (+), Ausgaben rot (−)') }}</option>
 				</select>
 			</label>
-			<NcButton variant="primary" :disabled="storageSaving" @click="saveStorageSettings">
+			<NcButton variant="primary" :disabled="storageSaving" @click="saveStorageSettings('display')">
 				{{ t('Speichern') }}
 			</NcButton>
 		</div>

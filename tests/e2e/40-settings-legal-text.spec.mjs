@@ -1,3 +1,4 @@
+import { getContainer, runOcc } from '@nextcloud/e2e-test-server'
 import { expect, test } from '@playwright/test'
 import { api, openSettingsPage, USERS } from './fixtures/nextcloud.mjs'
 
@@ -42,6 +43,45 @@ async function openSettings(page) {
 	await expect(card(page, 'Rücklastschriften und Mahnwesen')).toBeVisible()
 }
 
+/**
+ * Die Karten des Beitragsmoduls und der Mandats-Rechtstext stehen nur bei
+ * eingeschaltetem Modul auf der Einstellungsseite. Den Stand davor merken
+ * und am Ende wiederherstellen – andere Specs erwarten das Modul aus.
+ *
+ * Gemerkt wird der rohe Config-Wert, nicht der abgeleitete Schalter: Ist
+ * `membership_enabled` ungesetzt, leitet die App ihn aus „Mitglieder
+ * vorhanden“ ab. Ein bloßes Zurückschreiben von '0'/'1' würde diesen
+ * Ableitungsfall dauerhaft durch einen festen Wert ersetzen.
+ */
+let membershipBefore = null // { derived: boolean, raw: string|null }
+
+async function readRawMembership() {
+	const { exitCode, stdout } = await runOcc(['config:app:get', 'vereinsbuchhaltung', 'membership_enabled'], { container: getContainer(), failOnError: false })
+	return exitCode === 0 && stdout.trim() !== '' ? stdout.trim() : null
+}
+
+async function enableMembershipForSpec(request) {
+	if (membershipBefore === null) {
+		membershipBefore = {
+			derived: (await api.getSettings(request)).membership_enabled === true,
+			raw: await readRawMembership(),
+		}
+	}
+	await api.updateSettings(request, { membership_enabled: '1' })
+}
+
+async function restoreMembership(request) {
+	if (membershipBefore === null) { return }
+	// Zuerst über die App: deren Cache zeigt sofort den alten Schalterstand
+	// (occ und Webserver haben getrennte APCu-Segmente) …
+	await api.updateSettings(request, { membership_enabled: membershipBefore.derived ? '1' : '0' })
+	// … dann den rohen Wert genau wiederherstellen; war er ungesetzt, löschen.
+	const args = membershipBefore.raw === null
+		? ['config:app:delete', 'vereinsbuchhaltung', 'membership_enabled']
+		: ['config:app:set', 'vereinsbuchhaltung', 'membership_enabled', '--value', membershipBefore.raw]
+	await runOcc(args, { container: getContainer(), failOnError: false })
+}
+
 /** Alles, was diese Spec verstellt, auf den Ausgangszustand – `resetBook()` räumt die App-Config nicht. */
 async function resetSettings(request) {
 	await api.updateSettings(request, {
@@ -76,10 +116,12 @@ test.describe('Einstellungen Beiträge & SEPA', () => {
 		feeAccount = await api.createAccount(request, { number: '6998', name: 'E2E Rücklastschriftgebühren', type: 'expense' })
 		revenueAccount = await api.createAccount(request, { number: '4998', name: 'E2E Beitragserlöse', type: 'income' })
 		await resetSettings(request)
+		await enableMembershipForSpec(request)
 	})
 
 	test.afterAll(async ({ request }) => {
 		await resetSettings(request)
+		await restoreMembership(request)
 	})
 
 	test('alle Karten des Beitragsmoduls stehen da, die drei Fristen vor dem Einzug stehen beisammen', async ({ page }) => {
@@ -342,10 +384,12 @@ test.describe('Mandats-Rechtstext', () => {
 		await api.resetBook(request)
 		await api.seedDefaultAccounts(request)
 		await resetSettings(request)
+		await enableMembershipForSpec(request)
 	})
 
 	test.afterAll(async ({ request }) => {
 		await resetSettings(request)
+		await restoreMembership(request)
 	})
 
 	test('Pflichtblock ist geschützt, die Vorschau ersetzt den Vereinsnamen, kein Marker erscheint', async ({ page }) => {

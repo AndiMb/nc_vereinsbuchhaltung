@@ -17,7 +17,7 @@
 		<NcLoadingIcon v-if="loading && !state" :size="32" :name="t('Wird geladen…')" />
 		<template v-else-if="state">
 			<p v-if="!state.accountsConfigured" class="vbh-hint vbh-hint--warning">
-				{{ t('Noch keine Spendenkonten festgelegt: Einstellungen → Beiträge & SEPA → Zuwendungsbestätigungen.') }}
+				{{ t('Noch keine Spendenkonten festgelegt: Nextcloud-Einstellungen → Vereinsbuchhaltung → Zuwendungsbestätigungen.') }}
 			</p>
 			<ul v-if="state.problems.length" class="vbh-hint vbh-hint--warning vbh-donation-problems">
 				<li v-for="(p, i) in state.problems" :key="i">

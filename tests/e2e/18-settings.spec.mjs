@@ -325,8 +325,16 @@ test.describe('Einstellungsseite: gelöschter Nextcloud-Nutzer blockiert nichts'
 })
 
 test.describe('Einstellungsseite: Ablageordner der Rechnungen', () => {
+	// Die Karten des Rechnungsmoduls stehen nur bei eingeschaltetem Modul da.
+	let invoicesWereActive = false
+
+	test.beforeAll(async ({ request }) => {
+		invoicesWereActive = (await api.getSettings(request)).invoice_module_active === true
+		await api.updateSettings(request, { invoice_module_active: '1' })
+	})
+
 	test.afterAll(async ({ request }) => {
-		await api.updateSettings(request, { storage_user: '', storage_path: 'Vereinsbuchhaltung/Belege', invoice_folder: '' })
+		await api.updateSettings(request, { storage_user: '', storage_path: 'Vereinsbuchhaltung/Belege', invoice_folder: '', invoice_module_active: invoicesWereActive ? '1' : '0' })
 	})
 
 	// Issue #212: der Pfad beginnt im Home des Ablage-Nutzers. Wer das nicht
@@ -349,5 +357,175 @@ test.describe('Einstellungsseite: Ablageordner der Rechnungen', () => {
 		const card = page.locator('#settings-section_rechnungen-zahlung')
 		await expect(card).toContainText('speichert die App sie intern')
 		await expect(card.getByRole('button', { name: 'Ordner wählen…' })).toHaveCount(0)
+	})
+})
+
+// Neuordnung der Seite: Inhaltsverzeichnis, Hilfe-Links, ausgeschaltete
+// Module ohne ihre Karten, Modulschalter wirken sofort, jede Karte speichert
+// nur ihre eigenen Felder.
+test.describe('Einstellungsseite: Inhaltsverzeichnis, Module und Speichern je Karte', () => {
+	let before
+	let donationsBefore
+
+	const savedToast = (page) => page.getByRole('status').filter({ hasText: 'Einstellungen gespeichert.' }).first()
+	const donationsEnabled = async (request) => (await api.getJson(request, '/donation-receipts/settings')).donation_receipts_enabled
+
+	test.beforeAll(async ({ request }) => {
+		before = await api.getSettings(request)
+		donationsBefore = await donationsEnabled(request)
+		await api.updateSettings(request, {
+			invoice_module_active: '0',
+			cost_centers_enabled: '0',
+			reimbursement_enabled: '0',
+			amount_display: 'plain',
+			club_name: 'TSV E2E e. V.',
+		})
+		await api.raw(request, 'PUT', '/donation-receipts/settings', { data: { donation_receipts_enabled: false } })
+	})
+
+	test.afterAll(async ({ request }) => {
+		await api.updateSettings(request, {
+			invoice_module_active: before.invoice_module_active ? '1' : '0',
+			cost_centers_enabled: before.cost_centers_enabled ? '1' : '0',
+			amount_display: before.amount_display,
+			club_name: before.club_name,
+			club_street: before.club_street ?? '',
+		})
+		await api.updateSettings(request, {
+			reimbursement_enabled: before.reimbursement_enabled ? '1' : '0',
+			reimbursement_required_approvals: String(before.reimbursement_required_approvals),
+		}, { expectOk: false })
+		await api.raw(request, 'PUT', '/donation-receipts/settings', { data: { donation_receipts_enabled: !!donationsBefore } })
+	})
+
+	test('Inhaltsverzeichnis springt zu den Abschnitten, jede Überschrift verweist ins Handbuch', async ({ page }) => {
+		await openSettingsPage(page, USERS.admin)
+		const toc = page.getByTestId('settings-toc')
+		await expect(toc).toBeVisible()
+		// Die alten Anker gelten weiter, auch in der neuen Reihenfolge.
+		for (const id of ['verein', 'berechtigungen', 'belege', 'bankdaten', 'geschaeftsjahr', 'darstellung', 'ampel', 'beitraege-sepa', 'rechnungen', 'auslagen', 'kostenstellen', 'daten', 'sicherung']) {
+			await expect(page.locator(`#settings-section_${id}`)).toHaveCount(1)
+		}
+
+		await toc.getByRole('link', { name: 'Sicherung und Umzug' }).click()
+		await expect(page).toHaveURL(/#settings-section_sicherung$/)
+		await expect(page.locator('#settings-section_sicherung').getByRole('heading', { name: 'Sicherung und Umzug' })).toBeInViewport()
+
+		const help = page.locator('#settings-section_verein .settings-section__info')
+		await expect(help).toHaveAttribute('href', /\/help\/handbuch#section-2-5$/)
+	})
+
+	test('ausgeschaltetes Rechnungsmodul zeigt nur seinen Schalter; der Schalter wirkt sofort', async ({ page, request }) => {
+		await openSettingsPage(page, USERS.admin)
+		const section = page.locator('#settings-section_rechnungen')
+		const tocEntry = page.getByTestId('settings-toc').getByRole('listitem').filter({ hasText: 'Rechnungen' })
+		await expect(tocEntry).toContainText('ausgeschaltet')
+		await expect(section.getByTestId('settings-module-off-rechnungen')).toBeVisible()
+		await expect(section.getByRole('heading', { name: 'Steuer, Zahlung und Texte' })).toHaveCount(0)
+
+		// Kein Speichern-Knopf mehr: der Schalter speichert selbst.
+		await section.getByText('Reiter „Rechnungen“ anzeigen').click()
+		await expect(page.getByRole('status').filter({ hasText: 'Einstellungen gespeichert.' }).first()).toBeVisible()
+		await expect(section.getByRole('heading', { name: 'Steuer, Zahlung und Texte' })).toBeVisible()
+		await expect(tocEntry).not.toContainText('ausgeschaltet')
+		await expect.poll(async () => (await api.getSettings(request)).invoice_module_active).toBe(true)
+
+		await section.getByText('Reiter „Rechnungen“ anzeigen').click()
+		await expect(section.getByTestId('settings-module-off-rechnungen')).toBeVisible()
+		await expect.poll(async () => (await api.getSettings(request)).invoice_module_active).toBe(false)
+	})
+
+	test('Angaben des Vereins stehen unter „Verein“ – auch mit Rechnungen aus und Zuwendungsbestätigungen an', async ({ page, request }) => {
+		await api.raw(request, 'PUT', '/donation-receipts/settings', { data: { donation_receipts_enabled: true } })
+		// Zurückschalten auch bei einem Fehlschlag, sonst scheitert der nächste Test (erwartet „aus“).
+		try {
+			await openSettingsPage(page, USERS.admin)
+			await expect(page.locator('#settings-section_rechnungen').getByTestId('settings-module-off-rechnungen')).toBeVisible()
+			await expect(page.locator('#settings-section_zuwendungen').getByTestId('settings-module-off-zuwendungen')).toHaveCount(0)
+
+			// Der alte Anker der Karte gilt weiter (Prüfliste des Rechnungseditors), jetzt im Abschnitt „Verein“.
+			const club = page.locator('#settings-section_verein #settings-section_rechnungen-angaben')
+			await expect(club.getByRole('heading', { name: 'Angaben des Vereins', exact: true })).toBeVisible()
+			const value = `Vereinsweg ${Date.now() % 1000}`
+			await club.getByLabel('Straße und Hausnummer').fill(value)
+			await club.getByRole('button', { name: 'Speichern' }).click()
+			await expect(savedToast(page)).toBeVisible()
+			await expect.poll(async () => (await api.getSettings(request)).club_street).toBe(value)
+
+			// Sprung der Prüfliste landet auf der Karte.
+			await page.goto(page.url().replace(/#.*$/, '') + '#settings-section_rechnungen-angaben')
+			await page.reload()
+			await expect(page.locator('#settings-section_rechnungen-angaben').getByRole('heading', { name: 'Angaben des Vereins', exact: true })).toBeInViewport()
+		} finally {
+			await api.raw(request, 'PUT', '/donation-receipts/settings', { data: { donation_receipts_enabled: false } })
+		}
+	})
+
+	test('Zuwendungsbestätigungen: der Schalter wirkt sofort und blendet die Angaben ein und aus', async ({ page, request }) => {
+		await openSettingsPage(page, USERS.admin)
+		const section = page.locator('#settings-section_zuwendungen')
+		await expect(section.getByTestId('settings-module-off-zuwendungen')).toBeVisible()
+		await section.getByText('Zuwendungsbestätigungen ausstellen').click()
+		await expect(savedToast(page)).toBeVisible()
+		await expect(section.getByTestId('settings-module-off-zuwendungen')).toHaveCount(0)
+		await expect(section.getByRole('button', { name: 'Speichern' })).toBeVisible()
+		await expect.poll(() => donationsEnabled(request)).toBe(true)
+
+		await section.getByText('Zuwendungsbestätigungen ausstellen').click()
+		await expect(section.getByTestId('settings-module-off-zuwendungen')).toBeVisible()
+		await expect(section.getByRole('button', { name: 'Speichern' })).toHaveCount(0)
+		await expect.poll(() => donationsEnabled(request)).toBe(false)
+	})
+
+	test('Auslagenerstattung: der Schalter wirkt sofort, springt bei zu wenigen Verwaltern zurück und blendet die Auslagennummern ein', async ({ page, request }) => {
+		await openSettingsPage(page, USERS.admin)
+		const section = page.locator('#settings-section_auslagen')
+		const toggle = section.getByRole('switch', { name: 'Auslagenerstattung aktivieren' })
+		const numbers = section.getByRole('heading', { name: 'Auslagennummern' })
+		await expect(toggle).not.toBeChecked()
+		await expect(numbers).toHaveCount(0)
+
+		// Mehr Freigaben, als es Verwalter gibt: der Server lehnt ab, der Schalter springt zurück.
+		await section.getByLabel('Nötige Freigaben').fill('50')
+		await section.getByText('Auslagenerstattung aktivieren').click()
+		await expect(section.getByRole('alert')).toContainText('Verwalter')
+		await expect(toggle).not.toBeChecked()
+		expect((await api.getSettings(request)).reimbursement_enabled).toBe(false)
+
+		await section.getByLabel('Nötige Freigaben').fill('1')
+		await section.getByText('Auslagenerstattung aktivieren').click()
+		await expect(toggle).toBeChecked()
+		await expect(numbers).toBeVisible()
+		await expect.poll(async () => (await api.getSettings(request)).reimbursement_enabled).toBe(true)
+
+		await section.getByText('Auslagenerstattung aktivieren').click()
+		await expect(toggle).not.toBeChecked()
+		await expect(numbers).toHaveCount(0)
+		await expect.poll(async () => (await api.getSettings(request)).reimbursement_enabled).toBe(false)
+	})
+
+	test('Kostenstellen-Schalter wirkt sofort', async ({ page, request }) => {
+		await openSettingsPage(page, USERS.admin)
+		const section = page.locator('#settings-section_kostenstellen')
+		await expect(section.getByRole('button', { name: 'Speichern' })).toHaveCount(0)
+		await section.getByText('Kostenstellen aktivieren').click()
+		await expect.poll(async () => (await api.getSettings(request)).cost_centers_enabled).toBe(true)
+		await section.getByText('Kostenstellen aktivieren').click()
+		await expect.poll(async () => (await api.getSettings(request)).cost_centers_enabled).toBe(false)
+	})
+
+	test('Speichern einer Karte nimmt Eingaben anderer Karten nicht mit', async ({ page, request }) => {
+		await openSettingsPage(page, USERS.admin)
+		// Vereinsname geändert, aber nicht gespeichert …
+		await page.locator('#settings-section_verein').getByLabel('Vereinsname (erscheint im Kopf des Kassenberichts)').fill('Nicht gespeichert e. V.')
+		// … dann nur die Darstellung gespeichert.
+		const display = page.locator('#settings-section_darstellung')
+		await display.locator('select').selectOption('signed')
+		await display.getByRole('button', { name: 'Speichern' }).click()
+		await expect(page.getByRole('status').filter({ hasText: 'Einstellungen gespeichert.' }).first()).toBeVisible()
+
+		const saved = await api.getSettings(request)
+		expect(saved.amount_display).toBe('signed')
+		expect(saved.club_name).toBe('TSV E2E e. V.')
 	})
 })

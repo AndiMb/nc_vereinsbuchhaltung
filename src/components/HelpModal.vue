@@ -71,7 +71,7 @@ function buildTopics() {
 			anchor: 'section-2',
 			bullets: [
 				t('Nextcloud-Einstellungen → Vereinsbuchhaltung → Berechtigungen: Nutzer/Gruppen als Verwalter, Buchhalter oder Revisor eintragen.'),
-				t('Tab Konten → „Standard-Kontenrahmen anlegen" – oder Nextcloud-Einstellungen → Vereinsbuchhaltung → Daten → „Aus zero Buchhaltung importieren", falls vorhanden.'),
+				t('Tab Konten → „Standard-Kontenrahmen anlegen" – oder Nextcloud-Einstellungen → Vereinsbuchhaltung → Datenübernahme → „Aus zero Buchhaltung importieren", falls vorhanden.'),
 				t('Je Geldkonto (Bank/Kasse) einen Anfangsbestand als Eröffnungssaldo eintragen.'),
 				t('Nextcloud-Einstellungen → Vereinsbuchhaltung → Belege und Verein: Speicherort für Belege und Vereinsnamen festlegen.'),
 			],

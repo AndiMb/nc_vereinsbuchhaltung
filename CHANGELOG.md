@@ -41,7 +41,7 @@ verwenden, z. B. `**Neu:**`.
   Zahlung. Das PDF wird mit fortlaufender Nummer (*ZB-2026-0001*) als Doppel
   abgelegt, eine fehlerhafte Bestätigung wird mit Grund storniert. Mitglieder
   laden ihre Bestätigungen unter *Mein Beitrag* herunter. Eingerichtet wird es
-  unter *Beiträge & SEPA → Zuwendungsbestätigungen* (Freistellungsbescheid oder
+  im Einstellungsabschnitt *Zuwendungsbestätigungen* (Freistellungsbescheid oder
   Feststellung nach § 60a AO, Finanzamt, Zwecke, Unterschrift). Beiträge
   bestätigt die App nur, wenn bestätigt ist, dass sie abziehbar sind (keine
   Sport-, Kultur-, Freizeit- oder Heimatpflegezwecke); bei zu altem Bescheid
@@ -62,6 +62,44 @@ verwenden, z. B. `**Neu:**`.
 - Der Dateiname des Kassenberichts als PDF schreibt Umlaute jetzt um
   (ä → ae, ö → oe, ü → ue, ß → ss), damit er auf jedem System ohne
   Sonderzeichen gespeichert wird.
+- **Einstellungsseite neu geordnet:** Die Abschnitte folgen jetzt der Aufgabe
+  statt der Entstehungsgeschichte – *Grundlagen* (Verein, Berechtigungen,
+  Belege, Kontoauszüge automatisch einlesen, Geschäftsjahr), *Listen und
+  Berichte* (Darstellung, Ampel), *Module* (Beiträge & SEPA mit
+  Mandats-Rechtstext und Willkommens-Mail direkt darunter,
+  Zuwendungsbestätigungen als eigener Abschnitt, Rechnungen, Auslagen,
+  Kostenstellen) und *Daten und Sicherung* (Datenübernahme, Sicherung und
+  Umzug, Zurücksetzen). Ganz oben steht ein Inhaltsverzeichnis mit
+  Sprunglinks, neben jeder Abschnittsüberschrift ein Fragezeichen zum
+  passenden Handbuch-Kapitel. „Alle Daten löschen" steht jetzt im eigenen
+  Abschnitt *Zurücksetzen* direkt unter „Bestand vollständig leeren", mit
+  einem Hinweis, worin sich die beiden Löschwege unterscheiden. „Bankdaten"
+  heißt jetzt „Kontoauszüge automatisch einlesen", „Daten" heißt
+  „Datenübernahme". Alle bisherigen Sprungadressen
+  (`#settings-section_…`) gelten weiter.
+- **Handbuch:** Kapitel 2 erklärt, wo die Einstellungen stehen (Persönlich
+  bzw. Verwaltung) und in welcher Reihenfolge; die veralteten Wege über das
+  „Zahnrad" und die nie vorhandene Karte „Grundeinstellungen" sind durch die
+  echten Abschnitts- und Kartennamen ersetzt.
+- **Ausgeschaltete Module ohne ihre Karten:** Ist ein Modul aus, zeigt die
+  Einstellungsseite nur seinen Schalter und einen Hinweis – bei Beiträge &
+  SEPA (samt Mandats-Rechtstext und Willkommens-Mail), Rechnungen,
+  Zuwendungsbestätigungen und den Auslagennummern. Das Inhaltsverzeichnis
+  vermerkt „ausgeschaltet". Gespeichertes bleibt erhalten.
+- **Angaben des Vereins unter „Verein“:** Anschrift, Steuernummer, Register
+  und Vorstand stehen jetzt in der Karte *Angaben des Vereins* im Abschnitt
+  *Verein* (bisher „Angaben des Vereins auf der Rechnung“ unter
+  *Rechnungen*) und sind immer sichtbar – auch die Zuwendungsbestätigungen
+  brauchen sie, ein Verein ohne Rechnungsmodul kommt so weiter an sie heran.
+  Die Sprungadresse `#settings-section_rechnungen-angaben` gilt weiter.
+- **Einheitliches Speichern:** Modulschalter wirken jetzt überall sofort
+  (Rechnungsmodul, Kostenstellen, Auslagenerstattung, Zuwendungsbestätigungen –
+  wie zuvor schon das Beitragsmodul); scheitert das Speichern, springt der
+  Schalter zurück. Alle übrigen Angaben speichert der Knopf ihrer Karte, und
+  zwar nur deren Felder: Bisher nahm „Speichern" unter Verein, Darstellung,
+  Belege, Kontoauszüge oder Gläubiger-ID auch ungespeicherte Eingaben aller
+  anderen dieser Karten mit, und in den Rechnungskarten verwarf das Speichern
+  einer Karte die Eingaben der übrigen.
 - **Beträge in Importen** liest jetzt ein gemeinsamer Leser mit festen Regeln
   (Kontoauszug als CSV, CAMT.053, MT940, PayPal, XBUC, Mitglieder-CSV). Was
   sich dadurch ändert:

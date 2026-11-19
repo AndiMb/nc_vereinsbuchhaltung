@@ -38,8 +38,8 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   with the amount in figures and words and the annex listing every single
   payment. The payment date counts. The PDF is stored as the duplicate with a
   sequential number (*ZB-2026-0001*); a wrong receipt is voided with a reason.
-  Members download their receipts under *My contribution*. Set it up under
-  *Fees & SEPA → Donation receipts* (exemption notice or assessment under
+  Members download their receipts under *My contribution*. Set it up in the
+  *Donation receipts* settings section (exemption notice or assessment under
   § 60a AO, tax office, purposes, signature). The app only confirms fees once
   it is confirmed that they are deductible (no sports, culture, leisure or
   local heritage purposes); with a notice that is too old (§ 63 (5) AO) it
@@ -59,6 +59,42 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 - The file name of the treasurer's report PDF now transliterates umlauts
   (ä → ae, ö → oe, ü → ue, ß → ss), so it saves without special characters on
   every system.
+- **Settings page reordered:** the sections now follow the task instead of
+  the order they were built in – *Basics* (club, permissions, receipts,
+  automatic bank statement import, fiscal year), *Lists and reports*
+  (display, status), *Modules* (fees & SEPA with the mandate legal text and
+  the welcome email directly below, donation receipts as a section of their
+  own, invoices, expenses, cost centres) and *Data and backup* (data import,
+  backup and migration, reset). A table of contents with jump links sits at
+  the top, and a question mark next to each section heading opens the
+  matching handbook chapter. "Delete all data" now has its own *Reset*
+  section directly below "Clear data set completely", with a note on how the
+  two ways of deleting differ. "Bank data" is now called "Automatically import
+  bank statements", "Data" is now "Data import". All existing jump addresses
+  (`#settings-section_…`) keep working.
+- **Handbook:** chapter 2 explains where the settings are (Personal or
+  Administration) and in which order; the outdated paths via the "gear icon"
+  and the never-existing "Basic settings" card are replaced by the real
+  section and card names.
+- **Switched-off modules without their cards:** when a module is off, the
+  settings page only shows its switch and a note – for fees & SEPA (including
+  the mandate legal text and the welcome email), invoices, donation receipts
+  and the expense numbers. The table of contents marks it as "off". Saved
+  details are kept.
+- **Club details under "Club":** address, tax number, register and board are
+  now in the *Club details* card of the *Club* section (previously "Details
+  of the association on the invoice" under *Invoices*) and always visible –
+  donation receipts need them too, so a club without the invoice module can
+  still reach them. The jump address `#settings-section_rechnungen-angaben`
+  keeps working.
+- **Consistent saving:** module switches now take effect immediately
+  everywhere (invoice module, cost centres, expense reimbursement, donation
+  receipts – as the contributions module already did); if saving fails, the
+  switch flips back. Everything else is saved by the button of its card, and
+  only that card's fields: until now "Save" under club, display, receipts,
+  bank statements or creditor ID also took along unsaved input from all the
+  other cards of that group, and in the invoice cards saving one card
+  discarded the input in the others.
 - **Amounts in imports** are now read by one shared parser with fixed rules
   (CSV bank statement, CAMT.053, MT940, PayPal, XBUC, member CSV). What
   changes:
