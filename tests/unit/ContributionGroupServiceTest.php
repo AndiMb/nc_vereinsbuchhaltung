@@ -9,10 +9,12 @@ use OCA\Vereinsbuchhaltung\Db\AssignmentMapper;
 use OCA\Vereinsbuchhaltung\Db\ContributionGroup;
 use OCA\Vereinsbuchhaltung\Db\ContributionGroupMapper;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
+use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
 use OCA\Vereinsbuchhaltung\Service\AssignmentService;
 use OCA\Vereinsbuchhaltung\Service\ContributionGroupService;
 use OCA\Vereinsbuchhaltung\Service\CostCenter\CostCenterDefaults;
 use OCP\AppFramework\Utility\ITimeFactory;
+use OCP\IDBConnection;
 use OCP\IL10N;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -28,6 +30,8 @@ class ContributionGroupServiceTest extends TestCase {
 	private AssignmentMapper&MockObject $assignmentMapper;
 	private MemberMapper&MockObject $memberMapper;
 	private AssignmentService&MockObject $assignmentService;
+	private IDBConnection&MockObject $db;
+	private TransactionRunner $runner;
 	/** Vorgabe-Kostenstellen (Issue #333); null = Dienst ohne sie */
 	private (CostCenterDefaults&MockObject)|null $costCenterDefaults = null;
 
@@ -36,6 +40,8 @@ class ContributionGroupServiceTest extends TestCase {
 		$this->assignmentMapper = $this->createMock(AssignmentMapper::class);
 		$this->memberMapper = $this->createMock(MemberMapper::class);
 		$this->assignmentService = $this->createMock(AssignmentService::class);
+		$this->db = $this->createMock(IDBConnection::class);
+		$this->runner = new TransactionRunner($this->db);
 	}
 
 	private function service(): ContributionGroupService {
@@ -43,7 +49,7 @@ class ContributionGroupServiceTest extends TestCase {
 		$time->method('getDateTime')->willReturn(new \DateTime('2026-06-15'));
 		$l10n = $this->createMock(IL10N::class);
 		$l10n->method('t')->willReturnCallback(static fn (string $text, array $parameters = []): string => vsprintf($text, $parameters));
-		return new ContributionGroupService($this->mapper, $this->assignmentMapper, $this->memberMapper, $this->assignmentService, $time, $l10n, null, $this->costCenterDefaults);
+		return new ContributionGroupService($this->mapper, $this->assignmentMapper, $this->memberMapper, $this->assignmentService, $time, $l10n, $this->runner, null, $this->costCenterDefaults);
 	}
 
 	private function group(int $minCents = 500): ContributionGroup {
@@ -215,6 +221,45 @@ class ContributionGroupServiceTest extends TestCase {
 
 		$this->assertSame(1, $result['raisedCount']);
 		$this->assertSame(600, $result['newMinAmountCents']);
+	}
+
+	/**
+	 * Review 2026-11-18 (Backend 1): scheitert die Anhebung bei der zweiten
+	 * Zuweisung, darf weder die neue Untergrenze noch die erste Anhebung
+	 * stehen bleiben. Sonst fände ein zweiter Versuch die Untergrenze schon
+	 * erhöht vor und höbe die übrigen Zuweisungen nie mehr an.
+	 */
+	public function testApplyMinAmountIncreaseRolltBeiFehlerAllesZurueck(): void {
+		$this->mapper->method('find')->willReturn($this->group(500));
+		$this->mapper->expects($this->once())->method('update')->willReturnCallback(function (ContributionGroup $g): ContributionGroup {
+			$this->assertTrue($this->runner->isActive(), 'die Untergrenze wird in der Transaktion geändert');
+			return $g;
+		});
+		$assignments = [];
+		foreach ([10, 11] as $id) {
+			$a = new Assignment();
+			$a->setId($id);
+			$a->setMemberId($id);
+			$a->setMonthlyAmountCents(400);
+			$a->setValidFrom('2020-01-01');
+			$assignments[$id] = $a;
+		}
+		$this->assignmentMapper->method('findByGroup')->willReturn(array_values($assignments));
+		$this->assignmentMapper->method('find')->willReturnCallback(static fn (int $id): Assignment => $assignments[$id]);
+		$this->memberMapper->method('displayNameOr')->willReturn('Anna Mitglied');
+		$calls = 0;
+		$this->assignmentService->method('raiseToMinimum')->willReturnCallback(function () use (&$calls): void {
+			$this->assertTrue($this->runner->isActive(), 'jede Anhebung läuft in derselben Transaktion');
+			if (++$calls === 2) {
+				throw new \RuntimeException('Datenbank weg');
+			}
+		});
+		$this->db->expects($this->once())->method('beginTransaction');
+		$this->db->expects($this->once())->method('rollBack');
+		$this->db->expects($this->never())->method('commit');
+
+		$this->expectException(\RuntimeException::class);
+		$this->service()->applyMinAmountIncrease(1, 600, 'kassenwart');
 	}
 
 	// ---- Vorgabe-Kostenstelle (Issue #333) ----

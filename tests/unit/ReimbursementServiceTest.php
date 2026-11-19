@@ -340,6 +340,28 @@ class ReimbursementServiceTest extends TestCase {
 		$this->assertSame('Familie Musterfrau', $r->getAccountHolder());
 	}
 
+	/**
+	 * Feldinjektion in den GiroCode (Review 2026-11-18, Sicherheit I-1): der
+	 * Kontoinhaber ist ein einzeiliges Feld. Ein Zeilenumbruch könnte im
+	 * GiroCode eine eigene IBAN- und Betragszeile vortäuschen.
+	 */
+	#[DataProvider('kontoinhaberMitSteuerzeichen')]
+	public function testKontoinhaberMitSteuerzeichenWirdAbgelehnt(string $holder): void {
+		$this->expectException(\InvalidArgumentException::class);
+		$this->expectExceptionMessage('Der Kontoinhaber darf keine Zeilenumbrüche oder Steuerzeichen enthalten.');
+		$this->submitWith($this->service(), ['accountHolder' => $holder]);
+	}
+
+	public static function kontoinhaberMitSteuerzeichen(): array {
+		return [
+			'LF' => ["Max\nDE89370400440532013000\nEUR1234.00"],
+			'CR' => ["Max\rMuster"],
+			'Tab' => ["Max\tMuster"],
+			'NUL' => ["Max\x00Muster"],
+			'Zeilentrenner U+2028' => ["Max\u{2028}Muster"],
+		];
+	}
+
 	public function testDieBestaetigteErklaerungStehtInDerHistorie(): void {
 		$service = $this->service();
 		$r = $this->submit($service);

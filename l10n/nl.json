@@ -1,5 +1,22 @@
 {
     "translations": {
+        "Zeile %1$d: Der Betrag „%2$s“ ist nicht lesbar.": "Regel %1$d: het bedrag “%2$s” is niet leesbaar.",
+        "Buchung %1$d der XBUC-Datei: Der Betrag „%2$s“ ist nicht lesbar.": "Boeking %1$d van het XBUC-bestand: het bedrag “%2$s” is niet leesbaar.",
+        "Buchung %d der CAMT-Datei hat keinen Betrag.": "Boeking %d van het CAMT-bestand heeft geen bedrag.",
+        "Buchung %1$d der CAMT-Datei: Der Betrag „%2$s“ ist nicht lesbar.": "Boeking %1$d van het CAMT-bestand: het bedrag “%2$s” is niet leesbaar.",
+        "Buchung %1$d der MT940-Datei ist nicht lesbar: :61:%2$s": "Boeking %1$d van het MT940-bestand is niet leesbaar: :61:%2$s",
+        "Buchung %1$d der MT940-Datei: Der Betrag „%2$s“ ist nicht lesbar.": "Boeking %1$d van het MT940-bestand: het bedrag “%2$s” is niet leesbaar.",
+        "Diese Sicherung stammt von einer anderen Nextcloud – dazu zählt auch eine neu installierte. Rollen gehen an gleichnamige Konten und Gruppen dieser Nextcloud; prüfen Sie sie nach dem Einspielen. Verknüpfungen von Mitgliedern mit Konten müssen die Mitglieder neu bestätigen.": "Deze back-up komt van een andere Nextcloud – een nieuw geïnstalleerde telt ook als andere. Rollen gaan naar gelijknamige accounts en groepen op deze Nextcloud; controleer ze na het terugzetten. Leden moeten hun koppeling met een account opnieuw bevestigen.",
+        "Woher diese Sicherung stammt, ist unbekannt. Rollen und bestätigte Verknüpfungen von Mitgliedern mit Konten werden unverändert übernommen, obwohl gleichnamige Konten und Gruppen dieser Nextcloud anderen Menschen gehören können. Prüfen Sie beides nach dem Einspielen.": "De herkomst van deze back-up is onbekend. Rollen en bevestigde koppelingen van leden met accounts worden ongewijzigd overgenomen, hoewel gelijknamige accounts en groepen op deze Nextcloud van andere mensen kunnen zijn. Controleer beide na het terugzetten.",
+        "Achtung: Woher diese Sicherung stammt, ist unbekannt. Die Verknüpfungen von Mitgliedern mit Konten sind unverändert übernommen. Prüfen Sie unter „Mitglieder“, ob jedes verknüpfte Konto hier dem richtigen Menschen gehört.": "Let op: de herkomst van deze back-up is onbekend. De koppelingen van leden met accounts zijn ongewijzigd overgenomen. Controleer onder „Leden” of elk gekoppeld account hier bij de juiste persoon hoort.",
+        "Die Sicherung stammt nicht nachweislich von dieser Nextcloud. Diese Konten und Gruppen gibt es hier, und sie haben eine Rolle bekommen. Prüfen Sie unter „Berechtigungen“, ob sie hier denselben Menschen gehören:": "De back-up komt niet aantoonbaar van deze Nextcloud. Deze accounts en groepen bestaan hier en hebben een rol gekregen. Controleer onder “Rechten” of ze hier bij dezelfde mensen horen:",
+        "Gruppe {name}: {role}": "Groep {name}: {role}",
+        "Benutzer {name}: {role}": "Gebruiker {name}: {role}",
+        "_Die Verknüpfung von %n Mitglied mit einem Konto muss das Mitglied neu bestätigen._::_Die Verknüpfungen von %n Mitgliedern mit Konten müssen die Mitglieder neu bestätigen._": [
+            "%n lid moet de koppeling met zijn account opnieuw bevestigen.",
+            "%n leden moeten de koppeling met hun account opnieuw bevestigen."
+        ],
+        "Der Kontoinhaber darf keine Zeilenumbrüche oder Steuerzeichen enthalten.": "De rekeninghouder mag geen regeleinden of stuurtekens bevatten.",
         "Diese Buchung gehört schon zu einer anderen Auslage.": "Deze boeking hoort al bij een andere declaratie.",
         "Bestätigung ausstehend": "Bevestiging in afwachting",
         "Vorschlag {uid} verknüpfen": "Suggestie {uid} koppelen",

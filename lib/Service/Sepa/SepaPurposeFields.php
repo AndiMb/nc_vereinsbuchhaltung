@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Service\Sepa;
 
+use OCA\Vereinsbuchhaltung\Service\Text\AmountParser;
+
 /**
  * Zerlegt den deutschen „strukturierten Verwendungszweck", wie ihn Banken in
  * MT940 `:86:` (nach Konkatenation von `?20`–`?29`/`?60`–`?63`, siehe
@@ -71,19 +73,10 @@ class SepaPurposeFields {
 
 	/**
 	 * Wandelt einen SEPA-Betragswert (z. B. "EUR55,00", vereinzelt auch ohne
-	 * Währungspräfix) in Cent. Gebraucht für `OAMT+`/`COAM+`.
+	 * Währungspräfix) in Cent. Gebraucht für `OAMT+`/`COAM+` und `/OCMT/`.
+	 * Deutsche Schreibweise, Regeln: {@see AmountParser}.
 	 */
 	public static function amountCents(?string $value): ?int {
-		if ($value === null || trim($value) === '') {
-			return null;
-		}
-		// Führenden 3-stelligen Währungscode abtrennen, falls vorhanden.
-		$v = preg_replace('/^[A-Z]{3}/', '', trim($value)) ?? trim($value);
-		$v = str_replace('.', '', $v);
-		$v = str_replace(',', '.', $v);
-		if (!is_numeric($v)) {
-			return null;
-		}
-		return (int)round(((float)$v) * 100);
+		return $value === null ? null : AmountParser::germanText($value);
 	}
 }

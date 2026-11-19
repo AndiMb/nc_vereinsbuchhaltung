@@ -95,6 +95,51 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   bank statements or creditor ID also took along unsaved input from all the
   other cards of that group, and in the invoice cards saving one card
   discarded the input in the others.
+- **Amounts in imports** are now read by one shared parser with fixed rules
+  (CSV bank statement, CAMT.053, MT940, PayPal, XBUC, member CSV). What
+  changes:
+  - "1.234" in the CSV bank statement, XBUC and the member CSV now means
+    1,234.00 EUR (previously 1.23 EUR). If both a dot and a comma occur, the
+    last one is the decimal separator.
+  - A trailing minus ("12,50-"), the typographic minus and the en dash
+    ("–12,50") now count as negative; previously such amounts were partly
+    read as positive.
+  - Whole euros without decimals ("60," as in MT940, "12,-") stay readable.
+  - Values with other text ("ca. 12,50", "12,50 S") are no longer accepted as
+    an amount. In the CSV bank statement and in XBUC the import then stops and
+    names the line or entry; previously the text was silently removed. An
+    empty amount cell (such as a totals line) is still skipped.
+  - CAMT.053 with a comma as decimal separator ("<Amt>12,50</Amt>"), which
+    the standard does not allow but some programs produce, now stops the
+    import and names the entry instead of being read.
+  - In MT940 and the SEPA remittance information, "12.50" now means
+    12.50 EUR (previously 1,250.00 EUR); banks write a comma there anyway.
+
+**Security:**
+- **GiroCode of an expense claim:** a line break in the account holder could
+  make the GiroCode show a different IBAN and a higher amount. The account
+  holder may no longer contain line breaks or control characters, and every
+  GiroCode removes them from all free-text fields.
+- **Backup from another Nextcloud:** backups now record which Nextcloud they
+  were made on. If a backup comes from a different Nextcloud – including one
+  reinstalled after a failure –, confirmed links between members and accounts
+  no longer apply after the restore and have to be confirmed again. If the
+  origin is missing, the links are kept, but the check and the report show a
+  clear warning. In both cases the report lists every existing account and
+  group that received a role. A backup of the same Nextcloud is restored
+  unchanged (handbook 12.3).
+
+**Fixed:**
+- **CAMT.053 and MT940:** an entry with a missing or unreadable amount was
+  silently dropped; the import now stops and names the entry.
+- **Expense claims:** the account holder may not contain line breaks or
+  control characters even in a draft.
+- **Assigning a bank transaction:** a database error while loading the old
+  booking could leave the booking in place when unassigning, or book twice
+  when reassigning; the operation now aborts completely.
+- **Raising the minimum of a contribution group** and changes to assignments
+  run in one transaction: an error halfway leaves no partly raised group and
+  no change without a history entry.
 
 ## [0.54.0] – 2026-11-17
 

@@ -27,6 +27,9 @@ class BackupExportServiceTest extends TestCase {
 		$this->assertSame('SC Muster e.V.', $manifest['clubName']);
 		$this->assertTrue($manifest['withFiles']);
 		$this->assertNotFalse(strtotime($manifest['createdAt']));
+		// Herkunft (Review 2026-11-18, Sicherheit I-2): ein Abdruck der instanceid, nicht sie selbst.
+		$this->assertMatchesRegularExpression('/^[0-9a-f]{64}$/', $manifest['sourceInstance']);
+		$this->assertStringNotContainsString('ocquelle', (string)$zip->getFromName('manifest.json'));
 
 		$this->assertSame(array_keys(BackupSchema::tables()), array_keys($manifest['tables']));
 		$total = 0;

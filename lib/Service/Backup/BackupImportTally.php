@@ -23,4 +23,10 @@ final class BackupImportTally {
 	/** @var array<string, true> */
 	public array $groups = [];
 	public bool $importerFound = false;
+	/** @var BackupInstanceMarker::ORIGIN_* Herkunft der Sicherung */
+	public string $origin = BackupInstanceMarker::ORIGIN_UNKNOWN;
+	/** @var list<array{type: string, id: string, role: string}> jede eingespielte Rolle */
+	public array $roles = [];
+	/** Mitglieder, deren bestätigte Verknüpfung zurückgesetzt wurde */
+	public int $linksReset = 0;
 }

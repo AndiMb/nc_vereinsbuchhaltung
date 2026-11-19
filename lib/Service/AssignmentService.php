@@ -11,6 +11,7 @@ use OCA\Vereinsbuchhaltung\Db\AssignmentMapper;
 use OCA\Vereinsbuchhaltung\Db\ContributionGroup;
 use OCA\Vereinsbuchhaltung\Db\ContributionGroupMapper;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
+use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\IL10N;
@@ -45,6 +46,9 @@ class AssignmentService {
 		private ITimeFactory $time,
 		private IL10N $l10n,
 		private ClubCurrency $currency,
+		// Zuweisung und Ereignis (die Historie der Beitragsänderungen) werden
+		// gemeinsam geschrieben oder gar nicht (Review 2026-11-18).
+		private TransactionRunner $transaction,
 		?ClubClock $clock = null,
 	) {
 		$this->clock = $clock ?? new ClubClock($this->time);
@@ -117,15 +121,17 @@ class AssignmentService {
 		$assignment->setValidFrom($validFrom);
 		$assignment->setValidTo($validTo);
 		$assignment->setCreatedAt($this->now());
-		$assignment = $this->mapper->insert($assignment);
 
-		$this->logEvent($assignment->getId(), AssignmentEvent::TYPE_ASSIGNMENT_STARTED, $actorType, $actorUid, $onBehalfNote, [
-			'groupId' => $groupId,
-			'intervalMonths' => $intervalMonths,
-			'monthlyAmountCents' => $assignment->getMonthlyAmountCents(),
-			'validFrom' => $validFrom,
-		] + ($annual ? ['annualAmountCents' => $amountCents] : []));
-		return $assignment;
+		return $this->transaction->run(function () use ($assignment, $actorType, $actorUid, $onBehalfNote, $groupId, $intervalMonths, $validFrom, $annual, $amountCents): Assignment {
+			$assignment = $this->mapper->insert($assignment);
+			$this->logEvent($assignment->getId(), AssignmentEvent::TYPE_ASSIGNMENT_STARTED, $actorType, $actorUid, $onBehalfNote, [
+				'groupId' => $groupId,
+				'intervalMonths' => $intervalMonths,
+				'monthlyAmountCents' => $assignment->getMonthlyAmountCents(),
+				'validFrom' => $validFrom,
+			] + ($annual ? ['annualAmountCents' => $amountCents] : []));
+			return $assignment;
+		});
 	}
 
 	/**
@@ -148,64 +154,66 @@ class AssignmentService {
 		?string $paymentMethod = null,
 		?int $annualAmountCents = null,
 	): Assignment {
-		$assignment = $this->mapper->find($id);
-		$group = $this->groupMapper->find($groupId ?? $assignment->getGroupId());
-		$this->assertSameBasis($assignment, $group);
-		$annual = $group->isAnnual();
-		// Neuer Betrag in der Betragsangabe der Gruppe (Monats- oder Jahresbetrag), null = unverändert.
-		$amountCents = $this->amountInBasis($group, $monthlyAmountCents, $annualAmountCents);
-		$effectiveFrom = $this->effectiveFromFor($assignment);
-		if ($paymentMethod !== null) {
-			$this->assertValidPaymentMethod($paymentMethod);
-			$this->assertDirectDebitAvailable($paymentMethod, $assignment->getPaymentMethod());
-		}
+		return $this->transaction->run(function () use ($id, $monthlyAmountCents, $intervalMonths, $groupId, $actorType, $actorUid, $onBehalfNote, $paymentMethod, $annualAmountCents): Assignment {
+			$assignment = $this->mapper->find($id);
+			$group = $this->groupMapper->find($groupId ?? $assignment->getGroupId());
+			$this->assertSameBasis($assignment, $group);
+			$annual = $group->isAnnual();
+			// Neuer Betrag in der Betragsangabe der Gruppe (Monats- oder Jahresbetrag), null = unverändert.
+			$amountCents = $this->amountInBasis($group, $monthlyAmountCents, $annualAmountCents);
+			$effectiveFrom = $this->effectiveFromFor($assignment);
+			if ($paymentMethod !== null) {
+				$this->assertValidPaymentMethod($paymentMethod);
+				$this->assertDirectDebitAvailable($paymentMethod, $assignment->getPaymentMethod());
+			}
 
-		if ($groupId !== null && $groupId !== $assignment->getGroupId()) {
-			$this->assertNoOverlap($assignment->getMemberId(), $groupId, $effectiveFrom, $assignment->getValidTo(), $assignment->getId());
-			// Turnus und Betrag bleiben beim Gruppenwechsel stehen, müssen aber zur NEUEN Gruppe passen
-			// (erlaubter Turnus, Untergrenze) – sonst entstünde eine Zuweisung, die die Gruppe nie zugelassen hätte.
-			$this->assertValidInterval($group, $intervalMonths ?? $assignment->getIntervalMonths());
-			$this->assertAtLeastMinimum($assignment, $group, $amountCents ?? $assignment->amountCents());
-			$this->logEvent($id, AssignmentEvent::TYPE_GROUP_CHANGED, $actorType, $actorUid, $onBehalfNote, [
-				'from' => $assignment->getGroupId(), 'to' => $groupId, 'effectiveFrom' => $effectiveFrom,
-			]);
-			$assignment->setGroupId($groupId);
-		}
+			if ($groupId !== null && $groupId !== $assignment->getGroupId()) {
+				$this->assertNoOverlap($assignment->getMemberId(), $groupId, $effectiveFrom, $assignment->getValidTo(), $assignment->getId());
+				// Turnus und Betrag bleiben beim Gruppenwechsel stehen, müssen aber zur NEUEN Gruppe passen
+				// (erlaubter Turnus, Untergrenze) – sonst entstünde eine Zuweisung, die die Gruppe nie zugelassen hätte.
+				$this->assertValidInterval($group, $intervalMonths ?? $assignment->getIntervalMonths());
+				$this->assertAtLeastMinimum($assignment, $group, $amountCents ?? $assignment->amountCents());
+				$this->logEvent($id, AssignmentEvent::TYPE_GROUP_CHANGED, $actorType, $actorUid, $onBehalfNote, [
+					'from' => $assignment->getGroupId(), 'to' => $groupId, 'effectiveFrom' => $effectiveFrom,
+				]);
+				$assignment->setGroupId($groupId);
+			}
 
-		if ($intervalMonths !== null && $intervalMonths !== $assignment->getIntervalMonths()) {
-			$this->assertValidInterval($group, $intervalMonths);
-			// Turnuswechsel-Sonderfall (Spec §3.4): eigene Wirksamkeitsberechnung
-			// statt der generischen $effectiveFrom von oben - siehe
-			// effectiveFromFor()/EffectivityRuleService::firstUnlockedDay().
-			$intervalEffectiveFrom = $this->effectiveFromFor($assignment, $intervalMonths);
-			$this->logEvent($id, AssignmentEvent::TYPE_INTERVAL_CHANGED, $actorType, $actorUid, $onBehalfNote, [
-				'from' => $assignment->getIntervalMonths(), 'to' => $intervalMonths, 'effectiveFrom' => $intervalEffectiveFrom,
-			]);
-			$assignment->setIntervalMonths($intervalMonths);
-		}
+			if ($intervalMonths !== null && $intervalMonths !== $assignment->getIntervalMonths()) {
+				$this->assertValidInterval($group, $intervalMonths);
+				// Turnuswechsel-Sonderfall (Spec §3.4): eigene Wirksamkeitsberechnung
+				// statt der generischen $effectiveFrom von oben - siehe
+				// effectiveFromFor()/EffectivityRuleService::firstUnlockedDay().
+				$intervalEffectiveFrom = $this->effectiveFromFor($assignment, $intervalMonths);
+				$this->logEvent($id, AssignmentEvent::TYPE_INTERVAL_CHANGED, $actorType, $actorUid, $onBehalfNote, [
+					'from' => $assignment->getIntervalMonths(), 'to' => $intervalMonths, 'effectiveFrom' => $intervalEffectiveFrom,
+				]);
+				$assignment->setIntervalMonths($intervalMonths);
+			}
 
-		if ($amountCents !== null && $amountCents !== $assignment->amountCents()) {
-			$this->assertAtLeastMinimum($assignment, $group, $amountCents);
-			$this->logEvent($id, AssignmentEvent::TYPE_AMOUNT_CHANGED, $actorType, $actorUid, $onBehalfNote, [
-				'from' => $assignment->amountCents(), 'to' => $amountCents, 'effectiveFrom' => $effectiveFrom,
-			] + self::basisDetail($annual));
-			$this->applyAmount($assignment, $annual, $amountCents);
-		}
+			if ($amountCents !== null && $amountCents !== $assignment->amountCents()) {
+				$this->assertAtLeastMinimum($assignment, $group, $amountCents);
+				$this->logEvent($id, AssignmentEvent::TYPE_AMOUNT_CHANGED, $actorType, $actorUid, $onBehalfNote, [
+					'from' => $assignment->amountCents(), 'to' => $amountCents, 'effectiveFrom' => $effectiveFrom,
+				] + self::basisDetail($annual));
+				$this->applyAmount($assignment, $annual, $amountCents);
+			}
 
-		if ($paymentMethod !== null && $paymentMethod !== $assignment->getPaymentMethod()) {
-			// Zahlungsart wirkt sofort und kennt kein Sperrfenster: die
-			// Einzugsfähigkeit liest DirectDebitEligibilityResolver bei jedem
-			// Lauf frisch von der Zuweisung – eine Überweiser-Zuweisung liefert
-			// ab jetzt keine Einzugsposten mehr, offene Forderungen bleiben
-			// bestehen und werden zur Überweisung angemahnt. Das Mandat selbst
-			// bleibt unberührt (es wird nur nicht mehr genutzt), siehe Spec §3.5.
-			$this->logEvent($id, AssignmentEvent::TYPE_PAYMENT_METHOD_CHANGED, $actorType, $actorUid, $onBehalfNote, [
-				'from' => $assignment->getPaymentMethod(), 'to' => $paymentMethod,
-			]);
-			$assignment->setPaymentMethod($paymentMethod);
-		}
+			if ($paymentMethod !== null && $paymentMethod !== $assignment->getPaymentMethod()) {
+				// Zahlungsart wirkt sofort und kennt kein Sperrfenster: die
+				// Einzugsfähigkeit liest DirectDebitEligibilityResolver bei jedem
+				// Lauf frisch von der Zuweisung – eine Überweiser-Zuweisung liefert
+				// ab jetzt keine Einzugsposten mehr, offene Forderungen bleiben
+				// bestehen und werden zur Überweisung angemahnt. Das Mandat selbst
+				// bleibt unberührt (es wird nur nicht mehr genutzt), siehe Spec §3.5.
+				$this->logEvent($id, AssignmentEvent::TYPE_PAYMENT_METHOD_CHANGED, $actorType, $actorUid, $onBehalfNote, [
+					'from' => $assignment->getPaymentMethod(), 'to' => $paymentMethod,
+				]);
+				$assignment->setPaymentMethod($paymentMethod);
+			}
 
-		return $this->mapper->update($assignment);
+			return $this->mapper->update($assignment);
+		});
 	}
 
 	/**
@@ -228,21 +236,23 @@ class AssignmentService {
 		?string $actorUid,
 		?string $onBehalfNote = null,
 	): Assignment {
-		$assignment = $this->mapper->find($id);
-		$annual = $assignment->isAnnual();
-		$this->logEvent($id, AssignmentEvent::TYPE_MIN_AMOUNT_OVERRIDE_SET, $actorType, $actorUid, $onBehalfNote, [
-			'from' => $annual ? $assignment->getMinAnnualOverrideCents() : $assignment->getMinMonthlyAmountOverrideCents(), 'to' => $overrideCents,
-		] + self::basisDetail($annual));
-		$this->applyMinOverride($assignment, $annual, $overrideCents);
-		$assignment->setOverrideReason($reason !== null && trim($reason) !== '' ? trim($reason) : null);
-
-		if ($overrideCents !== null && $assignment->amountCents() < $overrideCents) {
-			$this->logEvent($id, AssignmentEvent::TYPE_AMOUNT_CHANGED, $actorType, $actorUid, $onBehalfNote, [
-				'from' => $assignment->amountCents(), 'to' => $overrideCents, 'reason' => 'min_amount_override',
+		return $this->transaction->run(function () use ($id, $overrideCents, $reason, $actorType, $actorUid, $onBehalfNote): Assignment {
+			$assignment = $this->mapper->find($id);
+			$annual = $assignment->isAnnual();
+			$this->logEvent($id, AssignmentEvent::TYPE_MIN_AMOUNT_OVERRIDE_SET, $actorType, $actorUid, $onBehalfNote, [
+				'from' => $annual ? $assignment->getMinAnnualOverrideCents() : $assignment->getMinMonthlyAmountOverrideCents(), 'to' => $overrideCents,
 			] + self::basisDetail($annual));
-			$this->applyAmount($assignment, $annual, $overrideCents);
-		}
-		return $this->mapper->update($assignment);
+			$this->applyMinOverride($assignment, $annual, $overrideCents);
+			$assignment->setOverrideReason($reason !== null && trim($reason) !== '' ? trim($reason) : null);
+
+			if ($overrideCents !== null && $assignment->amountCents() < $overrideCents) {
+				$this->logEvent($id, AssignmentEvent::TYPE_AMOUNT_CHANGED, $actorType, $actorUid, $onBehalfNote, [
+					'from' => $assignment->amountCents(), 'to' => $overrideCents, 'reason' => 'min_amount_override',
+				] + self::basisDetail($annual));
+				$this->applyAmount($assignment, $annual, $overrideCents);
+			}
+			return $this->mapper->update($assignment);
+		});
 	}
 
 	/**
@@ -253,27 +263,29 @@ class AssignmentService {
 	 * @throws DoesNotExistException wenn es die Zuweisung nicht gibt
 	 */
 	public function end(int $id, string $validTo, string $actorType, ?string $actorUid, ?string $onBehalfNote = null): Assignment {
-		$assignment = $this->mapper->find($id);
-		if ($validTo < $assignment->getValidFrom()) {
-			if ($assignment->getValidFrom() <= $this->today()) {
-				throw new \InvalidArgumentException($this->l10n->t('Ende der Zuweisung darf nicht vor ihrem Beginn liegen.'));
+		return $this->transaction->run(function () use ($id, $validTo, $actorType, $actorUid, $onBehalfNote): Assignment {
+			$assignment = $this->mapper->find($id);
+			if ($validTo < $assignment->getValidFrom()) {
+				if ($assignment->getValidFrom() <= $this->today()) {
+					throw new \InvalidArgumentException($this->l10n->t('Ende der Zuweisung darf nicht vor ihrem Beginn liegen.'));
+				}
+				// Noch nicht begonnen: „beenden“ heißt zurücknehmen. Das Ende liegt dann einen Tag vor dem Beginn, die
+				// Zuweisung wird nie wirksam, erzeugt nie eine Forderung und bleibt als Ereignis nachvollziehbar.
+				$withdrawnTo = (new \DateTimeImmutable($assignment->getValidFrom()))->modify('-1 day')->format('Y-m-d');
+				if ($assignment->getValidTo() !== null && $assignment->getValidTo() <= $withdrawnTo) {
+					return $assignment;
+				}
+				$assignment->setValidTo($withdrawnTo);
+				$this->logEvent($id, AssignmentEvent::TYPE_ASSIGNMENT_ENDED, $actorType, $actorUid, $onBehalfNote, ['validTo' => $withdrawnTo, 'reason' => 'withdrawn']);
+				return $this->mapper->update($assignment);
 			}
-			// Noch nicht begonnen: „beenden“ heißt zurücknehmen. Das Ende liegt dann einen Tag vor dem Beginn, die
-			// Zuweisung wird nie wirksam, erzeugt nie eine Forderung und bleibt als Ereignis nachvollziehbar.
-			$withdrawnTo = (new \DateTimeImmutable($assignment->getValidFrom()))->modify('-1 day')->format('Y-m-d');
-			if ($assignment->getValidTo() !== null && $assignment->getValidTo() <= $withdrawnTo) {
-				return $assignment;
+			if ($assignment->getValidTo() !== null && $assignment->getValidTo() <= $validTo) {
+				return $assignment; // bereits (frueher oder gleich) beendet - nichts zu tun
 			}
-			$assignment->setValidTo($withdrawnTo);
-			$this->logEvent($id, AssignmentEvent::TYPE_ASSIGNMENT_ENDED, $actorType, $actorUid, $onBehalfNote, ['validTo' => $withdrawnTo, 'reason' => 'withdrawn']);
+			$assignment->setValidTo($validTo);
+			$this->logEvent($id, AssignmentEvent::TYPE_ASSIGNMENT_ENDED, $actorType, $actorUid, $onBehalfNote, ['validTo' => $validTo]);
 			return $this->mapper->update($assignment);
-		}
-		if ($assignment->getValidTo() !== null && $assignment->getValidTo() <= $validTo) {
-			return $assignment; // bereits (frueher oder gleich) beendet - nichts zu tun
-		}
-		$assignment->setValidTo($validTo);
-		$this->logEvent($id, AssignmentEvent::TYPE_ASSIGNMENT_ENDED, $actorType, $actorUid, $onBehalfNote, ['validTo' => $validTo]);
-		return $this->mapper->update($assignment);
+		});
 	}
 
 	/**
@@ -286,16 +298,18 @@ class AssignmentService {
 	 * @return int Anzahl beendeter Zuweisungen
 	 */
 	public function onMemberLeft(int $memberId, string $leftAt): int {
-		$count = 0;
-		foreach ($this->mapper->findOpenAsOf($memberId, $leftAt) as $assignment) {
-			$assignment->setValidTo($leftAt);
-			$this->mapper->update($assignment);
-			$this->logEvent($assignment->getId(), AssignmentEvent::TYPE_ASSIGNMENT_ENDED, AssignmentEvent::ACTOR_SYSTEM, null, null, [
-				'validTo' => $leftAt, 'reason' => 'member_left',
-			]);
-			$count++;
-		}
-		return $count;
+		return $this->transaction->run(function () use ($memberId, $leftAt): int {
+			$count = 0;
+			foreach ($this->mapper->findOpenAsOf($memberId, $leftAt) as $assignment) {
+				$assignment->setValidTo($leftAt);
+				$this->mapper->update($assignment);
+				$this->logEvent($assignment->getId(), AssignmentEvent::TYPE_ASSIGNMENT_ENDED, AssignmentEvent::ACTOR_SYSTEM, null, null, [
+					'validTo' => $leftAt, 'reason' => 'member_left',
+				]);
+				$count++;
+			}
+			return $count;
+		});
 	}
 
 	/**
@@ -306,14 +320,16 @@ class AssignmentService {
 	 * ContributionGroupService::previewMinAmountIncrease()).
 	 */
 	public function raiseToMinimum(Assignment $assignment, int $newMinCents, string $actorUid): void {
-		// Bei einer Zuweisung mit Jahresbetrag (Issue #270) ist $newMinCents ein Jahresbetrag.
-		$annual = $assignment->isAnnual();
-		$old = $assignment->amountCents();
-		$this->applyAmount($assignment, $annual, $newMinCents);
-		$this->mapper->update($assignment);
-		$this->logEvent($assignment->getId(), AssignmentEvent::TYPE_AMOUNT_CHANGED, AssignmentEvent::ACTOR_STAFF, $actorUid, null, [
-			'from' => $old, 'to' => $newMinCents, 'reason' => 'min_amount_increase',
-		] + self::basisDetail($annual));
+		$this->transaction->run(function () use ($assignment, $newMinCents, $actorUid): void {
+			// Bei einer Zuweisung mit Jahresbetrag (Issue #270) ist $newMinCents ein Jahresbetrag.
+			$annual = $assignment->isAnnual();
+			$old = $assignment->amountCents();
+			$this->applyAmount($assignment, $annual, $newMinCents);
+			$this->mapper->update($assignment);
+			$this->logEvent($assignment->getId(), AssignmentEvent::TYPE_AMOUNT_CHANGED, AssignmentEvent::ACTOR_STAFF, $actorUid, null, [
+				'from' => $old, 'to' => $newMinCents, 'reason' => 'min_amount_increase',
+			] + self::basisDetail($annual));
+		});
 	}
 
 	/**

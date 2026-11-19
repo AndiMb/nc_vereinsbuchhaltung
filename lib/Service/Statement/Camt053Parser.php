@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Service\Statement;
 
 use OCA\Vereinsbuchhaltung\Exception\UserFacingException;
+use OCA\Vereinsbuchhaltung\Service\Text\AmountParser;
 use OCA\Vereinsbuchhaltung\Service\Text\SafeXml;
 use OCP\IL10N;
 
@@ -40,8 +41,12 @@ class Camt053Parser implements StatementParser, StatementBalanceReader {
 	) {
 	}
 
-	private function msg(string $text): string {
-		return $this->l10n !== null ? $this->l10n->t($text) : $text;
+	/** @param list<int|string> $params */
+	private function msg(string $text, array $params = []): string {
+		if ($this->l10n !== null) {
+			return $this->l10n->t($text, $params);
+		}
+		return $params === [] ? $text : vsprintf($text, $params);
 	}
 
 	public function sourceKey(): string {
@@ -77,8 +82,8 @@ class Camt053Parser implements StatementParser, StatementBalanceReader {
 	public function rows(string $content): array {
 		$entries = $this->entries($content);
 		$rows = [];
-		foreach ($entries as [$ntry, $ownAccount]) {
-			$row = $this->buildRow($ntry, $ownAccount);
+		foreach ($entries as $index => [$ntry, $ownAccount]) {
+			$row = $this->buildRow($ntry, $ownAccount, $index + 1);
 			if ($row !== null) {
 				$rows[] = $row;
 			}
@@ -210,9 +215,11 @@ class Camt053Parser implements StatementParser, StatementBalanceReader {
 	}
 
 	/**
+	 * @param int $position laufende Nummer der Buchung in der Datei (ab 1), für Fehlermeldungen
 	 * @return array<string, mixed>|null
+	 * @throws UserFacingException wenn der Betrag fehlt oder nicht lesbar ist
 	 */
-	private function buildRow(\SimpleXMLElement $ntry, ?string $ownAccount): ?array {
+	private function buildRow(\SimpleXMLElement $ntry, ?string $ownAccount, int $position): ?array {
 		$p = $this->prefixOf($ntry);
 
 		// Nur gebuchte Umsätze übernehmen. Vorgemerkte Posten (PDNG) ändern beim
@@ -224,13 +231,17 @@ class Camt053Parser implements StatementParser, StatementBalanceReader {
 			return null;
 		}
 
+		// Ohne lesbaren Betrag fiel die Buchung früher still weg, und der
+		// Auszug kam ohne sie herein (Review 2026-11-18). Für eine Buchhaltung
+		// ist ein Abbruch mit Hinweis besser als ein stiller Fehlbetrag – so
+		// hält es auch der PayPal-Import.
 		$amount = $this->firstValue($ntry, './' . $p . 'Amt');
 		if ($amount === null) {
-			return null;
+			throw new UserFacingException($this->msg('Buchung %d der CAMT-Datei hat keinen Betrag.', [$position]));
 		}
 		$cents = $this->toCents($amount);
 		if ($cents === null) {
-			return null;
+			throw new UserFacingException($this->msg('Buchung %1$d der CAMT-Datei: Der Betrag „%2$s“ ist nicht lesbar.', [$position, $amount]));
 		}
 		// CdtDbtInd trägt die Richtung; der Betrag selbst ist immer positiv.
 		if (strtoupper((string)$this->firstValue($ntry, './' . $p . 'CdtDbtInd')) === 'DBIT') {
@@ -264,7 +275,7 @@ class Camt053Parser implements StatementParser, StatementBalanceReader {
 			'counterpartyBic' => $partyBic,
 			'amountCents' => $cents,
 			'currency' => $currency,
-			'sepaDetails' => $this->sepaDetails($ntry, $p, $cents),
+			'sepaDetails' => $this->sepaDetails($ntry, $p, $cents, $position),
 		]);
 	}
 
@@ -285,7 +296,7 @@ class Camt053Parser implements StatementParser, StatementBalanceReader {
 	 *
 	 * @return list<array<string,mixed>>
 	 */
-	private function sepaDetails(\SimpleXMLElement $ntry, string $p, int $entryTotalCents): array {
+	private function sepaDetails(\SimpleXMLElement $ntry, string $p, int $entryTotalCents, int $position): array {
 		$txDtlsList = $ntry->xpath('.//' . $p . 'NtryDtls/' . $p . 'TxDtls') ?: [];
 		if ($txDtlsList === []) {
 			return [];
@@ -338,7 +349,7 @@ class Camt053Parser implements StatementParser, StatementBalanceReader {
 				'chargesCents' => $chargesCents,
 				'gvc' => $gvc,
 				'batchReference' => $batchReference,
-				'amountCents' => $this->detailAmountCents($tx, $p, $entryTotalCents),
+				'amountCents' => $this->detailAmountCents($tx, $p, $entryTotalCents, $position),
 				'isReturn' => $isReturn,
 			];
 		}
@@ -346,7 +357,7 @@ class Camt053Parser implements StatementParser, StatementBalanceReader {
 	}
 
 	/** Eigener Betrag/Richtung einer TxDtls-Zeile, mit Rückfall auf den Umsatzbetrag (siehe sepaDetails()). */
-	private function detailAmountCents(\SimpleXMLElement $tx, string $p, int $entryTotalCents): int {
+	private function detailAmountCents(\SimpleXMLElement $tx, string $p, int $entryTotalCents, int $position): int {
 		$amount = $this->firstValue($tx, './' . $p . 'Amt');
 		if ($amount === null) {
 			// Kein eigener Betrag je TxDtls (minimale Exporte, kommt bei echten
@@ -357,7 +368,8 @@ class Camt053Parser implements StatementParser, StatementBalanceReader {
 		}
 		$cents = $this->toCents($amount);
 		if ($cents === null) {
-			return 0;
+			// Früher still 0; ein unlesbarer Einzelbetrag ist aber genauso ein Fehler der Datei.
+			throw new UserFacingException($this->msg('Buchung %1$d der CAMT-Datei: Der Betrag „%2$s“ ist nicht lesbar.', [$position, $amount]));
 		}
 		$direction = $this->firstValue($tx, './' . $p . 'CdtDbtInd');
 		return $direction !== null && strtoupper($direction) === 'DBIT' ? -$cents : $cents;
@@ -429,12 +441,12 @@ class Camt053Parser implements StatementParser, StatementBalanceReader {
 		return checkdate((int)$m[2], (int)$m[3], (int)$m[1]) ? $m[0] : null;
 	}
 
+	/**
+	 * CAMT-Beträge sind xs:decimal: nur der Punkt trennt die Nachkommastellen
+	 * ({@see AmountParser::xml()}). Ein Komma oder „1e3" ist kein gültiger Wert.
+	 */
 	private function toCents(string $value): ?int {
-		$v = str_replace(',', '.', trim($value));
-		if (!is_numeric($v)) {
-			return null;
-		}
-		return (int)round(((float)$v) * 100);
+		return AmountParser::xml($value);
 	}
 
 	private function firstValue(\SimpleXMLElement $node, string $xpath): ?string {
