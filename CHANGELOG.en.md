@@ -139,6 +139,10 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   unchanged (handbook 12.3).
 
 **Fixed:**
+- **CAMT import (e.g. CAMT.052 from VR banks):** if the counterparty name
+  sits one level deeper (`<Cdtr><Pty><Nm>`, from version .08 on), the import
+  showed the booking text, such as "Basislastschrift", instead of the name.
+  Both forms are now recognised (#384).
 - **Club logo:** uploading or removing the logo reloaded all settings and
   discarded unsaved input on the page.
 - **CAMT.053 and MT940:** an entry with a missing or unreadable amount was

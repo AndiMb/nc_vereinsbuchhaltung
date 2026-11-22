@@ -258,7 +258,10 @@ class Camt053Parser implements StatementParser, StatementBalanceReader {
 		// Bei Geldeingang ist der Zahlungsbeteiligte der Auftraggeber (Dbtr),
 		// bei Geldausgang der Empfänger (Cdtr).
 		$partyPath = $incoming ? 'Dbtr' : 'Cdtr';
-		$party = $this->firstValue($ntry, './/' . $p . $partyPath . '/' . $p . 'Nm');
+		// Ab Version .08 (z. B. CAMT.052 der VR-Banken, #384) steckt der Name
+		// eine Ebene tiefer in <Pty>; <Agt> daneben wäre die Bank, nicht der Partner.
+		$party = $this->firstValue($ntry, './/' . $p . $partyPath . '/' . $p . 'Nm')
+			?? $this->firstValue($ntry, './/' . $p . $partyPath . '/' . $p . 'Pty/' . $p . 'Nm');
 		$partyIban = $this->firstValue($ntry, './/' . $p . $partyPath . 'Acct/' . $p . 'Id/' . $p . 'IBAN');
 		$partyBic = $this->firstValue($ntry, './/' . $p . $partyPath . 'Agt/' . $p . 'FinInstnId/' . $p . 'BIC')
 			?? $this->firstValue($ntry, './/' . $p . $partyPath . 'Agt/' . $p . 'FinInstnId/' . $p . 'BICFI');
