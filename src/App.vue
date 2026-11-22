@@ -1100,7 +1100,9 @@ export default {
 
 		// Frühere Zuordnungen je Zahlungspartner (für Vorschläge)
 		assignmentHistory() {
-			const map = {}
+			// Ohne Prototyp: der Schlüssel ist der Name eines Überweisungsabsenders, und ein
+			// Absender namens „__proto__“ schriebe sonst in Object.prototype.
+			const map = Object.create(null)
 			for (const h of this.txContext.history) {
 				const key = (h.counterparty || '').trim().toLowerCase()
 				if (!key) { continue }

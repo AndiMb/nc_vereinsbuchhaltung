@@ -29,6 +29,8 @@ class MemberService {
 		private IUserManager $userManager,
 		private IL10N $l10n,
 		private ClubClock $clock,
+		private MandateService $mandateService,
+		private AuditService $audit,
 		private ?ReimbursementDraftCleaner $drafts = null,
 	) {
 	}
@@ -74,8 +76,26 @@ class MemberService {
 		if ($member->isRedacted()) {
 			throw new \InvalidArgumentException($this->l10n->t('Dieses Mitglied ist anonymisiert; Stammdaten können nicht mehr bearbeitet werden.'));
 		}
+		$oldEmail = $member->getEmail();
 		$this->applyStammdaten($member, $data);
+		if ($member->getEmail() !== $oldEmail) {
+			$this->invalidateConsentLinks($member);
+		}
 		return $this->mapper->update($member);
+	}
+
+	/**
+	 * Ändert sich die Mailadresse, werden die noch offenen Zustimmungslinks
+	 * der Mandate ungültig. Sie gingen an die ALTE Adresse; wer dort mitliest,
+	 * könnte sonst im Namen des Mitglieds ein Mandat erteilen. Ein neuer Link
+	 * lässt sich jederzeit verschicken. Vor dem Speichern: scheitert es,
+	 * fehlt höchstens ein Link, der sich neu anfordern lässt.
+	 */
+	private function invalidateConsentLinks(Member $member): void {
+		$deleted = $this->mandateService->invalidateActivationLinksOfMember((int)$member->getId());
+		if ($deleted > 0) {
+			$this->audit->log('Zustimmungslinks nach Adressänderung ungültig', 'member', (int)$member->getId(), ['links' => $deleted]);
+		}
 	}
 
 	/**
@@ -130,13 +150,17 @@ class MemberService {
 		$member->setCountry($this->normalizeCountry($data['country'] ?? $member->getCountry()));
 
 		$changed = self::ownContactFields($member) !== $before;
+		$emailChanged = $member->getEmail() !== $oldEmail;
 		if ($changed) {
+			if ($emailChanged) {
+				$this->invalidateConsentLinks($member);
+			}
 			$member = $this->mapper->update($member);
 		}
 		return [
 			'member' => $member,
 			'changed' => $changed,
-			'emailChanged' => $member->getEmail() !== $oldEmail,
+			'emailChanged' => $emailChanged,
 			'oldEmail' => $oldEmail,
 		];
 	}
@@ -232,15 +256,25 @@ class MemberService {
 	 */
 	public function leave(int $id, string $leftAt): Member {
 		$member = $this->mapper->find($id);
+		$before = $member->getLeftAt();
 		$member->setLeftAt($this->requireDate($leftAt, $this->l10n->t('Ungültiges Austrittsdatum (erwartet JJJJ-MM-TT).')));
-		return $this->mapper->update($member);
+		$member = $this->mapper->update($member);
+		// Der Austritt beendet später Mandat und Zuweisungen im Namen des Systems;
+		// wer ihn erklärt hat, steht nur hier.
+		$this->audit->log('Austritt erklärt', 'member', $id, ['von' => $before, 'nach' => $member->getLeftAt()]);
+		return $member;
 	}
 
 	/** Nimmt einen erklärten Austritt zurück, solange er noch nicht wirksam sein muss. */
 	public function reactivate(int $id): Member {
 		$member = $this->mapper->find($id);
+		$before = $member->getLeftAt();
 		$member->setLeftAt(null);
-		return $this->mapper->update($member);
+		$member = $this->mapper->update($member);
+		if ($before !== null) {
+			$this->audit->log('Austritt zurückgenommen', 'member', $id, ['von' => $before]);
+		}
+		return $member;
 	}
 
 	/**

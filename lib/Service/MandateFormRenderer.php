@@ -71,11 +71,15 @@ class MandateFormRenderer {
 	 *                              bei einem bereits erteilten Mandat dessen `signedAt`, bei einer noch
 	 *                              offenen Zustimmung das heutige Datum.
 	 */
-	public function renderDataBlock(Mandate $mandate, string $creditorId, string $referenceDate): string {
+	public function renderDataBlock(Mandate $mandate, string $creditorId, string $referenceDate, bool $maskIban = false): string {
+		$iban = $mandate->getIban();
+		if ($iban !== null) {
+			$iban = $maskIban ? $mandate->maskedIban() : trim(chunk_split($iban, 4, ' '));
+		}
 		$rows = [
 			['Mandatsreferenz', $mandate->getMandateReference()],
 			['Kontoinhaber', $mandate->getAccountHolder()],
-			['IBAN', $mandate->getIban() !== null ? trim(chunk_split($mandate->getIban(), 4, ' ')) : '—'],
+			['IBAN', $iban ?? '—'],
 			['Gläubiger-Identifikationsnummer', $creditorId !== '' ? $creditorId : '—'],
 			['Zahlungsart', 'wiederkehrende Zahlung (SEPA-Basislastschrift)'],
 			['Datum', GermanDate::format($referenceDate)],

@@ -80,7 +80,9 @@ class BankTransaction extends Entity implements \JsonSerializable {
 			'bookingText' => $this->bookingText,
 			'purpose' => $this->purpose,
 			'counterparty' => $this->counterparty,
-			'counterpartyIban' => $this->counterpartyIban,
+			// Maskiert: die Oberfläche zeigt die IBAN des Zahlungspartners nirgends, und die
+			// Antwort geht auch an Kassenprüfer. Regeln und SEPA-Abgleich lesen sie serverseitig.
+			'counterpartyIban' => Mandate::maskIban($this->counterpartyIban),
 			'counterpartyBic' => $this->counterpartyBic,
 			'ownAccount' => $this->ownAccount,
 			'status' => $this->status,

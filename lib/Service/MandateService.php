@@ -207,8 +207,9 @@ class MandateService {
 	 * Selbst-Aktivierung bei Zustimmung über den Einmal-Link (Spec §2.2, Issue
 	 * #67): KEIN manuelles Gate - `assertCanActivateElectronic()` verlangt nur
 	 * Entwurf + `signature_type: elektronisch`, die Zustimmung selbst ersetzt
-	 * die Unterschrift. Aufrufer ist ausschließlich
-	 * {@see MandateActivationService::consent()}, NIE ein Controller direkt -
+	 * die Unterschrift. Aufrufer sind {@see MandateActivationService::consent()}
+	 * (Einmal-Link) und der Self-Service in der angemeldeten Sitzung, NIE ein
+	 * Controller direkt -
 	 * das Beweispaket (Version/IP/User-Agent/Identität) muss vollständig
 	 * vorliegen, bevor irgendetwas aktiviert wird.
 	 *
@@ -263,7 +264,8 @@ class MandateService {
 	 * Adresse, die der DSGVO-Anonymisierung unterliegen und nicht in Ereignistexte
 	 * gehören.
 	 *
-	 * Aufrufer ist ausschließlich {@see MandateActivationService::consent()}.
+	 * Aufrufer sind {@see MandateActivationService::consent()} (Einmal-Link) und
+	 * der Self-Service in der angemeldeten Sitzung.
 	 *
 	 * @throws DoesNotExistException
 	 * @throws \InvalidArgumentException wenn das Mandat nicht aktiv oder ausgesetzt ist
@@ -1015,6 +1017,32 @@ class MandateService {
 
 	private function currentUid(): ?string {
 		return $this->userSession->getUser()?->getUID();
+	}
+
+	/**
+	 * Macht die noch offenen Zustimmungslinks eines Mandats ungültig. Für
+	 * Wege, auf denen die Zustimmung OHNE den Link erteilt wird (in der
+	 * angemeldeten Sitzung): der Link aus der Mail bliebe sonst gültig und
+	 * könnte das Zustimmungs-Protokoll später überschreiben.
+	 *
+	 * @return int Anzahl der gelöschten Links
+	 */
+	public function invalidateActivationLinks(int $mandateId): int {
+		return $this->activationTokens->deleteOutstandingByMandate($mandateId);
+	}
+
+	/**
+	 * Dasselbe für alle Mandate eines Mitglieds: wenn sich die Adresse ändert,
+	 * an die die Links gingen.
+	 *
+	 * @return int Anzahl der gelöschten Links
+	 */
+	public function invalidateActivationLinksOfMember(int $memberId): int {
+		$deleted = 0;
+		foreach ($this->mapper->findByMember($memberId) as $mandate) {
+			$deleted += $this->invalidateActivationLinks((int)$mandate->getId());
+		}
+		return $deleted;
 	}
 
 	private function requireIban(string $iban): string {

@@ -169,9 +169,15 @@ class ImportService {
 			// SepaImportExtractionService-Klassendoc). Was als Rücklastschrift
 			// erkannt wurde, meldet der Import zurück, damit ein unbeaufsichtigter
 			// Lauf (Wachordner) es im Protokoll vermerken kann.
-			$sepaReturnsDetected += $this->sepaDetails->extract($tx, $row['sepaDetails'] ?? []);
+			$returns = $this->sepaDetails->extract($tx, $row['sepaDetails'] ?? []);
+			$sepaReturnsDetected += $returns;
 
-			if ($applyRules) {
+			// Eine Rücklastschrift bucht keine Regel: sie gehört in den
+			// Bankabgleich, wo jemand sie der zurückgegebenen Forderung
+			// zuordnet. Eine Regel, die auf den Text passt, hätte sie sonst
+			// als erledigt verbucht – die Forderung bliebe „bezahlt“, und in
+			// der Liste der offenen Rückgaben tauchte sie nie auf.
+			if ($applyRules && $returns === 0) {
 				// Eine Rechnung, deren Nummer im Verwendungszweck steht und deren
 				// Betrag genau stimmt, geht jeder Importregel vor.
 				if ($this->assignToInvoice($tx)) {

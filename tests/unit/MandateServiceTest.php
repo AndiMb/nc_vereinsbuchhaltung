@@ -899,6 +899,14 @@ class MandateServiceTest extends TestCase {
 		];
 	}
 
+	/** Ändert sich die Adresse eines Mitglieds, werden die Links all seiner Mandate ungültig. */
+	public function testInvalidateActivationLinksOfMemberLoeschtDieLinksAllerMandate(): void {
+		$this->mandateMapper->method('findByMember')->with(5)->willReturn([$this->draftMandate(7), $this->activeMandate(8)]);
+		$this->activationTokens->expects($this->exactly(2))->method('deleteOutstandingByMandate')->willReturnMap([[7, 2], [8, 0]]);
+
+		$this->assertSame(2, $this->service()->invalidateActivationLinksOfMember(5));
+	}
+
 	public function testVerwerfenEinesElektronischenEntwurfsLoeschtDenAusgesendetenEinmalLink(): void {
 		$this->realisticMessages = true;
 		$this->mandateMapper->method('find')->willReturn($this->draftMandate(7, Mandate::SIGNATURE_ELECTRONIC));

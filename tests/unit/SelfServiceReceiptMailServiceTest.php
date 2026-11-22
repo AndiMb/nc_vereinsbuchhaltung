@@ -122,6 +122,22 @@ class SelfServiceReceiptMailServiceTest extends TestCase {
 		$this->assertStringNotContainsString('katrin.neu@example.org', $joined);
 	}
 
+	/** Wurde die Adresse nur entfernt, sagt die Warnung genau das und nennt keine neue. */
+	public function testSendOldAddressWarningOhneNeueAdresseMeldetDasEntfernen(): void {
+		$bodyTexts = [];
+		$this->template->method('addBodyText')->willReturnCallback(function (string $text) use (&$bodyTexts) {
+			$bodyTexts[] = $text;
+			return $this->template;
+		});
+		$this->mailer->expects($this->once())->method('send');
+
+		$this->service()->sendOldAddressWarning($this->member(), 'katrin.alt@example.org', null);
+
+		$joined = implode("\n", $bodyTexts);
+		$this->assertStringContainsString('wurde soeben entfernt', $joined);
+		$this->assertStringNotContainsString('geändert.', $joined);
+	}
+
 	public function testMaskEmailBehaeltErstenBuchstabenUndDomainendungSichtbar(): void {
 		$this->assertSame('k•••••@e••••••.org', SelfServiceReceiptMailService::maskEmail('katrin@example.org'));
 	}

@@ -2829,7 +2829,9 @@ debit appears in the **"Bank reconciliation"** segment (*Bankabgleich*)
 (13.10), matched to the item it belongs to, with the **reason in plain
 words**. After the import, the import dialog reports how many possible
 returned direct debits were detected; a watch-folder run notes it in the
-log.
+log. **Import rules do not book a detected returned direct debit**, even if
+its text matches a rule: the transaction stays unassigned for the bank
+reconciliation, otherwise the returned claim would still count as paid.
 
 Only your **judgment and posting** triggers what the row and the preview
 announce: the claim becomes open again, the mandate is blocked depending on

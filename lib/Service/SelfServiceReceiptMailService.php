@@ -90,17 +90,21 @@ class SelfServiceReceiptMailService {
 	 * Angriffsvektor, falls die alte Adresse kompromittiert ist) – nur der
 	 * Hinweis, sich im Zweifel an den Verein zu wenden.
 	 */
-	public function sendOldAddressWarning(Member $member, string $oldEmail, string $newEmail): void {
+	public function sendOldAddressWarning(Member $member, string $oldEmail, ?string $newEmail): void {
 		$clubName = $this->clubName();
 		$template = $this->mailer->createEMailTemplate('vereinsbuchhaltung.selfServiceEmailChangeWarning');
 		$template->setSubject($this->l10n->t('Ihre hinterlegte E-Mail-Adresse wurde geändert'));
 		$this->mailBranding->addHeader($template);
 		$template->addHeading($this->l10n->t('E-Mail-Adresse geändert'));
 		$template->addBodyText($this->l10n->t('Guten Tag %s,', [$member->displayName()]));
-		$template->addBodyText($this->l10n->t(
-			'die für Ihre Mitgliedschaft bei %1$s hinterlegte E-Mail-Adresse wurde soeben von dieser Adresse auf %2$s geändert.',
-			[$clubName, self::maskEmail($newEmail)],
-		));
+		if ($newEmail !== null && $newEmail !== '') {
+			$template->addBodyText($this->l10n->t(
+				'die für Ihre Mitgliedschaft bei %1$s hinterlegte E-Mail-Adresse wurde soeben von dieser Adresse auf %2$s geändert.',
+				[$clubName, self::maskEmail($newEmail)],
+			));
+		} else {
+			$template->addBodyText($this->l10n->t('diese für Ihre Mitgliedschaft bei %s hinterlegte E-Mail-Adresse wurde soeben entfernt.', [$clubName]));
+		}
 		$template->addBodyText($this->l10n->t('Falls Ihnen diese Änderung nicht bekannt vorkommt, wenden Sie sich bitte direkt an den Vorstand Ihres Vereins.'));
 		$this->mailBranding->addFooter($template);
 

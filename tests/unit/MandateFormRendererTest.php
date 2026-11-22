@@ -72,4 +72,19 @@ class MandateFormRendererTest extends TestCase {
 		$this->assertStringContainsString('<dd>05.10.2026</dd>', $html);
 		$this->assertStringContainsString('<dd>DE12 5001 0517 0648 4898 90</dd>', $html);
 	}
+
+	/** Ein verbrauchter Zustimmungslink zeigt die IBAN nur noch maskiert. */
+	public function testDatenblockMaskiertDieIbanAufWunsch(): void {
+		$mandate = new Mandate();
+		$mandate->setMandateReference('M-1');
+		$mandate->setAccountHolder('Katrin Brunner');
+		$mandate->setIban('DE12500105170648489890');
+
+		$masked = $this->renderer()->renderDataBlock($mandate, 'DE98ZZZ09999999999', '2026-10-05', true);
+		$full = $this->renderer()->renderDataBlock($mandate, 'DE98ZZZ09999999999', '2026-10-05');
+
+		$this->assertStringNotContainsString('5001', $masked);
+		$this->assertStringContainsString((string)$mandate->maskedIban(), $masked);
+		$this->assertStringContainsString('DE12 5001 0517 0648 4898 90', $full);
+	}
 }

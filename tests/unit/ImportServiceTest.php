@@ -254,6 +254,32 @@ class ImportServiceTest extends TestCase {
 		$this->assertSame(1, $result['autoAssigned']);
 	}
 
+	/**
+	 * Eine Rücklastschrift bucht weder eine Regel noch der Rechnungsabgleich: sie
+	 * bleibt unzugeordnet für den Bankabgleich. Sonst gälte die zurückgegebene
+	 * Forderung weiter als bezahlt.
+	 */
+	public function testErkannteRuecklastschriftBleibtTrotzPassenderRegelUnzugeordnet(): void {
+		$this->sepaDetails->method('extract')->willReturnOnConsecutiveCalls(1, 0);
+		$matching = $this->createMock(InvoiceMatchingService::class);
+		$matching->method('autoMatch')->willReturn(null);
+		$payments = $this->createMock(InvoicePaymentService::class);
+		$payments->expects($this->never())->method('payFromBankTransaction');
+		$booking = $this->createMock(BookingService::class);
+		// Nur die zweite Zeile (keine Rückgabe) wird von der Regel gebucht.
+		$booking->expects($this->once())->method('assign')
+			->with($this->callback(static fn (BankTransaction $tx): bool => $tx->getAmountCents() === 6000), 5);
+
+		$result = $this->serviceWithInvoices($matching, $payments, $booking)->commitRows('book', [
+			$this->row('h1', -6000),
+			$this->row('h2', 6000),
+		], 'camt053');
+
+		$this->assertSame(2, $result['new']);
+		$this->assertSame(1, $result['autoAssigned']);
+		$this->assertSame(1, $result['sepaReturnsDetected']);
+	}
+
 	public function testScheitertDieRechnungsbuchungFaelltDerImportAufDieRegelZurueck(): void {
 		$matching = $this->createMock(InvoiceMatchingService::class);
 		$matching->method('autoMatch')->willReturn(['invoiceId' => 3, 'number' => 'RE-2026-0003']);

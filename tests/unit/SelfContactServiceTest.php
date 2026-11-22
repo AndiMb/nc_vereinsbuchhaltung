@@ -104,6 +104,20 @@ class SelfContactServiceTest extends TestCase {
 		$this->service()->update(['email' => 'neu@example.org']);
 	}
 
+	/**
+	 * Auch das bloße Entfernen der Adresse warnt die alte: sonst ließe sich die
+	 * Warnung umgehen, indem man die Adresse erst löscht und dann neu einträgt.
+	 */
+	public function testEntfernenDerAdresseWarntDieAlteAdresse(): void {
+		$this->actorContext->setMemberChannel(self::MEMBER_ID);
+		$this->memberService->method('updateOwnContactData')
+			->willReturn(['member' => $this->member(email: null), 'changed' => true, 'emailChanged' => true, 'oldEmail' => 'katrin@example.org']);
+		$this->receiptMail->expects($this->once())->method('sendOldAddressWarning')
+			->with($this->isInstanceOf(Member::class), 'katrin@example.org', null);
+
+		$this->service()->update(['email' => '']);
+	}
+
 	/** #305: unverändertes Speichern verschickt keine Mail im Namen des Vereins. */
 	public function testOhneAenderungKeineQuittungKeineWarnungKeineActivity(): void {
 		$this->actorContext->setMemberChannel(self::MEMBER_ID);
