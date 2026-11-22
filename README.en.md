@@ -6,9 +6,9 @@ A lightweight accounting app for nonprofit clubs, integrated directly into Nextc
 
 ## 🎬 The app in two minutes
 
-[![Vereinsbuchhaltung app for Nextcloud – watch video](https://img.youtube.com/vi/eaF-tAQ_OOM/maxresdefault.jpg)](https://youtu.be/eaF-tAQ_OOM)
+[![Club Accounting App for Nextcloud – watch video](https://img.youtube.com/vi/QxIaGEKdo5s/maxresdefault.jpg)](https://youtu.be/QxIaGEKdo5s)
 
-**[Vereinsbuchhaltung app for Nextcloud](https://youtu.be/eaF-tAQ_OOM)** (German narration) – import bank statements, assign transactions, evaluate and produce the annual treasurer's report.
+**[Club Accounting App for Nextcloud](https://youtu.be/QxIaGEKdo5s)** – keep the books, collect membership fees, write invoices, plan and prepare the audit. · [Deutsche Fassung](https://youtu.be/pxH3CKygV9c)
 
 > 📖 **Beginner's guide:** The included **[HANDBUCH.md](HANDBUCH.md)** ([English: HANDBUCH.en.md](HANDBUCH.en.md)) walks treasurers step by step through the app – from initial setup through day-to-day bookkeeping to the year-end closing and the annual audit.
 
