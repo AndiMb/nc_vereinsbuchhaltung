@@ -424,6 +424,7 @@ return [
 		['name' => 'export#multiyear', 'url' => '/api/export/multiyear', 'verb' => 'GET'],
 		['name' => 'export#kassenbericht', 'url' => '/api/export/kassenbericht', 'verb' => 'GET'],
 		['name' => 'export#gliederungsberichtPdf', 'url' => '/api/export/gliederungsbericht/pdf', 'verb' => 'GET'],
+		['name' => 'export#gliederungsberichtVisuellPdf', 'url' => '/api/export/gliederungsbericht-visuell/pdf', 'verb' => 'GET'],
 		['name' => 'export#kassenberichtPdf', 'url' => '/api/export/kassenbericht/pdf', 'verb' => 'GET'],
 		['name' => 'export#kurzbericht', 'url' => '/api/export/kurzbericht', 'verb' => 'GET'],
 		['name' => 'export#attachments', 'url' => '/api/export/attachments', 'verb' => 'GET'],

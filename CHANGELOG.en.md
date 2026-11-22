@@ -17,6 +17,14 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 
 ## [Unreleased]
 
+**New:**
+- **Visual structured report as PDF:** the **PDF** button is now also
+  available in the visual view. It downloads key figures, status lights,
+  largest deviations, trend and the breakdown with bars as a finished PDF file
+  – for the chosen snapshot and comparison, with page numbers and a table
+  header repeated on every page. *Print / PDF* remains available next to it.
+  Described in chapter 7.5 of the manual.
+
 ## [0.55.0] – 2026-11-22
 
 **New:**

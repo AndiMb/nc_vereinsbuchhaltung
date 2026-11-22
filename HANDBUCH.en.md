@@ -1634,11 +1634,11 @@ appears at the end under "Accounts not covered" and a notice names it. An
 account counted in several sections is marked. The grand total always
 covers all income and expenses and matches the financial plan.
 
-**PDF** (table view only) downloads the report as a finished PDF file – with
-page numbers, a table header repeated on every page and automatically in
-landscape format from five value columns on. The file is named
-*Gliederungsbericht-<template>-<period>.pdf* (umlauts are transliterated). The
-visual view (chapter 7.5) remains a print page only.
+**PDF** downloads the report as a finished PDF file – with page numbers, a
+table header repeated on every page and automatically in landscape format from
+five value columns on. The file is named
+*Gliederungsbericht-<template>-<period>.pdf* (umlauts are transliterated). For
+the PDF file of the visual view see chapter 7.5.
 
 **Print / PDF** opens the report as a print-ready page (landscape from five
 columns on), **CSV** delivers the same lines with a "level" column for
@@ -1724,8 +1724,11 @@ below "green from". **Default values** restores the defaults.
 
 **Print / PDF** opens a print-ready page of the visual view for the chosen
 snapshot and comparison: key figures, status counts, deviations, trend and
-breakdown with bars. It is readable in black and white. There is no CSV of
-the visual view; the table's CSV remains.
+breakdown with bars. It is readable in black and white. **PDF** downloads the
+same content as a finished PDF file, likewise for the chosen snapshot and
+comparison, with page numbers and the breakdown header repeated on every page
+(file name *Gliederungsbericht-visuell-<template>-<period>.pdf*). There is no
+CSV of the visual view; the table's CSV remains.
 
 On phones the tiles stack and the rows of the breakdown wrap onto two lines.
 

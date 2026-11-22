@@ -19,6 +19,14 @@ verwenden, z. B. `**Neu:**`.
 
 ## [Unreleased]
 
+**Neu:**
+- **Visueller Gliederungsbericht als PDF:** Der Knopf **PDF** gibt es jetzt
+  auch in der visuellen Ansicht. Er lädt Kennzahlen, Ampel, größte
+  Abweichungen, Verlauf und Aufriss mit Balken als fertige PDF-Datei herunter –
+  für den gewählten Stand und Vergleich, mit Seitenzahlen und auf jeder Seite
+  wiederholtem Tabellenkopf. *Drucken / PDF* bleibt daneben erhalten.
+  Beschrieben in Kapitel 7.5 des Handbuchs.
+
 ## [0.55.0] – 2026-11-22
 
 **Neu:**
