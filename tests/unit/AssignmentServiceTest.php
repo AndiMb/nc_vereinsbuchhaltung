@@ -10,6 +10,8 @@ use OCA\Vereinsbuchhaltung\Db\AssignmentEventMapper;
 use OCA\Vereinsbuchhaltung\Db\AssignmentMapper;
 use OCA\Vereinsbuchhaltung\Db\ContributionGroup;
 use OCA\Vereinsbuchhaltung\Db\ContributionGroupMapper;
+use OCA\Vereinsbuchhaltung\Db\DebitItemMapper;
+use OCA\Vereinsbuchhaltung\Db\DunningNoticeMapper;
 use OCA\Vereinsbuchhaltung\Db\MandateMapper;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Db\OpenItem;
@@ -118,6 +120,8 @@ class AssignmentServiceTest extends TestCase {
 			$contributionYear,
 			$dueDateSchedule,
 			new ContributionCycleSettings($config),
+			$this->createMock(DebitItemMapper::class),
+			$this->createMock(DunningNoticeMapper::class),
 			$time,
 		);
 		return new AssignmentService($this->mapper, $this->eventMapper, $this->groupMapper, $this->openItemMapper, $contributionYear, $dueDateSchedule, $time, $l10n, ClubCurrencyStub::of($this, $this->currencyCode), $this->runner, $claimGeneration, $this->claims);
@@ -204,6 +208,28 @@ class AssignmentServiceTest extends TestCase {
 		$this->expectException(\InvalidArgumentException::class);
 		$this->expectExceptionMessage('höchstens');
 		$this->service()->previewChange(5, PHP_INT_MAX, null);
+	}
+
+	/**
+	 * Eine Betragsänderung erreicht auch die Forderung, die der Tageslauf
+	 * schon angelegt hat, solange sie nicht vorabinformiert ist – in derselben
+	 * Transaktion wie die Änderung.
+	 */
+	public function testUpdateZiehtDieNochNichtVorabinformierteForderungNach(): void {
+		$this->mapper->method('find')->willReturn($this->assignmentInGroup1());
+		$this->mapper->method('update')->willReturnArgument(0);
+		$this->groupMapper->method('find')->willReturn($this->group());
+		$this->openItemMapper->method('update')->willReturnArgument(0);
+		$claim = $this->claimOfAssignment5(11);
+		$claim->setPeriodStart('2027-01-01');
+		$claim->setPeriodEnd('2027-12-31');
+		$claim->setDueDate('2027-01-01');
+		$claim->setAmountCents(12000);
+		$this->openItemsByAssignment[5] = [$claim];
+
+		$this->service('2026-12-20')->update(5, 1500, null, null, AssignmentEvent::ACTOR_STAFF, 'kassenwart');
+
+		$this->assertSame(18000, $claim->getAmountCents());
 	}
 
 	public function testUpdateLehntBetragUeberDerObergrenzeAb(): void {

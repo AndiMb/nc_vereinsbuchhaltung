@@ -8,6 +8,9 @@ use OCA\Vereinsbuchhaltung\Db\Assignment;
 use OCA\Vereinsbuchhaltung\Db\AssignmentMapper;
 use OCA\Vereinsbuchhaltung\Db\ContributionGroup;
 use OCA\Vereinsbuchhaltung\Db\ContributionGroupMapper;
+use OCA\Vereinsbuchhaltung\Db\DebitItemMapper;
+use OCA\Vereinsbuchhaltung\Db\DunningNotice;
+use OCA\Vereinsbuchhaltung\Db\DunningNoticeMapper;
 use OCA\Vereinsbuchhaltung\Db\Mandate;
 use OCA\Vereinsbuchhaltung\Db\MandateMapper;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
@@ -45,6 +48,8 @@ class ClaimGenerationServiceTest extends TestCase {
 	private ContributionGroupMapper&MockObject $groups;
 	private MemberMapper&MockObject $members;
 	private MandateMapper&MockObject $mandates;
+	private DebitItemMapper&MockObject $debitItems;
+	private DunningNoticeMapper&MockObject $dunningNotices;
 	/** @var OpenItem[] */
 	private array $store = [];
 	/** @var array<string,string> simulierter appconfig-Speicher, fuer Terminplan/Lead-Days */
@@ -58,6 +63,8 @@ class ClaimGenerationServiceTest extends TestCase {
 		$this->groups = $this->createMock(ContributionGroupMapper::class);
 		$this->members = $this->createMock(MemberMapper::class);
 		$this->mandates = $this->createMock(MandateMapper::class);
+		$this->debitItems = $this->createMock(DebitItemMapper::class);
+		$this->dunningNotices = $this->createMock(DunningNoticeMapper::class);
 		$this->members->method('displayNameOr')->willReturn('Max Mustermann');
 
 		$this->openItems->method('findByAssignment')->willReturnCallback(
@@ -110,6 +117,8 @@ class ClaimGenerationServiceTest extends TestCase {
 			new ContributionYearService($config, ClubClockStub::system()),
 			new DueDateScheduleService($config, new ContributionYearService($config, ClubClockStub::system()), $l10n),
 			new ContributionCycleSettings($config),
+			$this->debitItems,
+			$this->dunningNotices,
 			$time,
 		);
 	}
@@ -147,7 +156,7 @@ class ClaimGenerationServiceTest extends TestCase {
 	 * darf den Lauf nicht für alle Mitglieder danach beenden.
 	 */
 	public function testEineKaputteZuweisungHaeltDieAnderenNichtAuf(): void {
-		$this->assignments->method('findActiveAsOf')->willReturn([
+		$this->assignments->method('findActiveOrStartingBy')->willReturn([
 			$this->assignment(1, 7, 12, PHP_INT_MAX),
 			$this->assignment(2, 8),
 		]);
@@ -164,7 +173,7 @@ class ClaimGenerationServiceTest extends TestCase {
 	/** Läuft der nächste Tag wieder durch, verschwindet die Aufgabe von selbst. */
 	public function testFehlerlisteLeertSichBeimNaechstenSauberenLauf(): void {
 		$this->configStore['contribution_cycle_failed_assignments'] = '[1]';
-		$this->assignments->method('findActiveAsOf')->willReturn([$this->assignment()]);
+		$this->assignments->method('findActiveOrStartingBy')->willReturn([$this->assignment()]);
 		$this->groups->method('find')->with(1)->willReturn($this->group());
 		$this->setMandateActive(true);
 
@@ -292,7 +301,7 @@ class ClaimGenerationServiceTest extends TestCase {
 	}
 
 	public function testJahresbetragErgibtImVollenJahrExaktDenJahresbetrag(): void {
-		$this->assignments->method('findActiveAsOf')->willReturn([$this->annualAssignment()]);
+		$this->assignments->method('findActiveOrStartingBy')->willReturn([$this->annualAssignment()]);
 		$this->groups->method('find')->willReturn($this->annualGroup(true));
 		$this->setMandateActive(true);
 
@@ -303,7 +312,7 @@ class ClaimGenerationServiceTest extends TestCase {
 	}
 
 	public function testJahresbetragWirdBeiBeitrittImJahrAnteiligGerundet(): void {
-		$this->assignments->method('findActiveAsOf')->willReturn([$this->annualAssignment('2026-06-01')]);
+		$this->assignments->method('findActiveOrStartingBy')->willReturn([$this->annualAssignment('2026-06-01')]);
 		$this->groups->method('find')->willReturn($this->annualGroup(true));
 		$this->setMandateActive(true);
 
@@ -314,7 +323,7 @@ class ClaimGenerationServiceTest extends TestCase {
 	}
 
 	public function testJahresbetragOhneAnteiligeBerechnungBleibtBeiBeitrittImJahrVoll(): void {
-		$this->assignments->method('findActiveAsOf')->willReturn([$this->annualAssignment('2026-06-01')]);
+		$this->assignments->method('findActiveOrStartingBy')->willReturn([$this->annualAssignment('2026-06-01')]);
 		$this->groups->method('find')->willReturn($this->annualGroup(false));
 		$this->setMandateActive(true);
 
@@ -325,7 +334,7 @@ class ClaimGenerationServiceTest extends TestCase {
 	}
 
 	public function testJahresbetragWirdBeiAustrittImJahrAnteiligBerechnet(): void {
-		$this->assignments->method('findActiveAsOf')->willReturn([$this->annualAssignment('2026-01-01', '2026-06-30')]);
+		$this->assignments->method('findActiveOrStartingBy')->willReturn([$this->annualAssignment('2026-01-01', '2026-06-30')]);
 		$this->groups->method('find')->willReturn($this->annualGroup(true));
 		$this->setMandateActive(true);
 
@@ -581,5 +590,118 @@ class ClaimGenerationServiceTest extends TestCase {
 			['dueDate' => '2026-12-15', 'scheduledDueDate' => '2026-12-15'],
 			$this->service('2026-12-10')->firstClaimDueDate($assignment, '2026-12-10'),
 		);
+	}
+
+	/**
+	 * Erzeugt die Dezember-Forderung des Beitritts zum 1.12. (Quartalsturnus,
+	 * Einzug am 15., 10 € im Monat) wie der Tageslauf am 24.11. und liefert
+	 * Zuweisung und Forderung für die Nachzieh-Tests.
+	 *
+	 * @return array{Assignment, OpenItem}
+	 */
+	private function generatedDecemberClaim(string $paymentMethod = Assignment::PAYMENT_METHOD_DIRECT_DEBIT, int $monthlyAmountCents = 1000): array {
+		$this->quarterlyOnThe15th();
+		$assignment = $this->assignment(intervalMonths: 3, monthlyAmountCents: $monthlyAmountCents, paymentMethod: $paymentMethod, validFrom: '2026-12-01');
+		$this->stubSelection($assignment);
+		$this->groups->method('find')->willReturnCallback(function (int $id): ContributionGroup {
+			$group = $this->group();
+			if ($id === 2) {
+				$group->setId(2);
+				$group->setName('Familienbeitrag');
+			}
+			return $group;
+		});
+		$this->setMandateActive(true);
+		$this->service('2026-11-24')->generateDue();
+		$this->assertCount(1, $this->store);
+		return [$assignment, $this->store[0]];
+	}
+
+	/**
+	 * Wirksamkeitsregel (Spec §3.3): Eine Änderung wirkt ab der ersten Periode
+	 * ohne Vorabinfo – auch auf die Forderung, die der Tageslauf schon angelegt
+	 * hat. Betrag und Bezeichnung folgen, Zeitraum und Termin bleiben.
+	 */
+	public function testAenderungZiehtDieNochNichtVorabinformierteForderungNach(): void {
+		[$assignment, $claim] = $this->generatedDecemberClaim();
+		$assignment->setMonthlyAmountCents(1500);
+		$assignment->setGroupId(2);
+
+		$this->assertSame(1, $this->service('2026-11-26')->refreshUnlockedClaims($assignment, '2026-11-26'));
+
+		$this->assertSame(1500, $claim->getAmountCents());
+		$this->assertSame('Familienbeitrag', $claim->getDescription());
+		$this->assertSame('2026-12-15', $claim->getDueDate());
+		$this->assertSame('2026-12-01', $claim->getPeriodStart());
+		$this->assertSame('2026-12-31', $claim->getPeriodEnd());
+		$this->assertSame('open', $claim->getStatus());
+	}
+
+	/** @return iterable<string, array{string}> */
+	public static function sperren(): iterable {
+		foreach (['Vorabinfo verschickt', 'Zahlungsaufforderung verschickt', 'teilweise bezahlt', 'storniert', 'im freigegebenen Lauf'] as $lock) {
+			yield $lock => [$lock];
+		}
+	}
+
+	#[DataProvider('sperren')]
+	public function testGesperrteForderungBleibtUnveraendert(string $lock): void {
+		[$assignment, $claim] = $this->generatedDecemberClaim();
+		match ($lock) {
+			'Vorabinfo verschickt' => $claim->setPrenotifiedAt('2026-12-01T06:00:00+00:00'),
+			'Zahlungsaufforderung verschickt' => $this->dunningNotices->method('findByOpenItem')->willReturn([new DunningNotice()]),
+			'teilweise bezahlt' => $claim->setSettledCents(500),
+			'storniert' => $claim->setCancelledAt('2026-11-25T10:00:00+00:00'),
+			'im freigegebenen Lauf' => $this->debitItems->method('findLiveBatchStatusByOpenItem')->willReturn('released'),
+			default => throw new \LogicException('Unbekannte Sperre: ' . $lock),
+		};
+		$assignment->setMonthlyAmountCents(1500);
+
+		$this->assertSame(0, $this->service('2026-12-02')->refreshUnlockedClaims($assignment, '2026-12-02'));
+		$this->assertSame(1000, $claim->getAmountCents());
+	}
+
+	/** Überweiser bekommen nie eine Vorabinfo: Für sie ist der Termin die Grenze. */
+	public function testFaelligeForderungEinesUeberweisersBleibtUnveraendert(): void {
+		[$assignment, $claim] = $this->generatedDecemberClaim(Assignment::PAYMENT_METHOD_TRANSFER);
+		$assignment->setMonthlyAmountCents(1500);
+
+		$this->assertSame(0, $this->service('2026-12-15')->refreshUnlockedClaims($assignment, '2026-12-15'));
+		$this->assertSame(1000, $claim->getAmountCents());
+	}
+
+	public function testAufNullGesetztWirdDieForderungZumBeitragsfreienEintrag(): void {
+		[$assignment, $claim] = $this->generatedDecemberClaim();
+		$assignment->setMonthlyAmountCents(0);
+
+		$this->service('2026-11-26')->refreshUnlockedClaims($assignment, '2026-11-26');
+
+		$this->assertSame(0, $claim->getAmountCents());
+		$this->assertSame('waived', $claim->getStatus());
+		$this->assertNotNull($claim->getSettledAt());
+	}
+
+	/**
+	 * Aus „Ruhend“ (0 €) zurück: Der schon festgehaltene beitragsfreie Eintrag
+	 * wird zur Forderung, mit dem Termin, den der Lauf ihr heute gäbe – am
+	 * 26.11. reicht die Zeit für den 15.12. noch, am 2.12. nicht mehr.
+	 */
+	public function testBeitragsfreierEintragWirdBeiBetragZurForderung(): void {
+		[$assignment, $entry] = $this->generatedDecemberClaim(monthlyAmountCents: 0);
+		$this->assertSame('waived', $entry->getStatus());
+		$assignment->setMonthlyAmountCents(1000);
+
+		$this->service('2026-12-02')->refreshUnlockedClaims($assignment, '2026-12-02');
+
+		$this->assertSame('open', $entry->getStatus());
+		$this->assertSame(1000, $entry->getAmountCents());
+		$this->assertNull($entry->getSettledAt());
+		$this->assertSame('2027-01-15', $entry->getDueDate());
+	}
+
+	public function testUnveraenderteForderungWirdNichtGeschrieben(): void {
+		[$assignment] = $this->generatedDecemberClaim();
+
+		$this->assertSame(0, $this->service('2026-11-26')->refreshUnlockedClaims($assignment, '2026-11-26'));
 	}
 }

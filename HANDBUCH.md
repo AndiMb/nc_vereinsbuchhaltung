@@ -2708,7 +2708,10 @@ Was ein Mitglied zahlt, steht in einer **Zuweisung** zu einer
   Zahlungsart neu ein: beliebig über der Untergrenze, etwa wenn ein Mitglied
   ausnahmsweise mehr geben möchte. Die Vorschau erscheint von selbst und nennt, ab
   wann die Änderung gilt – bei einem schon angekündigten Einzug erst danach;
-  gespeichert wird erst, wenn sie zum Stand der Felder passt. **Die Zahlungsart
+  gespeichert wird erst, wenn sie zum Stand der Felder passt. Eine Forderung,
+  die der Tageslauf schon angelegt, aber noch nicht angekündigt hat (keine
+  Vorabinfo, keine Zahlungsaufforderung), rechnet die App dabei neu: Betrag und
+  Bezeichnung folgen der Änderung, Zeitraum und Einzugstermin bleiben. **Die Zahlungsart
   wirkt sofort** und kennt kein Sperrfenster: Stellen Sie auf *Überweisung* um,
   wird ab jetzt nichts mehr eingezogen, auch ein schon angekündigter Einzug
   nicht – offene wie künftige Forderungen überweist das Mitglied selbst, die

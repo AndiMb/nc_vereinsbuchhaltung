@@ -119,7 +119,7 @@ class ContributionCycleTaskServiceTest extends TestCase {
 	/** Was der Tageslauf nicht erzeugen konnte, steht als Aufgabe da und nicht nur im Server-Log. */
 	public function testGescheiterteForderungserzeugungErzeugtHandlungsbedarf(): void {
 		$this->configStore['contribution_cycle_failed_assignments'] = '[4,99]';
-		$this->assignments->method('findActiveAsOf')->willReturn([]);
+		$this->assignments->method('findActiveOrStartingBy')->willReturn([]);
 		$this->assignments->method('find')->willReturnCallback(
 			fn (int $id): Assignment => $id === 4 ? $this->assignment(4, 7) : throw new DoesNotExistException('weg'),
 		);

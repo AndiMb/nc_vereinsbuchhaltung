@@ -224,7 +224,7 @@ class AssignmentService {
 				$assignment->setPaymentMethod($paymentMethod);
 			}
 
-			return $this->mapper->update($assignment);
+			return $this->saveAndRefreshClaims($assignment);
 		});
 	}
 
@@ -266,7 +266,7 @@ class AssignmentService {
 				] + self::basisDetail($annual));
 				$this->applyAmount($assignment, $annual, $overrideCents);
 			}
-			return $this->mapper->update($assignment);
+			return $this->saveAndRefreshClaims($assignment);
 		});
 	}
 
@@ -348,7 +348,7 @@ class AssignmentService {
 			$annual = $assignment->isAnnual();
 			$old = $assignment->amountCents();
 			$this->applyAmount($assignment, $annual, $newMinCents);
-			$this->mapper->update($assignment);
+			$this->saveAndRefreshClaims($assignment);
 			$this->logEvent($assignment->getId(), AssignmentEvent::TYPE_AMOUNT_CHANGED, AssignmentEvent::ACTOR_STAFF, $actorUid, null, [
 				'from' => $old, 'to' => $newMinCents, 'reason' => 'min_amount_increase',
 			] + self::basisDetail($annual));
@@ -607,6 +607,19 @@ class AssignmentService {
 		if (!in_array($paymentMethod, Assignment::PAYMENT_METHODS, true)) {
 			throw new \InvalidArgumentException($this->l10n->t('Unbekannte Zahlungsart.'));
 		}
+	}
+
+	/**
+	 * Speichert eine geänderte Zuweisung und zieht ihre noch nicht gesperrten
+	 * Forderungen nach ({@see ClaimGenerationService::refreshUnlockedClaims()}):
+	 * Die Wirksamkeitsregel lässt eine Änderung ab der ersten Periode ohne
+	 * Vorabinfo wirken, auch wenn der Tageslauf deren Forderung schon angelegt
+	 * hat. In derselben Transaktion wie die Änderung selbst.
+	 */
+	private function saveAndRefreshClaims(Assignment $assignment): Assignment {
+		$saved = $this->mapper->update($assignment);
+		$this->claimGeneration->refreshUnlockedClaims($saved, $this->today());
+		return $saved;
 	}
 
 	/**

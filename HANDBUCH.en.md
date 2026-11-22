@@ -2657,7 +2657,10 @@ group** (**"Contributions" tab → Contribution groups**):
   amount above the lower limit, for example when a member wants to give more this
   once. The preview appears by itself and says from when the change applies –
   after an already announced collection only from then on; saving is possible
-  only once it matches the fields. **The payment method takes effect at once**
+  only once it matches the fields. A claim the daily run has already created
+  but not yet announced (no pre-notification, no payment request) is
+  recalculated: amount and description follow the change, period and
+  collection date stay. **The payment method takes effect at once**
   and has no lock window: switch to *Bank transfer* and nothing is collected
   from now on, not even a collection already announced – the member transfers
   open and future claims themselves; the payment request with GiroCode goes out

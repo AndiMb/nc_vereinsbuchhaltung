@@ -8,6 +8,8 @@ use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\Assignment;
 use OCA\Vereinsbuchhaltung\Db\AssignmentMapper;
 use OCA\Vereinsbuchhaltung\Db\ContributionGroupMapper;
+use OCA\Vereinsbuchhaltung\Db\DebitItemMapper;
+use OCA\Vereinsbuchhaltung\Db\DunningNoticeMapper;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Db\OpenItem;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
@@ -79,6 +81,8 @@ class ClaimGenerationService {
 		private ContributionYearService $contributionYear,
 		private DueDateScheduleService $schedule,
 		private ContributionCycleSettings $settings,
+		private DebitItemMapper $debitItems,
+		private DunningNoticeMapper $dunningNotices,
 		private ITimeFactory $time,
 		?ClubClock $clock = null,
 		private ?LoggerInterface $logger = null,
@@ -200,8 +204,9 @@ class ClaimGenerationService {
 		$dueAnchor = $this->dueAnchor($assignment, $periodStart, true);
 		$scheduled = $this->schedule->dueDateForPeriod($intervalMonths, $dueAnchor);
 
-		if ($assignment->getPaymentMethod() !== Assignment::PAYMENT_METHOD_DIRECT_DEBIT
-			|| $this->periodAmountCents($assignment, $periodStart, $periodEnd, true) === 0) {
+		// Beitragsfrei steht am Betrag der Zuweisung selbst; die Vorschau kennt bei Monatsbeträgen keine Gruppe.
+		$feeFree = ($assignment->isAnnual() ? $assignment->getAnnualAmountCents() : $assignment->getMonthlyAmountCents()) === 0;
+		if ($assignment->getPaymentMethod() !== Assignment::PAYMENT_METHOD_DIRECT_DEBIT || $feeFree) {
 			return ['dueDate' => $scheduled, 'scheduledDueDate' => $scheduled];
 		}
 
@@ -215,6 +220,89 @@ class ClaimGenerationService {
 			'dueDate' => $this->dueDateWithNachzuegler($intervalMonths, $dueAnchor, $periodEnd, $generationDay, $this->settings->prenotificationLeadDays()),
 			'scheduledDueDate' => $scheduled,
 		];
+	}
+
+	/**
+	 * Zieht die schon erzeugten, aber noch nicht gesperrten Forderungen einer
+	 * Zuweisung nach einer Änderung (Betrag, Gruppe, Untergrenze) nach – Spec
+	 * §3.3 „Eine Wirksamkeitsregel für alles": eine Änderung wirkt ab der
+	 * ersten Periode ohne versandte Vorabinfo, also auch auf eine Forderung,
+	 * die der Tageslauf im Vorwarnfenster schon angelegt hat. Ohne das bliebe
+	 * eine Korrektur zwischen Vorwarnung (D−21) und Vorabinfo (D−14) in der
+	 * nächsten Forderung wirkungslos.
+	 *
+	 * Gerechnet wird an Ort und Stelle, mit derselben Rechnung wie beim Anlegen:
+	 * Betrag und Bezeichnung folgen der Zuweisung, Zeitraum und Einzugstermin
+	 * bleiben – eine Korrektur am Tag der Vorabinfo soll den Einzug nicht um
+	 * einen Turnus verschieben, und eine gerissene Vorlauffrist verschiebt
+	 * nichts automatisch (Spec §3.5). An Ort und Stelle statt neu erzeugt, weil
+	 * an einer Forderung Zahlungen, Mahnungen und Lastschriftposten hängen
+	 * können. Fällt der Betrag auf 0, wird die Forderung zum beitragsfreien
+	 * Eintrag (siehe Klassendoc); wird ein beitragsfreier Eintrag zahlungspflichtig,
+	 * wird er zur Forderung, mit dem Termin, den der Lauf ihr heute gäbe.
+	 *
+	 * Angefasst wird nur, was noch niemand angekündigt oder bezahlt hat: offen
+	 * (bzw. vom Lauf beitragsfrei gestellt), keine Vorabinfo, keine
+	 * Zahlungsaufforderung oder Mahnung (bei Überweisern übernimmt die
+	 * Zahlungsaufforderung die Rolle der Vorabinfo, {@see DunningLadderService}),
+	 * Termin nach heute, nichts bezahlt, in keinem lebenden Lastschriftlauf.
+	 *
+	 * @param string|null $today Stichtag, sonst heute (für Tests)
+	 * @return int Anzahl nachgezogener Forderungen
+	 */
+	public function refreshUnlockedClaims(Assignment $assignment, ?string $today = null): int {
+		$today ??= $this->today();
+		$group = null;
+		$refreshed = 0;
+		foreach ($this->openItems->findByAssignment((int)$assignment->getId()) as $item) {
+			$periodStart = $item->getPeriodStart();
+			$periodEnd = $item->getPeriodEnd();
+			$feeFreeEntry = $item->getStatus() === 'waived' && $item->getAmountCents() === 0 && $item->getSettledBy() === null;
+			if ($periodStart === null || $periodEnd === null
+				|| ($item->getStatus() !== 'open' && !$feeFreeEntry)
+				|| $item->getPrenotifiedAt() !== null
+				|| $item->getCancelledAt() !== null
+				|| $item->getDueDate() === null || $item->getDueDate() <= $today
+				|| $item->getSettledCents() > 0 || $item->getPaidJournalId() !== null
+				|| $this->debitItems->findLiveBatchStatusByOpenItem((int)$item->getId()) !== null
+				|| $this->dunningNotices->findByOpenItem((int)$item->getId()) !== []) {
+				continue;
+			}
+
+			$group ??= $this->groups->find($assignment->getGroupId());
+			$amountCents = ContributionAmount::forPeriod($assignment, $group, $periodStart, $periodEnd);
+			if ($amountCents === $item->getAmountCents() && $item->getDescription() === $group->getName()) {
+				continue;
+			}
+			$item->setDescription($group->getName());
+			$item->setAmountCents($amountCents);
+			if ($amountCents === 0 && !$feeFreeEntry) {
+				$item->setStatus('waived');
+				$item->setSettledAt($this->now());
+			} elseif ($amountCents > 0 && $feeFreeEntry) {
+				$item->setStatus('open');
+				$item->setSettledAt(null);
+				$item->setDueDate($this->dueDateIfCreatedToday($assignment, $periodStart, $today));
+			}
+			$this->openItems->update($item);
+			$refreshed++;
+		}
+		return $refreshed;
+	}
+
+	/**
+	 * Der Termin, den {@see generateForAssignment()} einer Periode mit diesem
+	 * (tatsächlichen) Beginn heute gäbe: Terminplan, bei Lastschrift mit der
+	 * Nachzügler-Regel. Der gespeicherte Beginn ist schon der Anker – bei der
+	 * ersten Periode der Beitritt, sonst der Periodenbeginn.
+	 */
+	private function dueDateIfCreatedToday(Assignment $assignment, string $periodStart, string $today): string {
+		$intervalMonths = $assignment->getIntervalMonths();
+		if ($assignment->getPaymentMethod() !== Assignment::PAYMENT_METHOD_DIRECT_DEBIT) {
+			return $this->schedule->dueDateForPeriod($intervalMonths, $periodStart);
+		}
+		[, $naturalEnd] = $this->contributionYear->periodContaining($intervalMonths, $periodStart);
+		return $this->dueDateWithNachzuegler($intervalMonths, $periodStart, $naturalEnd, $today, $this->settings->prenotificationLeadDays());
 	}
 
 	/**
