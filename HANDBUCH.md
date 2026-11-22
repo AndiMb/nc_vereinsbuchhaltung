@@ -2344,9 +2344,11 @@ zugänglich:
 | *Mandats-Rechtstext* (eigener Abschnitt direkt darunter) | der Text auf Mandatsformular und Zustimmungsseite (13.2) |
 | *Willkommens-Mail* (eigener Abschnitt direkt darunter) | Betreff und Text der Mail an neu aufgenommene Mitglieder (13.2) |
 
-Ist der Reiter „Beiträge" ausgeschaltet, zeigt der Abschnitt nur die Karten
-*Beitragsmodul* und *Lastschrift: Gläubiger-ID und Konto*; alle übrigen Karten
-und die beiden Abschnitte darunter erscheinen, sobald er an ist.
+Ist der Reiter „Beiträge" ausgeschaltet, zeigt der Abschnitt nur die Karte
+*Beitragsmodul*; *Lastschrift: Gläubiger-ID und Konto*, alle übrigen Karten
+und die beiden Abschnitte darunter erscheinen, sobald er an ist. Die Schalter
+der Karte *Beitragsmodul* wirken sofort und speichern nur sich selbst,
+Gläubiger-ID und Konto speichert der Knopf ihrer Karte.
 
 Nachweis-Ordner und XML-Ablage liegen im Home des Nutzers, den Sie unter
 *Belege* für die Ablage im Nextcloud-Dateibaum gewählt haben (2.4); ohne ihn
@@ -3534,9 +3536,9 @@ Mit dem Rechnungsmodul stellt der Verein Rechnungen in seinem eigenen Namen aus 
 
 *Nextcloud-Einstellungen → Vereinsbuchhaltung → Rechnungen* (nur Verwalter):
 
-1. **Rechnungsmodul einschalten.** Der Schalter wirkt sofort; erst danach erscheinen die übrigen Karten des Abschnitts.
+1. **Rechnungsmodul einschalten.** Der Schalter wirkt sofort; erst danach erscheinen die übrigen Karten des Abschnitts. Die selten geänderten Schalter **Strukturierte Zahlungsreferenz verwenden** und **E-Rechnung beim Festschreiben erzeugen** stehen in derselben Karte eingeklappt unter *Erweitert*; die Zeile daneben nennt, welche davon an sind.
 2. **Angaben des Vereins** eintragen – sie stehen oben im Abschnitt *Verein* (Karte *Angaben des Vereins*), weil auch die Zuwendungsbestätigungen sie brauchen. Pflicht nach § 14 Abs. 4 UStG sind Name und Anschrift sowie die **Steuernummer** (vom Finanzamt) oder die USt-IdNr. Register, Vorstand, Telefon und E-Mail erscheinen zusätzlich im Fuß der Rechnung. Den Vereinsnamen pflegen Sie weiter oben unter „Verein". Ist er für Rechnungen zu lang oder soll er dort anders lauten, tragen Sie einen **Namen auf Rechnungen** ein; er steht dann im Briefkopf, in der Absenderzeile, im Fuß, in der E-Rechnung und in den Rechnungs-Mails. Der **Kontoinhaber** (höchstens 70 Zeichen, so viel fasst der GiroCode) steht im Zahlungsblock und im GiroCode; leer gilt der Name auf Rechnungen.
-3. **Steuer und Zahlung:** Die meisten kleinen Vereine sind **Kleinunternehmer** (§ 19 UStG) und weisen keine Umsatzsteuer aus; auf der Rechnung steht dann der vorgeschriebene Hinweis. Ob das für Ihren Verein gilt, klärt das Finanzamt oder Ihre Steuerberatung. Das **Konto für Zahlungsangaben und GiroCode** wählt die App selbst: das Konto des SEPA-Einzugs, sonst das einzige Geldkonto mit IBAN. Selbst wählen müssen Sie es nur, wenn mehrere Geldkonten eine IBAN haben; fehlt die IBAN, führt der Hinweis in der Prüfliste direkt zum Konto. Legen Sie außerdem das Zahlungsziel und bei Bedarf Standardtexte fest.
+3. **Steuer und Zahlung:** Die meisten kleinen Vereine sind **Kleinunternehmer** (§ 19 UStG) und weisen keine Umsatzsteuer aus; auf der Rechnung steht dann der vorgeschriebene Hinweis. Ob das für Ihren Verein gilt, klärt das Finanzamt oder Ihre Steuerberatung. Das **Konto für Zahlungsangaben und GiroCode** wählt die App selbst: das Konto des SEPA-Einzugs, sonst das einzige Geldkonto mit IBAN. Selbst wählen müssen Sie es nur, wenn mehrere Geldkonten eine IBAN haben; fehlt die IBAN, führt der Hinweis in der Prüfliste direkt zum Konto. Legen Sie außerdem das Zahlungsziel und bei Bedarf Standardtexte fest. Einen eigenen **Hinweistext zur Steuer** und die **BIC** finden Sie in dieser Karte unter *Erweitert*; ist dort etwas eingetragen, steht der Bereich offen.
 4. **Rechnungsnummern:** Voreingestellt ist `RE-{JJJJ}-{NNNN}` (z. B. `RE-2026-0042`), jedes Jahr neu ab 1; Stornorechnungen zählen getrennt (`ST-…`). Mit `{MM}` kommt der Monat des Rechnungsdatums dazu, etwa `RE-{JJJJ}{MM}-{NNNN}` für `RE-202611-0001`; der Zähler kann dann auch jeden Monat neu ab 1 beginnen. Die Nummern sind fortlaufend und einmalig – ändern Sie das Muster nur, bevor Sie die erste Rechnung schreiben.
 
 Solange Pflichtangaben fehlen, lässt sich keine Rechnung festschreiben; die App sagt, was fehlt.

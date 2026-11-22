@@ -99,9 +99,9 @@ export default {
 		// Vereinswährung (#202): Code und Auswahlliste aus dem Einstellungssatz
 		clubCurrency: { type: String, required: true },
 		clubCurrencies: { type: Array, required: true },
-		// nur lesend - Upload/Loeschen laden hier direkt per api.js nach (siehe
-		// onLogoSelected/removeLogo), @changed signalisiert dem Elternteil,
-		// hasLogo per loadStorageSettings() neu zu laden.
+		// Upload/Löschen laufen hier direkt über api.js (onLogoSelected/removeLogo)
+		// und melden das Ergebnis per update:hasLogo. Früher lud der Elternteil
+		// danach alle Einstellungen neu und verwarf dabei ungespeicherte Eingaben.
 		hasLogo: { type: Boolean, required: true },
 		storageSaving: { type: Boolean, required: true },
 		// Speichern-Funktion des Elternteils (SettingsApp.vue::saveSettings());
@@ -110,7 +110,7 @@ export default {
 		saveStorageSettings: { type: Function, required: true },
 	},
 
-	emits: ['changed', 'update:brandColor', 'update:clubCurrency', 'update:clubName'],
+	emits: ['update:brandColor', 'update:hasLogo', 'update:clubCurrency', 'update:clubName'],
 
 	data() {
 		return {
@@ -154,7 +154,7 @@ export default {
 				const fd = new FormData(); fd.append('file', file)
 				await api.uploadLogo(fd)
 				this.logoVersion++
-				this.$emit('changed')
+				this.$emit('update:hasLogo', true)
 				showSuccess(this.t('Logo gespeichert.'))
 			} catch (err) { showError(this.errMsg(err, this.t('Logo konnte nicht gespeichert werden'))) } finally { this.logoBusy = false }
 		},
@@ -163,7 +163,7 @@ export default {
 			this.logoBusy = true
 			try {
 				await api.deleteLogo()
-				this.$emit('changed')
+				this.$emit('update:hasLogo', false)
 				showSuccess(this.t('Logo entfernt.'))
 			} catch (err) { showError(this.errMsg(err, this.t('Logo konnte nicht entfernt werden'))) } finally { this.logoBusy = false }
 		},

@@ -95,6 +95,15 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   bank statements or creditor ID also took along unsaved input from all the
   other cards of that group, and in the invoice cards saving one card
   discarded the input in the others.
+- **Contributions module in the settings:** its switches ("Contributions"
+  tab, self-service, switch to bank transfer) now save only themselves;
+  until now they took along an unsaved creditor ID and account, and an error
+  there made the switch fail. The *Direct debit: creditor ID and account* card
+  only appears while the module is on.
+- **"Advanced" in the invoice settings:** structured payment reference and
+  e-invoice on finalizing as well as a custom tax note and the BIC sit
+  collapsed under *Advanced*. The summary says which switches are on; if a
+  field is filled in, the area is open.
 - **Amounts in imports** are now read by one shared parser with fixed rules
   (CSV bank statement, CAMT.053, MT940, PayPal, XBUC, member CSV). What
   changes:
@@ -130,6 +139,8 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   unchanged (handbook 12.3).
 
 **Fixed:**
+- **Club logo:** uploading or removing the logo reloaded all settings and
+  discarded unsaved input on the page.
 - **CAMT.053 and MT940:** an entry with a missing or unreadable amount was
   silently dropped; the import now stops and names the entry.
 - **Expense claims:** the account holder may not contain line breaks or

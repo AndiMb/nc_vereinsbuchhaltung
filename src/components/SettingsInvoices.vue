@@ -19,20 +19,27 @@
 				@update:modelValue="setModuleSwitch('invoice_auto_assign', $event)">
 				{{ t('Der Kontoauszug-Import bucht Zahlungen mit passender Rechnungsnummer und genauem Betrag selbst.') }}
 			</SettingsToggle>
-			<SettingsToggle
-				:modelValue="!!form.invoice_rf_reference"
-				:disabled="saving"
-				:label="t('Strukturierte Zahlungsreferenz verwenden')"
-				@update:modelValue="setModuleSwitch('invoice_rf_reference', $event)">
-				{{ t('Druckt die Referenz (RF…, ISO 11649) auf die Rechnung und trägt sie in den GiroCode ein.') }}
-			</SettingsToggle>
-			<SettingsToggle
-				:modelValue="!!form.invoice_einvoice_auto"
-				:disabled="saving"
-				:label="t('E-Rechnung beim Festschreiben erzeugen')"
-				@update:modelValue="setModuleSwitch('invoice_einvoice_auto', $event)">
-				{{ t('Erzeugt zugleich ZUGFeRD (für Unternehmen) bzw. XRechnung (für Behörden).') }}
-			</SettingsToggle>
+			<!-- Selten gebraucht: eingeklappt, die Zusammenfassung nennt, was davon an ist. -->
+			<details v-if="form.invoice_module_active" class="vbh-settings-more" data-testid="settings-invoice-module-more">
+				<summary>
+					<strong>{{ t('Erweitert') }}</strong>
+					<span class="vbh-hint">{{ moduleMoreHint }}</span>
+				</summary>
+				<SettingsToggle
+					:modelValue="!!form.invoice_rf_reference"
+					:disabled="saving"
+					:label="t('Strukturierte Zahlungsreferenz verwenden')"
+					@update:modelValue="setModuleSwitch('invoice_rf_reference', $event)">
+					{{ t('Druckt die Referenz (RF…, ISO 11649) auf die Rechnung und trägt sie in den GiroCode ein.') }}
+				</SettingsToggle>
+				<SettingsToggle
+					:modelValue="!!form.invoice_einvoice_auto"
+					:disabled="saving"
+					:label="t('E-Rechnung beim Festschreiben erzeugen')"
+					@update:modelValue="setModuleSwitch('invoice_einvoice_auto', $event)">
+					{{ t('Erzeugt zugleich ZUGFeRD (für Unternehmen) bzw. XRechnung (für Behörden).') }}
+				</SettingsToggle>
+			</details>
 			<p class="vbh-hint">
 				{{ t('Diese Schalter wirken sofort, ein Speichern ist nicht nötig.') }}
 			</p>
@@ -109,19 +116,11 @@
 					</div>
 				</template>
 				<div class="vbh-form">
-					<label class="vbh-grow">{{ t('Standard-Hinweistext zur Steuer (optional)') }}
-						<input v-model="form.invoice_default_exemption_text" maxlength="500" :placeholder="t('leer = Standardtext nach § 19 UStG')">
-					</label>
-				</div>
-				<div class="vbh-form">
 					<label class="vbh-grow">{{ t('Konto für Zahlungsangaben und GiroCode') }}
 						<select v-model="form.invoice_account_id">
 							<option :value="null">{{ t('– automatisch –') }}</option>
 							<option v-for="a in bankAccounts" :key="a.id" :value="a.id">{{ a.number }} {{ a.name }} ({{ a.iban }})</option>
 						</select>
-					</label>
-					<label>{{ t('BIC (optional)') }}
-						<input v-model="form.invoice_bic" class="vbh-short" maxlength="11">
 					</label>
 				</div>
 				<p class="vbh-hint">
@@ -173,6 +172,26 @@
 					{{ t('Die PDFs liegen in dessen Home unter') }} <code>{{ invoiceFolderPath }}/&lt;{{ t('Jahr') }}&gt;/</code>.
 					{{ t('Der Pfad beginnt im Home dieses Nutzers, nicht in Ihrem eigenen; ein fehlender Ordner wird angelegt. Am sichersten wählen Sie den Ordner über den Knopf neben dem Feld.') }}
 				</p>
+				<!-- Optionale Angaben, die kaum ein Verein ändert. Ist eines davon
+				     gefüllt, steht es offen, damit es nicht übersehen wird. -->
+				<details
+					class="vbh-settings-more"
+					:open="taxMoreOpen"
+					data-testid="settings-invoice-tax-more"
+					@toggle="taxMoreOpen = $event.target.open">
+					<summary>
+						<strong>{{ t('Erweitert') }}</strong>
+						<span class="vbh-hint">{{ t('Eigener Hinweistext zur Steuer, BIC') }}</span>
+					</summary>
+					<div class="vbh-form">
+						<label class="vbh-grow">{{ t('Standard-Hinweistext zur Steuer (optional)') }}
+							<input v-model="form.invoice_default_exemption_text" maxlength="500" :placeholder="t('leer = Standardtext nach § 19 UStG')">
+						</label>
+						<label>{{ t('BIC (optional)') }}
+							<input v-model="form.invoice_bic" class="vbh-short" maxlength="11">
+						</label>
+					</div>
+				</details>
 				<p v-if="taxError" class="vbh-hint vbh-hint--error" role="alert">
 					{{ taxError }}
 				</p>
@@ -403,6 +422,9 @@ export default {
 			mailError: '',
 			dunningError: '',
 			rangeErrors: {},
+			// „Erweitert“ in der Steuerkarte: beim Laden offen, wenn dort etwas
+			// gespeichert ist; danach bestimmt der Nutzer.
+			taxMoreOpen: false,
 		}
 	},
 
@@ -410,6 +432,16 @@ export default {
 		/** Wie InvoiceSettings::folder(): ein leeres Feld heißt Standardordner (Issue #212). */
 		invoiceFolderPath() {
 			return String(this.form.invoice_folder || '').replace(/\\/g, '/').replace(/^\/+|\/+$/g, '') || 'Vereinsbuchhaltung/Rechnungen'
+		},
+
+		/** Zusammenfassung der eingeklappten Modulschalter. */
+		moduleMoreHint() {
+			const on = []
+			if (this.form.invoice_rf_reference) { on.push(this.t('Zahlungsreferenz')) }
+			if (this.form.invoice_einvoice_auto) { on.push(this.t('E-Rechnung')) }
+			return on.length
+				? this.t('Eingeschaltet: {list}', { list: on.join(', ') })
+				: this.t('Zahlungsreferenz und E-Rechnung beim Festschreiben, beide aus')
 		},
 
 		bankAccounts() { return this.accounts.filter((a) => a.isBank && a.iban) },
@@ -449,6 +481,7 @@ export default {
 	methods: {
 		apply(data) {
 			this.form = this.normalize(data)
+			this.taxMoreOpen = !!(String(this.form.invoice_default_exemption_text).trim() || String(this.form.invoice_bic).trim())
 			this.defaults = data.invoice_default_texts || {}
 		},
 
@@ -535,6 +568,14 @@ export default {
 
 <style scoped>
 /* Die Felder füllen ihre Zeile: je Feld mindestens 220 px, kurze Angaben (PLZ, Registernummer, Tage) nur 150 px. */
+.vbh-settings-more { margin-top: 8px; }
+
+.vbh-settings-more > summary { cursor: pointer; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
+
+.vbh-settings-more > summary .vbh-hint { margin: 0; }
+
+.vbh-settings-more[open] > summary { margin-bottom: 8px; }
+
 .vbh-inv-settings .vbh-form label { flex: 1 1 220px; min-width: 0; }
 
 .vbh-inv-settings .vbh-form label:has(> .vbh-short) { flex: 0 1 150px; }

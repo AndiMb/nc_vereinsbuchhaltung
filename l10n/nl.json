@@ -5021,9 +5021,14 @@
         "Der Schalter oben wirkt sofort; die Angaben darunter übernimmt „Speichern“.": "De schakelaar hierboven werkt direct; de gegevens hieronder worden met “Opslaan” overgenomen.",
         "Das Rechnungsmodul ist ausgeschaltet. Steuer und Zahlung, Nummernkreise, Positionsvorlagen, Mahnwesen und E-Mail-Vorlagen erscheinen, sobald Sie den Reiter „Rechnungen“ einschalten. Die Angaben des Vereins (Anschrift, Steuernummer) stehen oben unter „Verein“.": "De factuurmodule is uitgeschakeld. Belasting en betaling, nummerreeksen, sjablonen voor factuurregels, aanmaningen en e-mailsjablonen verschijnen zodra u het tabblad “Facturen” inschakelt. De gegevens van de vereniging (adres, belastingnummer) staan hierboven onder “Vereniging”.",
         "Der Schalter wirkt sofort; eine geänderte Zahl übernimmt „Speichern“.": "De schakelaar werkt direct; een gewijzigd aantal wordt met “Opslaan” overgenomen.",
-        "Das Beitragsmodul ist ausgeschaltet. Beitragsjahr und Fristen, Mandate, Rücklastschriften, Mandats-Rechtstext und Willkommens-Mail erscheinen hier, sobald Sie den Reiter „Beiträge“ einschalten.": "De contributiemodule is uitgeschakeld. Contributiejaar en termijnen, machtigingen, gestorneerde incasso's, juridische tekst van de machtiging en welkomstmail verschijnen hier zodra u het tabblad “Contributies” inschakelt.",
+        "Das Beitragsmodul ist ausgeschaltet. Gläubiger-ID und Konto, Beitragsjahr und Fristen, Mandate, Rücklastschriften, Mandats-Rechtstext und Willkommens-Mail erscheinen hier, sobald Sie den Reiter „Beiträge“ einschalten.": "De contributiemodule is uitgeschakeld. Incassant-ID en rekening, contributiejaar en termijnen, machtigingen, gestorneerde incasso's, juridische tekst van de machtiging en welkomstmail verschijnen hier zodra u het tabblad “Contributies” inschakelt.",
         "Name, Anschrift und Steuernummer des Vereins stehen auf Rechnungen und Zuwendungsbestätigungen. Für Rechnungen sind Name und Anschrift sowie die Steuernummer oder USt-IdNr. Pflicht (§ 14 Abs. 4 UStG). Den Vereinsnamen pflegen Sie oben in der Karte „Vereinsname“.": "Naam, adres en belastingnummer van de vereniging staan op facturen en giftbevestigingen. Voor facturen zijn naam en adres en het belastingnummer of btw-id verplicht (§ 14 lid 4 UStG). De naam van de vereniging beheert u hierboven op de kaart “Naam van de vereniging”.",
-        "Name und Anschrift des Vereins fehlen noch; ohne sie stellt die App keine Zuwendungsbestätigung aus.": "Naam en adres van de vereniging ontbreken nog; zonder deze stelt de app geen giftbevestiging uit."
+        "Name und Anschrift des Vereins fehlen noch; ohne sie stellt die App keine Zuwendungsbestätigung aus.": "Naam en adres van de vereniging ontbreken nog; zonder deze stelt de app geen giftbevestiging uit.",
+        "Erweitert": "Geavanceerd",
+        "Eigener Hinweistext zur Steuer, BIC": "Eigen belastingtekst, BIC",
+        "E-Rechnung": "E-factuur",
+        "Eingeschaltet: {list}": "Ingeschakeld: {list}",
+        "Zahlungsreferenz und E-Rechnung beim Festschreiben, beide aus": "Betalingsreferentie en e-factuur bij vastleggen, beide uit"
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }
