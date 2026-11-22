@@ -203,4 +203,37 @@ class AssignmentMapper extends QBMapper {
 			return array_values($this->findEntities($qb));
 		});
 	}
+
+	/**
+	 * Zuweisungen, für die der Tageslauf bis `$horizon` Forderungen anlegen
+	 * kann: an `$today` aktiv wie bei {@see findActiveAsOf()}, und zusätzlich
+	 * die, die erst nach `$today`, aber spätestens an `$horizon` beginnen.
+	 * Eine Zuweisung, die in zwei Wochen beginnt, kann ihren ersten
+	 * Einzugstermin schon im Vorwarnfenster haben – wartete die
+	 * Forderungserzeugung auf den Beginn, wäre die Vorabinfo-Frist dann oft
+	 * schon gerissen ({@see \OCA\Vereinsbuchhaltung\Service\ClaimGenerationService}).
+	 *
+	 * Ohne zurückgenommene Zuweisungen: Ihr Ende liegt einen Tag vor dem Beginn
+	 * ({@see \OCA\Vereinsbuchhaltung\Service\AssignmentService::end()}), sie
+	 * werden nie wirksam.
+	 *
+	 * @return Assignment[]
+	 */
+	public function findActiveOrStartingBy(string $today, string $horizon): array {
+		return $this->readCache->entities('assignments.activeOrStartingBy.' . $today . '.' . $horizon, function () use ($today, $horizon): array {
+			$qb = $this->db->getQueryBuilder();
+			$qb->select('*')
+				->from($this->getTableName())
+				->where($qb->expr()->lte('valid_from', $qb->createNamedParameter($horizon)))
+				->andWhere($qb->expr()->orX(
+					$qb->expr()->isNull('valid_to'),
+					$qb->expr()->andX(
+						$qb->expr()->gte('valid_to', $qb->createNamedParameter($today)),
+						$qb->expr()->gte('valid_to', 'valid_from'),
+					),
+				))
+				->orderBy('id', 'ASC');
+			return array_values($this->findEntities($qb));
+		});
+	}
 }

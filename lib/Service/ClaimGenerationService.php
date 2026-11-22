@@ -34,7 +34,11 @@ use Psr\Log\LoggerInterface;
  * Zeitpunkt, an dem {@see ContributionCycleTaskService} die
  * D−21-Vorwarn-Aufgabe zeigen soll. Vorher zu erzeugen brächte nichts (die
  * Zuweisung könnte sich bis dahin noch ändern), später wäre der D−21-Zähler
- * unvollständig.
+ * unvollständig. Das gilt auch für eine Zuweisung, die erst künftig beginnt:
+ * Liegt der erste Termin eines neuen Mitglieds (Beitritt + Versatz) schon im
+ * Vorwarnfenster, entsteht die Forderung vor dem Beitritt – wartete der Lauf
+ * auf den Beitritt, wäre die Vorabinfo-Frist dann meist schon gerissen und
+ * der erste Einzug rutschte einen ganzen Turnus nach hinten.
  *
  * **Mandatsprüfung** (Spec §3.2 „bei der Forderungserzeugung: kein aktives
  * Mandat → kein Forderungseintrag, sondern Störfall"): nur für
@@ -108,7 +112,7 @@ class ClaimGenerationService {
 		$created = 0;
 		$blocked = 0;
 		$failed = [];
-		foreach ($this->assignments->findActiveAsOf($today) as $assignment) {
+		foreach ($this->assignments->findActiveOrStartingBy($today, $horizon) as $assignment) {
 			try {
 				[$c, $b] = $this->generateForAssignment($assignment, $today, $horizon, $leadDays);
 			} catch (\Throwable $e) {
@@ -138,13 +142,7 @@ class ClaimGenerationService {
 				return [$created, 0]; // Zuweisung ist zeitlich (validTo) beendet
 			}
 			[$periodStart, $periodEnd, $isFirst] = $pending;
-			// Anker fuer die Terminplan-Berechnung: im Regelfall der
-			// Periodenbeginn selbst, bei der allerersten (Prorata-)Periode
-			// einer Zuweisung aber deren tatsaechlicher Beitritt - sonst
-			// haette eine erst im Maerz beigetretene Zuweisung mit
-			// Jahresturnus einen "natuerlichen" Termin am 1. Januar, den das
-			// Mitglied nie erlebt hat (siehe DueDateScheduleService::dueDateForPeriod()).
-			$dueAnchor = $isFirst ? max($periodStart, $assignment->getValidFrom()) : $periodStart;
+			$dueAnchor = $this->dueAnchor($assignment, $periodStart, $isFirst);
 
 			$naturalDue = $this->schedule->dueDateForPeriod($assignment->getIntervalMonths(), $dueAnchor);
 			if ($naturalDue > $horizon) {
@@ -174,6 +172,64 @@ class ClaimGenerationService {
 			$this->createClaim($assignment, $periodStart, $periodEnd, $dueDate, $isFirst);
 			$created++;
 		}
+	}
+
+	/**
+	 * Der Einzugstermin, den der Tageslauf der ersten Forderung einer neuen
+	 * Zuweisung geben wird, von `$today` aus gesehen – für die Vorschau beim
+	 * Anlegen ({@see AssignmentService::previewFirstPeriod()}), damit sie nie
+	 * einen Termin verspricht, den der Lauf nicht hält. Dieselbe Rechnung wie
+	 * {@see generateForAssignment()}: Termin laut Terminplan ab dem Beitritt,
+	 * bei Lastschrift dazu die Nachzügler-Regel an dem Tag, an dem der Lauf die
+	 * Forderung anlegen wird (sobald Zuweisung und Termin im Vorwarnfenster
+	 * liegen, frühestens heute).
+	 *
+	 * Ein fehlendes Mandat bleibt außen vor: Es hält die Forderung auf, bis es
+	 * da ist, und wann das sein wird, weiß die Vorschau nicht.
+	 *
+	 * @param string|null $today Stichtag, sonst heute (für Tests)
+	 * @return array{dueDate:string, scheduledDueDate:string} `dueDate` ist der
+	 *                                                        Termin, an dem eingezogen wird, `scheduledDueDate` der laut Terminplan
+	 *                                                        (verschieden, wenn die Nachzügler-Regel greift)
+	 * @throws \InvalidArgumentException bei unmöglichem Datum
+	 */
+	public function firstClaimDueDate(Assignment $assignment, ?string $today = null): array {
+		$today ??= $this->today();
+		$intervalMonths = $assignment->getIntervalMonths();
+		[$periodStart, $periodEnd] = $this->contributionYear->periodContaining($intervalMonths, $assignment->getValidFrom());
+		$dueAnchor = $this->dueAnchor($assignment, $periodStart, true);
+		$scheduled = $this->schedule->dueDateForPeriod($intervalMonths, $dueAnchor);
+
+		if ($assignment->getPaymentMethod() !== Assignment::PAYMENT_METHOD_DIRECT_DEBIT
+			|| $this->periodAmountCents($assignment, $periodStart, $periodEnd, true) === 0) {
+			return ['dueDate' => $scheduled, 'scheduledDueDate' => $scheduled];
+		}
+
+		$warningDays = $this->settings->warningLeadDays();
+		$generationDay = max(
+			$today,
+			self::minusDays($scheduled, $warningDays),
+			self::minusDays($assignment->getValidFrom(), $warningDays),
+		);
+		return [
+			'dueDate' => $this->dueDateWithNachzuegler($intervalMonths, $dueAnchor, $periodEnd, $generationDay, $this->settings->prenotificationLeadDays()),
+			'scheduledDueDate' => $scheduled,
+		];
+	}
+
+	/**
+	 * Anker für die Terminplan-Berechnung: im Regelfall der Periodenbeginn
+	 * selbst, bei der allerersten (Prorata-)Periode einer Zuweisung aber deren
+	 * tatsächlicher Beitritt – sonst hätte eine erst im März beigetretene
+	 * Zuweisung mit Jahresturnus einen „natürlichen" Termin am 1. Januar, den
+	 * das Mitglied nie erlebt hat (siehe {@see DueDateScheduleService::dueDateForPeriod()}).
+	 */
+	private function dueAnchor(Assignment $assignment, string $periodStart, bool $isFirst): string {
+		return $isFirst ? max($periodStart, $assignment->getValidFrom()) : $periodStart;
+	}
+
+	private static function minusDays(string $date, int $days): string {
+		return (new \DateTimeImmutable($date))->modify('-' . $days . ' days')->format('Y-m-d');
 	}
 
 	/**
@@ -254,7 +310,7 @@ class ClaimGenerationService {
 	private function dueDateWithNachzuegler(int $intervalMonths, string $dueAnchor, string $periodEnd, string $today, int $leadDays): string {
 		for ($hop = 0; $hop < self::MAX_NACHZUEGLER_HOPS; $hop++) {
 			$due = $this->schedule->dueDateForPeriod($intervalMonths, $dueAnchor);
-			$deadline = (new \DateTimeImmutable($due))->modify('-' . $leadDays . ' days')->format('Y-m-d');
+			$deadline = self::minusDays($due, $leadDays);
 			if ($today < $deadline) {
 				return $due;
 			}

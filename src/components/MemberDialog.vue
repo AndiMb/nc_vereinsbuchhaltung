@@ -184,6 +184,12 @@
 						due: formatDate(assignmentPreview.dueDate),
 					}) }}
 				</p>
+				<p v-if="assignmentPreview && assignmentPreview.scheduledDueDate !== assignmentPreview.dueDate" class="vbh-hint">
+					{{ t('Für einen Einzug am {scheduled} ist die Frist für die Vorabinformation schon zu knapp. Der erste Beitrag wird deshalb mit dem nächsten Termin am {due} eingezogen.', {
+						scheduled: formatDate(assignmentPreview.scheduledDueDate),
+						due: formatDate(assignmentPreview.dueDate),
+					}) }}
+				</p>
 
 				<!-- Nextcloud-Konto: nur, wer in Nextcloud Konten anlegen darf (Administrator, delegierter oder Gruppen-Administrator). -->
 				<template v-if="accountOptions && accountOptions.canCreate">
@@ -862,6 +868,8 @@ export default {
 					...amountPayload(isAnnualGroup(this.selectedGroup), this.form.monthlyAmount),
 					groupId: this.form.groupId,
 					validFrom: this.form.validFrom,
+					// Nur bei Lastschrift kann die Vorabinfo-Frist den Termin verschieben.
+					paymentMethod: this.form.paymentMethod,
 				})
 				this.assignmentPreview = data
 			} catch (e) {

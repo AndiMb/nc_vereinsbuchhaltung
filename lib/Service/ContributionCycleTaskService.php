@@ -24,9 +24,11 @@ use OCP\IL10N;
  *
  * Deckt aus dem vollständigen Aufgaben-Katalog (Spec §7) die vier Fälle ab,
  * die unmittelbar zu diesem Ticket gehören:
- * - **Kein Mandat + Lastschrift gewollt** (Handlungsbedarf): aktive
- *   `direct_debit`-Zuweisung ohne einzugsfähiges Mandat – dieselbe Bedingung,
- *   die {@see ClaimGenerationService} von der Forderungserzeugung abhält.
+ * - **Kein Mandat + Lastschrift gewollt** (Handlungsbedarf): aktive oder
+ *   innerhalb des Vorwarnfensters beginnende `direct_debit`-Zuweisung ohne
+ *   einzugsfähiges Mandat – dieselbe Bedingung, die {@see ClaimGenerationService}
+ *   von der Forderungserzeugung abhält. Ein neues Mitglied ohne Mandat fällt
+ *   so schon vor dem Beitritt auf, solange sich der erste Einzug noch retten lässt.
  * - **Vorabinfo nicht rechtzeitig möglich** / „gerissene Vorlauffrist"
  *   (Handlungsbedarf): eine einzugsfähige Forderung, deren Vorabinfo-Frist
  *   verstrichen ist, ohne dass `prenotified_at` gesetzt wurde. Deckt sowohl
@@ -130,7 +132,8 @@ class ContributionCycleTaskService {
 			$explained = array_filter($this->eligibility->situationsByMember(), MandateSituation::hasOwnTask(...));
 		}
 		$tasks = [];
-		foreach ($this->assignments->findActiveAsOf($today) as $assignment) {
+		$horizon = (new \DateTimeImmutable($today))->modify('+' . $this->settings->warningLeadDays() . ' days')->format('Y-m-d');
+		foreach ($this->assignments->findActiveOrStartingBy($today, $horizon) as $assignment) {
 			if ($assignment->getPaymentMethod() !== Assignment::PAYMENT_METHOD_DIRECT_DEBIT) {
 				continue;
 			}

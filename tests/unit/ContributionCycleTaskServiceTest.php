@@ -46,7 +46,7 @@ class ContributionCycleTaskServiceTest extends TestCase {
 		$this->members->method('displayNameOr')->willReturn('Max Mustermann');
 
 		// Bewusst KEINE Default-Rueckgabe fuer findClaims()/
-		// findClaimsAwaitingPrenotification()/findActiveAsOf() hier: PHPUnit
+		// findClaimsAwaitingPrenotification()/findActiveOrStartingBy() hier: PHPUnit
 		// laesst bei mehrfach konfigurierten method()-Stubs ohne
 		// unterscheidendes with() den ZUERST konfigurierten gewinnen - ein
 		// Ueberschreiben in einem Einzeltest griffe also nicht. Ohne
@@ -133,7 +133,7 @@ class ContributionCycleTaskServiceTest extends TestCase {
 
 	public function testFehlendesMandatErzeugtHandlungsbedarf(): void {
 		$this->setMandateActive(false);
-		$this->assignments->method('findActiveAsOf')->willReturn([$this->assignment(1, 7)]);
+		$this->assignments->method('findActiveOrStartingBy')->willReturn([$this->assignment(1, 7)]);
 
 		$tasks = $this->service('2026-01-01')->findTasks();
 
@@ -143,18 +143,32 @@ class ContributionCycleTaskServiceTest extends TestCase {
 		$this->assertSame(1, $missingMandateTasks[0]['objectId']);
 	}
 
+	/**
+	 * Ein neues Mitglied ohne Mandat fällt schon vor dem Beitritt auf: Die
+	 * Störfall-Abfrage sieht dieselben Zuweisungen wie der Tageslauf, also
+	 * auch die, die innerhalb des Vorwarnfensters (Standard 21 Tage) beginnen.
+	 */
+	public function testFehlendesMandatFaelltSchonVorDemBeginnInnerhalbDesVorwarnfenstersAuf(): void {
+		$this->setMandateActive(false);
+		$this->assignments->method('findActiveOrStartingBy')->with('2026-11-24', '2026-12-15')->willReturn([$this->assignment(1, 7)]);
+
+		$tasks = $this->service('2026-11-24')->findTasks();
+
+		$this->assertCount(1, array_filter($tasks, fn ($t) => $t['objectType'] === 'assignment'));
+	}
+
 	public function testBeitragsfreieZuweisungOhneMandatErzeugtKeinenStoerfall(): void {
 		$this->setMandateActive(false);
 		$free = $this->assignment(1, 7);
 		$free->setMonthlyAmountCents(0);
-		$this->assignments->method('findActiveAsOf')->willReturn([$free]);
+		$this->assignments->method('findActiveOrStartingBy')->willReturn([$free]);
 
 		$this->assertSame([], $this->service('2026-01-01')->findTasks());
 	}
 
 	public function testAktivesMandatErzeugtKeineAufgabe(): void {
 		$this->setMandateActive(true);
-		$this->assignments->method('findActiveAsOf')->willReturn([$this->assignment(1, 7)]);
+		$this->assignments->method('findActiveOrStartingBy')->willReturn([$this->assignment(1, 7)]);
 
 		$this->assertSame([], $this->service('2026-01-01')->findTasks());
 	}
@@ -253,7 +267,7 @@ class ContributionCycleTaskServiceTest extends TestCase {
 	public function testAllgemeineZeileEntfaelltInDerAufgabenlisteWennEineGenauereAufgabeDieUrsacheNennt(Mandate $mandate, bool $expectGeneric): void {
 		$this->mandates->method('findLiveByMember')->willReturn($mandate->getStatus() === Mandate::STATUS_ENDED ? [] : [$mandate]);
 		$this->mandates->method('findAll')->willReturn([$mandate]);
-		$this->assignments->method('findActiveAsOf')->willReturn([$this->assignment(1, 7)]);
+		$this->assignments->method('findActiveOrStartingBy')->willReturn([$this->assignment(1, 7)]);
 
 		$tasks = $this->service('2026-01-01')->findTasks(null, true);
 
@@ -264,7 +278,7 @@ class ContributionCycleTaskServiceTest extends TestCase {
 	public function testAllgemeineZeileBleibtOhneJedesMandat(): void {
 		$this->mandates->method('findLiveByMember')->willReturn([]);
 		$this->mandates->method('findAll')->willReturn([]);
-		$this->assignments->method('findActiveAsOf')->willReturn([$this->assignment(1, 7)]);
+		$this->assignments->method('findActiveOrStartingBy')->willReturn([$this->assignment(1, 7)]);
 
 		$tasks = $this->service('2026-01-01')->findTasks(null, true);
 
@@ -277,7 +291,7 @@ class ContributionCycleTaskServiceTest extends TestCase {
 		$draft = $this->mandateOf(7, Mandate::STATUS_DRAFT);
 		$this->mandates->method('findLiveByMember')->willReturn([$draft]);
 		$this->mandates->method('findAll')->willReturn([$draft]);
-		$this->assignments->method('findActiveAsOf')->willReturn([$this->assignment(1, 7)]);
+		$this->assignments->method('findActiveOrStartingBy')->willReturn([$this->assignment(1, 7)]);
 		$service = $this->service('2026-01-01');
 
 		$this->assertCount(1, array_filter($service->findTasks(), fn ($t) => $t['objectType'] === 'assignment'));
@@ -322,7 +336,7 @@ class ContributionCycleTaskServiceTest extends TestCase {
 
 	public function testRunIssuesZaehltFehlendeMandateFuerJedenTermin(): void {
 		$this->setMandateActive(false);
-		$this->assignments->method('findActiveAsOf')->willReturn([$this->assignment(1, 7)]);
+		$this->assignments->method('findActiveOrStartingBy')->willReturn([$this->assignment(1, 7)]);
 
 		$issues = $this->service('2026-01-01')->findRunIssues('2026-03-01');
 

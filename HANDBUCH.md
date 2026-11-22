@@ -2751,6 +2751,14 @@ ist dieselbe Zeile wie ein offener Posten und steht deshalb auch unter *Buchunge
 → Offene Posten*; ihren Zustand, Mahnstand und die Störfälle zeigt das Segment
 *Forderungen* im Einzug (13.8).
 
+Bei einem **neuen Mitglied** liegt der erste Einzugstermin so weit nach dem
+Beitritt wie der Termin des Turnus nach dem Periodenbeginn (Einzug am 15. bei
+Quartalsturnus: Beitritt am 1.12. → Einzug am 15.12.). Die erste Forderung
+entsteht ebenfalls im Vorwarnfenster, also auch schon vor dem Beitritt. Wird das
+Mitglied so spät erfasst, dass die Vorabinfo nicht mehr rechtzeitig rausgehen
+kann, fährt die erste Forderung mit dem nächsten Termin des Turnus mit – das
+sagt schon die Vorschau beim Anlegen.
+
 **Die Mitgliederliste** (Reiter *Beiträge → Mitglieder*) zeigt je Mitglied das
 Mandat (IBAN, bei Bedarf mit der Marke *Entwurf* oder *ausgesetzt*) und die
 Zuweisung: *Betrag* ist der Betrag je Periode (Monatsbeitrag × Turnus),

@@ -49,6 +49,10 @@ class AssignmentService {
 		// Zuweisung und Ereignis (die Historie der Beitragsänderungen) werden
 		// gemeinsam geschrieben oder gar nicht (Review 2026-11-18).
 		private TransactionRunner $transaction,
+		// Vorschau des ersten Einzugstermins mit derselben Rechnung wie der Tageslauf, siehe previewFirstPeriod().
+		private ClaimGenerationService $claimGeneration,
+		// Storno der vorab erzeugten Forderungen einer Zuweisung, die nie wirksam wird, siehe cancelClaimsOfUnstarted().
+		private ClaimService $claims,
 		?ClubClock $clock = null,
 	) {
 		$this->clock = $clock ?? new ClubClock($this->time);
@@ -282,11 +286,14 @@ class AssignmentService {
 					throw new \InvalidArgumentException($this->l10n->t('Ende der Zuweisung darf nicht vor ihrem Beginn liegen.'));
 				}
 				// Noch nicht begonnen: „beenden“ heißt zurücknehmen. Das Ende liegt dann einen Tag vor dem Beginn, die
-				// Zuweisung wird nie wirksam, erzeugt nie eine Forderung und bleibt als Ereignis nachvollziehbar.
+				// Zuweisung wird nie wirksam, erzeugt keine Forderung mehr und bleibt als Ereignis nachvollziehbar.
 				$withdrawnTo = (new \DateTimeImmutable($assignment->getValidFrom()))->modify('-1 day')->format('Y-m-d');
 				if ($assignment->getValidTo() !== null && $assignment->getValidTo() <= $withdrawnTo) {
 					return $assignment;
 				}
+				// Steckt eine schon erzeugte Forderung in einem freigegebenen Lauf, scheitert ihr Storno mit einer
+				// Erklärung, und die Transaktion lässt Zuweisung und übrige Forderungen unverändert.
+				$this->cancelClaimsOfUnstarted($assignment, true);
 				$assignment->setValidTo($withdrawnTo);
 				$this->logEvent($id, AssignmentEvent::TYPE_ASSIGNMENT_ENDED, $actorType, $actorUid, $onBehalfNote, ['validTo' => $withdrawnTo, 'reason' => 'withdrawn']);
 				return $this->mapper->update($assignment);
@@ -313,6 +320,10 @@ class AssignmentService {
 		return $this->transaction->run(function () use ($memberId, $leftAt): int {
 			$count = 0;
 			foreach ($this->mapper->findOpenAsOf($memberId, $leftAt) as $assignment) {
+				if ($leftAt < $assignment->getValidFrom()) {
+					// Austritt vor dem Beginn: Die Zuweisung wird nie wirksam, wie beim Zurücknehmen in end().
+					$this->cancelClaimsOfUnstarted($assignment, false);
+				}
 				$assignment->setValidTo($leftAt);
 				$this->mapper->update($assignment);
 				$this->logEvent($assignment->getId(), AssignmentEvent::TYPE_ASSIGNMENT_ENDED, AssignmentEvent::ACTOR_SYSTEM, null, null, [
@@ -349,14 +360,16 @@ class AssignmentService {
 	 * – Prorata-Mathematik (Spec §3.3): angebrochene Monate zählen an beiden
 	 * Enden voll, Einzugsbetrag = Monatsbeitrag × Turnusmonate.
 	 *
-	 * `dueDate` ist der vorgeschlagene, überschreibbare Einzugstermin der
-	 * Prorata-Erstforderung (Spec §3.1/§3.5, Issue #69/#70): derselbe Anker
-	 * (`max(periodStart, validFrom)`), den {@see \OCA\Vereinsbuchhaltung\Service\ClaimGenerationService}
-	 * für die allererste Periode einer Zuweisung verwendet – die tatsächliche
-	 * Forderung entsteht weiterhin erst über den Tageslauf dort, hier ist es
-	 * eine reine Vorschau vor dem Speichern.
+	 * `dueDate` ist der Einzugstermin der Prorata-Erstforderung (Spec
+	 * §3.1/§3.5, Issue #69/#70), gerechnet von
+	 * {@see ClaimGenerationService::firstClaimDueDate()} – derselben Stelle,
+	 * die dem Tageslauf den Termin gibt. Die Vorschau kann deshalb keinen
+	 * Termin versprechen, den der Lauf nicht hält. `scheduledDueDate` ist der
+	 * Termin laut Terminplan (Beitritt + Versatz); weicht er von `dueDate` ab,
+	 * reicht die Zeit für die Vorabinfo nicht mehr, und die Forderung fährt
+	 * mit dem nächsten Termin ihres Turnus (Nachzügler-Regel).
 	 *
-	 * @return array{periodStart:string, periodEnd:string, months:int, amountCents:int, dueDate:string}
+	 * @return array{periodStart:string, periodEnd:string, months:int, amountCents:int, dueDate:string, scheduledDueDate:string}
 	 */
 	public function previewFirstPeriod(Assignment $assignment): array {
 		[$periodStart, $periodEnd] = $this->contributionYear->periodContaining($assignment->getIntervalMonths(), $assignment->getValidFrom());
@@ -364,12 +377,14 @@ class AssignmentService {
 		$months = ProrataCalculator::monthsSpanned($from, $periodEnd);
 		// Ob ein angebrochenes Jahr anteilig zählt, steht an der Gruppe – nur beim Jahresbetrag von Belang (Issue #270).
 		$prorate = !$assignment->isAnnual() || $this->groupMapper->find($assignment->getGroupId())->prorates();
+		$due = $this->claimGeneration->firstClaimDueDate($assignment, $this->today());
 		return [
 			'periodStart' => $periodStart,
 			'periodEnd' => $periodEnd,
 			'months' => $months,
 			'amountCents' => ContributionAmount::cents((int)$assignment->getMonthlyAmountCents(), $assignment->getAnnualAmountCents(), $prorate, $from, $periodEnd),
-			'dueDate' => $this->dueDateSchedule->dueDateForPeriod($assignment->getIntervalMonths(), $from),
+			'dueDate' => $due['dueDate'],
+			'scheduledDueDate' => $due['scheduledDueDate'],
 		];
 	}
 
@@ -591,6 +606,37 @@ class AssignmentService {
 	private function assertValidPaymentMethod(string $paymentMethod): void {
 		if (!in_array($paymentMethod, Assignment::PAYMENT_METHODS, true)) {
 			throw new \InvalidArgumentException($this->l10n->t('Unbekannte Zahlungsart.'));
+		}
+	}
+
+	/**
+	 * Storniert die offenen Forderungen einer Zuweisung, die nie wirksam wird
+	 * (zurückgenommen oder Austritt vor dem Beginn). Der Tageslauf legt die
+	 * erste Forderung schon an, sobald ihr Termin im Vorwarnfenster liegt –
+	 * also auch vor dem Beginn ({@see ClaimGenerationService}). Ohne Zuweisung
+	 * hätte sie nie existieren dürfen: genau der Fall für ein Storno.
+	 * Erledigte Einträge (bezahlt, beitragsfrei) bleiben unberührt.
+	 *
+	 * @param bool $strict true: eine Forderung, die sich nicht stornieren lässt
+	 *                     (sie steckt in einem freigegebenen oder eingereichten Lauf), bricht mit
+	 *                     der Erklärung aus {@see ClaimService::cancel()} ab. false (Austritts-Lauf):
+	 *                     sie bleibt stehen – dann ist der Einzug schon unterwegs und wird von
+	 *                     Hand geklärt, der Lauf für alle anderen Mitglieder darf daran nicht scheitern.
+	 * @throws \InvalidArgumentException nur mit `$strict`
+	 */
+	private function cancelClaimsOfUnstarted(Assignment $assignment, bool $strict): void {
+		$reason = $this->l10n->t('Die Zuweisung wurde vor ihrem Beginn beendet.');
+		foreach ($this->openItemMapper->findByAssignment($assignment->getId()) as $item) {
+			if ($item->getStatus() !== 'open' || $item->getCancelledAt() !== null) {
+				continue;
+			}
+			try {
+				$this->claims->cancel($item->getId(), $reason);
+			} catch (\InvalidArgumentException $e) {
+				if ($strict) {
+					throw $e;
+				}
+			}
 		}
 	}
 

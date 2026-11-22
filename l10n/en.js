@@ -5048,5 +5048,7 @@ OC.L10N.register("vereinsbuchhaltung", {
 	"Behoben: Beim CAMT-Import (u. a. VR-Banken) erscheint jetzt der Name des Zahlungspartners statt des Buchungstexts.": "Fixed: the CAMT import (e.g. VR banks) now shows the counterparty name instead of the booking text.",
 	"Neu: Auch die visuelle Ansicht des Gliederungsberichts lässt sich als PDF-Datei herunterladen.": "New: the visual view of the structured report can also be downloaded as a PDF file.",
 	"Geändert: Ein Turnuswechsel, der Zeit ohne Beitrag ließe, wird mit Erklärung abgelehnt; die BIC eines Mandats wird bei der Eingabe geprüft.": "Changed: a change of payment interval that would leave time without a contribution is rejected with an explanation; the BIC of a mandate is checked on input.",
-	"Behoben: Scheitert der Tageslauf an einer Zuweisung, bekommen die übrigen trotzdem ihre Forderungen; die gescheiterte erscheint als Aufgabe.": "Fixed: if the daily run fails on one assignment, the others still get their claims; the failed one appears as a task."
+	"Behoben: Scheitert der Tageslauf an einer Zuweisung, bekommen die übrigen trotzdem ihre Forderungen; die gescheiterte erscheint als Aufgabe.": "Fixed: if the daily run fails on one assignment, the others still get their claims; the failed one appears as a task.",
+	"Die Zuweisung wurde vor ihrem Beginn beendet.": "The assignment was ended before it began.",
+	"Für einen Einzug am {scheduled} ist die Frist für die Vorabinformation schon zu knapp. Der erste Beitrag wird deshalb mit dem nächsten Termin am {due} eingezogen.": "For a collection on {scheduled} the pre-notification period is already too short. The first contribution will therefore be collected on the next date, {due}."
 }, "nplurals=2; plural=(n != 1);");

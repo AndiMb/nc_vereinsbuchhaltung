@@ -10,11 +10,17 @@ use OCA\Vereinsbuchhaltung\Db\AssignmentEventMapper;
 use OCA\Vereinsbuchhaltung\Db\AssignmentMapper;
 use OCA\Vereinsbuchhaltung\Db\ContributionGroup;
 use OCA\Vereinsbuchhaltung\Db\ContributionGroupMapper;
+use OCA\Vereinsbuchhaltung\Db\MandateMapper;
+use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Db\OpenItem;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
 use OCA\Vereinsbuchhaltung\Service\AssignmentService;
+use OCA\Vereinsbuchhaltung\Service\ClaimGenerationService;
+use OCA\Vereinsbuchhaltung\Service\ClaimService;
+use OCA\Vereinsbuchhaltung\Service\ContributionCycleSettings;
 use OCA\Vereinsbuchhaltung\Service\ContributionYearService;
+use OCA\Vereinsbuchhaltung\Service\DirectDebitEligibilityResolver;
 use OCA\Vereinsbuchhaltung\Service\DueDateScheduleService;
 use OCA\Vereinsbuchhaltung\Service\MonthlyAmount;
 use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubClockStub;
@@ -42,6 +48,7 @@ class AssignmentServiceTest extends TestCase {
 	private OpenItemMapper&MockObject $openItemMapper;
 	private IDBConnection&MockObject $db;
 	private TransactionRunner $runner;
+	private ClaimService&MockObject $claims;
 	/** @var array<int, list<OpenItem>> assignmentId => Perioden, siehe findByAssignment()-Stub */
 	private array $openItemsByAssignment = [];
 
@@ -52,6 +59,7 @@ class AssignmentServiceTest extends TestCase {
 		$this->openItemMapper = $this->createMock(OpenItemMapper::class);
 		$this->db = $this->createMock(IDBConnection::class);
 		$this->runner = new TransactionRunner($this->db);
+		$this->claims = $this->createMock(ClaimService::class);
 		// willReturnCallback statt willReturn([]), damit einzelne Tests per
 		// $this->openItemsByAssignment[$id] eigene Perioden hinterlegen können -
 		// ein zweites method('findByAssignment') im Test würde sonst nie
@@ -100,7 +108,19 @@ class AssignmentServiceTest extends TestCase {
 		);
 		$contributionYear = new ContributionYearService($config, ClubClockStub::system());
 		$dueDateSchedule = new DueDateScheduleService($config, $contributionYear, $l10n);
-		return new AssignmentService($this->mapper, $this->eventMapper, $this->groupMapper, $this->openItemMapper, $contributionYear, $dueDateSchedule, $time, $l10n, ClubCurrencyStub::of($this, $this->currencyCode), $this->runner);
+		// Echt statt gemockt: Die Vorschau soll mit genau der Rechnung des Tageslaufs prüfbar sein.
+		$claimGeneration = new ClaimGenerationService(
+			$this->mapper,
+			$this->openItemMapper,
+			$this->groupMapper,
+			$this->createMock(MemberMapper::class),
+			new DirectDebitEligibilityResolver($this->mapper, $this->createMock(MandateMapper::class)),
+			$contributionYear,
+			$dueDateSchedule,
+			new ContributionCycleSettings($config),
+			$time,
+		);
+		return new AssignmentService($this->mapper, $this->eventMapper, $this->groupMapper, $this->openItemMapper, $contributionYear, $dueDateSchedule, $time, $l10n, ClubCurrencyStub::of($this, $this->currencyCode), $this->runner, $claimGeneration, $this->claims);
 	}
 
 	public function testCreateLegtDieZuweisungAnUndLogtEinEreignis(): void {
@@ -261,9 +281,70 @@ class AssignmentServiceTest extends TestCase {
 			fn (Assignment $a) => $a->getValidTo() === '2026-06-01',
 		))->willReturnArgument(0);
 
+		$this->claims->expects($this->never())->method('cancel');
+
 		$count = $this->service()->onMemberLeft(7, '2026-06-01');
 
 		$this->assertSame(1, $count);
+	}
+
+	/** Eine Forderung der Zuweisung 5 im Zustand `$status`. */
+	private function claimOfAssignment5(int $id, string $status = 'open'): OpenItem {
+		$item = new OpenItem();
+		$item->setId($id);
+		$item->setAssignmentId(5);
+		$item->setStatus($status);
+		return $item;
+	}
+
+	/**
+	 * Der Tageslauf legt die erste Forderung schon vor dem Beginn an, sobald
+	 * ihr Termin im Vorwarnfenster liegt. Wird die Zuweisung vorher
+	 * zurückgenommen, hätte die Forderung nie existieren dürfen: Storno.
+	 * Bezahltes bleibt unberührt.
+	 */
+	public function testZuruecknehmenStorniertSchonErzeugteOffeneForderungen(): void {
+		$assignment = $this->assignmentInGroup1();
+		$assignment->setValidFrom('2026-07-01'); // heute (Standard im Test): 2026-06-15
+		$this->mapper->method('find')->willReturn($assignment);
+		$this->mapper->method('update')->willReturnArgument(0);
+		$this->openItemsByAssignment[5] = [$this->claimOfAssignment5(11), $this->claimOfAssignment5(12, 'paid')];
+		$this->claims->expects($this->once())->method('cancel')->with(11, $this->isType('string'));
+
+		$ended = $this->service()->end(5, '2026-06-15', AssignmentEvent::ACTOR_STAFF, 'buchhalter');
+
+		$this->assertSame('2026-06-30', $ended->getValidTo());
+	}
+
+	public function testZuruecknehmenScheitertSolangeDieForderungInEinemFreigegebenenLaufSteckt(): void {
+		$assignment = $this->assignmentInGroup1();
+		$assignment->setValidFrom('2026-07-01');
+		$this->mapper->method('find')->willReturn($assignment);
+		$this->openItemsByAssignment[5] = [$this->claimOfAssignment5(11)];
+		$this->claims->method('cancel')->willThrowException(new \InvalidArgumentException('Verwerfen Sie zuerst den Lauf'));
+		$this->mapper->expects($this->never())->method('update');
+
+		$this->expectException(\InvalidArgumentException::class);
+		$this->service()->end(5, '2026-06-15', AssignmentEvent::ACTOR_STAFF, 'buchhalter');
+	}
+
+	/**
+	 * Austritt vor dem Beginn: Die Zuweisung wird nie wirksam, ihre vorab
+	 * erzeugte Forderung wird storniert. Lässt sie sich nicht stornieren
+	 * (freigegebener Lauf), darf das den Austritts-Lauf nicht anhalten.
+	 */
+	public function testAustrittVorDemBeginnStorniertSchonErzeugteForderungen(): void {
+		$assignment = $this->assignmentInGroup1();
+		$assignment->setValidFrom('2026-07-01');
+		$this->mapper->method('findOpenAsOf')->willReturn([$assignment]);
+		$this->mapper->expects($this->once())->method('update')->willReturnArgument(0);
+		$this->openItemsByAssignment[5] = [$this->claimOfAssignment5(11), $this->claimOfAssignment5(12)];
+		$this->claims->expects($this->exactly(2))->method('cancel')->willReturnCallback(
+			static fn (int $id): OpenItem => $id === 11 ? throw new \InvalidArgumentException('freigegebener Lauf') : new OpenItem(),
+		);
+
+		$this->assertSame(1, $this->service()->onMemberLeft(7, '2026-06-20'));
+		$this->assertSame('2026-06-20', $assignment->getValidTo());
 	}
 
 	public function testPreviewFirstPeriodRechnetProrataUeberDasBeitragsjahr(): void {
@@ -271,8 +352,9 @@ class AssignmentServiceTest extends TestCase {
 		$assignment->setIntervalMonths(12);
 		$assignment->setMonthlyAmountCents(1000);
 		$assignment->setValidFrom('2026-03-15');
+		$assignment->setPaymentMethod(Assignment::PAYMENT_METHOD_DIRECT_DEBIT);
 
-		$preview = $this->service()->previewFirstPeriod($assignment);
+		$preview = $this->service('2026-02-01')->previewFirstPeriod($assignment);
 
 		$this->assertSame('2026-01-01', $preview['periodStart']);
 		$this->assertSame('2026-12-31', $preview['periodEnd']);
@@ -282,7 +364,28 @@ class AssignmentServiceTest extends TestCase {
 		// Ohne eigenen Terminplan (Standard-Einzugstag 0 Tage Versatz) faellt der
 		// vorgeschlagene Einzugstermin auf den tatsaechlichen Beginn der ersten
 		// (angebrochenen) Periode - siehe DueDateScheduleService::dueDateForPeriod().
+		// Am 1.2. erfasst reicht die Zeit fuer die Vorabinfo (Frist 1.3.).
 		$this->assertSame('2026-03-15', $preview['dueDate']);
+		$this->assertSame('2026-03-15', $preview['scheduledDueDate']);
+	}
+
+	/**
+	 * Zu spät erfasst: Die Vorabinfo-Frist für den Termin laut Terminplan ist
+	 * schon angebrochen, der Tageslauf gibt der Forderung den nächsten Termin
+	 * des Turnus (Nachzügler-Regel) – die Vorschau muss das sagen, statt den
+	 * nicht mehr erreichbaren Termin zu versprechen.
+	 */
+	public function testPreviewFirstPeriodNenntDenTerminDesTageslaufsWennDieVorabinfoFristNichtMehrReicht(): void {
+		$assignment = new Assignment();
+		$assignment->setIntervalMonths(12);
+		$assignment->setMonthlyAmountCents(1000);
+		$assignment->setValidFrom('2026-07-01');
+		$assignment->setPaymentMethod(Assignment::PAYMENT_METHOD_DIRECT_DEBIT);
+
+		$preview = $this->service('2026-06-25')->previewFirstPeriod($assignment);
+
+		$this->assertSame('2026-07-01', $preview['scheduledDueDate']);
+		$this->assertSame('2027-01-01', $preview['dueDate']);
 	}
 
 	/**
