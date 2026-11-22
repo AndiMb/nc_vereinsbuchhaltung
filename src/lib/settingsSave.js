@@ -12,7 +12,7 @@ import { currencySettingsPayload } from './clubCurrency.js'
  *
  * Die Schlüssel und ihr Format sind dieselben wie zuvor.
  */
-export const SAVE_PARTS = ['club', 'currency', 'brand', 'display', 'storage', 'watch', 'sepa']
+export const SAVE_PARTS = ['club', 'currency', 'brand', 'display', 'storage', 'watch', 'sepa', 'sepaModule']
 
 /**
  * @param {string[]} parts Teile aus SAVE_PARTS; leer = alle (früheres Verhalten)
@@ -46,6 +46,11 @@ export function settingsPayload(parts, s) {
 	if (want.has('sepa')) {
 		body.sepa_creditor_id = s.sepaCreditorId
 		body.sepa_debtor_account_id = s.sepaDebtorAccountId || ''
+	}
+	// Die Schalter des Beitragsmoduls wirken sofort und getrennt von der Karte
+	// „Gläubiger-ID und Konto“: sonst speicherte ein Schalter eine halb
+	// eingetippte Gläubiger-ID mit, und deren Fehler ließe den Schalter scheitern.
+	if (want.has('sepaModule')) {
 		body.membership_enabled = s.membershipEnabled ? '1' : '0'
 		body.self_service_enabled = s.selfServiceEnabled ? '1' : '0'
 		body.self_service_transfer_switch_enabled = s.selfServiceTransferSwitchEnabled ? '1' : '0'
