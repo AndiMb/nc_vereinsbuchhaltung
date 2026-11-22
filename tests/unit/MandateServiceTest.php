@@ -241,6 +241,15 @@ class MandateServiceTest extends TestCase {
 		$this->service()->amendBankDetails(1, 'DE89370400440532013000', null);
 	}
 
+	/** Eine BIC, die pain.008 nicht annimmt, wird schon bei der Eingabe abgelehnt. */
+	public function testUngueltigeBicWirdAbgelehnt(): void {
+		$this->mandateMapper->method('find')->willReturn($this->activeMandate());
+		$this->mandateMapper->expects($this->never())->method('update');
+
+		$this->expectException(\InvalidArgumentException::class);
+		$this->service()->amendBankDetails(1, 'DE89370400440532013000', 'not-a-bic');
+	}
+
 	// --- Kontoinhaberwechsel: neues Mandat, altes ended/replaced ----------------
 
 	public function testKontoinhaberwechselErzeugtNeuesMandatUndBeendetDasAlte(): void {

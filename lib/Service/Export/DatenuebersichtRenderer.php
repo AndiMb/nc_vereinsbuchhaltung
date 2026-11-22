@@ -215,8 +215,8 @@ class DatenuebersichtRenderer {
 				. '<td class="num">' . ReportFormat::cents($assignment->amountCents(), $this->currency->symbol()) . ' '
 				. PrintableReportPage::escape($assignment->isAnnual() ? $this->l10n->t('pro Jahr') : $this->l10n->t('pro Monat')) . '</td>'
 				. '<td>' . PrintableReportPage::escape(Assignment::paymentMethodName($assignment->getPaymentMethod(), $this->l10n)) . '</td>'
-				. '<td>' . ReportFormat::date($assignment->getValidFrom()) . '</td>'
-				. '<td>' . ReportFormat::date($assignment->getValidTo()) . '</td>'
+				. '<td>' . PrintableReportPage::escape(ReportFormat::date($assignment->getValidFrom())) . '</td>'
+				. '<td>' . PrintableReportPage::escape(ReportFormat::date($assignment->getValidTo())) . '</td>'
 				. '</tr>';
 		}
 		return $h . '</table></section>';

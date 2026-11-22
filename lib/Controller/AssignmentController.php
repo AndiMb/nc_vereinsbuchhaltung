@@ -9,6 +9,7 @@ use OCA\Vereinsbuchhaltung\Db\Assignment;
 use OCA\Vereinsbuchhaltung\Middleware\NoRevisionBump;
 use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
 use OCA\Vereinsbuchhaltung\Service\AssignmentService;
+use OCA\Vereinsbuchhaltung\Service\MonthlyAmount;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
 use OCA\Vereinsbuchhaltung\Service\StaffChangeReceiptService;
 use OCP\AppFramework\Controller;
@@ -79,11 +80,11 @@ class AssignmentController extends Controller {
 				$memberId,
 				$groupId,
 				$intervalMonths,
-				(int)round($monthlyAmount * 100),
+				MonthlyAmount::centsFromEuro($monthlyAmount),
 				$paymentMethod,
 				$validFrom,
 				$validTo,
-				$minMonthlyAmountOverride !== null ? (int)round($minMonthlyAmountOverride * 100) : null,
+				$minMonthlyAmountOverride !== null ? MonthlyAmount::centsFromEuro($minMonthlyAmountOverride) : null,
 				$overrideReason,
 				'staff',
 				$this->actorUid(),
@@ -105,7 +106,7 @@ class AssignmentController extends Controller {
 	public function previewNew(int $intervalMonths, string $validFrom, float $monthlyAmount = 0, ?float $annualAmount = null, ?int $groupId = null): DataResponse {
 		$transient = new Assignment();
 		$transient->setIntervalMonths($intervalMonths);
-		$transient->setMonthlyAmountCents((int)round($monthlyAmount * 100));
+		$transient->setMonthlyAmountCents(MonthlyAmount::centsFromEuro($monthlyAmount));
 		$transient->setValidFrom($validFrom);
 		if ($annualAmount !== null) {
 			// Jahresbetrag (Issue #270): ob das angebrochene Jahr anteilig zählt, steht an der Gruppe.
@@ -124,8 +125,9 @@ class AssignmentController extends Controller {
 		}
 	}
 
+	/** Euro aus der Anfrage in Cent, ohne Überlauf bei unsinnigen Werten ({@see MonthlyAmount::centsFromEuro()}). */
 	private static function cents(?float $amount): ?int {
-		return $amount !== null ? (int)round($amount * 100) : null;
+		return $amount !== null ? MonthlyAmount::centsFromEuro($amount) : null;
 	}
 
 	/**

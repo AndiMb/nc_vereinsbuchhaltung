@@ -77,7 +77,7 @@ class SelfContributionService {
 		$assignment = $this->assertOwnership($assignmentId);
 		$this->assertPaymentMethodAllowed($assignment, $paymentMethod);
 		$preview = $this->assignments->previewChange($assignmentId, $monthlyAmountCents, $intervalMonths, null, $paymentMethod, $annualAmountCents);
-		$this->assertNotLocked($preview);
+		$this->assertNotLocked($preview, $assignment);
 		return $preview;
 	}
 
@@ -100,7 +100,7 @@ class SelfContributionService {
 		// berechnet "wirkt ab" GENAU wie update() es gleich tun wird) - bei
 		// einem Fehler wird gar nichts gespeichert.
 		$preview = $this->assignments->previewChange($assignmentId, $monthlyAmountCents, $intervalMonths, null, $paymentMethod, $annualAmountCents);
-		$this->assertNotLocked($preview);
+		$this->assertNotLocked($preview, $assignment);
 
 		// $assignment bleibt der Stand VOR der Änderung: update() lädt sich seine eigene Kopie.
 		$updated = $this->assignments->update(
@@ -202,11 +202,15 @@ class SelfContributionService {
 	 * bleibt der Admin-Akte über {@see AssignmentController::update()}
 	 * vorbehalten, die dieselbe Wirksamkeitsregel unverändert nur protokolliert).
 	 *
+	 * Eine Zuweisung, die erst künftig beginnt, ist deshalb nicht gesperrt:
+	 * ihre Änderung wirkt ab ihrem Beginn, früher geht es ohnehin nicht, und
+	 * eine Vorabinfo gibt es für sie noch nicht.
+	 *
 	 * @param array{effectiveFrom:string} $preview
 	 * @throws \InvalidArgumentException wenn die Änderung gesperrt ist
 	 */
-	private function assertNotLocked(array $preview): void {
-		if ($preview['effectiveFrom'] > $this->today()) {
+	private function assertNotLocked(array $preview, Assignment $assignment): void {
+		if ($preview['effectiveFrom'] > max($this->today(), (string)$assignment->getValidFrom())) {
 			throw new \InvalidArgumentException($this->l10n->t(
 				'Für die laufende Periode wurde bereits eine Vorabinfo verschickt – Betrag und Turnus stehen bis zum Einzug fest. Möglich wäre diese Änderung erst ab %s.',
 				[GermanDate::format($preview['effectiveFrom'])],

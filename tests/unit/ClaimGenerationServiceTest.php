@@ -141,6 +141,38 @@ class ClaimGenerationServiceTest extends TestCase {
 		return $g;
 	}
 
+	/**
+	 * Eine kaputte Zuweisung (hier: ein Betrag, der beim Rechnen überläuft)
+	 * darf den Lauf nicht für alle Mitglieder danach beenden.
+	 */
+	public function testEineKaputteZuweisungHaeltDieAnderenNichtAuf(): void {
+		$this->assignments->method('findActiveAsOf')->willReturn([
+			$this->assignment(1, 7, 12, PHP_INT_MAX),
+			$this->assignment(2, 8),
+		]);
+		$this->groups->method('find')->with(1)->willReturn($this->group());
+		$this->setMandateActive(true);
+
+		$result = $this->service('2025-12-14')->generateDue();
+
+		$this->assertSame(['created' => 1, 'blocked' => 0, 'failed' => 1], $result);
+		$this->assertSame([2], array_map(static fn (OpenItem $i): int => $i->getAssignmentId(), $this->store));
+		$this->assertSame('[1]', $this->configStore['contribution_cycle_failed_assignments']);
+	}
+
+	/** Läuft der nächste Tag wieder durch, verschwindet die Aufgabe von selbst. */
+	public function testFehlerlisteLeertSichBeimNaechstenSauberenLauf(): void {
+		$this->configStore['contribution_cycle_failed_assignments'] = '[1]';
+		$this->assignments->method('findActiveAsOf')->willReturn([$this->assignment()]);
+		$this->groups->method('find')->with(1)->willReturn($this->group());
+		$this->setMandateActive(true);
+
+		$result = $this->service('2025-12-14')->generateDue();
+
+		$this->assertSame(0, $result['failed']);
+		$this->assertSame('[]', $this->configStore['contribution_cycle_failed_assignments']);
+	}
+
 	public function testErzeugtDieErstePeriodeInnerhalbDesVorwarnfensters(): void {
 		$this->assignments->method('findActiveAsOf')->willReturn([$this->assignment()]);
 		$this->groups->method('find')->with(1)->willReturn($this->group());
@@ -151,7 +183,7 @@ class ClaimGenerationServiceTest extends TestCase {
 		// Nachzuegler-Regel schon hier, siehe eigener Test dafuer).
 		$result = $this->service('2025-12-14')->generateDue();
 
-		$this->assertSame(['created' => 1, 'blocked' => 0], $result);
+		$this->assertSame(['created' => 1, 'blocked' => 0, 'failed' => 0], $result);
 		$this->assertCount(1, $this->store);
 		$claim = $this->store[0];
 		$this->assertSame(12000, $claim->getAmountCents());
@@ -169,7 +201,7 @@ class ClaimGenerationServiceTest extends TestCase {
 		$result = $this->service('2025-12-14')->generateDue();
 
 		// Keine Forderung, kein Störfall – nur der Vermerk, wie weit der Lauf ist.
-		$this->assertSame(['created' => 0, 'blocked' => 0], $result);
+		$this->assertSame(['created' => 0, 'blocked' => 0, 'failed' => 0], $result);
 		$this->assertCount(1, $this->store);
 		$free = $this->store[0];
 		$this->assertSame(0, $free->getAmountCents());
@@ -190,7 +222,7 @@ class ClaimGenerationServiceTest extends TestCase {
 		$assignment->setMonthlyAmountCents(1000);   // später auf 10 € je Monat angehoben
 		$result = $this->service('2026-12-12')->generateDue();
 
-		$this->assertSame(['created' => 1, 'blocked' => 0], $result);
+		$this->assertSame(['created' => 1, 'blocked' => 0, 'failed' => 0], $result);
 		$this->assertCount(2, $this->store);
 		// Berechnet wird erst die Periode NACH der beitragsfreien – 2026 bleibt 0 €.
 		$this->assertSame(0, $this->store[0]->getAmountCents());
@@ -207,7 +239,7 @@ class ClaimGenerationServiceTest extends TestCase {
 
 		$result = $this->service('2025-11-01')->generateDue();
 
-		$this->assertSame(['created' => 0, 'blocked' => 0], $result);
+		$this->assertSame(['created' => 0, 'blocked' => 0, 'failed' => 0], $result);
 		$this->assertCount(0, $this->store);
 	}
 
@@ -220,7 +252,7 @@ class ClaimGenerationServiceTest extends TestCase {
 		// Puffer wie im ersten Test: genug Abstand zur 14-Tage-Vorlauffrist.
 		$result = $this->service('2026-02-25')->generateDue();
 
-		$this->assertSame(['created' => 1, 'blocked' => 0], $result);
+		$this->assertSame(['created' => 1, 'blocked' => 0, 'failed' => 0], $result);
 		$claim = $this->store[0];
 		// Maerz bis Dezember = 10 volle Monate.
 		$this->assertSame(10000, $claim->getAmountCents());
@@ -236,7 +268,7 @@ class ClaimGenerationServiceTest extends TestCase {
 
 		$result = $this->service('2025-12-14')->generateDue();
 
-		$this->assertSame(['created' => 1, 'blocked' => 0], $result);
+		$this->assertSame(['created' => 1, 'blocked' => 0, 'failed' => 0], $result);
 		$claim = $this->store[0];
 		// Januar bis Juni = 6 volle Monate, nicht die vollen 12.
 		$this->assertSame(6000, $claim->getAmountCents());
@@ -310,12 +342,12 @@ class ClaimGenerationServiceTest extends TestCase {
 
 		$service = $this->service('2026-01-05');
 		$first = $service->generateDue();
-		$this->assertSame(['created' => 1, 'blocked' => 0], $first);
+		$this->assertSame(['created' => 1, 'blocked' => 0, 'failed' => 0], $first);
 
 		// Ein zweiter Lauf (z.B. naechster Tag) darf keine weitere Periode
 		// erzeugen - die Zuweisung ist mit validTo=2026-01-31 vorbei.
 		$second = $this->service('2026-01-06')->generateDue();
-		$this->assertSame(['created' => 0, 'blocked' => 0], $second);
+		$this->assertSame(['created' => 0, 'blocked' => 0, 'failed' => 0], $second);
 		$this->assertCount(1, $this->store);
 	}
 
@@ -326,7 +358,7 @@ class ClaimGenerationServiceTest extends TestCase {
 
 		$result = $this->service('2025-12-20')->generateDue();
 
-		$this->assertSame(['created' => 0, 'blocked' => 1], $result);
+		$this->assertSame(['created' => 0, 'blocked' => 1, 'failed' => 0], $result);
 		$this->assertCount(0, $this->store);
 	}
 
@@ -337,7 +369,7 @@ class ClaimGenerationServiceTest extends TestCase {
 
 		$result = $this->service('2025-12-20')->generateDue();
 
-		$this->assertSame(['created' => 1, 'blocked' => 0], $result);
+		$this->assertSame(['created' => 1, 'blocked' => 0, 'failed' => 0], $result);
 	}
 
 	public function testNachzueglerFaehrtAmNaechstenTerminDesTurnusBeiGerissenerVorlauffrist(): void {
@@ -419,7 +451,7 @@ class ClaimGenerationServiceTest extends TestCase {
 		// Die Zuweisung läuft seit Januar, der Bestand ist leer (Forderungen gelöscht), heute ist der 10.3.
 		$result = $this->service('2026-03-10')->generateDue();
 
-		$this->assertSame(['created' => 3, 'blocked' => 0], $result);
+		$this->assertSame(['created' => 3, 'blocked' => 0, 'failed' => 0], $result);
 		$this->assertSame(
 			['2026-01-01', '2026-02-01', '2026-03-01'],
 			array_map(static fn (OpenItem $claim): ?string => $claim->getPeriodStart(), $this->store),
@@ -437,8 +469,8 @@ class ClaimGenerationServiceTest extends TestCase {
 		$first = $service->generateDue();
 		$second = $service->generateDue();
 
-		$this->assertSame(['created' => 1, 'blocked' => 0], $first);
-		$this->assertSame(['created' => 0, 'blocked' => 0], $second);
+		$this->assertSame(['created' => 1, 'blocked' => 0, 'failed' => 0], $first);
+		$this->assertSame(['created' => 0, 'blocked' => 0, 'failed' => 0], $second);
 		$this->assertCount(1, $this->store);
 	}
 }

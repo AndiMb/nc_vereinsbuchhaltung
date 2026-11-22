@@ -16,6 +16,7 @@ use OCA\Vereinsbuchhaltung\Service\ContributionCycleSettings;
 use OCA\Vereinsbuchhaltung\Service\ContributionCycleTaskService;
 use OCA\Vereinsbuchhaltung\Service\DirectDebitEligibilityResolver;
 use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubCurrencyStub;
+use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\IAppConfig;
 use OCP\IL10N;
@@ -113,6 +114,21 @@ class ContributionCycleTaskServiceTest extends TestCase {
 
 	public function testKeineAufgabenOhneAuffaelligkeiten(): void {
 		$this->assertSame([], $this->service('2026-01-01')->findTasks());
+	}
+
+	/** Was der Tageslauf nicht erzeugen konnte, steht als Aufgabe da und nicht nur im Server-Log. */
+	public function testGescheiterteForderungserzeugungErzeugtHandlungsbedarf(): void {
+		$this->configStore['contribution_cycle_failed_assignments'] = '[4,99]';
+		$this->assignments->method('findActiveAsOf')->willReturn([]);
+		$this->assignments->method('find')->willReturnCallback(
+			fn (int $id): Assignment => $id === 4 ? $this->assignment(4, 7) : throw new DoesNotExistException('weg'),
+		);
+		$tasks = $this->service('2026-06-15')->findTasks();
+
+		$this->assertCount(1, $tasks, 'Eine gelöschte Zuweisung ergibt keine Aufgabe.');
+		$this->assertSame(Task::SEVERITY_ACTION_REQUIRED, $tasks[0]['severity']);
+		$this->assertStringContainsString('Max Mustermann', $tasks[0]['message']);
+		$this->assertSame(['assignment', 4], [$tasks[0]['objectType'], $tasks[0]['objectId']]);
 	}
 
 	public function testFehlendesMandatErzeugtHandlungsbedarf(): void {

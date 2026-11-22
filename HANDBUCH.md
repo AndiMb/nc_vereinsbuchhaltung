@@ -3161,7 +3161,19 @@ angekündigt. Eine Änderung, die deshalb erst später wirken dürfte, weist die
 zurück und erklärt warum – die Meldung nennt das Datum, ab dem sie möglich wäre –,
 statt sie stillschweigend zu verschieben; der Vorstand kann sie in der Akte
 vornehmen (13.4) – für bereits angekündigte Perioden ändert sich dann trotzdem
-nichts mehr. Die **IBAN** kennt kein Sperrfenster: die Vorabinfo nennt
+nichts mehr. Maßgeblich ist die späteste verschickte Vorabinfo, auch wenn eine
+frühere Forderung keine bekommen hat (weil sie schon bezahlt oder beitragsfrei
+war). Eine Zuweisung, die erst künftig beginnt, ist nicht gesperrt: ihre
+Änderung gilt ab ihrem Beginn.
+
+**Turnuswechsel ohne Lücke.** Ein Wechsel des Turnus darf keine Zeit ohne
+Beitrag hinterlassen. Ist der Beitrag schon für eine Periode berechnet, geht
+der Wechsel nur, wenn die nächste Periode des neuen Turnus direkt daran
+anschließt. Wer im Februar von monatlich auf jährlich wechseln will, bekommt
+deshalb eine Ablehnung mit den beiden Daten: sonst blieben März bis Dezember
+ohne Beitrag. Der Wechsel auf einen kürzeren Turnus geht immer, der auf einen
+längeren spätestens zum Ende des Beitragsjahres. Das gilt für Mitglieder wie
+für die Verwaltung. Die **IBAN** kennt kein Sperrfenster: die Vorabinfo nennt
 keine IBAN, und der Lauf friert sie erst bei der Freigabe ein – sie lässt sich bis
 dahin ändern. Auch die **Zahlungsart** kennt keines: wechselt ein Mitglied nach
 der Vorabinfo auf Überweisung, entfällt der angekündigte Einzug, die Forderung

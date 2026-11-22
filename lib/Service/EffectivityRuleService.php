@@ -56,11 +56,11 @@ final class EffectivityRuleService {
 	 * braucht, aber danach mit einem ANDEREN Perioden-Raster weiterrechnet –
 	 * siehe AssignmentService::effectiveFromFor().
 	 *
-	 * Erwartet die bereits existierenden Perioden(-Forderungen) einer
-	 * Zuweisung, aufsteigend nach `periodStart` sortiert. Da eine Vorabinfo
-	 * chronologisch fortschreitet, genügt es, vom Anfang der Liste weg
-	 * gesperrte Perioden zu zählen, bis die erste ungesperrte kommt – danach
-	 * sind laut Spec ohnehin alle folgenden noch änderbar.
+	 * Maßgeblich ist die SPÄTESTE gesperrte Periode, gleich an welcher Stelle
+	 * der Liste sie steht. Eine frühere Periode ohne Vorabinfo hebt die Sperre
+	 * nicht auf: das ist der Normalfall bei einer beitragsfreien ersten
+	 * Periode, einer schon bezahlten Forderung oder einer Zeit als Überweiser,
+	 * und die Vorabinfo der Perioden danach gilt trotzdem.
 	 *
 	 * @param list<array{periodStart: string, periodEnd: string, prenotifiedAt: ?string}> $existingPeriods
 	 */
@@ -68,9 +68,12 @@ final class EffectivityRuleService {
 		$blockedUntil = null;
 		foreach ($existingPeriods as $period) {
 			if (!self::isLocked($period['prenotifiedAt'])) {
-				break;
+				continue;
 			}
-			$blockedUntil = PeriodRule::nextDay($period['periodEnd']);
+			$next = PeriodRule::nextDay($period['periodEnd']);
+			if ($blockedUntil === null || $next > $blockedUntil) {
+				$blockedUntil = $next;
+			}
 		}
 		return $blockedUntil;
 	}

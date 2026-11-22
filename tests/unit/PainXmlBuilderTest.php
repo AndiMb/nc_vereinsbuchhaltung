@@ -161,6 +161,22 @@ class PainXmlBuilderTest extends TestCase {
 	}
 
 	/**
+	 * Eine gespeicherte BIC, die dem Schema nicht entspricht, darf die Datei
+	 * nicht für alle Zahler ungültig machen: sie fällt weg wie eine fehlende.
+	 */
+	public function testUngueltigeBicBrichtDieDateiNicht(): void {
+		$xml = (new PainXmlBuilder())->build($this->creditor(), [
+			$this->row(['debtorBic' => 'NOT-A-BIC']),
+			$this->row(['endToEndId' => 'E2E-20260812-101500-11223344', 'debtorBic' => 'coba de ff']),
+		]);
+		$this->assertSchemaValid($xml);
+
+		$xpath = $this->xpath($xml);
+		$this->assertSame('NOTPROVIDED', $xpath->query('//p:DrctDbtTxInf[1]/p:DbtrAgt/p:FinInstnId/p:Othr/p:Id')->item(0)->textContent);
+		$this->assertSame('COBADEFF', $xpath->query('//p:DrctDbtTxInf[2]/p:DbtrAgt/p:FinInstnId/p:BIC')->item(0)->textContent);
+	}
+
+	/**
 	 * Ein „&" im Namen ist der klassische Weg, sich eine kaputte XML-Datei zu
 	 * bauen. SepaText macht daraus ein „+"; entscheidend ist, dass die Datei
 	 * in jedem Fall wohlgeformt bleibt und keine fremden Elemente enthält.
