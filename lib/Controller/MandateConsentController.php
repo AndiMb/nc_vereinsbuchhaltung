@@ -151,7 +151,10 @@ class MandateConsentController extends Controller {
 				'reconfirm' => $view['token']->isReconfirmation(),
 				'clubName' => $clubName,
 				'legalTextHtml' => $this->formRenderer->renderLegalText($view['legalText'], $clubName),
-				'dataBlockHtml' => $this->formRenderer->renderDataBlock($mandate, $creditorId, $referenceDate),
+				// Ein verbrauchter Link zeigt die IBAN nur noch maskiert: er bleibt aufrufbar und
+				// läse sonst jedem, der ihn (noch) hat, die aktuelle Bankverbindung vor – auch
+				// eine, die erst nach der Zustimmung geändert wurde.
+				'dataBlockHtml' => $this->formRenderer->renderDataBlock($mandate, $creditorId, $referenceDate, $view['status'] === 'consumed'),
 				'consentAt' => $mandate->getConsentAt(),
 				'token' => $token,
 				'acceptUrl' => $this->urlGenerator->linkToRoute('vereinsbuchhaltung.mandateConsent.accept', ['token' => $token]),

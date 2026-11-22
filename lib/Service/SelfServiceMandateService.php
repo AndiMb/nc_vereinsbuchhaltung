@@ -161,6 +161,8 @@ class SelfServiceMandateService {
 			(string)$this->request->getHeader('User-Agent'),
 			$this->consentActor(),
 		);
+		// Der Link aus der Mail ist damit erledigt.
+		$this->mandateService->invalidateActivationLinks((int)$mandate->getId());
 		$this->afterChange(
 			$member,
 			$mandate,
@@ -196,6 +198,8 @@ class SelfServiceMandateService {
 			(string)$this->request->getHeader('User-Agent'),
 			$this->consentActor(),
 		);
+		// Der Link aus der Mail ist damit erledigt.
+		$this->mandateService->invalidateActivationLinks((int)$mandate->getId());
 		$this->afterChange(
 			$member,
 			$mandate,

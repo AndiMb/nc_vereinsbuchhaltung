@@ -1016,6 +1016,18 @@ class MandateService {
 		return $this->userSession->getUser()?->getUID();
 	}
 
+	/**
+	 * Macht die noch offenen Zustimmungslinks eines Mandats ungültig. Für
+	 * Wege, auf denen die Zustimmung OHNE den Link erteilt wird (in der
+	 * angemeldeten Sitzung): der Link aus der Mail bliebe sonst gültig und
+	 * könnte das Zustimmungs-Protokoll später überschreiben.
+	 *
+	 * @return int Anzahl der gelöschten Links
+	 */
+	public function invalidateActivationLinks(int $mandateId): int {
+		return $this->activationTokens->deleteOutstandingByMandate($mandateId);
+	}
+
 	private function requireIban(string $iban): string {
 		$normalized = $this->ibanValidator->validate($iban);
 		if ($normalized === null) {
