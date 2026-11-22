@@ -6,9 +6,9 @@ Eine schlanke Buchhaltungs-App für Vereine, direkt in Nextcloud integriert. Kon
 
 ## 🎬 Die App in zwei Minuten
 
-[![App zur Vereinsbuchhaltung für Nextcloud – Video ansehen](https://img.youtube.com/vi/eaF-tAQ_OOM/maxresdefault.jpg)](https://youtu.be/eaF-tAQ_OOM)
+[![App zur Vereinsbuchhaltung für Nextcloud – Video ansehen](https://img.youtube.com/vi/pxH3CKygV9c/maxresdefault.jpg)](https://youtu.be/pxH3CKygV9c)
 
-**[App zur Vereinsbuchhaltung für Nextcloud](https://youtu.be/eaF-tAQ_OOM)** – Kontoauszüge importieren, Umsätze zuordnen, auswerten und den Kassenbericht für die Mitgliederversammlung erzeugen.
+**[App zur Vereinsbuchhaltung für Nextcloud](https://youtu.be/pxH3CKygV9c)** – Kasse führen, Beiträge einziehen, Rechnungen schreiben, planen und die Kassenprüfung vorbereiten. · [English version](https://youtu.be/QxIaGEKdo5s)
 
 > 📖 **Einsteiger-Leitfaden:** Das beiliegende **[HANDBUCH.md](HANDBUCH.md)** führt Schatzmeisterinnen Schritt für Schritt durch die App – von der Ersteinrichtung über die laufende Buchung bis zum Jahresabschluss und der Kassenprüfung.
 
