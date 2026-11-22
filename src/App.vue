@@ -1106,7 +1106,7 @@ export default {
 			for (const h of this.txContext.history) {
 				const key = (h.counterparty || '').trim().toLowerCase()
 				if (!key) { continue }
-				if (!map[key]) { map[key] = Object.create(null) }
+				if (!map[key]) { map[key] = {} }
 				map[key][h.contraAccountId] = (map[key][h.contraAccountId] || 0) + h.count
 			}
 			return map

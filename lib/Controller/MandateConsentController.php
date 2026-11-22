@@ -139,7 +139,8 @@ class MandateConsentController extends Controller {
 		// heutige Datum (das prospektive Unterschriftsdatum), bei einer bereits
 		// erteilten das tatsächliche - sonst zeigte ein Wochen später erneut
 		// geöffneter Link ein falsches, viel zu spätes Datum an.
-		$referenceDate = $view['status'] === 'consumed' && $mandate->getSignedAt() !== null
+		$consumed = $view['status'] === 'consumed';
+		$referenceDate = $consumed && $mandate->getSignedAt() !== null
 			? $mandate->getSignedAt()
 			: $this->clock->today();
 
@@ -154,7 +155,7 @@ class MandateConsentController extends Controller {
 				// Ein verbrauchter Link zeigt die IBAN nur noch maskiert: er bleibt aufrufbar und
 				// läse sonst jedem, der ihn (noch) hat, die aktuelle Bankverbindung vor – auch
 				// eine, die erst nach der Zustimmung geändert wurde.
-				'dataBlockHtml' => $this->formRenderer->renderDataBlock($mandate, $creditorId, $referenceDate, $view['status'] === 'consumed'),
+				'dataBlockHtml' => $this->formRenderer->renderDataBlock($mandate, $creditorId, $referenceDate, $consumed),
 				'consentAt' => $mandate->getConsentAt(),
 				'token' => $token,
 				'acceptUrl' => $this->urlGenerator->linkToRoute('vereinsbuchhaltung.mandateConsent.accept', ['token' => $token]),

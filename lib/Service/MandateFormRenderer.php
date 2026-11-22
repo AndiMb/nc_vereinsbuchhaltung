@@ -72,7 +72,10 @@ class MandateFormRenderer {
 	 *                              offenen Zustimmung das heutige Datum.
 	 */
 	public function renderDataBlock(Mandate $mandate, string $creditorId, string $referenceDate, bool $maskIban = false): string {
-		$iban = $maskIban ? $mandate->maskedIban() : ($mandate->getIban() !== null ? trim(chunk_split($mandate->getIban(), 4, ' ')) : null);
+		$iban = $mandate->getIban();
+		if ($iban !== null) {
+			$iban = $maskIban ? $mandate->maskedIban() : trim(chunk_split($iban, 4, ' '));
+		}
 		$rows = [
 			['Mandatsreferenz', $mandate->getMandateReference()],
 			['Kontoinhaber', $mandate->getAccountHolder()],

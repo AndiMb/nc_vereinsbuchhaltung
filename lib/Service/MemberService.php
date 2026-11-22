@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Service;
 
 use OCA\Vereinsbuchhaltung\Db\AssignmentMapper;
-use OCA\Vereinsbuchhaltung\Db\MandateActivationTokenMapper;
 use OCA\Vereinsbuchhaltung\Db\MandateMapper;
 use OCA\Vereinsbuchhaltung\Db\Member;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
@@ -30,9 +29,9 @@ class MemberService {
 		private IUserManager $userManager,
 		private IL10N $l10n,
 		private ClubClock $clock,
+		private MandateService $mandateService,
+		private AuditService $audit,
 		private ?ReimbursementDraftCleaner $drafts = null,
-		private ?MandateActivationTokenMapper $activationTokens = null,
-		private ?AuditService $audit = null,
 	) {
 	}
 
@@ -93,15 +92,9 @@ class MemberService {
 	 * fehlt höchstens ein Link, der sich neu anfordern lässt.
 	 */
 	private function invalidateConsentLinks(Member $member): void {
-		if ($this->activationTokens === null) {
-			return;
-		}
-		$deleted = 0;
-		foreach ($this->mandateMapper->findByMember((int)$member->getId()) as $mandate) {
-			$deleted += $this->activationTokens->deleteOutstandingByMandate((int)$mandate->getId());
-		}
+		$deleted = $this->mandateService->invalidateActivationLinksOfMember((int)$member->getId());
 		if ($deleted > 0) {
-			$this->audit?->log('Zustimmungslinks nach Adressänderung ungültig', 'member', (int)$member->getId(), ['links' => $deleted]);
+			$this->audit->log('Zustimmungslinks nach Adressänderung ungültig', 'member', (int)$member->getId(), ['links' => $deleted]);
 		}
 	}
 
@@ -157,8 +150,9 @@ class MemberService {
 		$member->setCountry($this->normalizeCountry($data['country'] ?? $member->getCountry()));
 
 		$changed = self::ownContactFields($member) !== $before;
+		$emailChanged = $member->getEmail() !== $oldEmail;
 		if ($changed) {
-			if ($member->getEmail() !== $oldEmail) {
+			if ($emailChanged) {
 				$this->invalidateConsentLinks($member);
 			}
 			$member = $this->mapper->update($member);
@@ -166,7 +160,7 @@ class MemberService {
 		return [
 			'member' => $member,
 			'changed' => $changed,
-			'emailChanged' => $member->getEmail() !== $oldEmail,
+			'emailChanged' => $emailChanged,
 			'oldEmail' => $oldEmail,
 		];
 	}
@@ -267,7 +261,7 @@ class MemberService {
 		$member = $this->mapper->update($member);
 		// Der Austritt beendet später Mandat und Zuweisungen im Namen des Systems;
 		// wer ihn erklärt hat, steht nur hier.
-		$this->audit?->log('Austritt erklärt', 'member', $id, ['von' => $before, 'nach' => $member->getLeftAt()]);
+		$this->audit->log('Austritt erklärt', 'member', $id, ['von' => $before, 'nach' => $member->getLeftAt()]);
 		return $member;
 	}
 
@@ -278,7 +272,7 @@ class MemberService {
 		$member->setLeftAt(null);
 		$member = $this->mapper->update($member);
 		if ($before !== null) {
-			$this->audit?->log('Austritt zurückgenommen', 'member', $id, ['von' => $before]);
+			$this->audit->log('Austritt zurückgenommen', 'member', $id, ['von' => $before]);
 		}
 		return $member;
 	}
