@@ -5036,5 +5036,8 @@ OC.L10N.register("vereinsbuchhaltung", {
 	"Neu: Der PayPal-Aktivitätsdownload (CSV) lässt sich wie ein Kontoauszug importieren; Gebühren werden eigene Bankbuchungen.": "New: the PayPal activity download (CSV) can be imported like a bank statement; fees become separate bank transactions.",
 	"Neu: Der Gliederungsbericht lässt sich als PDF-Datei herunterladen.": "New: the structured report can be downloaded as a PDF file.",
 	"Geändert: Die Einstellungsseite ist neu geordnet und hat ein Inhaltsverzeichnis; ausgeschaltete Module zeigen nur noch ihren Schalter.": "Changed: the settings page is reorganised and has a table of contents; switched-off modules only show their switch.",
-	"Behoben: Beim CAMT-Import (u. a. VR-Banken) erscheint jetzt der Name des Zahlungspartners statt des Buchungstexts.": "Fixed: the CAMT import (e.g. VR banks) now shows the counterparty name instead of the booking text."
+	"Behoben: Beim CAMT-Import (u. a. VR-Banken) erscheint jetzt der Name des Zahlungspartners statt des Buchungstexts.": "Fixed: the CAMT import (e.g. VR banks) now shows the counterparty name instead of the booking text.",
+	"Neu: Auch die visuelle Ansicht des Gliederungsberichts lässt sich als PDF-Datei herunterladen.": "New: the visual view of the structured report can also be downloaded as a PDF file.",
+	"Geändert: Ein Turnuswechsel, der Zeit ohne Beitrag ließe, wird mit Erklärung abgelehnt; die BIC eines Mandats wird bei der Eingabe geprüft.": "Changed: a change of payment interval that would leave time without a contribution is rejected with an explanation; the BIC of a mandate is checked on input.",
+	"Behoben: Scheitert der Tageslauf an einer Zuweisung, bekommen die übrigen trotzdem ihre Forderungen; die gescheiterte erscheint als Aufgabe.": "Fixed: if the daily run fails on one assignment, the others still get their claims; the failed one appears as a task."
 }, "nplurals=2; plural=(n != 1);");

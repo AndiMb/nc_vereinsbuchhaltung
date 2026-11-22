@@ -17,6 +17,8 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 
 ## [Unreleased]
 
+## [0.56.0] – 2026-11-22
+
 **New:**
 - **Visual structured report as PDF:** the **PDF** button is now also
   available in the visual view. It downloads key figures, status lights,
@@ -24,6 +26,42 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   – for the chosen snapshot and comparison, with page numbers and a table
   header repeated on every page. *Print / PDF* remains available next to it.
   Described in chapter 7.5 of the manual.
+
+**Changed:**
+- **Changing the payment interval without a gap:** a change of interval that
+  would leave time without a contribution is rejected with an explanation and
+  both dates – for members and for the administration alike. Until now, a
+  change from monthly to annual in February, for example, left March to
+  December without a claim. A shorter interval is always possible, a longer
+  one at the latest at the end of the contribution year. Described in
+  chapter 13.11 of the manual.
+- **BIC of a mandate:** a BIC that does not match the SEPA format is rejected
+  on every input – in self-service, in the administration and in the CSV
+  import.
+- **Maximum contribution:** a monthly fee may be at most 1 million, an annual
+  fee at most 12 million, and never negative. This also applies to individual
+  minimum amounts and the amounts of a contribution group.
+
+**Security:**
+- **Member data overview:** start and end of an assignment must be a calendar
+  date. The printable data overview used to output both fields unfiltered, so
+  HTML could be injected through them.
+
+**Fixed:**
+- **SEPA file:** a single invalid BIC that was already stored made the direct
+  debit file invalid for all payers. It is now left out when writing, like a
+  missing BIC.
+- **Claim run:** if the daily run failed on one assignment, none of the others
+  got their claim either. Each assignment now runs on its own; the failed one
+  appears as a task until the next clean run ("The daily run could not create
+  a claim for …").
+- **Lock window after the advance notice:** the latest advance notice sent is
+  now decisive. An earlier claim without advance notice (paid, free of charge
+  or from the time as a bank-transfer payer) used to lift the lock.
+- **Self-service:** an assignment that only starts in the future can now be
+  changed. Until now self-service refused this, pointing to an advance notice
+  that did not exist.
+- Very large amounts could overflow when converted to cents.
 
 ## [0.55.0] – 2026-11-22
 

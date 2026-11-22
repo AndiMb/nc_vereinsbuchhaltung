@@ -25,6 +25,15 @@ import { compareVersions, isNewerVersion } from '../lib/version.js'
 export function buildWhatsNewEntries() {
 	return [
 		{
+			version: '0.56.0',
+			roles: ['verwalter', 'buchhalter'],
+			items: [
+				t('Neu: Auch die visuelle Ansicht des Gliederungsberichts lässt sich als PDF-Datei herunterladen.'),
+				t('Geändert: Ein Turnuswechsel, der Zeit ohne Beitrag ließe, wird mit Erklärung abgelehnt; die BIC eines Mandats wird bei der Eingabe geprüft.'),
+				t('Behoben: Scheitert der Tageslauf an einer Zuweisung, bekommen die übrigen trotzdem ihre Forderungen; die gescheiterte erscheint als Aufgabe.'),
+			],
+		},
+		{
 			version: '0.55.0',
 			roles: ['verwalter', 'buchhalter'],
 			items: [
