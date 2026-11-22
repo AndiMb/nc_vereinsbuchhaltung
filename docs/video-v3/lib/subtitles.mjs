@@ -2,21 +2,17 @@
 //
 //   node lib/subtitles.mjs --lang de
 //
-// Die Wortzeiten liegen szenenweise vor (build/<lang>/vo/*.words.json), das
-// fertige Video hat aber eine durchgehende Zeitachse. Beides zusammen ergibt
-// den Versatz: jede Szene beginnt um XFADE frueher als die Summe der Clips,
-// weil die Blenden ueberlappen - und in jeder Szene beginnt die Sprache erst
-// nach dem Vorlauf HEAD.
+// Die Wortzeiten liegen szenenweise vor (build/<lang>/vo/*.words.json); wann
+// jede Sprachspur im fertigen Film einsetzt, sagt die Zeitleiste
+// (lib/timeline.mjs, blocks[].voStart) - dieselbe Rechnung, nach der
+// lib/film.mjs die Sprach-<audio> im HyperFrames-Film platziert.
 //
 // Damit sind die Untertitel keine Abschrift, sondern auf dasselbe Material
 // bezogen wie der Ton: eine Aenderung am Sprechtext wandert automatisch mit.
 
-import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { HEAD } from './record.mjs';
-import { XFADE } from './assemble.mjs';
-import * as ffmpeg from './ffmpeg.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, '..');
@@ -123,34 +119,39 @@ function cuesFuerSzene(words, offset) {
 	return cues;
 }
 
-export function buildSubtitles(lang) {
-	const content = JSON.parse(readFileSync(join(root, 'content', `${lang}.json`), 'utf8'));
-	const clipsDir = join(root, 'build', lang, 'clips');
-
-	let offset = 0;
+/** Cues des ganzen Films: Wortzeiten je Szene, versetzt um voStart ihres Blocks. */
+export function subtitleCues({ scenes, words, timeline }) {
 	const cues = [];
-	for (const scene of content.scenes) {
-		const rohe = JSON.parse(readFileSync(join(root, 'build', lang, 'vo', `${scene.id}.words.json`), 'utf8'));
-		const words = mitSatzzeichen(rohe, scene.vo);
-		cues.push(...cuesFuerSzene(words, offset + HEAD));
-		const clip = join(clipsDir, `${scene.id}.mp4`);
-		if (!existsSync(clip)) throw new Error(`Clip fehlt: ${clip}`);
-		offset += ffmpeg.duration(clip) - XFADE;
+	for (const scene of scenes) {
+		const block = timeline.blocks.find((b) => b.id === scene.id);
+		if (!block) throw new Error(`Untertitel: Block ${scene.id} fehlt in der Zeitleiste`);
+		cues.push(...cuesFuerSzene(mitSatzzeichen(words[scene.id], scene.vo), block.voStart));
 	}
+	return cues;
+}
 
-	const srt = cues.map((c, i) => `${i + 1}\n${zeit(c.start)} --> ${zeit(c.ende)}\n${c.text}\n`).join('\n');
-	const vtt = 'WEBVTT\n\n' + cues.map((c) => `${zeit(c.start, '.')} --> ${zeit(c.ende, '.')}\n${c.text}\n`).join('\n');
+export const toSrt = (cues) => cues.map((c, i) => `${i + 1}\n${zeit(c.start)} --> ${zeit(c.ende)}\n${c.text}\n`).join('\n');
+export const toVtt = (cues) => 'WEBVTT\n\n' + cues.map((c) => `${zeit(c.start, '.')} --> ${zeit(c.ende, '.')}\n${c.text}\n`).join('\n');
 
+export async function buildSubtitles(lang) {
+	const { buildTimeline } = await import('./film.mjs');
+	const content = JSON.parse(readFileSync(join(root, 'content', `${lang}.json`), 'utf8'));
+	const timeline = buildTimeline(lang);
+	const words = {};
+	for (const scene of content.scenes) {
+		words[scene.id] = JSON.parse(readFileSync(join(root, 'build', lang, 'vo', `${scene.id}.words.json`), 'utf8'));
+	}
+	const cues = subtitleCues({ scenes: content.scenes, words, timeline });
 	const srtFile = join(root, 'build', lang, `vereinsbuchhaltung-${lang}.srt`);
 	const vttFile = join(root, 'build', lang, `vereinsbuchhaltung-${lang}.vtt`);
-	writeFileSync(srtFile, srt, 'utf8');
-	writeFileSync(vttFile, vtt, 'utf8');
+	writeFileSync(srtFile, toSrt(cues), 'utf8');
+	writeFileSync(vttFile, toVtt(cues), 'utf8');
 	return { cues, srtFile, vttFile };
 }
 
-if (import.meta.url === new URL(`file://${process.argv[1]}`).href.replace(/%3A/g, ':')) {
+if (process.argv[1]?.replace(/\\/g, '/').endsWith('lib/subtitles.mjs')) {
 	const lang = arg('lang', 'de');
-	const res = buildSubtitles(lang);
+	const res = await buildSubtitles(lang);
 	console.log(`${res.cues.length} Untertitel fuer "${lang}"`);
 	console.log(`  ${res.srtFile}`);
 	console.log(`  ${res.vttFile}`);

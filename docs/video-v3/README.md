@@ -1,54 +1,57 @@
 # Videopipeline v3 — Bedienung
 
-Konzept und Szenenplan: [KONZEPT.md](KONZEPT.md). Diese Datei beschreibt, was
-gebaut ist und wie man es startet.
+Werbevideo für Vereinsvorstände („Eure Daten, eure Cloud“), Deutsch und
+Englisch. Maßgeblich ist die Spec
+[`docs/superpowers/specs/2026-11-15-werbevideo-vorstand-design.md`](../superpowers/specs/2026-11-15-werbevideo-vorstand-design.md);
+[KONZEPT.md](KONZEPT.md) beschreibt die Aufnahmetechnik der Vorgängerfassung.
 
-**Stand: beide Videos sind fertig.** Ein Sprachlauf dauert rund sechs Minuten
-und erzeugt alles, was zur Veröffentlichung gehört – außer dem Hochladen.
+**Stand 22.11.2026: beide Videos sind fertig, hochgeladen wird erst nach dem
+nächsten Release** – das Video zeigt Funktionen, die noch nicht veröffentlicht
+sind.
 
 ```bash
-export VBH_DEMO_PASS='<Passwort der Demo-Instanz>'
-node lib/build.mjs --lang de      # Instanz, Daten, Aufnahme, Montage, Untertitel, Thumbnail
-node lib/build.mjs --lang en
+node lib/build.mjs --lang de      # doctor, Instanz, Vertonung, Daten, Aufnahme,
+node lib/build.mjs --lang en      # Film, Render, Lautheit, Untertitel, Thumbnail, Prüfung
+node lib/build.mjs --lang de --skip-instance --only render   # ein Schritt
 ```
 
-Das Passwort steht bewusst nicht im Repository – wie die Instanz aufgesetzt
-wird, steht unter [Aufnahme-Instanz](#aufnahme-instanz).
+Das Demo-Passwort (`build/.demo-pass`) und der ElevenLabs-Schlüssel
+(`build/.elevenlabs-key` oder `ELEVENLABS_API_KEY`) stehen bewusst nicht im
+Repository.
 
 | | Deutsch | Englisch |
 |---|---|---|
-| Video | `build/de/vereinsbuchhaltung-de.mp4` · **3:26,7** | `build/en/vereinsbuchhaltung-en.mp4` · **3:02,4** |
-| Bild/Ton | 1920×1080, 30 fps, H.264 · AAC Stereo, −14,3 LUFS | dieselben Werte, −15,2 LUFS |
-| Untertitel | `…-de.srt` / `.vtt`, 45 Einblendungen | `…-en.srt` / `.vtt`, 49 Einblendungen |
-| Thumbnail | `thumbnail-de.png` (1280×720) | `thumbnail-en.png` |
+| Video | `build/de/vereinsbuchhaltung-de.mp4` · **2:27,3** | `build/en/vereinsbuchhaltung-en.mp4` · **2:23,8** |
+| Bild/Ton | 1920×1080, 30 fps, H.264 · AAC Stereo, −14,3 LUFS, True Peak −1,7 dBTP | dieselben Werte, −14,3 LUFS, True Peak −1,8 dBTP |
+| Stimme | ElevenLabs „Brian“, `eleven_multilingual_v2`, Tempo 0,9 | dieselbe |
+| Untertitel | `…-de.srt` / `.vtt` | `…-en.srt` / `.vtt` |
+| Thumbnail | `thumbnail-de.png` (1280×720, Bild aus dem Film) | `thumbnail-en.png` |
 | Titel, Beschreibung, Kapitelmarken | `veroeffentlichung-de.md` | `veroeffentlichung-en.md` |
 
-Die Lautheit weicht in der englischen Fassung um gut eine Einheit vom Ziel ab:
-`loudnorm` misst in einem Durchgang und schätzt dabei. YouTube normalisiert
-ohnehin selbst auf −14 LUFS; für einen genaueren Wert wäre ein Zwei-Pass-Lauf
-nötig.
+## Aufbau
 
-## Was schon läuft
+Acht Blöcke: `00-auftakt` (Bildfolge aus den Szenen, dann Titelkarte),
+`01-souveraen`, `02-geld`, `03-beitraege`, `04-rechnungen`, `05-steuern`,
+`06-pruefung`, `07-abspann`. Die Szenen 01–07 werden **ohne** Bildschirmtexte
+aufgenommen (Clip + Manifest mit Shots, Zoomzielen und Schnittlücken);
+Bauchbinden, Hinweise, Zooms, Mitgliederfenster, Blenden, Musik und Endkarte
+legt HyperFrames beim Rendern darüber.
 
 | Baustein | Datei | Zweck |
 |---|---|---|
-| Datensatzbeschreibung | `content/seed.de.json`, `content/seed.en.json` | Alles Sprachliche am Datenbestand: Vereinsname, Kontenrahmen, Regeln, Planwerte, Namenslisten, Kontoauszugszeilen |
-| Datensatzrechner | `lib/dataset.mjs` | Macht daraus Buchungen dreier Jahre, 75 Mitglieder mit gültigen Test-IBANs und die CSV-Dateien — deterministisch, ohne Netz |
-| Instanzumstellung | `lib/instance.mjs` | Nextcloud-Sprache und Anzeigenamen der Demokonten (per `occ`) |
-| Datenaufbau | `lib/seed.mjs` | Spielt den Bestand über die App-API in die laufende Nextcloud |
-| Sprechtext und Bildschirmtexte | `content/de.json`, `content/en.json` | Sprechtext je Szene, Titelkarten, Lower Thirds, Callouts samt Wortankern |
-| Vertonung | `lib/tts.py` | edge-tts → MP3 **plus Wortzeiten** je Szene und Hörproben mehrerer Stimmen |
-| Zeitpunkte | `lib/cue.mjs` | `at('Wachordner')` / `after(…)` aus den Wortzeiten; prüft Anker auf Eindeutigkeit |
-| Aufnahme-Kern | `lib/harness.mjs` | Cursor, Tippen, Scrollen, Zoom, Lower Thirds, Callouts, Titelkarten, Rahmen für Druckseite und Handy, Bildschirmaufnahme |
-| Szenen | `scenes/00-intro.mjs` … `scenes/08-outro.mjs` | je Szene ein Skript; alles Sprachliche in einer Tabelle am Kopf |
-| Aufnahme-Läufer | `lib/record.mjs` | Browser, Szenenreihenfolge, Bilder → Clip mit Sprachspur |
-| Montage | `lib/assemble.mjs` | Kreuzblenden, Musikbett mit Ducking, Lautheit |
-| Untertitel | `lib/subtitles.mjs` | SRT und VTT aus den Wortzeiten, mit Satzzeichen aus dem Sprechtext |
-| Thumbnail und Texte | `lib/thumbnail.mjs` | Vorschaubild plus Titel, Beschreibung und Kapitelmarken |
-| Sprachlauf | `lib/build.mjs` | ruft alle Schritte der Reihe nach auf |
-| Browser | `lib/chrome.mjs` | headless Chromium aus dem Playwright-Cache, je Sprache eines |
-| Sitzung | `lib/session.mjs` | Anmeldung und API-Aufrufe aus der Seite heraus |
-| CDP-Client | `lib/cdp.cjs` | Kopie aus dem `browser-testing`-Skill, um Ereignis-Handler erweitert |
+| Sprechtext und Bildschirmtexte | `content/de.json`, `content/en.json` | Sprechtext je Block, Bauchbinden, Hinweise, Zooms, Auftakt-Schnitte (`cards.intro`), KI-Hinweis der Endkarte (`cards.aiNote`), Stimme (`tts`), Veröffentlichungstexte (`publish`) |
+| Datensatz | `content/seed.*.json`, `lib/dataset.mjs`, `lib/seed.mjs`, `lib/snapshot.mjs` | Demobestand rechnen, einspielen, sichern und vor Szenen wiederherstellen |
+| Instanz | `lib/instance.mjs`, `lib/doctor.mjs` | Sprache und Anzeigenamen per `occ`; Werkzeuge prüfen |
+| Vertonung | `lib/tts.py`, `lib/tts_words.py` | ElevenLabs mit Zeichen-Zeitmarken → MP3 + Wortzeiten je Block |
+| Zeitpunkte | `lib/cue.mjs` | `cueAt('Wort')` aus den Wortzeiten |
+| Aufnahme | `lib/harness.mjs`, `lib/record.mjs`, `scenes/*.mjs` | Cursor, Klicks, Tippen, `dragFile`, Handyrahmen, Schnitt hinter Seitenwechseln; zweiter Browser für das Mitglied |
+| Film | `lib/timeline.mjs`, `lib/film.mjs`, `film-template/` | Zeitleiste und HyperFrames-Projekt `film/<lang>/` (generiert, nicht versioniert) |
+| Endfassung | `lib/finish.mjs` | `hyperframes render` (4 Worker), Zwei-Pass-Lautheit −14 LUFS, Begrenzer |
+| Beiwerk | `lib/subtitles.mjs`, `lib/thumbnail.mjs` | SRT/VTT, Thumbnail, Kapitelmarken aus `blocks[].start` |
+| Prüfung | `lib/verify.mjs` | Länge gegen Zeitleiste, Format, Lautheit, True Peak ≤ −1 dBTP, Sprachspur je Block an ihrer Stelle |
+
+Tests: `node --test test/*.test.mjs` und
+`python -m unittest discover -s test -p "test_*.py"`.
 
 ## Aufnahme-Instanz
 
@@ -56,39 +59,59 @@ Eigener Container, damit der Entwicklungsstand in `nextcloud-test` unberührt
 bleibt — die App hat **einen gemeinsamen Datenbestand je Instanz**, ein Seed
 würde dort alles überschreiben.
 
-Das Passwort der Instanz steht **nicht** im Repository. Einmal setzen – die
-Skripte lesen es aus `VBH_DEMO_PASS` (oder aus `--pass <wort>`):
+Das Passwort der Instanz steht **nicht** im Repository. Die Skripte lesen es
+aus `--pass <wort>`, sonst aus `VBH_DEMO_PASS`, sonst aus der unversionierten
+Datei `build/.demo-pass` (eine Zeile). Am einfachsten einmal anlegen:
 
 ```bash
-export VBH_DEMO_PASS='<selbst waehlen>'   # PowerShell: $env:VBH_DEMO_PASS = '...'
+python -c "import secrets;print('Vbh-'+secrets.token_urlsafe(12))" > build/.demo-pass
 ```
+
+**Port 8082**, nicht 8081: 8081 ist auf diesem Rechner von einem anderen
+Projekt belegt, 8080 gehört `nextcloud-test` bzw. der E2E-Suite.
 
 Der Bind-Mount zeigt auf dieses Repository – `docker run` deshalb in dessen
 Wurzelverzeichnis ausführen (unter Windows den Pfad in Docker-Schreibweise
 angeben, etwa `//c/pfad/zum/repo`).
 
 ```bash
-docker run -d --name vbh-demo -p 8081:80 \
+docker run -d --name vbh-demo -p 8082:80 \
   -e NEXTCLOUD_ADMIN_USER=admin -e NEXTCLOUD_ADMIN_PASSWORD="$VBH_DEMO_PASS" \
   -e SQLITE_DATABASE=nextcloud -e NEXTCLOUD_TRUSTED_DOMAINS='localhost 127.0.0.1' \
   -v vbh-demo-html:/var/www/html \
   -v "$PWD:/var/www/html/custom_apps/vereinsbuchhaltung" \
-  nextcloud:34.0.0
+  nextcloud:34
 
 docker exec -u www-data vbh-demo php occ app:enable vereinsbuchhaltung
 docker exec -u www-data vbh-demo php occ app:disable firstrunwizard
+
+# Mails laufen in einen Mailpit-Container, damit Mailaktionen (Mandatslink,
+# Rechnungsversand) weder haengen noch Fehlermeldungen ins Bild bringen.
+docker run -d --name vbh-demo-mail axllent/mailpit
+docker network create vbh-demo-net
+docker network connect vbh-demo-net vbh-demo
+docker network connect vbh-demo-net vbh-demo-mail
+for kv in "mail_smtpmode smtp" "mail_smtphost vbh-demo-mail" "mail_smtpport 1025"           "mail_from_address verein" "mail_domain example.org"; do
+  set -- $kv; docker exec -u www-data vbh-demo php occ config:system:set $1 --value=$2
+done
 ```
 
-Demokonten (Passwort für alle: das aus `VBH_DEMO_PASS`):
+Danach prüft `node lib/doctor.mjs` alles, was ein Sprachlauf braucht
+(edge-tts ≥ 7.3.1, ffmpeg ≥ 7, Chromium, Instanz, App, Konten, Passwort,
+Musik, abgeschaltete HyperFrames-Telemetrie). **edge-tts 7.2.8 bekommt seit
+November 2026 ein `403`** vom Dienst; 7.3.1 behebt das.
+
+Demokonten (Passwort für alle: das der Instanz):
 
 | Konto | Anzeigename (de/en) | Rolle in der App |
 |---|---|---|
 | `andrea` | Andrea Falk | Verwalterin (Gruppe `admin`) — das ist der Aufnahme-Nutzer |
 | `jens` | Jens Wieland / James Wieland | Buchhalter |
 | `karla` | Karla Riedel / Carla Reed | Revisorin (Kassenprüfung, Szene 06) |
+| `mia` | Mia Brandt / Mia Brant | Mitglied mit verknüpftem Konto: „Mein Beitrag“ und Auslage einreichen (zweiter Browser) |
 
 Angelegt mit
-`docker exec -u www-data -e OC_PASS="$VBH_DEMO_PASS" vbh-demo php occ user:add --password-from-env --display-name "<Name>" [--group admin] <uid>`.
+`docker exec -u www-data -e OC_PASS="$(cat docs/video-v3/build/.demo-pass)" vbh-demo php occ user:add --password-from-env --display-name "<Name>" [--group admin] <uid>`.
 Der Anzeigename wird später je Sprachlauf von `instance.mjs` überschrieben
 (`occ user:setting <uid> settings displayname` — `user:modify` gibt es in
 Nextcloud 34 nicht mehr).
@@ -98,7 +121,7 @@ Nextcloud 34 nicht mehr).
 ```bash
 cd docs/video-v3
 node lib/instance.mjs --lang de          # Nextcloud-Sprache + Anzeigenamen
-node lib/seed.mjs     --lang de          # Datenbestand (Standard-URL: http://localhost:8081)
+node lib/seed.mjs     --lang de          # Datenbestand (Standard-URL: http://localhost:8082)
 
 node lib/instance.mjs --lang en
 node lib/seed.mjs     --lang en
@@ -114,7 +137,7 @@ die Eckwerte, ohne eine Nextcloud zu brauchen.
 `ms-playwright`-Cache und meldet sich an; die App-Endpunkte hängen an einer
 Nextcloud-Sitzung samt CSRF-Token, deshalb läuft alles aus der Seite heraus.
 
-## Was der Seed erzeugt (Stand 23.08.2026, Stichtag = heute)
+## Was der Seed erzeugt (Stand 23.08.2026; Zahlen der Vorgängerfassung)
 
 ```
 23 Konten · 161 Buchungen (3 Geschäftsjahre) · 4 Kostenstellen · 6 Regeln
@@ -126,7 +149,7 @@ Dazu in `build/<lang>/`:
 
 | Datei | Verwendung |
 |---|---|
-| `kontoauszug.csv` | Szene 03: 17 Umsätze, davon 3 bereits gebucht → Import meldet „14 neu, 3 Dubletten" |
+| `kontoauszug.csv` | Block 02: wird per `dragFile` in den Import gezogen; die Vorstandsfassung meldet „15 neu, 3 Dubletten" |
 | `kontoauszug-vormonat.csv` | wurde vom Seed bereits importiert; liegt nur zur Nachvollziehbarkeit dort |
 | `mitglieder-neu.csv` | Szene 04: 12 Neuzugänge, zehn davon ohne Betrag → greift auf den Standardbeitrag zu |
 | `seed-dashboard.png` | Kontrollbild nach dem Lauf |
@@ -135,67 +158,46 @@ Geprüft nach dem letzten Lauf: Import-Vorschau meldet 14 neu / 3 Dubletten,
 Mitglieder-Vorschau 12 ok / 0 Fehler / 12 Mandate / 12 Beiträge, der
 SEPA-Einzug zeigt 6 fällige Beiträge über 390 €.
 
-## Vertonung (Phase 2)
+## Vertonung
 
 ```bash
-python lib/tts.py --lang de                 # alle Szenen vertonen
-python lib/tts.py --lang de --scene 03-bank # nur eine Szene neu
-python lib/tts.py --samples de              # Hörproben mehrerer Stimmen
-node   lib/cue.mjs --lang de                # Anker prüfen und Zeiten zeigen
+python lib/tts.py --lang de                 # alle Blöcke vertonen (ElevenLabs)
+python lib/tts.py --lang de --scene 02-geld # nur einen Block neu
 ```
 
-Ergebnis in `build/<lang>/vo/`: je Szene eine MP3, eine `*.words.json` mit
-Start- und Endzeit **jedes gesprochenen Wortes** und eine `timing.json` mit den
-Szenenlängen. Die Wortzeiten sind der Grund für den ganzen Aufwand: die
-Szenenskripte in Phase 3 binden ihre Bildaktionen daran (`cue.at('Wachordner')`)
-statt an geschätzte Sekunden.
+Ergebnis in `build/<lang>/vo/`: je Block eine MP3, eine `*.words.json` mit
+Start und Ende jedes gesprochenen Wortes und `timing.json`. ElevenLabs liefert
+Zeitmarken **je Zeichen**; `tts_words.py` fasst sie zu Wörtern zusammen und
+lässt reine Satzzeichen (Gedankenstrich) weg, sonst verschieben sich die Anker.
+Ein Durchlauf kostet rund 2 000 Zeichen je Sprache. In der Gratisstufe sind
+über die API nur die Standardstimmen nutzbar; Bibliotheksstimmen antworten mit
+402 „paid plan required“. Ohne `tts`-Eintrag in `content/<lang>.json` fällt
+`tts.py` auf edge-tts zurück.
 
-Gemessene Längen (ohne Blenden):
+**Anker müssen eindeutig sein.** `cue.mjs` wirft, wenn ein Wort mehrfach oder
+gar nicht vorkommt. Nach jedem Stimmwechsel verschieben sich alle Wortzeiten:
+dann **alle** Szenen neu aufnehmen. `ctx.until()` meldet „verspaetet“, wenn eine
+Bildaktion ihr Stichwort verpasst hat.
 
-| | Deutsch | Englisch |
-|---|---|---|
-| Stimme | `de-DE-SeraphinaMultilingualNeural` | `en-US-AvaMultilingualNeural` |
-| Tempo | −8 % | −8 % |
-| Gesamt | **3:17** | **2:53** |
-| Längste Szene | 04 Beiträge, 36,4 s | 04 Beiträge, 29,8 s |
-
-Die englische Fassung ist rund 24 Sekunden kürzer — englischer Text ist
-kompakter, und Ava spricht etwas zügiger. Das stört nicht, weil jede Sprache
-ihre eigene Zeitachse hat; wer sie angleichen will, setzt in `content/en.json`
-`"rate": "-12%"`.
-
-**Fallstrick, der Zeit gekostet hat:** `edge-tts` liefert seit Version 7 per
-Vorgabe nur noch **einen `SentenceBoundary` je Satz**. Ohne
-`boundary="WordBoundary"` im `Communicate`-Aufruf gibt es keine Wortzeiten –
-und die halbe Pipeline hängt daran.
-
-**Anker müssen eindeutig sein.** `cue.mjs` wirft, wenn eine Phrase im Sprechtext
-mehrfach oder gar nicht vorkommt, und nennt die Fundstellen. In der
-Vorgängerproduktion traf `after('ist')` im Satz „Soll und Ist gegenüber" statt
-an der gemeinten Stelle – still, ohne Fehler.
-
-## Aufnahme und Montage (Phase 3 bis 6)
+## Aufnahme, Film, Endfassung
 
 ```bash
-node lib/record.mjs   --lang de                    # alle neun Szenen
-node lib/record.mjs   --lang de --scene 04-beitraege --keep-frames
-node lib/assemble.mjs --lang de [--no-music] [--music pfad.mp3]
+node lib/record.mjs    --lang de [--scene 02-geld] [--keep-frames]
+node lib/film.mjs      --lang de [--force]   # film/de/ aus Vorlage, Clips, Ton
+node lib/finish.mjs    --lang de [--render-only | --skip-render] [--workers 4]
 node lib/subtitles.mjs --lang de
 node lib/thumbnail.mjs --lang de
-node lib/verify.mjs    --lang de     # Endfassung gegen die Clips prüfen
+node lib/verify.mjs    --lang de
 ```
 
-**Wie Bild und Ton zusammenfinden:** `startRecording()` setzt die Szenenuhr auf
-0, die Sprachspur beginnt bei 0,55 s (Vorlauf), und jede Bildaktion hängt an
-einer Wortzeit: `await ctx.until(ctx.cueAt('Wachordner'))`. Die Bilder kommen
-über `Page.startScreencast` mit Zeitstempel; daraus baut der concat-Demuxer eine
-Spur mit konstanten 30 fps. Eine Filmklappe wie in der Vorgängerproduktion
-braucht es damit nicht.
+`film.mjs` merkt sich die Prüfsummen der erzeugten Dateien und bricht ab, wenn
+in `film/<lang>/` etwas von Hand (etwa in der HyperFrames-Desktop-App) geändert
+wurde; `--force` sichert die alte Fassung vorher nach `film/<lang>.bak-…`.
 
-**Alles Sichtbare außerhalb der App** – Cursor, Klickring, Lower Third,
-Callouts, Titelkarten, Handyrahmen – ist ein Overlay im DOM, per Inline-Style
-gesetzt. Bedient wird über echte `.click()`-Aufrufe im Seitenkontext, nicht über
-Koordinaten.
+**Bild und Ton:** Die Szenenuhr startet mit der Aufnahme, die Sprachspur liegt
+bei 0,55 s, jede Bildaktion wartet auf ihr Wort (`ctx.until(ctx.cueAt(…))`).
+Seitenwechsel laufen hinter einem Schnitt (`ctx.goto`, `ctx.behindCut`): die
+Ladebilder fallen weg, das letzte Bild bleibt stehen.
 
 ### Fallstricke, die Zeit gekostet haben
 
@@ -285,6 +287,48 @@ Sie stehen alle im Code kommentiert, hier als Liste zum Nachschlagen:
   `record.mjs` wiederholt eine gescheiterte Szene jetzt einmal – und
   `stopRecording()` meldet den Bildhandler dabei ab, sonst schriebe der alte
   Lauf während der Wiederholung in denselben Bildordner.
+- **HyperFrames findet ffprobe nur im PATH.** Sonst meldet `check`
+  `audio_source_unreadable`; `finish.mjs` stellt den ffmpeg-Ordner deshalb vorn
+  in den PATH. Ohne `media.autoProxy=false` in `hyperframes.json` lehnt der
+  Render die Clips mit 422 `browser_safe_codec` ab.
+- **Ein Blockhintergrund deckt die Blende ab.** Mit deckendem Hintergrund im
+  Block stand bei jedem Übergang ein Schwarzbild; der Wurzelknoten der Blöcke
+  hat deshalb keinen.
+- **`hyperframes render` mit „auto“ Workern** lief einmal in den Speichermangel
+  (je Worker ein Chrome, der 4K-Clips dekodiert). Standard sind jetzt 4.
+- **Die Sprachspur-Prüfung muss sample-genau messen.** Auf das 0,25-s-Raster
+  gerundet lag das Fenster bis zu 0,125 s neben der Sprache, und drei Blöcke
+  fielen mit 0,57–0,67 durch, obwohl der Ton exakt saß.
+- **loudnorm hält den True Peak nicht**, wenn es stark anheben muss (DE +6 dB:
+  −0,4 dBTP). Dahinter steht ein Begrenzer bei −2 dBFS.
+- **Der Handyrahmen braucht `box-sizing: border-box`**, sonst steht die
+  Polsterung rechts und unten 24 px über das App-Bild hinaus. Und er wird erst
+  eingeblendet, wenn die App im Rahmen steht (`showFrame({ ready })`).
+- **Die App scrollt nicht im Dokument**, sondern in einem Container;
+  `scrollFrame` sucht deshalb den größten scrollbaren Bereich.
+- **Ohne Schnitt zeigt das Öffnen der App gut eine Sekunde den leeren
+  Nextcloud-Hintergrund.** Der Klick bleibt sichtbar, nur das Laden fällt weg.
+- **Drag & Drop geht ohne echten Dateimanager:** `ctx.dragFile` zieht eine
+  Dateikarte über das Bild und löst am Ziel echte `dragenter`/`dragover`/`drop`
+  mit einem `File` aus – die App verarbeitet sie wie beim echten Ziehen.
+- **YouTube verlangt je Kapitel mindestens 10 s.** Der englische Abspann kam
+  mit 9,0 s Sprechtext nur auf 9,6 s, `thumbnail.mjs` bricht dann ab. Eine
+  Szene kann deshalb mit `export const tail` länger ausklingen; der Abspann
+  lässt die Endkarte 2 s stehen.
+- **„verspaetet“ steht auf stderr.** Wer nur die Standardausgabe mitschreibt,
+  sieht die Meldungen nicht. Block 04 läuft in beiden Sprachen rund 3 s hinter
+  dem Sprechtext her, weil Mias Einreichen bis etwa 15,4 s dauert; ohne
+  längeren Ausklang endete der Block mit dem Zeiger auf „Freigeben“. Szene 04
+  hat deshalb `tail = 6.0`: Freigeben, Überweisung vorbereiten und abschließen
+  laufen nach dem Sprechtext über der Musik zu Ende.
+- **Die Bildfolge des Auftakts darf nicht in eine Aktion der Quellszene
+  laufen.** Die Länge eines Ausschnitts kommt aus dem Sprechtext, nicht aus der
+  Szene: im deutschen Film blitzte vor dem Schnitt ein Bild lang der aufgehende
+  Freigabe-Dialog auf, im englischen gab es zwei Sprünge. `film.mjs` misst die
+  Bildwechsel im Quellclip (`sceneChanges`) und verschiebt den Ausschnitt in
+  einen ruhigen Abschnitt (`quietStart`); geht das nicht, warnt es.
+- **Dialoge mit Stornoknopf:** `closeModal` vergleicht Beschriftungen exakt,
+  sonst trifft „Cancel“ den Knopf „Cancel invoice …“.
 
 ### Sechs App-Fehler, die dabei aufgefallen sind
 

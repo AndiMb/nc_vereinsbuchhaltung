@@ -5,9 +5,15 @@
 // beides nachbauen. Seed und Aufnahme nutzen denselben Weg.
 
 import { createRequire } from 'node:module';
+import { existsSync, readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
 
 const require = createRequire(import.meta.url);
 const cdp = require('./cdp.cjs');
+
+/** Unversionierte Ablage des Passworts (build/ steht in .gitignore). */
+export const PASS_FILE = join(dirname(fileURLToPath(import.meta.url)), '..', 'build', '.demo-pass');
 
 /**
  * Passwort der Demo-Instanz.
@@ -15,10 +21,11 @@ const cdp = require('./cdp.cjs');
  * Bewusst nicht im Repository: die Aufnahme-Instanz ist zwar eine oertliche
  * Wegwerfinstanz, ein fest eingetragenes Passwort in einem oeffentlichen
  * Repository ist trotzdem keine gute Angewohnheit. Reihenfolge: --pass, sonst
- * VBH_DEMO_PASS aus der Umgebung.
+ * VBH_DEMO_PASS aus der Umgebung, sonst build/.demo-pass.
  */
-export function demoPass(ausArgument) {
-	const pass = ausArgument || process.env.VBH_DEMO_PASS || '';
+export function demoPass(ausArgument, { file = PASS_FILE } = {}) {
+	const ausDatei = existsSync(file) ? readFileSync(file, 'utf8').trim() : '';
+	const pass = ausArgument || process.env.VBH_DEMO_PASS || ausDatei;
 	if (!pass) {
 		// Kein throw: die Skripte holen das Passwort beim Laden des Moduls, also
 		// bevor ihr main().catch() ueberhaupt existiert - ein Stapelabzug waere

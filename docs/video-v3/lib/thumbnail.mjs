@@ -2,17 +2,23 @@
 //
 //   node lib/thumbnail.mjs --lang de
 //
-// Gebaut wird es im Browser auf about:blank - dort gilt keine
-// Inhaltssicherheitsrichtlinie, das Standbild der App darf also als data-URI
-// hinein. Titel und Beschreibung landen als Textdatei daneben; hochgeladen
-// wird von Hand.
+// Das Bild der App stammt aus dem fertigen Film (build/<lang>/
+// vereinsbuchhaltung-<lang>.mp4): ein Einzelbild der Uebersicht in Block 01.
+// Gebaut wird das Thumbnail im Browser auf about:blank - dort gilt keine
+// Inhaltssicherheitsrichtlinie, das Standbild darf also als data-URI hinein.
+//
+// Die Kapitelmarken der Beschreibung kommen aus der Zeitleiste
+// (blocks[].start); YouTube verlangt Beginn bei 0:00 und Kapitel >= 10 s.
+// Alle Texte stehen in content/<lang>.json unter "publish".
 
-import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, mkdtempSync, rmSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
+import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { ensureChrome, DEFAULT_PORT } from './chrome.mjs';
 import { COLORS } from './harness.mjs';
+import * as ffmpeg from './ffmpeg.mjs';
 
 const require = createRequire(import.meta.url);
 const cdp = require('./cdp.cjs');
@@ -25,66 +31,26 @@ function arg(name, fallback = null) {
 	return i >= 0 && process.argv[i + 1] && !process.argv[i + 1].startsWith('--') ? process.argv[i + 1] : fallback;
 }
 
-const TEXTE = {
-	de: {
-		zeile1: 'Vereins&shy;buchhaltung',
-		zeile2: 'für Nextcloud',
-		badge: 'NEU: Beiträge & SEPA',
-		fuss: 'Kontoauszug importieren · zuordnen · Kassenbericht drucken',
-		titel: 'Vereinsbuchhaltung für Nextcloud – Vereinsfinanzen in der eigenen Cloud',
-		beschreibung: [
-			'Buchhaltung für Vereine, vollständig in der eigenen Nextcloud: Kontoauszüge importieren, Umsätze zuordnen, Mitgliedsbeiträge per SEPA-Lastschrift einziehen und den Kassenbericht für die Mitgliederversammlung drucken.',
-			'',
-			'Im Video:',
-			'0:00 Worum es geht',
-			'0:14 Die Übersicht',
-			'0:36 Eine Buchung erfassen',
-			'0:56 Kontoauszug importieren, Regeln, Dublettenerkennung',
-			'1:28 Neu: Mitgliedsbeiträge und SEPA-Lastschrift (pain.008)',
-			'2:06 Berichte, Finanzplan, Sphären',
-			'2:31 Kassenbericht, Kassenprüfung, Jahresabschluss',
-			'2:58 Unterwegs auf dem Smartphone',
-			'3:12 Ausprobieren',
-			'',
-			'Die App ist kostenlos und quelloffen (AGPL) und liegt im Nextcloud App Store.',
-			'Quellcode: https://github.com/AndiMb/nc_vereinsbuchhaltung',
-			'',
-			'Alle im Video gezeigten Daten sind erfunden: ein Beispielchor, erfundene Namen, IBANs aus dem Testbereich.',
-		],
-		schlagworte: ['Nextcloud', 'Vereinsbuchhaltung', 'Verein', 'Buchhaltung', 'SEPA', 'Kassenwart', 'Kassenbericht', 'Open Source', 'Selfhosting'],
-	},
-	en: {
-		zeile1: 'Club accounting',
-		zeile2: 'inside Nextcloud',
-		badge: 'NEW: fees & SEPA',
-		fuss: 'Import statements · assign · print the treasurer’s report',
-		titel: 'Club accounting in your own Nextcloud – Vereinsbuchhaltung app',
-		beschreibung: [
-			'Accounting for nonprofit clubs, entirely inside your own Nextcloud: import bank statements, assign transactions, collect membership fees by SEPA direct debit and print the treasurer’s report for the general assembly.',
-			'',
-			'In this video:',
-			'0:00 What it is about',
-			'0:13 The overview',
-			'0:33 Recording an entry',
-			'0:48 Bank statements, rules, duplicate detection',
-			'1:16 New: membership fees and SEPA direct debit (pain.008)',
-			'1:46 Reports, budget, nonprofit spheres',
-			'2:10 Treasurer’s report, audit, year-end closing',
-			'2:34 On the go',
-			'2:46 Try it out',
-			'',
-			'The app is free and open source (AGPL) and available in the Nextcloud App Store.',
-			'Source code: https://github.com/AndiMb/nc_vereinsbuchhaltung',
-			'',
-			'All data shown is invented: a sample choir, made-up names, IBANs from the documented test range.',
-		],
-		schlagworte: ['Nextcloud', 'club accounting', 'nonprofit', 'bookkeeping', 'SEPA', 'treasurer', 'open source', 'selfhosted'],
-	},
-};
+const KAPITEL_MIN = 10;
+const mmss = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 
-const SEITE = (lang, bildDataUri) => {
-	const t = TEXTE[lang];
-	return `(() => {
+/**
+ * Kapitelzeilen "m:ss Titel" je Block. Die Marke liegt am Ende der Blende
+ * (start + xfade), gerundet; das erste Kapitel beginnt immer bei 0:00.
+ */
+export function chapterLines(timeline, titles) {
+	const marken = timeline.blocks.map((b, i) => {
+		if (!titles[b.id]) throw new Error(`Kapiteltitel fuer ${b.id} fehlt (content publish.kapitel)`);
+		return { id: b.id, t: i === 0 ? 0 : Math.round(b.start + (timeline.xfade ?? 0)), titel: titles[b.id] };
+	});
+	marken.forEach((m, i) => {
+		const ende = i + 1 < marken.length ? marken[i + 1].t : timeline.total;
+		if (ende - m.t < KAPITEL_MIN) throw new Error(`Kapitel ${m.id} ist nur ${ende - m.t} s lang (YouTube verlangt >= ${KAPITEL_MIN} s)`);
+	});
+	return marken.map((m) => `${mmss(m.t)} ${m.titel}`);
+}
+
+const SEITE = (t, bildDataUri, logoDataUri) => `(() => {
 	document.documentElement.style.margin = '0';
 	document.body.style.margin = '0';
 	document.body.style.background = '${COLORS.darker}';
@@ -97,8 +63,8 @@ const SEITE = (lang, bildDataUri) => {
 		fontFamily: '"Segoe UI", system-ui, sans-serif',
 	});
 
-	// Standbild der App, angeschnitten und leicht gedreht - es soll klar sein,
-	// dass es echte Oberflaeche ist, ohne den Titel zu erdruecken.
+	// Standbild aus dem Film, angeschnitten und leicht gedreht - echte
+	// Oberflaeche, ohne den Titel zu erdruecken.
 	const bild = document.createElement('img');
 	bild.src = ${JSON.stringify(bildDataUri)};
 	Object.assign(bild.style, {
@@ -108,7 +74,6 @@ const SEITE = (lang, bildDataUri) => {
 	});
 	buehne.appendChild(bild);
 
-	// Abdunkelung links, damit der Text auf jeden Fall traegt.
 	const schleier = document.createElement('div');
 	Object.assign(schleier.style, {
 		position: 'absolute', inset: '0',
@@ -118,9 +83,13 @@ const SEITE = (lang, bildDataUri) => {
 
 	const text = document.createElement('div');
 	Object.assign(text.style, {
-		position: 'absolute', left: '64px', top: '96px', width: '640px',
+		position: 'absolute', left: '64px', top: '86px', width: '640px',
 		display: 'flex', flexDirection: 'column', gap: '18px',
 	});
+
+	const logo = document.createElement('img');
+	logo.src = ${JSON.stringify(logoDataUri)};
+	Object.assign(logo.style, { width: '72px', height: '72px', padding: '12px', borderRadius: '16px', background: '${COLORS.accent}', boxSizing: 'border-box' });
 
 	const badge = document.createElement('div');
 	badge.textContent = ${JSON.stringify(t.badge)};
@@ -142,27 +111,44 @@ const SEITE = (lang, bildDataUri) => {
 	fuss.textContent = ${JSON.stringify(t.fuss)};
 	Object.assign(fuss.style, { color: '#9fc0dd', fontSize: '25px', lineHeight: '1.35', marginTop: '14px' });
 
-	text.append(badge, h1, h2, fuss);
+	text.append(logo, badge, h1, h2, fuss);
 	buehne.appendChild(text);
 	document.body.appendChild(buehne);
 	return true;
 })()`;
-};
+
+/** Einzelbild des Films als PNG-data-URI. */
+function standbild(video, sekunde) {
+	const ordner = mkdtempSync(join(tmpdir(), 'vbh-thumb-'));
+	const png = join(ordner, 'still.png');
+	try {
+		ffmpeg.run(['-y', '-ss', String(sekunde), '-i', video, '-frames:v', '1', '-vf', 'scale=1920:1080', png], { label: 'Standbild' });
+		return `data:image/png;base64,${readFileSync(png).toString('base64')}`;
+	} finally {
+		rmSync(ordner, { recursive: true, force: true });
+	}
+}
 
 export async function buildThumbnail(lang) {
-	const t = TEXTE[lang];
-	const still = join(root, 'build', lang, 'seed-dashboard.png');
-	if (!existsSync(still)) throw new Error(`Standbild fehlt: ${still} (erst seed.mjs laufen lassen)`);
-	const dataUri = `data:image/png;base64,${readFileSync(still).toString('base64')}`;
+	const { loadFilmInputs } = await import('./film.mjs');
+	const { content, manifests, timeline } = loadFilmInputs(lang);
+	const t = content.publish;
+	const video = join(root, 'build', lang, `vereinsbuchhaltung-${lang}.mp4`);
+	if (!existsSync(video)) throw new Error(`Video fehlt: ${video} (erst finish.mjs)`);
 
-	// Eigener Port: 9445/9446 gehoeren den Aufnahme-Browsern (je Sprache einer,
-	// mit passender Browsersprache) - ein geteilter Port haette dort die falsche
-	// Sprache in Chromes eigenen Bedienelementen hinterlassen.
+	// Die Uebersicht der App in Block 01: Shot "uebersicht", gut 2 s spaeter.
+	const b01 = timeline.blocks.find((b) => b.id === '01-souveraen');
+	const shot = manifests['01-souveraen']?.shots.find((s) => s.id === 'uebersicht');
+	const sekunde = b01.start + (shot ? shot.t + 2.2 : b01.duration / 3);
+	const bild = standbild(video, sekunde);
+	const logo = `data:image/svg+xml;base64,${readFileSync(join(root, '..', '..', 'img', 'app.svg')).toString('base64')}`;
+
+	// Eigener Port: die Aufnahme-Browser belegen andere.
 	await ensureChrome({ port: DEFAULT_PORT + 3, width: 1280, height: 720 });
 	const tab = await cdp.openTab('about:blank', DEFAULT_PORT + 3);
 	try {
 		await cdp.send(tab, 'Emulation.setDeviceMetricsOverride', { width: 1280, height: 720, deviceScaleFactor: 1, mobile: false });
-		await cdp.evaluate(tab, SEITE(lang, dataUri));
+		await cdp.evaluate(tab, SEITE(t, bild, logo));
 		await new Promise((r) => setTimeout(r, 800));
 		const datei = join(root, 'build', lang, `thumbnail-${lang}.png`);
 		await cdp.screenshot(tab, datei);
@@ -174,7 +160,9 @@ export async function buildThumbnail(lang) {
 			t.titel,
 			'',
 			'## Beschreibung',
-			...t.beschreibung,
+			...t.einleitung,
+			...chapterLines(timeline, t.kapitel),
+			...t.schluss,
 			'',
 			'## Schlagworte',
 			t.schlagworte.join(', '),
@@ -193,7 +181,7 @@ export async function buildThumbnail(lang) {
 	}
 }
 
-if (import.meta.url === new URL(`file://${process.argv[1]}`).href.replace(/%3A/g, ':')) {
+if (process.argv[1]?.replace(/\\/g, '/').endsWith('lib/thumbnail.mjs')) {
 	const lang = arg('lang', 'de');
 	const res = await buildThumbnail(lang);
 	console.log(`Thumbnail: ${res.datei}`);
