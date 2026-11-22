@@ -11,7 +11,7 @@
 					class="vbh-export-btn"
 					:title="t('Druckfertiger Gliederungsbericht (öffnet in neuem Tab, dort drucken oder als PDF speichern)')"><NcIconSvgWrapper :path="mdiPrinter" :size="16" inline /> {{ t('Drucken / PDF') }}</a>
 				<a
-					v-if="selected && view === 'table'"
+					v-if="selected"
 					:href="pdfUrl"
 					download=""
 					class="vbh-export-btn"
@@ -300,7 +300,14 @@ export default {
 			return api.gliederungsberichtUrl(this.templateId, this.selectedPeriodId)
 		},
 
-		pdfUrl() { return api.gliederungsberichtPdfUrl(this.templateId, this.selectedPeriodId) },
+		pdfUrl() {
+			// Visuelle Ansicht: derselbe Stand und dieselbe Basis wie am Bildschirm.
+			if (this.view === 'visual') {
+				return api.gliederungsberichtVisuellPdfUrl(this.templateId, this.selectedPeriodId, this.visualState.asOf, this.visualState.basis)
+			}
+			return api.gliederungsberichtPdfUrl(this.templateId, this.selectedPeriodId)
+		},
+
 		csvUrl() { return api.gliederungsberichtCsvUrl(this.templateId, this.selectedPeriodId) },
 	},
 

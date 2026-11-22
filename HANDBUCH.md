@@ -1670,11 +1670,11 @@ es am Ende unter „Nicht erfasste Konten", und ein Hinweis nennt es. Zählt ein
 Konto in mehreren Abschnitten, wird es markiert. Die Gesamtzeile umfasst
 immer alle Einnahmen und Ausgaben und stimmt mit dem Finanzplan überein.
 
-**PDF** (nur in der Tabellenansicht) lädt den Bericht als fertige PDF-Datei
-herunter – mit Seitenzahlen, auf jeder Seite wiederholtem Tabellenkopf und ab
-fünf Wertspalten automatisch im Querformat. Der Dateiname lautet
-*Gliederungsbericht-<Vorlage>-<Zeitraum>.pdf* (Umlaute werden umschrieben). Die
-visuelle Ansicht (Kapitel 7.5) gibt es weiterhin nur als Druckseite.
+**PDF** lädt den Bericht als fertige PDF-Datei herunter – mit Seitenzahlen,
+auf jeder Seite wiederholtem Tabellenkopf und ab fünf Wertspalten automatisch
+im Querformat. Der Dateiname lautet *Gliederungsbericht-<Vorlage>-<Zeitraum>.pdf*
+(Umlaute werden umschrieben). Zur PDF-Datei der visuellen Ansicht siehe
+Kapitel 7.5.
 
 **Drucken / PDF** öffnet den Bericht als druckfertige Seite (ab fünf Spalten
 im Querformat), **CSV** liefert dieselben Zeilen mit einer Spalte „Ebene" zum
@@ -1759,8 +1759,12 @@ muss „orange ab“ unter „rot über“ liegen, bei den Einnahmen „rot unte
 
 **Drucken / PDF** öffnet in der visuellen Ansicht eine druckfertige Seite für
 den gewählten Stand und Vergleich: Kennzahlen, Ampelzahlen, Abweichungen,
-Verlauf und Aufriss mit Balken. Sie ist auch in Schwarzweiß lesbar. Ein CSV
-der visuellen Ansicht gibt es nicht; das CSV der Tabelle bleibt.
+Verlauf und Aufriss mit Balken. Sie ist auch in Schwarzweiß lesbar. **PDF**
+lädt denselben Inhalt als fertige PDF-Datei herunter, ebenfalls für den
+gewählten Stand und Vergleich, mit Seitenzahlen und auf jeder Seite
+wiederholtem Kopf des Aufrisses (Dateiname
+*Gliederungsbericht-visuell-<Vorlage>-<Zeitraum>.pdf*). Ein CSV der visuellen
+Ansicht gibt es nicht; das CSV der Tabelle bleibt.
 
 Am Handy stapeln sich die Kacheln, und die Zeilen des Aufrisses brechen auf
 zwei Zeilen um.

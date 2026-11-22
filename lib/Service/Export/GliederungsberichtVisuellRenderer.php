@@ -172,7 +172,7 @@ class GliederungsberichtVisuellRenderer {
 	}
 
 	/** @param array{value:string} $asOf */
-	private function asOfLabel(array $asOf): string {
+	public function asOfLabel(array $asOf): string {
 		if ($asOf['value'] === ReportAsOf::CURRENT) {
 			return $this->l10n->t('Aktuell (alle Buchungen)');
 		}
@@ -182,10 +182,11 @@ class GliederungsberichtVisuellRenderer {
 
 	/**
 	 * Symbol, Text und Ton einer Stufe – wie `statusMeta()` am Bildschirm.
+	 * Öffentlich für die PDF-Fassung ({@see GliederungsberichtVisuellPdfRenderer}).
 	 *
 	 * @return array{string, string, string}
 	 */
-	private function meta(string $level, string $nature): array {
+	public function meta(string $level, string $nature): array {
 		$expense = $nature === 'expense';
 		$result = $nature === 'result';
 		return match ($level) {
@@ -233,7 +234,7 @@ class GliederungsberichtVisuellRenderer {
 	}
 
 	/** Ausschöpfung als ganze Prozent, „“ ohne Verhältnis. */
-	private static function percent(?float $ratio): string {
+	public static function percent(?float $ratio): string {
 		return $ratio === null ? '' : number_format(round($ratio * 100), 0, ',', '.') . ' %';
 	}
 

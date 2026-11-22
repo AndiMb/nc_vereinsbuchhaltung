@@ -68,7 +68,18 @@ test.describe.serial('Berichte als PDF (#364)', () => {
 		expect(missing.status()).toBe(404)
 	})
 
-	test('PDF-Knopf des Gliederungsberichts nur in der Tabellenansicht', async ({ page }) => {
+	test('Visueller Gliederungsbericht als PDF-Datei, unbekannte Vorlage 404', async ({ request }) => {
+		const { templates } = await api.getJson(request, '/report-templates')
+		const template = templates[0]
+		const disposition = await expectPdf(await api.raw(request, 'GET', `/export/gliederungsbericht-visuell/pdf?template=${template.id}&period=${period.id}&basis=time`))
+		expect(disposition).toContain('Gliederungsbericht-visuell-')
+		expect(disposition).toContain('.pdf')
+
+		const missing = await api.raw(request, 'GET', '/export/gliederungsbericht-visuell/pdf?template=999999', { expectOk: false })
+		expect(missing.status()).toBe(404)
+	})
+
+	test('PDF-Knopf des Gliederungsberichts in beiden Ansichten', async ({ page }) => {
 		await openApp(page, USERS.verwalter)
 		const intro = page.getByRole('button', { name: 'Verstanden' })
 		if (await intro.isVisible().catch(() => false)) { await intro.click() }
@@ -81,7 +92,8 @@ test.describe.serial('Berichte als PDF (#364)', () => {
 
 		await section.getByRole('button', { name: 'Visuell', exact: true }).click()
 		await expect(section.getByRole('button', { name: 'Visuell', exact: true })).toHaveAttribute('aria-pressed', 'true')
-		await expect(pdf).toHaveCount(0)
+		await expect(pdf).toBeVisible()
+		await expect(pdf).toHaveAttribute('href', /\/export\/gliederungsbericht-visuell\/pdf\?template=.*&basis=/)
 	})
 
 	test('Beitragsbestätigung eines Mitglieds als PDF, unbekanntes Mitglied 404', async ({ request }) => {

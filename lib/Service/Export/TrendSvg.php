@@ -28,8 +28,9 @@ final class TrendSvg {
 
 	public const INCOME_COLOR = '#5b7a99';
 	public const EXPENSE_COLOR = '#222222';
-	public const DASH_PLAN = '1.5 3';
-	public const DASH_FORECAST = '6 4';
+	/** Mit Komma: TCPDF (PDF-Fassung) liest bei Leerzeichen nur den ersten Wert. */
+	public const DASH_PLAN = '1.5,3';
+	public const DASH_FORECAST = '6,4';
 
 	/**
 	 * @param array{months: list<string>, income: list<int>, expense: list<int>} $series kumuliertes Ist in Cent
@@ -40,9 +41,10 @@ final class TrendSvg {
 	 * @param list<string> $monthLabels Beschriftung je Monat der Periode (ihre Anzahl ist die Periodenlänge)
 	 * @param callable(int): string $formatAmount Cent → Betrag mit Währung
 	 * @param array{title?: string, desc?: string} $texts übersetzte Texte für `<title>` und `<desc>`
+	 * @param string|null $fontFamily Schrift der Beschriftung; das PDF braucht seine eingebettete Schrift
 	 * @return string SVG, leer ohne Ist-Monate
 	 */
-	public static function render(array $series, int $planIncome, int $planExpense, ?int $forecastIncome, ?int $forecastExpense, array $monthLabels, callable $formatAmount, array $texts = []): string {
+	public static function render(array $series, int $planIncome, int $planExpense, ?int $forecastIncome, ?int $forecastExpense, array $monthLabels, callable $formatAmount, array $texts = [], ?string $fontFamily = null): string {
 		$months = $series['months'];
 		$total = count($monthLabels);
 		if ($months === [] || $total === 0) {
@@ -78,6 +80,7 @@ final class TrendSvg {
 			: self::LEFT + $i * (self::RIGHT - self::LEFT) / ($total - 1);
 		$y = static fn (int $v): float => self::BOTTOM - ($v - $min) * (self::BOTTOM - self::TOP) / ($max - $min);
 
+		$font = $fontFamily === null ? '' : ' font-family="' . PrintableReportPage::escape($fontFamily) . '"';
 		$h = '<svg xmlns="http://www.w3.org/2000/svg" class="trend" viewBox="0 0 ' . self::WIDTH . ' ' . self::HEIGHT . '" role="img">'
 			. '<title>' . PrintableReportPage::escape($texts['title'] ?? '') . '</title>'
 			. '<desc>' . PrintableReportPage::escape($texts['desc'] ?? '') . '</desc>';
@@ -86,14 +89,14 @@ final class TrendSvg {
 		for ($v = $min; $v <= $max; $v += $step) {
 			$yy = self::num($y($v));
 			$h .= '<line x1="' . self::LEFT . '" y1="' . $yy . '" x2="' . self::RIGHT . '" y2="' . $yy . '" stroke="#d0d0d0" stroke-width="1"/>'
-				. '<text x="' . (self::LEFT - 6) . '" y="' . self::num($y($v) + 4) . '" text-anchor="end" font-size="11" fill="#555">'
+				. '<text x="' . (self::LEFT - 6) . '" y="' . self::num($y($v) + 4) . '" text-anchor="end"' . $font . ' font-size="11" fill="#555">'
 				. PrintableReportPage::escape($formatAmount($v)) . '</text>';
 		}
 		// x-Achse: Monate, bei mehr als zwölf jeder zweite
 		$every = $total > 12 ? 2 : 1;
 		foreach ($monthLabels as $i => $label) {
 			if ($i % $every === 0) {
-				$h .= '<text x="' . self::num($x($i)) . '" y="' . (self::BOTTOM + 18) . '" text-anchor="middle" font-size="11" fill="#555">'
+				$h .= '<text x="' . self::num($x($i)) . '" y="' . (self::BOTTOM + 18) . '" text-anchor="middle"' . $font . ' font-size="11" fill="#555">'
 					. PrintableReportPage::escape($label) . '</text>';
 			}
 		}
