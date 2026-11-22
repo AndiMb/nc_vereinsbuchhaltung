@@ -100,6 +100,16 @@ verwenden, z. B. `**Neu:**`.
   Belege, Kontoauszüge oder Gläubiger-ID auch ungespeicherte Eingaben aller
   anderen dieser Karten mit, und in den Rechnungskarten verwarf das Speichern
   einer Karte die Eingaben der übrigen.
+- **Beitragsmodul in den Einstellungen:** Die Schalter (Reiter „Beiträge“,
+  Self-Service, Umstellung auf Überweisung) speichern jetzt nur sich selbst;
+  bisher nahmen sie eine ungespeicherte Gläubiger-ID samt Konto mit, und ein
+  Fehler darin ließ den Schalter scheitern. Die Karte *Lastschrift:
+  Gläubiger-ID und Konto* erscheint nur noch bei eingeschaltetem Modul.
+- **„Erweitert“ in den Rechnungseinstellungen:** Strukturierte
+  Zahlungsreferenz und E-Rechnung beim Festschreiben sowie eigener
+  Hinweistext zur Steuer und BIC stehen eingeklappt unter *Erweitert*. Die
+  Zusammenfassung nennt, welche Schalter an sind; ist ein Feld gefüllt, steht
+  der Bereich offen.
 - **Beträge in Importen** liest jetzt ein gemeinsamer Leser mit festen Regeln
   (Kontoauszug als CSV, CAMT.053, MT940, PayPal, XBUC, Mitglieder-CSV). Was
   sich dadurch ändert:
@@ -137,6 +147,8 @@ verwenden, z. B. `**Neu:**`.
   spielt sich unverändert ein (Handbuch 12.3).
 
 **Behoben:**
+- **Vereinslogo:** Hochladen oder Entfernen des Logos lud alle Einstellungen
+  neu und verwarf dabei ungespeicherte Eingaben auf der Seite.
 - **CAMT.053 und MT940:** Eine Buchung mit fehlendem oder unlesbarem Betrag
   fiel still weg; der Import bricht jetzt ab und nennt die Buchung.
 - **Auslagen:** Der Kontoinhaber darf schon im Entwurf keine Zeilenumbrüche

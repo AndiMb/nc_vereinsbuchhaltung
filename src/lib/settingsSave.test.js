@@ -26,7 +26,8 @@ describe('settingsPayload', () => {
 		expect(settingsPayload(['display'], state)).toEqual({ amount_display: 'signed' })
 		expect(settingsPayload(['storage'], state)).toEqual({ storage_mode: 'user', storage_user: 'admin', storage_path: 'Vereinsbuchhaltung/Belege' })
 		expect(settingsPayload(['watch'], state)).toEqual({ statement_watch_user: 'admin', statement_watch_path: 'Auszuege' })
-		expect(Object.keys(settingsPayload(['sepa'], state)).sort()).toEqual(['membership_enabled', 'self_service_enabled', 'self_service_transfer_switch_enabled', 'sepa_creditor_id', 'sepa_debtor_account_id'])
+		expect(settingsPayload(['sepa'], state)).toEqual({ sepa_creditor_id: 'DE98ZZZ09999999999', sepa_debtor_account_id: '' })
+		expect(settingsPayload(['sepaModule'], state)).toEqual({ membership_enabled: '1', self_service_enabled: '0', self_service_transfer_switch_enabled: '0' })
 	})
 
 	it('schickt die Währung nur bei echter Änderung', () => {

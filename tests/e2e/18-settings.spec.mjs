@@ -528,4 +528,77 @@ test.describe('Einstellungsseite: Inhaltsverzeichnis, Module und Speichern je Ka
 		expect(saved.amount_display).toBe('signed')
 		expect(saved.club_name).toBe('TSV E2E e. V.')
 	})
+
+	test('Beitragsmodul: Schalter speichern ohne Gläubiger-ID; ausgeschaltet verschwindet die Karte „Gläubiger-ID und Konto“', async ({ page, request }) => {
+		const sepaBefore = await api.getSettings(request)
+		await api.updateSettings(request, { membership_enabled: '1', self_service_enabled: '0', sepa_creditor_id: 'DE98ZZZ09999999999' })
+		try {
+			await openSettingsPage(page, USERS.admin)
+			const section = page.locator('#settings-section_beitraege-sepa')
+			const creditor = section.getByLabel('SEPA-Gläubiger-ID')
+			await expect(creditor).toBeVisible()
+
+			// Halb eingetippt, nicht gespeichert – der Schalter darf sie nicht mitnehmen.
+			await creditor.fill('DE00 halb')
+			await section.getByText('Self-Service „Mein Beitrag“ freischalten').click()
+			await expect(savedToast(page)).toBeVisible()
+			await expect.poll(async () => (await api.getSettings(request)).self_service_enabled).toBe(true)
+			expect((await api.getSettings(request)).sepa_creditor_id).toBe('DE98ZZZ09999999999')
+			await expect(creditor).toHaveValue('DE00 halb')
+
+			await section.getByText('Reiter „Beiträge“ anzeigen').click()
+			await expect(section.getByTestId('settings-module-off-beitraege')).toContainText('Gläubiger-ID und Konto')
+			await expect(creditor).toHaveCount(0)
+			await expect.poll(async () => (await api.getSettings(request)).membership_enabled).toBe(false)
+			expect((await api.getSettings(request)).sepa_creditor_id).toBe('DE98ZZZ09999999999')
+		} finally {
+			await api.updateSettings(request, {
+				membership_enabled: sepaBefore.membership_enabled ? '1' : '0',
+				self_service_enabled: sepaBefore.self_service_enabled ? '1' : '0',
+				sepa_creditor_id: sepaBefore.sepa_creditor_id ?? '',
+			})
+		}
+	})
+
+	test('Logo hochladen und entfernen verwirft keine ungespeicherten Eingaben', async ({ page }) => {
+		await openSettingsPage(page, USERS.admin)
+		const club = page.locator('#settings-section_verein')
+		const name = club.getByLabel('Vereinsname (erscheint im Kopf des Kassenberichts)')
+		await name.fill('Noch nicht gespeichert e. V.')
+
+		await club.locator('input[type="file"]').setInputFiles({ name: 'logo.png', mimeType: 'image/png', buffer: BELEG_PNG })
+		await expect(page.getByRole('status').filter({ hasText: 'Logo gespeichert.' }).first()).toBeVisible()
+		await expect(club.getByRole('img', { name: 'Vereinslogo' })).toBeVisible()
+		await expect(name).toHaveValue('Noch nicht gespeichert e. V.')
+
+		await club.getByRole('button', { name: 'Entfernen' }).click()
+		await expect(club.getByText('kein Logo hinterlegt')).toBeVisible()
+		await expect(name).toHaveValue('Noch nicht gespeichert e. V.')
+	})
+
+	test('Rechnungen: seltene Schalter und Felder stehen eingeklappt unter „Erweitert“', async ({ page, request }) => {
+		await api.updateSettings(request, { invoice_module_active: '1', invoice_rf_reference: '0', invoice_einvoice_auto: '0', invoice_bic: '', invoice_default_exemption_text: '' })
+		try {
+			await openSettingsPage(page, USERS.admin)
+			const section = page.locator('#settings-section_rechnungen')
+			const moduleMore = section.getByTestId('settings-invoice-module-more')
+			await expect(moduleMore).toContainText('beide aus')
+			const rf = section.getByText('Strukturierte Zahlungsreferenz verwenden')
+			await expect(rf).toBeHidden()
+			await moduleMore.getByText('Erweitert').click()
+			await rf.click()
+			await expect(savedToast(page)).toBeVisible()
+			await expect(moduleMore).toContainText('Eingeschaltet: Zahlungsreferenz')
+			await expect.poll(async () => (await api.getSettings(request)).invoice_rf_reference).toBe(true)
+
+			// Ohne gespeicherten Wert eingeklappt, mit gespeichertem Wert offen.
+			const bic = section.getByLabel('BIC (optional)')
+			await expect(bic).toBeHidden()
+			await api.updateSettings(request, { invoice_bic: 'GENODEF1XXX' })
+			await page.reload()
+			await expect(bic).toHaveValue('GENODEF1XXX')
+		} finally {
+			await api.updateSettings(request, { invoice_module_active: '0', invoice_rf_reference: '0', invoice_bic: '' })
+		}
+	})
 })

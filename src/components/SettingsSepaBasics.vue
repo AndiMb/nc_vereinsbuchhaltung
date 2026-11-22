@@ -24,36 +24,40 @@
 			</SettingsToggle>
 		</div>
 
-		<div v-if="!isEuro()" class="vbh-card">
-			<h4>{{ t('Lastschrift') }}</h4>
-			<p class="vbh-hint">
-				{{ t('SEPA-Lastschrift steht nur zur Verfügung, wenn die Vereinswährung Euro ist.') }}
-			</p>
-		</div>
-		<div v-else class="vbh-card">
-			<h4>{{ t('Lastschrift: Gläubiger-ID und Konto') }}</h4>
-			<p class="vbh-hint">
-				{{ t('Gläubiger-ID und einziehendes Konto werden für den Sammeleinzug gebraucht. Die Gläubiger-ID vergibt die Deutsche Bundesbank auf Antrag; am einziehenden Konto muss eine IBAN hinterlegt sein.') }}
-			</p>
-			<div class="vbh-form">
-				<label class="vbh-grow">{{ t('SEPA-Gläubiger-ID') }}
-					<input v-model="sepaCreditorIdModel" placeholder="DE98ZZZ09999999999">
-				</label>
-				<label class="vbh-grow">{{ t('Einziehendes Konto') }}
-					<select v-model="sepaDebtorAccountIdModel">
-						<option :value="null">
-							{{ t('– Konto wählen –') }}
-						</option>
-						<option v-for="a in bankAccounts" :key="a.id" :value="a.id">
-							{{ a.number }} · {{ a.name }}
-						</option>
-					</select>
-				</label>
-				<NcButton variant="primary" :disabled="storageSaving" @click="saveSettings">
-					{{ t('Speichern') }}
-				</NcButton>
+		<!-- Gläubiger-ID und Konto braucht nur der Sammeleinzug des Beitragsmoduls;
+		     bei ausgeschaltetem Modul bleiben sie gespeichert, aber verborgen. -->
+		<template v-if="membershipEnabled">
+			<div v-if="!isEuro()" class="vbh-card">
+				<h4>{{ t('Lastschrift') }}</h4>
+				<p class="vbh-hint">
+					{{ t('SEPA-Lastschrift steht nur zur Verfügung, wenn die Vereinswährung Euro ist.') }}
+				</p>
 			</div>
-		</div>
+			<div v-else class="vbh-card">
+				<h4>{{ t('Lastschrift: Gläubiger-ID und Konto') }}</h4>
+				<p class="vbh-hint">
+					{{ t('Gläubiger-ID und einziehendes Konto werden für den Sammeleinzug gebraucht. Die Gläubiger-ID vergibt die Deutsche Bundesbank auf Antrag; am einziehenden Konto muss eine IBAN hinterlegt sein.') }}
+				</p>
+				<div class="vbh-form">
+					<label class="vbh-grow">{{ t('SEPA-Gläubiger-ID') }}
+						<input v-model="sepaCreditorIdModel" placeholder="DE98ZZZ09999999999">
+					</label>
+					<label class="vbh-grow">{{ t('Einziehendes Konto') }}
+						<select v-model="sepaDebtorAccountIdModel">
+							<option :value="null">
+								{{ t('– Konto wählen –') }}
+							</option>
+							<option v-for="a in bankAccounts" :key="a.id" :value="a.id">
+								{{ a.number }} · {{ a.name }}
+							</option>
+						</select>
+					</label>
+					<NcButton variant="primary" :disabled="storageSaving" @click="saveSettings">
+						{{ t('Speichern') }}
+					</NcButton>
+				</div>
+			</div>
+		</template>
 	</div>
 </template>
 
@@ -91,8 +95,10 @@ export default {
 		// (SelfServiceService::canSwitchToTransfer()); ohne Self-Service wirkungslos.
 		selfServiceTransferSwitchEnabled: { type: Boolean, default: false },
 		storageSaving: { type: Boolean, default: false },
-		// gemeinsame Speichern-Funktion des Elternteils, siehe SettingsGeneral.vue
+		// Speichern des Elternteils (SettingsApp.vue): saveSettings nur für
+		// Gläubiger-ID und Konto, saveModule nur für die Schalter
 		saveSettings: { type: Function, required: true },
+		saveModule: { type: Function, required: true },
 	},
 
 	emits: ['update:membershipEnabled', 'update:selfServiceEnabled', 'update:selfServiceTransferSwitchEnabled', 'update:sepaCreditorId', 'update:sepaDebtorAccountId'],
@@ -116,22 +122,21 @@ export default {
 
 	methods: {
 		isEuro,
-		// Kein reiner .sync-Setter: die neue Sichtbarkeit muss noch VOR dem
-		// Speichern beim Elternteil ankommen, sonst sendet saveSettings() den
-		// alten Wert (siehe App.vue::saveStorageSettings()).
+		// Kein reiner v-model-Setter: der neue Wert muss noch VOR dem Speichern
+		// beim Elternteil ankommen, sonst sendet saveModule() den alten.
 		changeMembershipEnabled(v) {
 			this.$emit('update:membershipEnabled', v)
-			this.saveSettings()
+			this.saveModule()
 		},
 
 		changeSelfServiceEnabled(v) {
 			this.$emit('update:selfServiceEnabled', v)
-			this.saveSettings()
+			this.saveModule()
 		},
 
 		changeSelfServiceTransferSwitchEnabled(v) {
 			this.$emit('update:selfServiceTransferSwitchEnabled', v)
-			this.saveSettings()
+			this.saveModule()
 		},
 	},
 }
