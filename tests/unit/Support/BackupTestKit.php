@@ -9,6 +9,7 @@ use OCA\Vereinsbuchhaltung\Service\Backup\BackupConfigStore;
 use OCA\Vereinsbuchhaltung\Service\Backup\BackupContainer;
 use OCA\Vereinsbuchhaltung\Service\Backup\BackupExportService;
 use OCA\Vereinsbuchhaltung\Service\Backup\BackupImportService;
+use OCA\Vereinsbuchhaltung\Service\Backup\BackupInstanceMarker;
 use OCA\Vereinsbuchhaltung\Service\Backup\BackupWipeService;
 use OCA\Vereinsbuchhaltung\Service\FieldCipher;
 use OCA\Vereinsbuchhaltung\Service\RevisionService;
@@ -60,7 +61,11 @@ trait BackupTestKit {
 	protected function tempManager(): ITempManager {
 		$temp = $this->createMock(ITempManager::class);
 		$temp->method('getTemporaryFile')->willReturnCallback(function (string $postFix = ''): string {
-			$path = tempnam(sys_get_temp_dir(), 'vbhtest') . $postFix;
+			$base = tempnam(sys_get_temp_dir(), 'vbhtest');
+			// Auch die Platzhalterdatei von tempnam() merken: Mit Endung bleibt sie
+			// sonst stehen, und unter Windows sind je Praefix nur 65.535 Namen frei.
+			$this->tempFiles[] = $base;
+			$path = $base . $postFix;
 			$this->tempFiles[] = $path;
 			return $path;
 		});
@@ -149,18 +154,28 @@ trait BackupTestKit {
 		];
 	}
 
+	/** Kennung der Nextcloud-Instanz (`instanceid` in config.php); leer = keine. */
+	protected function marker(string $instanceId): BackupInstanceMarker {
+		$config = $this->createMock(IConfig::class);
+		$config->method('getSystemValueString')->willReturnCallback(static fn (string $key, string $default = ''): string => $key === 'instanceid' ? $instanceId : $default);
+		return new BackupInstanceMarker($config);
+	}
+
 	/**
+	 * @param string|null $instanceId Nextcloud-`instanceid`; ohne Angabe eine eigene je Instanzschlüssel
+	 *                                (zwei Instanzen = Umzug), dieselbe Angabe zweimal = dieselbe Nextcloud
 	 * @return array{tables: InMemoryBackupTables, config: IAppConfig, files: FakeBackupFiles, cipher: FieldCipher, export: BackupExportService, container: BackupContainer, runner: TransactionRunner, configStore: BackupConfigStore, sink: FakeBackupSink, wipe: BackupWipeService, import: BackupImportService}
 	 */
-	protected function instance(string $secret, bool $filled, string $version = '0.53.0'): array {
+	protected function instance(string $secret, bool $filled, string $version = '0.53.0', ?string $instanceId = null): array {
 		$cipher = $this->cipher($secret);
+		$marker = $this->marker($instanceId ?? 'oc' . $secret);
 		$tables = InMemoryBackupTables::create($this, $filled ? $this->sampleRows($cipher) : []);
 		$config = AppConfigStub::create($this, $filled ? $this->sampleConfig() : ['installed_version' => $version, 'enabled' => 'yes', 'storage_user' => 'bob']);
 		$files = new FakeBackupFiles($filled ? $this->sampleFiles() : [], $filled ? 'PNG logo' : null, ['attachments' => [6 => 'quittung-baumarkt.pdf']]);
 		$container = new BackupContainer($this->l10n());
 		$runner = new TransactionRunner($tables->connection);
 		$configStore = $this->configReplaceFails ? new FailingBackupConfigStore($config) : new BackupConfigStore($config);
-		$export = new BackupExportService($container, $tables, $configStore, $files, $cipher, $runner, $this->appManager($version), $this->tempManager(), $this->l10n());
+		$export = new BackupExportService($container, $tables, $configStore, $files, $cipher, $runner, $this->appManager($version), $this->tempManager(), $this->l10n(), $marker);
 
 		$sink = new FakeBackupSink();
 		$revision = new RevisionService($config);
@@ -169,7 +184,7 @@ trait BackupTestKit {
 		$users->method('userExists')->willReturnCallback(static fn (string $uid): bool => in_array($uid, ['alice', 'erika', 'importer'], true));
 		$groups = $this->createMock(IGroupManager::class);
 		$groups->method('groupExists')->willReturnCallback(static fn (string $gid): bool => $gid === 'vorstand');
-		$import = new BackupImportService($container, $tables, $configStore, $sink, $cipher, $runner, $wipe, $revision, $this->appManager($version), $this->tempManager(), $users, $groups, $this->l10n());
+		$import = new BackupImportService($container, $tables, $configStore, $sink, $cipher, $runner, $wipe, $revision, $this->appManager($version), $this->tempManager(), $users, $groups, $this->l10n(), $marker);
 		return compact('tables', 'config', 'files', 'cipher', 'export', 'container', 'runner', 'configStore', 'sink', 'wipe', 'import');
 	}
 

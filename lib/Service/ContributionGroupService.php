@@ -9,6 +9,7 @@ use OCA\Vereinsbuchhaltung\Db\AssignmentMapper;
 use OCA\Vereinsbuchhaltung\Db\ContributionGroup;
 use OCA\Vereinsbuchhaltung\Db\ContributionGroupMapper;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
+use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
 use OCA\Vereinsbuchhaltung\Service\CostCenter\CostCenterDefaults;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Utility\ITimeFactory;
@@ -34,6 +35,9 @@ class ContributionGroupService {
 		private AssignmentService $assignmentService,
 		private ITimeFactory $time,
 		private IL10N $l10n,
+		// Die Untergrenzen-Erhöhung schreibt Gruppe und viele Zuweisungen; das
+		// gelingt ganz oder gar nicht (Review 2026-11-18).
+		private TransactionRunner $transaction,
 		?ClubClock $clock = null,
 		// Vorgabe-Kostenstelle der Gruppe (Issue #333).
 		private ?CostCenterDefaults $costCenterDefaults = null,
@@ -180,25 +184,31 @@ class ContributionGroupService {
 	 * @throws DoesNotExistException wenn es die Gruppe nicht gibt
 	 */
 	public function applyMinAmountIncrease(int $id, int $newMinAmountCents, string $actorUid, bool $annual = false): array {
-		$preview = $this->previewMinAmountIncrease($id, $newMinAmountCents, $annual);
+		// Vorschau und Anwendung in einer Transaktion: scheitert eine Zuweisung
+		// mittendrin, bliebe sonst die Untergrenze schon erhöht und ein Teil der
+		// Zuweisungen angehoben. Ein zweiter Versuch fände dann keine Erhöhung
+		// mehr vor, die übrigen Zuweisungen lägen dauerhaft darunter.
+		return $this->transaction->run(function () use ($id, $newMinAmountCents, $actorUid, $annual): array {
+			$preview = $this->previewMinAmountIncrease($id, $newMinAmountCents, $annual);
 
-		$group = $this->mapper->find($id);
-		// Der Standardbeitrag der Gruppe darf nie unter ihrer Untergrenze liegen (applyFields() lehnt das ab): hebt die
-		// Erhöhung die Untergrenze darüber, zieht er mit – sonst ließe sich die Gruppe danach nicht mehr ändern.
-		$this->setAmounts($group, $annual, $newMinAmountCents, max($group->defaultAmountCents(), $newMinAmountCents));
-		$this->mapper->update($group);
+			$group = $this->mapper->find($id);
+			// Der Standardbeitrag der Gruppe darf nie unter ihrer Untergrenze liegen (applyFields() lehnt das ab): hebt die
+			// Erhöhung die Untergrenze darüber, zieht er mit – sonst ließe sich die Gruppe danach nicht mehr ändern.
+			$this->setAmounts($group, $annual, $newMinAmountCents, max($group->defaultAmountCents(), $newMinAmountCents));
+			$this->mapper->update($group);
 
-		foreach ($preview['affected'] as $entry) {
-			$assignment = $this->assignmentMapper->find($entry['assignmentId']);
-			$this->assignmentService->raiseToMinimum($assignment, $newMinAmountCents, $actorUid);
-		}
+			foreach ($preview['affected'] as $entry) {
+				$assignment = $this->assignmentMapper->find($entry['assignmentId']);
+				$this->assignmentService->raiseToMinimum($assignment, $newMinAmountCents, $actorUid);
+			}
 
-		return [
-			'groupId' => $id,
-			'oldMinAmountCents' => $preview['oldMinAmountCents'],
-			'newMinAmountCents' => $newMinAmountCents,
-			'raisedCount' => count($preview['affected']),
-		];
+			return [
+				'groupId' => $id,
+				'oldMinAmountCents' => $preview['oldMinAmountCents'],
+				'newMinAmountCents' => $newMinAmountCents,
+				'raisedCount' => count($preview['affected']),
+			];
+		});
 	}
 
 	private function memberDisplayName(int $memberId): string {

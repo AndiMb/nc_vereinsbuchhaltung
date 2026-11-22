@@ -275,7 +275,7 @@ test.describe.serial('Rechnungen Stufe 3', () => {
 
 	test('Einstellungen: „Standardtext übernehmen“ füllt das Feld, der Gemeinnützigkeits-Hinweis wird gespeichert', async ({ page, request }) => {
 		await openSettingsPage(page, USERS.admin)
-		const card = page.locator('.vbh-card', { has: page.getByRole('heading', { name: 'Angaben des Vereins auf der Rechnung' }) })
+		const card = page.locator('.vbh-card', { has: page.getByRole('heading', { name: 'Angaben des Vereins', exact: true }) })
 		const field = card.getByLabel('Hinweis auf die Gemeinnützigkeit (optional)')
 		await expect(field).toHaveValue('')
 		await card.getByRole('button', { name: 'Standardtext übernehmen' }).click()

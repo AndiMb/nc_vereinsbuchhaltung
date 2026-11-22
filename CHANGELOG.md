@@ -19,6 +19,135 @@ verwenden, z. B. `**Neu:**`.
 
 ## [Unreleased]
 
+**Neu:**
+- **Gliederungsbericht als PDF:** In der Tabellenansicht lädt der neue Knopf
+  **PDF** neben *Drucken / PDF* und *CSV* den Bericht als fertige PDF-Datei
+  herunter – mit Seitenzahlen, wiederholtem Tabellenkopf und ab fünf
+  Wertspalten im Querformat. Die visuelle Ansicht bleibt Druckseite. Beschrieben
+  in Kapitel 7.4 des Handbuchs.
+- **PayPal-Import** (#375): Der deutsche PayPal-Aktivitätsdownload (CSV) wird
+  im normalen Kontoauszugs-Import und im Wachordner am Inhalt erkannt und auf
+  das PayPal-Geldkonto gebucht. Gebühren werden zu eigenen Bankbuchungen
+  („PayPal-Gebühr zu …"), die sich mit einer Regel automatisch buchen lassen;
+  Dubletten erkennt die App am PayPal-Transaktionscode. Die Zuordnung läuft
+  über das neue Feld **PayPal-Adresse (optional)** am Bankkonto. Auch die
+  Kontoabstimmung nimmt PayPal-Dateien an. Beschrieben in Kapitel 3.2 des
+  Handbuchs.
+- **Zuwendungsbestätigung über Mitgliedsbeiträge** (#10, Teil A): Ein
+  steuerbegünstigter Verein stellt je Mitglied und Kalenderjahr die amtliche
+  **Sammelbestätigung über Geldzuwendungen/Mitgliedsbeiträge** nach § 10b EStG
+  aus – nach dem verbindlichen BMF-Muster, mit Betrag in Ziffern und Buchstaben
+  und der Anlage mit jeder einzelnen Zahlung. Maßgeblich ist der Tag der
+  Zahlung. Das PDF wird mit fortlaufender Nummer (*ZB-2026-0001*) als Doppel
+  abgelegt, eine fehlerhafte Bestätigung wird mit Grund storniert. Mitglieder
+  laden ihre Bestätigungen unter *Mein Beitrag* herunter. Eingerichtet wird es
+  im Einstellungsabschnitt *Zuwendungsbestätigungen* (Freistellungsbescheid oder
+  Feststellung nach § 60a AO, Finanzamt, Zwecke, Unterschrift). Beiträge
+  bestätigt die App nur, wenn bestätigt ist, dass sie abziehbar sind (keine
+  Sport-, Kultur-, Freizeit- oder Heimatpflegezwecke); bei zu altem Bescheid
+  (§ 63 Abs. 5 AO) stellt sie nichts aus. Dann entfällt die informelle
+  Beitragsbestätigung.
+- **Zuwendungsbestätigung über Geldspenden** (#10, Teil B): Unter *Buchungen →
+  Spenden* stehen alle Buchungen auf den in den Einstellungen gewählten
+  **Spendenkonten**; je Spende wird der Spender zugeordnet – ein Mitglied oder
+  ein **externer Spender** (Empfänger aus den Rechnungen, etwa ein Sponsor) –,
+  auf Wunsch mit **Verzicht auf Erstattung von Aufwendungen**. Eine Spende lässt
+  sich sofort **einzeln bestätigen** (BMF-Muster für Einzelbestätigungen); nach
+  Jahresende erhält jeder Spender eine **Sammelbestätigung**, bei Mitgliedern
+  zusammen mit den Beiträgen. Sind Mitgliedsbeiträge nicht abziehbar (etwa bei
+  Sportvereinen), bestätigt die App nur Spenden, und die informelle
+  Beitragsbestätigung bleibt. Sachspenden sind nicht enthalten.
+
+**Geändert:**
+- Der Dateiname des Kassenberichts als PDF schreibt Umlaute jetzt um
+  (ä → ae, ö → oe, ü → ue, ß → ss), damit er auf jedem System ohne
+  Sonderzeichen gespeichert wird.
+- **Einstellungsseite neu geordnet:** Die Abschnitte folgen jetzt der Aufgabe
+  statt der Entstehungsgeschichte – *Grundlagen* (Verein, Berechtigungen,
+  Belege, Kontoauszüge automatisch einlesen, Geschäftsjahr), *Listen und
+  Berichte* (Darstellung, Ampel), *Module* (Beiträge & SEPA mit
+  Mandats-Rechtstext und Willkommens-Mail direkt darunter,
+  Zuwendungsbestätigungen als eigener Abschnitt, Rechnungen, Auslagen,
+  Kostenstellen) und *Daten und Sicherung* (Datenübernahme, Sicherung und
+  Umzug, Zurücksetzen). Ganz oben steht ein Inhaltsverzeichnis mit
+  Sprunglinks, neben jeder Abschnittsüberschrift ein Fragezeichen zum
+  passenden Handbuch-Kapitel. „Alle Daten löschen" steht jetzt im eigenen
+  Abschnitt *Zurücksetzen* direkt unter „Bestand vollständig leeren", mit
+  einem Hinweis, worin sich die beiden Löschwege unterscheiden. „Bankdaten"
+  heißt jetzt „Kontoauszüge automatisch einlesen", „Daten" heißt
+  „Datenübernahme". Alle bisherigen Sprungadressen
+  (`#settings-section_…`) gelten weiter.
+- **Handbuch:** Kapitel 2 erklärt, wo die Einstellungen stehen (Persönlich
+  bzw. Verwaltung) und in welcher Reihenfolge; die veralteten Wege über das
+  „Zahnrad" und die nie vorhandene Karte „Grundeinstellungen" sind durch die
+  echten Abschnitts- und Kartennamen ersetzt.
+- **Ausgeschaltete Module ohne ihre Karten:** Ist ein Modul aus, zeigt die
+  Einstellungsseite nur seinen Schalter und einen Hinweis – bei Beiträge &
+  SEPA (samt Mandats-Rechtstext und Willkommens-Mail), Rechnungen,
+  Zuwendungsbestätigungen und den Auslagennummern. Das Inhaltsverzeichnis
+  vermerkt „ausgeschaltet". Gespeichertes bleibt erhalten.
+- **Angaben des Vereins unter „Verein“:** Anschrift, Steuernummer, Register
+  und Vorstand stehen jetzt in der Karte *Angaben des Vereins* im Abschnitt
+  *Verein* (bisher „Angaben des Vereins auf der Rechnung“ unter
+  *Rechnungen*) und sind immer sichtbar – auch die Zuwendungsbestätigungen
+  brauchen sie, ein Verein ohne Rechnungsmodul kommt so weiter an sie heran.
+  Die Sprungadresse `#settings-section_rechnungen-angaben` gilt weiter.
+- **Einheitliches Speichern:** Modulschalter wirken jetzt überall sofort
+  (Rechnungsmodul, Kostenstellen, Auslagenerstattung, Zuwendungsbestätigungen –
+  wie zuvor schon das Beitragsmodul); scheitert das Speichern, springt der
+  Schalter zurück. Alle übrigen Angaben speichert der Knopf ihrer Karte, und
+  zwar nur deren Felder: Bisher nahm „Speichern" unter Verein, Darstellung,
+  Belege, Kontoauszüge oder Gläubiger-ID auch ungespeicherte Eingaben aller
+  anderen dieser Karten mit, und in den Rechnungskarten verwarf das Speichern
+  einer Karte die Eingaben der übrigen.
+- **Beträge in Importen** liest jetzt ein gemeinsamer Leser mit festen Regeln
+  (Kontoauszug als CSV, CAMT.053, MT940, PayPal, XBUC, Mitglieder-CSV). Was
+  sich dadurch ändert:
+  - „1.234" ist im Kontoauszug als CSV, in XBUC und in der Mitglieder-CSV
+    jetzt 1.234,00 € (bisher 1,23 €). Stehen Punkt und Komma, ist das letzte
+    der Dezimaltrenner.
+  - Ein nachgestelltes Minus („12,50-"), das typografische Minus und der
+    Halbgeviertstrich („–12,50") zählen jetzt als negativ; bisher wurde der
+    Betrag dort teils als positiv gelesen.
+  - Ganze Euro ohne Nachkommastellen („60," wie in MT940, „12,-") bleiben
+    lesbar.
+  - Werte mit fremdem Text („ca. 12,50", „12,50 S") gelten nicht mehr als
+    Betrag. Im Kontoauszug als CSV und in XBUC bricht der Import dann ab und
+    nennt die Zeile bzw. die Buchung; bisher wurde der Text still entfernt.
+    Eine leere Betragszelle (etwa eine Summenzeile) wird weiter übersprungen.
+  - CAMT.053 mit Komma als Dezimaltrenner („<Amt>12,50</Amt>"), das der
+    Standard nicht erlaubt, das manche Programme aber erzeugen, bricht jetzt
+    ab und nennt die Buchung, statt eingelesen zu werden.
+  - In MT940 und im SEPA-Verwendungszweck ist „12.50" jetzt 12,50 € (bisher
+    1.250,00 €); Banken schreiben dort aber ohnehin das Komma.
+
+**Sicherheit:**
+- **GiroCode einer Auslage:** Ein Zeilenumbruch im Kontoinhaber konnte im
+  GiroCode eine fremde IBAN und einen höheren Betrag vortäuschen. Der
+  Kontoinhaber darf keine Zeilenumbrüche oder Steuerzeichen mehr enthalten,
+  und jeder GiroCode entfernt sie aus allen Freitextfeldern.
+- **Sicherung von einer anderen Nextcloud:** Sicherungen merken sich jetzt,
+  auf welcher Nextcloud sie entstanden sind. Stammt eine Sicherung von einer
+  anderen Nextcloud – dazu zählt auch eine nach einem Ausfall neu
+  installierte –, gelten bestätigte Verknüpfungen von Mitgliedern mit Konten
+  nach dem Einspielen nicht mehr und werden neu bestätigt. Fehlt die Angabe
+  zur Herkunft, bleiben die Verknüpfungen, aber Prüfung und Bericht warnen
+  deutlich. In beiden Fällen nennt der Bericht jedes vorhandene Konto und jede
+  Gruppe, die eine Rolle bekommen hat. Eine Sicherung derselben Nextcloud
+  spielt sich unverändert ein (Handbuch 12.3).
+
+**Behoben:**
+- **CAMT.053 und MT940:** Eine Buchung mit fehlendem oder unlesbarem Betrag
+  fiel still weg; der Import bricht jetzt ab und nennt die Buchung.
+- **Auslagen:** Der Kontoinhaber darf schon im Entwurf keine Zeilenumbrüche
+  oder Steuerzeichen enthalten.
+- **Zuordnung eines Bankumsatzes:** Ein Datenbankfehler beim Laden der alten
+  Buchung konnte beim Aufheben die Buchung stehen lassen oder beim erneuten
+  Zuordnen doppelt buchen; der Vorgang bricht jetzt vollständig ab.
+- **Untergrenze einer Beitragsgruppe anheben** und Änderungen an Zuweisungen
+  laufen in einer Transaktion: Ein Fehler mittendrin hinterlässt keine halb
+  angehobene Gruppe und keine Änderung ohne Eintrag in der Historie.
+
 ## [0.54.0] – 2026-11-17
 
 **Neu:**

@@ -232,6 +232,13 @@ class ReimbursementDraftService {
 			}
 		}
 		$iban = $this->text($fields['iban'] ?? null, self::MAX_IBAN_LENGTH);
+		$accountHolder = $this->text($fields['accountHolder'] ?? null, self::MAX_ACCOUNT_HOLDER_LENGTH);
+		// Wie beim Einreichen ({@see ReimbursementService::submit()}): ein
+		// Zeilenumbruch im Kontoinhaber könnte im GiroCode eine fremde IBAN
+		// vortäuschen. Schon der Entwurf lehnt ihn ab.
+		if ($accountHolder !== null && preg_match('/[\p{Cc}\p{Zl}\p{Zp}]/u', $accountHolder) === 1) {
+			throw new \InvalidArgumentException($this->l10n->t('Der Kontoinhaber darf keine Zeilenumbrüche oder Steuerzeichen enthalten.'));
+		}
 		return [
 			'amountCents' => $amount,
 			'expenseDate' => $date,
@@ -239,7 +246,7 @@ class ReimbursementDraftService {
 			'invoiceNumber' => $this->text($fields['invoiceNumber'] ?? null, self::MAX_INVOICE_NUMBER_LENGTH),
 			'supplier' => $this->text($fields['supplier'] ?? null, self::MAX_SUPPLIER_LENGTH),
 			'iban' => $iban !== null ? strtoupper((string)preg_replace('/\s+/', '', $iban)) : null,
-			'accountHolder' => $this->text($fields['accountHolder'] ?? null, self::MAX_ACCOUNT_HOLDER_LENGTH),
+			'accountHolder' => $accountHolder,
 			'kind' => isset($travel) ? Reimbursement::KIND_TRAVEL : Reimbursement::KIND_EXPENSE,
 			'travelDetails' => isset($travel) ? $travel->toJson() : null,
 		];

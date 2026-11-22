@@ -393,6 +393,10 @@ export default {
 	selfCertificateUrl: (year) => generateUrl(base + '/self/certificate') + (year ? `?year=${year}` : ''),
 	selfCertificatePdfUrl: (year) => generateUrl(base + '/self/certificate/pdf') + (year ? `?year=${year}` : ''),
 
+	// Eigene Zuwendungsbestätigungen (Issue #10): Liste und PDF; die ID prüft der Server.
+	selfDonationReceipts: () => axios.get(url('/self/donation-receipts')),
+	selfDonationReceiptPdfUrl: (id) => generateUrl(base + `/self/donation-receipts/${id}/pdf`),
+
 	// "Datenübersicht" (Issue #78, Spec §3.8): Art.-15-DSGVO-Auskunft als
 	// druckfertige Live-Ansicht, hier unter "Meine Daten".
 	selfDataOverviewUrl: () => generateUrl(base + '/self/data-overview'),
@@ -410,6 +414,7 @@ export default {
 	exportFinanzplanUrl: (period, depth = 'plan', compare = 0, basis = 'actual') => generateUrl(base + '/export/finanzplan') + `?depth=${encodeURIComponent(depth)}&compare=${compare}&basis=${basis}` + (period ? `&period=${period}` : ''),
 	exportMultiyearUrl: () => generateUrl(base + '/export/multiyear'),
 	gliederungsberichtUrl: (template, period) => generateUrl(base + '/export/gliederungsbericht') + `?template=${encodeURIComponent(template)}` + (period ? `&period=${period}` : ''),
+	gliederungsberichtPdfUrl: (template, period) => generateUrl(base + '/export/gliederungsbericht/pdf') + `?template=${encodeURIComponent(template)}` + (period ? `&period=${period}` : ''),
 	gliederungsberichtCsvUrl: (template, period) => generateUrl(base + '/export/gliederungsbericht-csv') + `?template=${encodeURIComponent(template)}` + (period ? `&period=${period}` : ''),
 	// Visuelle Ansicht (Plan gegen Ist): Stand `YYYY-MM`/`current` (leer = Vorgabe), Basis `year`/`time`.
 	gliederungsberichtVisuellUrl: (template, period, asOf, basis = 'year') => generateUrl(base + '/export/gliederungsbericht-visuell') + `?template=${encodeURIComponent(template)}` + (period ? `&period=${period}` : '') + (asOf ? `&asOf=${encodeURIComponent(asOf)}` : '') + `&basis=${encodeURIComponent(basis)}`,
@@ -425,6 +430,19 @@ export default {
 	memberCertificateYears: (memberId) => axios.get(url(`/export/beitragsbescheinigung/${memberId}/years`)),
 	memberCertificateUrl: (memberId, year) => generateUrl(base + `/export/beitragsbescheinigung/${memberId}`) + (year ? `?year=${year}` : ''),
 	memberCertificatePdfUrl: (memberId, year) => generateUrl(base + `/export/beitragsbescheinigung/${memberId}/pdf`) + (year ? `?year=${year}` : ''),
+
+	// Zuwendungsbestätigungen über Mitgliedsbeiträge (Issue #10).
+	donationReceiptSettings: () => axios.get(url('/donation-receipts/settings')),
+	saveDonationReceiptSettings: (data) => axios.put(url('/donation-receipts/settings'), data),
+	memberDonationReceipts: (memberId) => axios.get(url(`/donation-receipts/member/${memberId}`)),
+	issueDonationReceipt: (memberId, year) => axios.post(url('/donation-receipts'), { memberId, year }),
+	issueDebtorDonationReceipt: (debtorId, year) => axios.post(url('/donation-receipts'), { debtorId, year }),
+	issueSingleDonationReceipt: (journalId) => axios.post(url('/donation-receipts/single'), { journalId }),
+	donations: (year) => axios.get(url('/donations'), { params: { year } }),
+	assignDonation: (journalId, { memberId = 0, debtorId = 0, waiver = false }) => axios.put(url(`/donations/${journalId}`), { memberId, debtorId, waiver }),
+	unassignDonation: (journalId) => axios.delete(url(`/donations/${journalId}`)),
+	voidDonationReceipt: (id, reason) => axios.post(url(`/donation-receipts/${id}/void`), { reason }),
+	donationReceiptPdfUrl: (id) => generateUrl(base + `/donation-receipts/${id}/pdf`),
 
 	// "Datenübersicht" eines Mitglieds, Stellvertretung durch den Kassenwart
 	// über die Admin-Akte (Issue #78, Spec §3.8).

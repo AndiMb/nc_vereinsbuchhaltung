@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\Vereinsbuchhaltung\Tests\Unit;
 
+use OCA\Vereinsbuchhaltung\Exception\UserFacingException;
 use OCA\Vereinsbuchhaltung\Service\Statement\Camt053Parser;
 use PHPUnit\Framework\TestCase;
 
@@ -214,5 +215,33 @@ class Camt053ParserTest extends TestCase {
 	public function testWirftBeiUngueltigemXml(): void {
 		$this->expectException(\RuntimeException::class);
 		$this->parser->parse('<Document><BkToCstmrStmt>kaputt');
+	}
+
+	/**
+	 * Review 2026-11-18 (Backend 4): eine Buchung mit unlesbarem Betrag fiel
+	 * bisher still weg – der Kontoauszug wäre ohne sie importiert worden.
+	 * Wie beim PayPal-Import bricht der Import jetzt ab und nennt die Buchung.
+	 */
+	public function testUnlesbarerBetragBrichtMitNummerDerBuchungAb(): void {
+		$xml = str_replace('<Amt Ccy="EUR">250.00</Amt>', '<Amt Ccy="EUR">250,00</Amt>', $this->fixture());
+
+		$this->expectException(UserFacingException::class);
+		$this->expectExceptionMessage('Buchung 2 der CAMT-Datei: Der Betrag „250,00“ ist nicht lesbar.');
+		$this->parser->parse($xml);
+	}
+
+	public function testFehlenderBetragBrichtAb(): void {
+		$xml = str_replace('<Amt Ccy="EUR">8.90</Amt>', '', $this->fixture());
+
+		$this->expectException(UserFacingException::class);
+		$this->expectExceptionMessage('Buchung 4 der CAMT-Datei hat keinen Betrag.');
+		$this->parser->parse($xml);
+	}
+
+	/** XML kennt nur den Dezimalpunkt; mehr Nachkommastellen werden kaufmännisch gerundet. */
+	public function testBetragNachXmlRegeln(): void {
+		$xml = str_replace('<Amt Ccy="EUR">250.00</Amt>', '<Amt Ccy="EUR">1.005</Amt>', $this->fixture());
+
+		$this->assertSame(-101, $this->parser->parse($xml)[1]['amountCents']);
 	}
 }

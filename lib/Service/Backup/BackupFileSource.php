@@ -10,6 +10,7 @@ use OCA\Vereinsbuchhaltung\Db\MandateMapper;
 use OCA\Vereinsbuchhaltung\Db\ReimbursementFileMapper;
 use OCA\Vereinsbuchhaltung\Service\AttachmentStorageService;
 use OCA\Vereinsbuchhaltung\Service\BrandingService;
+use OCA\Vereinsbuchhaltung\Service\DonationReceipt\DonationReceiptStorage;
 use OCA\Vereinsbuchhaltung\Service\Invoice\InvoiceDocumentStorage;
 use OCA\Vereinsbuchhaltung\Service\MandateDocumentService;
 
@@ -32,6 +33,7 @@ class BackupFileSource {
 		private InvoiceDocumentStorage $invoiceDocuments,
 		private MandateDocumentService $mandateDocuments,
 		private BrandingService $branding,
+		private ?DonationReceiptStorage $donationReceipts = null,
 	) {
 	}
 
@@ -64,6 +66,9 @@ class BackupFileSource {
 				continue;
 			}
 			yield ['kind' => 'mandates', 'id' => $mandate->getId(), 'label' => (string)$mandate->getMandateReference(), 'read' => fn (): ?string => $this->mandateDocuments->contentOrNull($mandate)];
+		}
+		foreach ($this->donationReceipts?->all() ?? [] as $receipt) {
+			yield ['kind' => DonationReceiptStorage::APPDATA_FOLDER, 'id' => $receipt->getId(), 'label' => $receipt->getFileName(), 'read' => fn (): ?string => $this->donationReceipts?->readOrNull($receipt)];
 		}
 	}
 

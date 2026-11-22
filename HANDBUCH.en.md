@@ -63,6 +63,44 @@ accounts, postings, receipts, reports – documented in an audit-ready way.
 The initial setup is done once by an **administrator**. Without that role,
 only reading or posting is possible (see appendix 14.1).
 
+**Where the settings are.** The app's settings are not inside the app itself
+but in the Nextcloud settings – and only administrators can reach them:
+
+- **Administrators without Nextcloud admin rights:** click your own avatar at
+  the top right → *Personal settings* → on the left under *Personal* the entry
+  **Vereinsbuchhaltung**.
+- **Nextcloud administrators:** avatar → *Administration settings* → on the
+  left under *Administration* the entry **Vereinsbuchhaltung**.
+
+The setup checklist (2.0) and the notes on the dashboard are quicker: they jump
+straight to the right place. This handbook writes the path in short as
+*Nextcloud settings → Vereinsbuchhaltung → section*.
+
+At the very top of the page there is a table of contents (**"On this page"**)
+with jump links to all sections; the question mark next to a section heading
+opens the matching chapter of this handbook. The sections come in this order:
+
+| Group | Sections (chapter) |
+|---|---|
+| Basics | Club with club name, club currency, corporate design and club details (2.5, 2.6) · Permissions (2.1) · Receipts (2.4) · Automatically import bank statements (3.3) · Fiscal year (8.1) |
+| Lists and reports | Display – amounts in the posting lists neutral or with sign and color, the same for all users · Status in the structured report (7.5) |
+| Modules | Fees & SEPA (13.1) · Mandate legal text (13.2) · Welcome email (13.2) · Donation receipts (13.12) · Invoices (15.1) · Expense reimbursement (4.6) · Cost centres (5.8) |
+| Data and backup | Data import from "zero Buchhaltung" (3.1) · Backup and migration (12.3) · Reset with *Delete all data* (12.1) |
+
+**Modules that are switched off** only show their switch and a note; their
+other cards appear once the module is on (the table of contents then no longer
+says "off"). This applies to Fees & SEPA (including the mandate legal text and
+the welcome email), donation receipts, invoices and the expense numbers. Saved
+details are kept when you switch a module off. The **club details** (address,
+tax number, register, board), on the other hand, always stay under *Club*:
+invoices and donation receipts both need them.
+
+**Saving.** **Module switches take effect immediately** – no need to save, a
+message at the top right confirms it; if it fails, the switch flips back and
+the reason is shown in the card. **Everything else is saved with the "Save"
+button of its card**, and only the fields of that card: if you change
+something in two cards, save each of them.
+
 ### 2.0 The setup wizard and the checklist
 
 On the very first open – as long as not a single account exists yet – a
@@ -90,7 +128,7 @@ need it can hide it.
 
 ### 2.1 Assigning permissions
 
-Gear icon (settings) → **Permissions** section. There you assign a role to
+*Nextcloud settings → Vereinsbuchhaltung* (see above) → **Permissions** section. There you assign a role to
 Nextcloud users or groups:
 
 - **Administrator** – can do everything, including permissions, the fiscal
@@ -113,7 +151,7 @@ their Nextcloud account and the member record.
 There are two paths:
 
 **Path A – import from "zero Buchhaltung" (recommended, if available):**
-Gear icon → *Data* → *From "zero Buchhaltung" (.xbuc)*. This takes over the
+*Nextcloud settings → Vereinsbuchhaltung → Data import* → *From "zero Buchhaltung" (.xbuc)*. This takes over the
 complete account tree including hierarchy and existing postings. See
 chapter 3.1 for details.
 
@@ -183,7 +221,7 @@ correct from day one.
 
 ### 2.4 Setting up receipt storage (administrator)
 
-Gear icon → *Receipts* → *Storage type*. Three options:
+*Nextcloud settings → Vereinsbuchhaltung → Receipts* → *Storage type*. Three options:
 
 - **internal (AppData):** visible only through the app.
 - **Nextcloud folder managed by the app:** the app creates one subfolder
@@ -228,7 +266,7 @@ where they are and remain readable.
 
 ### 2.5 Naming the club (administrator)
 
-Gear icon → *Club* → enter the club name. It appears in the header of the
+*Nextcloud settings → Vereinsbuchhaltung → Club* → *Club name* card: enter the name and save. It appears in the header of the
 treasurer's report (chapter 7). A small thing with a big effect at the
 general assembly.
 
@@ -236,7 +274,13 @@ The app's emails (invoices, dunning letters, pre-notifications, welcome
 emails, mandate confirmations) then also show the club name as the sender
 and in the footer instead of the Nextcloud's name. The sender address stays
 the one from the Nextcloud mail settings. If a club email is set in the
-settings under *Invoices*, replies go to that address.
+*Club details* card, replies go to that address.
+
+**Club details.** Also under *Club* is the *Club details* card: address, tax
+number or VAT ID, register of associations, board, phone, email and an
+optional note on non-profit status. Invoices (chapter 15.1) and donation
+receipts (13.12) take the name, address and tax number from here; that is why
+the card is always visible, even when the invoice module is off.
 
 **Club currency.** The same page has a *Club currency* card. Out of the box
 the app works in euros. You can also choose Swiss franc (CHF), British pound
@@ -257,7 +301,7 @@ reloads after saving.
 
 ### 2.6 Corporate design (optional)
 
-Gear icon → *Club* (second card on the same page): upload a **club logo**
+*Nextcloud settings → Vereinsbuchhaltung → Club* → *Corporate design* card: upload a **club logo**
 (PNG, JPG or WebP) and choose an **accent color**. Both appear automatically
 in the **short report for board meetings** (chapter 7.3) – the treasurer's
 report itself deliberately stays plain and neutral. The logo also appears
@@ -273,7 +317,7 @@ nothing to configure.
 
 If your fiscal year runs differently – October to September, the school
 year from August to July, or by semester – set that up **once at the
-start**: gear icon → *Fiscal year* (administrators only). How it works and
+start**: *Nextcloud settings → Vereinsbuchhaltung → Fiscal year* (administrators only). How it works and
 what happens to existing postings is described in **chapter 8.1**.
 
 > **Best done first:** Switching the rule reassigns every existing posting
@@ -289,7 +333,7 @@ what happens to existing postings is described in **chapter 8.1**.
 ### 3.1 xbuc import from "zero Buchhaltung"
 
 Anyone who has worked with *zero Buchhaltung* so far can take over accounts
-and postings completely: gear icon → *Data* → *From "zero Buchhaltung"
+and postings completely: *Nextcloud settings → Vereinsbuchhaltung → Data import* → *From "zero Buchhaltung"
 (.xbuc)* → choose file.
 
 - **Merge mode (default):** Only missing accounts are created, postings
@@ -381,10 +425,84 @@ their headers – that works with the common banks, but not with certainty.
   have judged it.
 - After the import, a preview shows *new* / *duplicates* / *total*.
 
+#### Importing PayPal transactions
+
+The PayPal activity download can also be loaded in the normal import
+(*Import transactions*); the app recognizes it from its content, and so
+does the watch folder (section 3.3). This brings the PayPal account into
+the books as a cash account of its own.
+
+1. **Export at PayPal:** *Activity* → *Reports* → *Activity download*. For
+   private accounts it also works via *Statements* → *Download activity*.
+   Choose the **CSV** format with "All transactions" and the period you
+   want. The German-language activity download is the one that is
+   recognized.
+2. **Create a cash account:** in the **Accounts** tab, create a cash
+   account for PayPal and enter the PayPal account's email address in the
+   field **PayPal address (optional)**, for example `kasse@example.org`.
+   The field only appears on bank accounts; separate several addresses with
+   commas. The import assigns the rows by this address. If no address
+   matches, the preview names the address from the file and asks you to
+   enter it. PayPal transactions never end up on the current account.
+3. **Load the file** like any bank statement and check the preview.
+
+**Which rows are taken over:**
+
+- Every row whose balance impact ("Auswirkung auf Guthaben" column) is
+  **Soll** (debit) or **Haben** (credit) in the club currency. This includes rows that are still
+  *pending*, so the PayPal balance in the app matches the balance at
+  PayPal.
+- Note rows ("Memo") and foreign-currency rows are skipped; the preview
+  shows how many ("{n} skipped"). With a currency conversion, the row in
+  the club currency carries the amount.
+
+**Fees:** a fee becomes a bank transaction of its own with the
+counterparty "PayPal" and the purpose "PayPal fee for <transaction code>".
+The main transaction carries the gross amount.
+
+All fees can be posted with *one* auto-assignment rule (chapter 4.1): it
+matches the purpose "PayPal fee" and points to a bank-fees account, for
+example "Nebenkosten des Geldverkehrs" (bank charges).
+
+The fee text follows the language at the time of import; the watch folder
+uses the instance's default language. With mixed languages, create the rule
+once per language, or use the payee instead of the purpose: rule
+field *Payee*, value "PayPal". That rule works regardless of the
+language, but it also matches any other transaction whose payee
+contains "PayPal", which is rare. The purpose rule remains the recommended
+default.
+
+**Purpose of the main transaction:** subject, note and item name (all
+non-empty ones, joined with " / "), followed
+by "· PayPal <transaction code>". If the name is empty (for example for
+"Bankgutschrift auf PayPal-Konto"), the name of the related transaction is
+used instead.
+
+**Duplicates:** the app recognizes transactions by the PayPal transaction
+code. Overlapping or repeated exports and a row changing from *pending* to
+*completed* create no duplicates.
+
+**Top-up from the bank account:** the "Bankgutschrift auf PayPal-Konto"
+also appears on the current account's statement. It is a transfer between
+two of your own cash accounts and is handled like any other transfer (rule
+or manual assignment, chapter 4.1).
+
+**Switching from your own conversion script:** data imported earlier by a
+script is not recognized as a duplicate. Export the first PayPal file
+starting the day after the last script import. If the own-account column of
+a bank CSV carries a label starting with "PayPal" (for example an account
+nickname), the app treats it as a PayPal account. Rename the nickname or
+include the IBAN column in the export.
+
+**Pending payments that fail later:** if PayPal adds no counter-row for
+them, the transaction stays in the app. The account reconciliation (section
+5.9) shows the difference.
+
 ### 3.3 Reading in bank statements automatically (watch folder)
 
-Anyone doing the same thing every month can skip the upload: gear icon →
-*Bank data* (administrators only). There you enter a Nextcloud user and a
+Anyone doing the same thing every month can skip the upload:
+*Nextcloud settings → Vereinsbuchhaltung → Automatically import bank statements*
+(administrators only). After switching it on you enter a Nextcloud user and a
 folder in their files, for example `Vereinsbuchhaltung/Kontoauszüge`.
 "Choose folder…" next to the path field opens the folder tree of the
 user's home; click the folder and "Apply". Only Nextcloud administrators may
@@ -738,7 +856,8 @@ history.
 Expense reimbursement*: the switch **"Enable expense reimbursement"** and the
 number of **required approvals** (2 by default). Nobody can approve their own
 request, so at least **N + 1 administrators** are needed, otherwise the switch
-cannot be saved. Administrators are everybody with the administrator role (as a
+flips back and the card names the reason. The switch takes effect immediately
+(with the number entered); a number changed later is applied with "Save". Administrators are everybody with the administrator role (as a
 person or through a group) plus the Nextcloud administrators. The feature does
 not depend on the "Contribution" self-service: a member only needs the linked
 Nextcloud account (13.2).
@@ -1130,7 +1249,7 @@ nothing of it.
 Cost centres have no tax meaning and do not replace the spheres.
 
 **Switching on:** *Settings → Vereinsbuchhaltung → Cost centres → Enable cost
-centres* (administrators only).
+centres* (administrators only). The switch takes effect immediately.
 
 **Creating:** **Reports → Cost centres → Manage cost centres** tab. Each cost
 centre has a code (at most eight characters, e.g. `SEN`) and a name. A cost
@@ -1251,13 +1370,15 @@ may use it.
 
 **It only compares.** The statement is neither imported nor stored; entries
 and bank transactions stay as they are. To read in transactions, keep using
-the import (chapter 3.2).
+the import (chapter 3.2). A PayPal file can be compared too: the balances come
+from the "Guthaben" column, and only cash accounts with a matching PayPal
+address accept the file (chapter 3.2).
 
 **How it works:**
 
 1. **Accounts** tab → click the cash account → **Account reconciliation**.
 2. **Choose file**: the statement from your online banking, in the same
-   formats as the import (CSV-CAMT, CAMT.053, MT940). The comparison starts
+   formats as the import (CSV-CAMT, CAMT.053, MT940, PayPal CSV). The comparison starts
    immediately.
 3. Optionally narrow the period with **From** and **To** and **Compare**
    again. Without dates, the period of the statement applies; the
@@ -1451,7 +1572,7 @@ Content: cash-account balances as of the reference date and today,
 movements since the reference date (income/expenses/result), as well as a
 short financial-plan summary for the current period (plan vs. actual so
 far).
-If a logo and an accent color are set under gear icon → *Club*
+If a logo and an accent color are set under *Nextcloud settings → Vereinsbuchhaltung → Club*
 (chapter 2.6), both appear automatically in the header of the report. As
 with the treasurer's report: print or "save as PDF" via the browser.
 
@@ -1512,6 +1633,12 @@ position, it is a total, otherwise a result.
 appears at the end under "Accounts not covered" and a notice names it. An
 account counted in several sections is marked. The grand total always
 covers all income and expenses and matches the financial plan.
+
+**PDF** (table view only) downloads the report as a finished PDF file – with
+page numbers, a table header repeated on every page and automatically in
+landscape format from five value columns on. The file is named
+*Gliederungsbericht-<template>-<period>.pdf* (umlauts are transliterated). The
+visual view (chapter 7.5) remains a print page only.
 
 **Print / PDF** opens the report as a print-ready page (landscape from five
 columns on), **CSV** delivers the same lines with a "level" column for
@@ -1589,7 +1716,7 @@ parent account is marked "planned on parent account" instead.
 **No plan.** If no plan is entered for the period, a notice points to the
 budget, where the plan values are entered.
 
-**Adjusting the thresholds.** Gear icon → Settings, section **Status in the
+**Adjusting the thresholds.** *Nextcloud settings → Vereinsbuchhaltung*, section **Status in the
 structured report** (administrator role only): five thresholds, the same for
 everyone in the club. Whole numbers from 0 to 999 are allowed. For expenses
 "orange from" must be below "red above", for income "red below" must be
@@ -1618,9 +1745,9 @@ and be shorter than twelve months.
 
 ### 8.1 Defining the fiscal year
 
-Gear icon → *Fiscal year* (administrators only). The page has two cards: at
-the top the **rule** by which periods come about, below it the **periods**
-themselves.
+*Nextcloud settings → Vereinsbuchhaltung → Fiscal year* (administrators only). At the top is the
+**rule** by which periods come about, below it the **periods** themselves (the
+third card, *File the treasurer's report*, is described in chapter 8.2).
 
 **Card 1: the rule.** There are four templates plus one of your own:
 
@@ -1717,7 +1844,7 @@ Three things are deliberately *not* switched over:
 
 ### 8.2 Closing a period
 
-Gear icon → *Fiscal year* → *Periods* card (administrators only). Confirm
+*Nextcloud settings → Vereinsbuchhaltung → Fiscal year* → *Periods* card (administrators only). Confirm
 "Close" as needed; the dialog names the label and the from–to dates so the
 wrong period doesn't get caught. The period is then marked with a 🔒 in the
 selector in the header.
@@ -1917,7 +2044,7 @@ readable page, so nothing needs to be looked up on GitHub.
 
 ### 12.1 "Delete all data" / reset
 
-Gear icon → *Data* → *Delete all data* (administrators only, with a
+*Nextcloud settings → Vereinsbuchhaltung → Reset* → *Delete all data* (administrators only, with a
 confirmation dialog) removes accounts, postings, imports, receipts, open items
 (including the claims against members), **all expense requests with history and receipts** (chapter 4.6), **all invoices including their PDF and e-invoice** (invoices must be kept for eight years: back them up first with the receipts ZIP under Reports → Evaluation), the templates of the
 structured report (afterwards the two standard templates are available
@@ -1926,7 +2053,10 @@ again) and the year-end closing markers.
 assignments (chapter 13) are not part of the posting records and stay untouched
 (the collection is cleared with it, see below). Likewise, the **expense claim
 drafts** that members have not submitted yet (4.6) stay – they belong to the
-members, not to the bookkeeping. The same applies to
+members, not to the bookkeeping. Issued **donation receipts** (13.12) stay as
+well, including their PDF: the duplicate must be kept for ten years and contains
+the confirmed payments itself. The **donor assignments** of the bookings, however,
+are deleted along with the bookings. The same applies to
 reset mode during the xbuc import. Both are irreversible – so only after
 checking with others, and never by accident. If you really want to remove
 everything, including members, mandates and settings – for instance to restore
@@ -1968,7 +2098,7 @@ and save again. A closed year can only be corrected after reopening
 
 ### 12.3 Backup and migration
 
-Gear icon → *Backup and migration* (administrators only) saves the **entire
+*Nextcloud settings → Vereinsbuchhaltung → Backup and migration* (administrators only) saves the **entire
 data set** into a single encrypted file (`.vbhbackup`) and restores such a
 file – on the same Nextcloud or on a different one. This is the way to move to
 a new server, and a backup that works without access to the database and
@@ -2020,6 +2150,30 @@ in any case**. Assign roles for accounts that do not exist in the target again
 under *Permissions*, or create the accounts with the same name. Members' IBANs
 are re-encrypted in the target with its own key – the old Nextcloud's
 `config.php` is not needed for that.
+
+**Backup from another Nextcloud:** roles and member links are tied to user
+and group names, and on another Nextcloud the same name may belong to a
+different person. The app therefore records which Nextcloud a backup was made
+on (recognised by the ID of the Nextcloud installation). A restore
+distinguishes three cases:
+
+- **The same Nextcloud** (for example after *Clear data set completely*):
+  everything is restored as backed up, including the links.
+- **A different Nextcloud:** *Check backup* says so. Confirmed links between
+  members and accounts are reset – every member confirms the link again
+  (13.2). This also applies if you **reinstalled** your Nextcloud after a
+  failure: a new installation has a new ID and counts as a different
+  Nextcloud. If you restore the whole Nextcloud including its `config.php`
+  instead, it stays the same one.
+- **Unknown origin** (the file carries no such information, for example
+  because the source had no ID): links are restored as backed up, but
+  *Check backup* and the report show a clear warning. Check under *Members*
+  that every linked account belongs to the right person.
+
+If the backup does not provably come from this Nextcloud, the report also
+lists **every existing account and group that received a role**. Check this
+list under *Permissions* before anyone continues working. Backups from a
+different app version cannot be restored anyway (see above).
 
 **Clear data set completely:** prepares a restore and goes further than
 *Delete all data* (12.1): it also removes members, mandates, contribution
@@ -2101,8 +2255,9 @@ to read it in order.
    account collections are made into.
 
 Enter the creditor ID and the collecting account under *Nextcloud settings →
-Vereinsbuchhaltung → Fees & SEPA → Basic settings*. That's also
-where the toggle is that shows the **"Contributions"** tab in the main
+Vereinsbuchhaltung → Fees & SEPA* in the *Direct debit: creditor ID and account*
+card. Above it, in the *Contributions module* card, is the toggle that shows
+the **"Contributions"** tab in the main
 navigation (see 13.2) – if a member has already been created, it appears
 automatically, even without the toggle.
 
@@ -2121,12 +2276,18 @@ only:
 
 | Card / section | What you set there |
 |---|---|
-| *Fees & SEPA → Basic settings* | **SEPA creditor ID**, **Collecting account**, the toggle for the "Contributions" tab, the toggle for the "My contribution" self-service and the additional toggle that lets members **switch their payment method to bank transfer** themselves there (13.11) |
+| *Fees & SEPA → Contributions module* (*Beitragsmodul*) | the toggle for the "Contributions" tab, the toggle for the "My contribution" self-service and the additional toggle that lets members **switch their payment method to bank transfer** themselves there (13.11) |
+| *… → Direct debit: creditor ID and account* (*Lastschrift: Gläubiger-ID und Konto*) | **SEPA creditor ID** and **Collecting account** |
 | *… → Contribution year and collection cycle* (*Beitragsjahr und Einzugszyklus*) | **Contribution year begins in** (month, default January – independent of the fiscal year; determines the contribution periods and the contribution confirmation, 13.12) and the three **deadlines before the collection** – **warning window** (default 21 days), **pre-notification lead time** (default 14) and **release lead time** (default 5; all 13.5). An example line converts them to a collection date, and a note appears for an unusual order |
 | *… → Storage of the collection file (XML)* (*Ablage der Einzugsdatei*) | an additional copy of the pain.008 file in a Nextcloud folder (13.5), off by default |
 | *… → Mandates* (*Mandate*) | **Mandate reference prefix**, **Expiry warning** (days before expiry, default 180), **Proof folder** and **Point out mandates without proof** (13.2, 13.9) |
 | *… → Returned debits and dunning* (*Rücklastschriften und Mahnwesen*) | **Account for return fees (expense)**, **Default revenue account for contribution claims (income)**, **Pass return fees on to the member** (off by default) and **Dunning interval (days)** (13.7, 13.8, 13.10) |
-| *Mandate legal text* (*Mandats-Rechtstext*, a section of its own) | the text on the mandate form and the consent page (13.2) |
+| *Mandate legal text* (*Mandats-Rechtstext*, a section of its own directly below) | the text on the mandate form and the consent page (13.2) |
+| *Welcome email* (*Willkommens-Mail*, a section of its own directly below) | subject and text of the email to newly admitted members (13.2) |
+
+If the "Contributions" tab is switched off, the section only shows the
+*Contributions module* and *Direct debit: creditor ID and account* cards; all
+other cards and the two sections below appear as soon as it is on.
 
 The proof folder and the XML storage live in the home of the user you chose
 under *Receipts* for storage in the Nextcloud file tree (2.4); without one,
@@ -2915,9 +3076,9 @@ saving.
 
 **Switching it on.** Two things have to come together:
 
-1. An administrator switches on **"Self-service "Mein Beitrag" for linked
-   Nextcloud accounts"** under *Nextcloud settings → Vereinsbuchhaltung → Fees &
-   SEPA → Basic settings*. It is off by default.
+1. An administrator switches on **"Enable the "My contribution"
+   self-service"** under *Nextcloud settings → Vereinsbuchhaltung → Fees &
+   SEPA → Contributions module*. It is off by default.
 2. The member is linked to their Nextcloud account in the record (13.2) – after
    your confirmation, never on its own – and has confirmed the link via the
    link in their email.
@@ -3032,6 +3193,97 @@ amount, finally the **total**. The following applies:
 If the member's address is missing, a notice on the screen ("Adresse jetzt
 hinterlegen" – "enter the address now") points it out; it doesn't appear in the
 printout.
+
+#### Donation receipts for fees and donations
+
+If the club is tax-privileged, the app can issue the **official receipt for
+monetary donations/membership fees** (*Bestätigung über
+Geldzuwendungen/Mitgliedsbeiträge*) under § 10b EStG – following the binding
+templates of the German Federal Ministry of Finance (letter of 07.11.2013): as a
+**collective receipt** per donor and **calendar year**, or as a **single
+receipt** for one monetary donation. It confirms membership fees and **monetary
+donations** from members as well as from external donors (such as sponsors);
+donations in kind are not covered. The receipt itself is always in German. *Not tax advice:* if in doubt, ask your tax
+office or tax advisor whether your membership fees are deductible and who signs.
+
+**Turning it on.** *Nextcloud settings → Vereinsbuchhaltung → Donation receipts*
+(*Zuwendungsbestätigungen*, a section of its own among the modules,
+administrators only). The switch **"Issue donation receipts"** takes effect
+immediately; then the other details appear, which "Save" applies:
+
+- the **basis of the tax privilege**: *exemption notice* (or annex to the
+  corporation tax assessment, with the **assessment period**) or *assessment
+  under § 60a AO*; plus **tax office**, **tax number** (if empty, the one from
+  *Club → Club details*) and **date of the notice**;
+- the **privileged purposes** as worded in the notice;
+- **place** and **who signs** (name and role below the signature line) – or the
+  **automated procedure** without a signature, if it has been notified to the
+  tax office (R 10b.1 (4) EStR);
+- the confirmation that the club does **not promote purposes for which
+  membership fees are not deductible** – sports, cultural leisure activities,
+  local heritage, leisure purposes (§ 10b (1) sentence 8 EStG). With this tick,
+  members' collective receipts include their fees as well. Without it, the app
+  only confirms donations and prints the template's sentence that the amount is
+  not a non-deductible membership fee;
+- the **donation accounts**: income accounts on which monetary donations are
+  booked (such as *4100 Donations*);
+- the **storage folder** (default *Vereinsbuchhaltung/Zuwendungsbestätigungen*,
+  one subfolder per year; without a receipt storage user, inside the app).
+
+The club's name and address come from *Club → Club details* (2.5); that card is
+visible even when the invoice module is off. If anything is
+missing, the record names it instead of issuing. If the notice is older than
+**5 years** (exemption) or **3 years** (§ 60a AO), the app doesn't issue either –
+the tax office does not accept such receipts (§ 63 (5) AO).
+
+**Assigning donors.** Under *Bookings* → **"Donations"** (only visible while
+the feature is on; bookkeepers and administrators) you see, per year, every
+booking with a credit on a donation account – what counts is the share on the
+donation accounts, so for a split booking only that part. For each donation you
+choose the **donor**: a member, or a recipient from the invoices as an
+**external donor** (**"New external donor"** creates one with an address). The
+tick **"Waiver of expense reimbursement"** marks a donation made by waiving
+reimbursement. Amount and date always come from the booking; if it changes, the
+new state applies. Once a donation is confirmed, its donor can only be changed
+after voiding the receipt; a recipient recorded as a donor cannot be deleted.
+
+**Single receipt.** **"Issue single receipt"** immediately issues the receipt
+for one donation following the single template (at the earliest from the day it
+was credited) – without an annex, with the amount, the date of the donation and
+the waiver statement. That donation is then left out of the year's collective
+receipt.
+
+**Issuing.** In the record (13.2), the **"Donation receipt"** section lists every
+completed calendar year with contributions (fees and assigned donations) and
+their total; under *Bookings → Donations* the selected completed year lists all
+donors, including external ones. **"Issue"** creates the collective receipt with
+a sequential number (*ZB-2026-0001*) and stores the PDF
+as the **duplicate** (§ 50 (7) EStDV, to be kept for ten years). The current year
+can only be confirmed after it has ended. Page 1 is the receipt with the amount
+in figures and words, followed by the **annex** listing every single payment
+(date, waiver of reimbursement, type – *Geldzuwendung* or *Mitgliedsbeitrag* –,
+amount) and the total. There is one valid collective receipt per donor and year;
+donations confirmed individually are left out of it. Members
+download it under *My contribution* (13.11); members without a Nextcloud
+account get the PDF from the record.
+
+**Which payments.** Unlike the informal confirmation, the **payment date**
+counts, not the due period: the date of the posting that settled the
+contribution, or without a posting the day it was marked as paid. Fees,
+cancelled and waived claims never count.
+
+**Correcting.** An issued receipt no longer changes. If it is wrong – or a
+confirmed payment changed later (for instance through a returned direct debit;
+the record then marks it as *outdated*) – it is **voided** with a reason; the PDF
+stays as the duplicate. A new one can then be issued for that year (or that
+donation). A receipt is also *outdated* when the amount or waiver of a confirmed
+donation has changed. Issuing and
+voiding are recorded in the change log.
+
+**The informal contribution confirmation is not offered** while donation receipts
+are turned on and include the fees: the official template confirms that no
+further confirmations or contribution receipts are issued for the fees. If
+membership fees are not deductible, it stays.
 
 ### 13.13 Data protection: data overview and anonymization
 
@@ -3238,8 +3490,8 @@ With the invoice module the association issues invoices in its own name – for 
 
 *Nextcloud settings → Vereinsbuchhaltung → Invoices* (administrators only):
 
-1. **Turn on the invoice module.**
-2. Enter the **details of the association**. Section 14 (4) UStG requires the name and address and the **tax number** (from the tax office) or the VAT ID. Register, board, phone and email additionally appear in the footer of the invoice. You maintain the name of the association further up under "Club". If it is too long for invoices or should read differently there, enter a **name on invoices**; it then appears in the letterhead, the sender line, the footer, the e-invoice and the invoice emails. The **account holder** (at most 70 characters, the limit of the GiroCode) appears in the payment block and the GiroCode; if empty, the name on invoices is used.
+1. **Turn on the invoice module.** The switch takes effect immediately; only then do the other cards of the section appear.
+2. Enter the **details of the association** – they are at the top in the *Club* section (*Club details* card), because donation receipts need them too. Section 14 (4) UStG requires the name and address and the **tax number** (from the tax office) or the VAT ID. Register, board, phone and email additionally appear in the footer of the invoice. You maintain the name of the association further up under "Club". If it is too long for invoices or should read differently there, enter a **name on invoices**; it then appears in the letterhead, the sender line, the footer, the e-invoice and the invoice emails. The **account holder** (at most 70 characters, the limit of the GiroCode) appears in the payment block and the GiroCode; if empty, the name on invoices is used.
 3. **Tax and payment:** Most small associations are **small businesses** (section 19 UStG) and do not show value added tax; the invoice then carries the required notice. Whether this applies to your association is determined by the tax office or your tax adviser. The app picks the **account for payment details and GiroCode** itself: the SEPA direct debit account, otherwise the only cash account with an IBAN. You only need to choose it if several cash accounts have an IBAN; if the IBAN is missing, the checklist hint leads straight to the account. Also set the payment term and, if you like, default texts.
 4. **Invoice numbers:** The default is `RE-{JJJJ}-{NNNN}` (e.g. `RE-2026-0042`), restarting at 1 every year; credit notes are counted separately (`ST-…`). `{MM}` adds the month of the invoice date, e.g. `RE-{JJJJ}{MM}-{NNNN}` for `RE-202611-0001`; the counter can then also restart at 1 every month. Numbers are consecutive and unique – change the pattern only before you write the first invoice.
 
@@ -3262,7 +3514,7 @@ Accountants may create drafts; **finalizing, sending and cancelling** are reserv
 
 ### 15.4 Finalizing
 
-**Finalize …** checks the mandatory details (address and tax number of the association, recipient, time of service, line items, amount). Under **Please note** the editor lists hints that do not prevent finalizing: a line on an account of the non-material sphere (**donations and genuine membership fees are not invoiced** – use the donation receipt or the contributions module instead), a registered association without "e. V." in its name, and a missing bank account. Optionally the invoice prints a **note on non-profit status** (Settings → Invoices → Club details); it does not replace a VAT notice. After that:
+**Finalize …** checks the mandatory details (address and tax number of the association, recipient, time of service, line items, amount). Under **Please note** the editor lists hints that do not prevent finalizing: a line on an account of the non-material sphere (**donations and genuine membership fees are not invoiced** – use the donation receipt or the contributions module instead), a registered association without "e. V." in its name, and a missing bank account. Optionally the invoice prints a **note on non-profit status** (Settings → Club → Club details); it does not replace a VAT notice. After that:
 
 - the invoice receives its **number** and is **immutable** – it can only be corrected by cancelling it;
 - the **PDF** is created (PDF/A-3b, with a GiroCode to scan in the banking app) and stored as a file in the home of the receipt storage user under `Vereinsbuchhaltung/Rechnungen/<year>/` (the folder can be changed in the invoice settings; the path starts in that user's home, not in your own); the checksum (SHA-256) later shows whether the file was changed;

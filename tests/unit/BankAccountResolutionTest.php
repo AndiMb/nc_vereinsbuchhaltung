@@ -137,6 +137,54 @@ class BankAccountResolutionTest extends TestCase {
 		$this->assertSame([], $matcher->candidates('00234573201', [$at]));
 	}
 
+	public function testPayPalKennungFindetDasPayPalKonto(): void {
+		$paypal = $this->paypal(2, 'kasse@example.org,spender@example.com');
+		$service = $this->service($this->bank(1, self::GIRO_IBAN), $paypal);
+
+		$this->assertSame($paypal, $service->resolveBankAccount('book', 'PAYPALSPENDEREXAMPLECOM'));
+		$this->assertSame($paypal, $service->resolveBankAccount('book', 'PAYPALKASSEEXAMPLEORG'));
+	}
+
+	public function testPayPalKennungOhneTrefferFaelltNichtAufsGirokonto(): void {
+		$service = $this->service($this->bank(1, self::GIRO_IBAN), $this->bank(2, null));
+
+		$this->expectException(\InvalidArgumentException::class);
+		$this->expectExceptionMessage('PAYPALKASSEEXAMPLEORG');
+		$service->resolveBankAccount('book', 'PAYPALKASSEEXAMPLEORG');
+	}
+
+	public function testPayPalKennungAuchBeiNurEinemGeldkonto(): void {
+		$service = $this->service($this->bank(1, null));
+
+		$this->expectException(\InvalidArgumentException::class);
+		$service->resolveBankAccount('book', 'PAYPALKASSEEXAMPLEORG');
+	}
+
+	public function testPayPalKennungPasstZuZweiKonten(): void {
+		$a = $this->paypal(1, 'kasse@example.org');
+		$b = $this->paypal(2, 'kasse@example.org');
+		$b->setNumber('1210');
+		$service = $this->service($a, $b);
+
+		$this->expectException(\InvalidArgumentException::class);
+		$this->expectExceptionMessage('1200 Bank 1, 1210 Bank 2');
+		$service->resolveBankAccount('book', 'PAYPALKASSEEXAMPLEORG');
+	}
+
+	/** Review Focus 5: ein PayPal-Konto ohne IBAN darf die Zuordnung der Bankumsätze nicht verändern. */
+	public function testGirokontoUnveraendertNebenPayPalKonto(): void {
+		$service = $this->service($giro = $this->bank(1, self::GIRO_IBAN), $this->paypal(2, 'kasse@example.org'));
+
+		$this->assertSame($giro, $service->resolveBankAccount('book', self::GIRO_IBAN));
+		$this->assertSame($giro, $service->resolveBankAccount('book', null));
+	}
+
+	private function paypal(int $id, string $addresses): Account {
+		$account = $this->bank($id, null);
+		$account->setPaypalEmail($addresses);
+		return $account;
+	}
+
 	private function bank(int $id, ?string $iban): Account {
 		$account = new Account();
 		$account->setId($id);

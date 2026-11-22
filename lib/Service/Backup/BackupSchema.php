@@ -26,7 +26,7 @@ final class BackupSchema {
 	public const PK = 'id';
 
 	/** Arten gesicherter Dateien = Ordner unter `files/` in der Sicherung. */
-	public const FILE_KINDS = ['attachments', 'reimbursements', 'invoices', 'mandates'];
+	public const FILE_KINDS = ['attachments', 'reimbursements', 'invoices', 'mandates', 'donation_receipts'];
 
 	/** Datei-ID „liegt in der app-internen Ablage“ (Rechnungsdokumente, Mandatsnachweise). */
 	public const APPDATA_FILE_ID = 0;
@@ -82,6 +82,10 @@ final class BackupSchema {
 			'vbh_returned_debits' => $plain,
 			'vbh_dunning_notices' => $plain,
 			'vbh_tasks' => $plain,
+			// Zuwendungsbestätigungen (Issue #10): das PDF wie bei Rechnungsdokumenten
+			'vbh_donation_receipts' => ['encrypted' => [], 'replace' => ['file_id' => self::APPDATA_FILE_ID]],
+			// Spender je Spendenbuchung (Issue #10, Teil B)
+			'vbh_donations' => $plain,
 			// Rechnungen
 			'vbh_number_ranges' => $plain,
 			'vbh_debtors' => $plain,
@@ -166,6 +170,7 @@ final class BackupSchema {
 			'xml_folder_enabled', 'xml_folder_path',
 			'invoice_folder',
 			'report_folder',
+			'donation_receipt_folder',
 			'data_revision',
 		];
 	}

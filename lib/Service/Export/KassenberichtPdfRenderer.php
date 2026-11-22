@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Service\Export;
 
 use OCA\Vereinsbuchhaltung\Db\Period;
+use OCA\Vereinsbuchhaltung\Service\AsciiFileName;
 use OCA\Vereinsbuchhaltung\Service\ClubCurrency;
 use OCA\Vereinsbuchhaltung\Service\Pdf\ReportPdf;
 use OCA\Vereinsbuchhaltung\Service\Pdf\ReportPdfFactory;
@@ -29,7 +30,7 @@ class KassenberichtPdfRenderer {
 
 	/** Dateiname des PDFs, z. B. „Kassenbericht-2026.pdf“. */
 	public function fileName(Period $period): string {
-		return 'Kassenbericht-' . preg_replace('/[^A-Za-z0-9._-]+/', '-', (string)$period->getLabel()) . '.pdf';
+		return 'Kassenbericht-' . AsciiFileName::of((string)$period->getLabel()) . '.pdf';
 	}
 
 	/**

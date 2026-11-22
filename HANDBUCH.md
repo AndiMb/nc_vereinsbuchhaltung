@@ -63,6 +63,48 @@ prüffähig dokumentiert.
 Die Ersteinrichtung macht einmal eine **Verwalterin oder ein Verwalter**.
 Ohne diese Rolle ist nur Lesen oder Buchen möglich (siehe Anhang 14.1).
 
+**Wo die Einstellungen stehen.** Die Einstellungen der App liegen nicht in der
+App selbst, sondern in den Einstellungen der Nextcloud – und sind nur Verwaltern
+zugänglich:
+
+- **Verwalter ohne Nextcloud-Adminrechte:** oben rechts auf das eigene
+  Profilbild → *Persönliche Einstellungen* → links unter *Persönlich* der
+  Eintrag **Vereinsbuchhaltung**.
+- **Nextcloud-Administratoren:** Profilbild → *Verwaltungseinstellungen* →
+  links unter *Verwaltung* der Eintrag **Vereinsbuchhaltung**.
+
+Schneller geht es über die Einrichtungs-Checkliste (2.0) und die Hinweise auf
+dem Dashboard: Sie springen direkt an die passende Stelle. Dieses Handbuch
+schreibt den Weg kurz als *Nextcloud-Einstellungen → Vereinsbuchhaltung →
+Abschnitt*.
+
+Ganz oben auf der Seite steht ein Inhaltsverzeichnis (**„Auf dieser Seite"**)
+mit Sprunglinks zu allen Abschnitten; das Fragezeichen neben einer
+Abschnittsüberschrift öffnet das passende Kapitel dieses Handbuchs. Die
+Abschnitte stehen in dieser Reihenfolge:
+
+| Gruppe | Abschnitte (Kapitel) |
+|---|---|
+| Grundlagen | Verein mit Vereinsname, Vereinswährung, Corporate Design und Angaben des Vereins (2.5, 2.6) · Berechtigungen (2.1) · Belege (2.4) · Kontoauszüge automatisch einlesen (3.3) · Geschäftsjahr (8.1) |
+| Listen und Berichte | Darstellung – Beträge in den Buchungslisten neutral oder mit Vorzeichen und Farbe, für alle Nutzer gleich · Ampel im Gliederungsbericht (7.5) |
+| Module | Beiträge & SEPA (13.1) · Mandats-Rechtstext (13.2) · Willkommens-Mail (13.2) · Zuwendungsbestätigungen (13.12) · Rechnungen (15.1) · Auslagenerstattung (4.6) · Kostenstellen (5.8) |
+| Daten und Sicherung | Datenübernahme aus „zero Buchhaltung" (3.1) · Sicherung und Umzug (12.3) · Zurücksetzen mit *Alle Daten löschen* (12.1) |
+
+**Ausgeschaltete Module** zeigen nur ihren Schalter und einen Hinweis; ihre
+übrigen Karten erscheinen erst, wenn das Modul an ist (im Inhaltsverzeichnis
+steht dann nicht mehr „ausgeschaltet"). Das betrifft Beiträge & SEPA (samt
+Mandats-Rechtstext und Willkommens-Mail), Zuwendungsbestätigungen, Rechnungen
+und die Auslagennummern. Gespeicherte Angaben bleiben beim Ausschalten erhalten.
+Die **Angaben des Vereins** (Anschrift, Steuernummer, Register, Vorstand)
+stehen dagegen immer unter *Verein*: Rechnungen und Zuwendungsbestätigungen
+brauchen sie gleichermaßen.
+
+**Speichern.** **Modulschalter wirken sofort** – ein Speichern ist nicht nötig,
+eine Meldung oben rechts bestätigt es; scheitert es, springt der Schalter
+zurück und der Grund steht in der Karte. **Alle anderen Angaben speichert der
+Knopf „Speichern" ihrer Karte**, und zwar nur die Felder dieser Karte: Wer in
+zwei Karten etwas ändert, speichert beide einzeln.
+
 ### 2.0 Der Start-Assistent und die Checkliste
 
 Beim allerersten Öffnen – solange noch kein einziges Konto existiert –
@@ -91,7 +133,7 @@ sie nicht braucht, blendet sie aus.
 
 ### 2.1 Berechtigungen vergeben
 
-Zahnrad-Symbol (Einstellungen) → Abschnitt **Berechtigungen**. Dort werden
+*Nextcloud-Einstellungen → Vereinsbuchhaltung* (siehe oben) → Abschnitt **Berechtigungen**. Dort werden
 Nextcloud-Nutzer oder -Gruppen mit einer Rolle ausgestattet:
 
 - **Verwalter** – darf alles, inkl. Berechtigungen, Geschäftsjahr, Alle-Daten-löschen
@@ -114,7 +156,7 @@ Nextcloud-Kontos mit der Mitgliederakte.
 Es gibt zwei Wege:
 
 **Weg A – aus „zero Buchhaltung" importieren (empfohlen, wenn vorhanden):**
-Zahnrad → *Daten* → *Aus „zero Buchhaltung" (.xbuc)*. Das übernimmt den
+*Nextcloud-Einstellungen → Vereinsbuchhaltung → Datenübernahme* → *Aus „zero Buchhaltung" (.xbuc)*. Das übernimmt den
 kompletten Kontenbaum inkl. Hierarchie und der bisherigen Buchungen.
 Details siehe Kapitel 3.1.
 
@@ -184,7 +226,7 @@ vom ersten Tag an.
 
 ### 2.4 Belegablage einrichten (Verwalter)
 
-Zahnrad → *Belege* → *Art der Ablage*. Drei Möglichkeiten:
+*Nextcloud-Einstellungen → Vereinsbuchhaltung → Belege* → *Art der Ablage*. Drei Möglichkeiten:
 
 - **intern (AppData):** nur über die App sichtbar.
 - **Nextcloud-Ordner, von der App verwaltet:** die App legt je Buchung
@@ -231,7 +273,7 @@ Ablage bleiben, wo sie sind, und bleiben lesbar.
 
 ### 2.5 Verein benennen (Verwalter)
 
-Zahnrad → *Verein* → Vereinsname eintragen. Er erscheint im Kopf des
+*Nextcloud-Einstellungen → Vereinsbuchhaltung → Verein* → Karte *Vereinsname*: Namen eintragen und speichern. Er erscheint im Kopf des
 Kassenberichts (Kapitel 7). Kleine Sache, großer Effekt auf der
 Mitgliederversammlung.
 
@@ -239,8 +281,15 @@ Auch die E-Mails der App (Rechnungen, Mahnungen, Vorabankündigungen,
 Willkommens-Mails, Mandatsbestätigungen) tragen dann den Vereinsnamen als
 Absender und in der Fußzeile statt des Namens der Nextcloud. Die
 Absenderadresse bleibt die aus den Mail-Einstellungen der Nextcloud. Steht
-in den Einstellungen unter *Rechnungen* eine E-Mail des Vereins, gehen
+in der Karte *Angaben des Vereins* eine E-Mail des Vereins, gehen
 Antworten an diese Adresse.
+
+**Angaben des Vereins.** Ebenfalls unter *Verein* steht die Karte *Angaben
+des Vereins*: Anschrift, Steuernummer bzw. USt-IdNr., Vereinsregister,
+Vorstand, Telefon, E-Mail und ein optionaler Hinweis auf die
+Gemeinnützigkeit. Rechnungen (Kapitel 15.1) und Zuwendungsbestätigungen
+(13.12) nehmen Name, Anschrift und Steuernummer von hier; deshalb ist die
+Karte immer sichtbar, auch wenn das Rechnungsmodul aus ist.
 
 **Vereinswährung.** Auf derselben Seite steht die Karte *Vereinswährung*.
 Ab Werk rechnet die App in Euro. Zur Wahl stehen außerdem Schweizer Franken
@@ -262,7 +311,7 @@ Zuweisungen vorher auf Überweisung umstellen. Nach dem Speichern lädt die Seit
 
 ### 2.6 Corporate Design (optional)
 
-Zahnrad → *Verein* (zweite Karte auf derselben Seite): ein **Vereinslogo**
+*Nextcloud-Einstellungen → Vereinsbuchhaltung → Verein* → Karte *Corporate Design*: ein **Vereinslogo**
 (PNG, JPG oder WebP) hochladen und eine **Akzentfarbe** wählen. Beides erscheint
 automatisch im **Kurzbericht für Vorstandssitzungen** (Kapitel 7.3) – der
 Kassenbericht selbst bleibt bewusst schlicht/neutral. Das Logo steht außerdem
@@ -278,7 +327,7 @@ einzustellen.
 
 Läuft Ihr Geschäftsjahr anders – von Oktober bis September, im Schuljahr
 von August bis Juli, oder semesterweise –, dann stellen Sie das **einmal zu
-Beginn** ein: Zahnrad → *Geschäftsjahr* (nur Verwalter). Wie das geht und
+Beginn** ein: *Nextcloud-Einstellungen → Vereinsbuchhaltung → Geschäftsjahr* (nur Verwalter). Wie das geht und
 was dabei mit vorhandenen Buchungen passiert, steht in **Kapitel 8.1**.
 
 > **Am besten zuerst:** Die Umstellung ordnet jede vorhandene Buchung dem
@@ -294,7 +343,7 @@ was dabei mit vorhandenen Buchungen passiert, steht in **Kapitel 8.1**.
 ### 3.1 xbuc-Import aus „zero Buchhaltung"
 
 Wer bisher mit *zero Buchhaltung* gearbeitet hat, kann Konten und Buchungen
-komplett übernehmen: Zahnrad → *Daten* → *Aus „zero Buchhaltung" (.xbuc)* →
+komplett übernehmen: *Nextcloud-Einstellungen → Vereinsbuchhaltung → Datenübernahme* → *Aus „zero Buchhaltung" (.xbuc)* →
 Datei wählen.
 
 - **Merge-Modus (Standard):** Nur fehlende Konten werden angelegt,
@@ -387,10 +436,83 @@ Instituten, aber eben nicht mit Sicherheit.
   verbucht wird erst nach Ihrem Urteil.
 - Nach dem Import erscheint eine Vorschau mit *neu* / *Dubletten* / *gesamt*.
 
+#### PayPal-Umsätze importieren
+
+Auch der Aktivitätsdownload von PayPal lässt sich im normalen Import laden
+(*Umsätze importieren*); die App erkennt ihn am Inhalt, ebenso der
+Wachordner (Kapitel 3.3). So kommt das PayPal-Konto als eigenes Geldkonto
+in die Buchhaltung.
+
+1. **Export bei PayPal:** *Aktivitäten* → *Berichte* → *Aktivitätsdownload*.
+   Bei privaten Konten geht es auch über *Kontoauszüge* → *Aktivitäten
+   herunterladen*. Wählen Sie das Format **CSV** mit „Alle Transaktionen"
+   und den gewünschten Zeitraum. Erkannt wird der deutschsprachige
+   Aktivitätsdownload.
+2. **Geldkonto anlegen:** Im Tab **Konten** ein Geldkonto für PayPal
+   anlegen und im Feld **PayPal-Adresse (optional)** die E-Mail-Adresse des
+   PayPal-Kontos eintragen, etwa `kasse@example.org`. Das Feld erscheint
+   nur bei Bankkonten; mehrere Adressen trennen Sie durch Kommas. Der Import
+   ordnet die Zeilen über diese Adresse zu. Fehlt eine passende Adresse,
+   nennt die Vorschau die Adresse aus der Datei und bittet Sie, sie
+   einzutragen. PayPal-Umsätze landen nie auf dem Girokonto.
+3. **Datei laden** wie jeden Kontoauszug und die Vorschau prüfen.
+
+**Welche Zeilen übernommen werden:**
+
+- Jede Zeile mit der *Auswirkung auf Guthaben* **Soll** oder **Haben** in
+  der Vereinswährung. Das schließt noch *ausstehende* Zeilen ein, damit das
+  PayPal-Guthaben in der App mit dem Guthaben bei PayPal übereinstimmt.
+- Hinweiszeilen („Memo") und Zeilen in Fremdwährung werden übersprungen; die
+  Vorschau zeigt, wie viele („{n} übersprungen"). Bei einer
+  Währungsumrechnung trägt die Zeile in Vereinswährung den Betrag.
+
+**Gebühren:** Eine Gebühr wird zu einer eigenen Bankbuchung mit dem
+Gegenüber „PayPal" und dem Verwendungszweck „PayPal-Gebühr zu
+<Transaktionscode>". Die Hauptbuchung steht mit dem Bruttobetrag.
+
+Alle Gebühren lassen sich mit *einer* Auto-Zuordnungsregel buchen (Kapitel
+4.1): Sie passt auf den Verwendungszweck „PayPal-Gebühr" und zeigt auf ein
+Konto für Bankgebühren, etwa „Nebenkosten des Geldverkehrs".
+
+Der Gebührentext folgt der Sprache beim Import; der Wachordner nutzt die
+Standardsprache der Instanz. Bei gemischten Sprachen legen Sie die Regel je
+Sprache an oder nehmen stattdessen den Zahlungspartner: Regelfeld *Zahlungspartner*,
+Wert „PayPal". Diese Regel trifft unabhängig von der Sprache, passt aber
+auch auf jeden anderen Umsatz, dessen Zahlungspartner „PayPal" enthält, was
+selten vorkommt. Als Standard empfiehlt sich die Regel auf den
+Verwendungszweck.
+
+**Verwendungszweck der Hauptbuchung:** Betreff, Hinweis und
+Artikelbezeichnung (alle nicht leeren, durch „ / " verbunden), gefolgt von „· PayPal <Transaktionscode>". Ist der Name
+leer (etwa bei „Bankgutschrift auf PayPal-Konto"), steht stattdessen der
+Name der zugehörigen Transaktion.
+
+**Dubletten:** Die App erkennt Umsätze am PayPal-Transaktionscode. Sich
+überschneidende oder wiederholte Exporte und der Wechsel einer Zeile von
+*Ausstehend* auf *Abgeschlossen* erzeugen keine Dubletten.
+
+**Aufladung vom Bankkonto:** Die „Bankgutschrift auf PayPal-Konto" steht
+auch im Auszug des Girokontos. Das ist eine Umbuchung zwischen zwei eigenen
+Geldkonten und wird wie jede andere Umbuchung behandelt (Regel oder
+manuelle Zuordnung, Kapitel 4.1).
+
+**Umstieg von einem eigenen Umwandlungsskript:** Was früher per Skript
+importiert wurde, erkennt die App nicht als Dublette. Exportieren Sie die
+erste PayPal-Datei deshalb ab dem Tag nach dem letzten Skript-Import.
+Steht in der Spalte für das eigene Konto einer Bank-CSV eine Bezeichnung, die
+mit „PayPal" beginnt (etwa ein Konto-Spitzname), behandelt die App sie als
+PayPal-Konto. Benennen Sie den Spitznamen dann um oder tragen Sie im Export
+die IBAN-Spalte ein.
+
+**Ausstehende Zahlungen, die später scheitern:** Legt PayPal dafür keine
+Gegenzeile an, bleibt die Buchung in der App stehen. Die Kontoabstimmung
+(Kapitel 5.9) zeigt die Differenz.
+
 ### 3.3 Kontoauszüge automatisch einlesen (Wachordner)
 
-Wer jeden Monat dasselbe tut, kann sich den Upload sparen: Zahnrad →
-*Bankdaten* (nur Verwalter). Dort werden ein
+Wer jeden Monat dasselbe tut, kann sich den Upload sparen:
+*Nextcloud-Einstellungen → Vereinsbuchhaltung → Kontoauszüge automatisch einlesen* (nur
+Verwalter). Nach dem Einschalten werden ein
 Nextcloud-Nutzer und ein Ordner in dessen Dateien eingetragen, zum Beispiel
 `Vereinsbuchhaltung/Kontoauszüge`. „Ordner wählen…" neben dem Pfadfeld
 öffnet den Ordnerbaum des Nutzer-Homes; Ordner anklicken und „Übernehmen".
@@ -753,8 +875,9 @@ Historie des Antrags.
 **Einschalten (Verwalter).** *Nextcloud-Einstellungen → Vereinsbuchhaltung →
 Auslagenerstattung*: der Schalter **„Auslagenerstattung aktivieren"** und die
 Zahl der **nötigen Freigaben** (ab Werk 2). Niemand kann den eigenen Antrag
-freigeben; deshalb braucht es mindestens **N + 1 Verwalter**, sonst lässt sich
-der Schalter nicht speichern. Als Verwalter zählen alle Personen mit der Rolle
+freigeben; deshalb braucht es mindestens **N + 1 Verwalter**, sonst springt der
+Schalter zurück und die Karte nennt den Grund. Der Schalter wirkt sofort (mit
+der eingetragenen Zahl); eine später geänderte Zahl übernimmt „Speichern". Als Verwalter zählen alle Personen mit der Rolle
 Verwalter (einzeln oder über eine Gruppe) und die Nextcloud-Administratoren.
 Die Funktion hängt nicht am Self-Service „Beitrag": ein Mitglied braucht nur das
 verknüpfte Nextcloud-Konto (13.2).
@@ -1159,7 +1282,7 @@ Kostenstellen haben keine steuerliche Bedeutung und ersetzen die Sphären
 nicht.
 
 **Einschalten:** *Einstellungen → Vereinsbuchhaltung → Kostenstellen →
-Kostenstellen aktivieren* (nur Verwalter).
+Kostenstellen aktivieren* (nur Verwalter). Der Schalter wirkt sofort.
 
 **Anlegen:** Tab **Berichte → Kostenstellen → Kostenstellen verwalten**. Jede
 Kostenstelle hat ein Kürzel (höchstens acht Zeichen, z. B. `SEN`) und einen
@@ -1281,13 +1404,15 @@ steht allen ab der Rolle Revisor offen.
 
 **Es wird nur verglichen.** Der Auszug wird weder importiert noch
 gespeichert; Buchungen und Bankumsätze bleiben, wie sie sind. Zum Einlesen
-von Umsätzen dient weiter der Import (Kapitel 3.2).
+von Umsätzen dient weiter der Import (Kapitel 3.2). Auch eine PayPal-Datei
+lässt sich abgleichen: Die Salden stammen aus der Spalte „Guthaben", und nur
+Geldkonten mit passender PayPal-Adresse nehmen die Datei an (Kapitel 3.2).
 
 **So geht es:**
 
 1. Reiter **Konten** → das Geldkonto anklicken → **Kontoabstimmung**.
 2. **Datei wählen**: den Kontoauszug aus dem Onlinebanking, in denselben
-   Formaten wie beim Import (CSV-CAMT, CAMT.053, MT940). Der Abgleich
+   Formaten wie beim Import (CSV-CAMT, CAMT.053, MT940, PayPal-CSV). Der Abgleich
    startet sofort.
 3. Optional den Zeitraum mit **Von** und **Bis** einengen und erneut
    **Abgleichen**. Ohne Angabe gilt der Zeitraum des Auszugs; über ihn
@@ -1482,7 +1607,7 @@ Datum geräte-lokal als Vorschlag für das nächste Mal.
 Inhalt: Kontostände der Geldkonten zum Stichtag und heute, Bewegungen seit
 dem Stichtag (Einnahmen/Ausgaben/Ergebnis) sowie eine kurze
 Finanzplan-Kurzfassung des laufenden Zeitraums (Plan vs. bisheriges Ist). Ist
-unter Zahnrad → *Verein* (Kapitel 2.6) ein Logo und eine Akzentfarbe
+unter *Nextcloud-Einstellungen → Vereinsbuchhaltung → Verein* (Kapitel 2.6) ein Logo und eine Akzentfarbe
 hinterlegt, erscheinen beide automatisch im Kopf des Berichts.
 Wie beim Kassenbericht: Drucken oder „Als PDF speichern" über den Browser.
 
@@ -1544,6 +1669,12 @@ oder nur Ausgaben erlaubt, ist es eine Summe, sonst ein Ergebnis.
 es am Ende unter „Nicht erfasste Konten", und ein Hinweis nennt es. Zählt ein
 Konto in mehreren Abschnitten, wird es markiert. Die Gesamtzeile umfasst
 immer alle Einnahmen und Ausgaben und stimmt mit dem Finanzplan überein.
+
+**PDF** (nur in der Tabellenansicht) lädt den Bericht als fertige PDF-Datei
+herunter – mit Seitenzahlen, auf jeder Seite wiederholtem Tabellenkopf und ab
+fünf Wertspalten automatisch im Querformat. Der Dateiname lautet
+*Gliederungsbericht-<Vorlage>-<Zeitraum>.pdf* (Umlaute werden umschrieben). Die
+visuelle Ansicht (Kapitel 7.5) gibt es weiterhin nur als Druckseite.
 
 **Drucken / PDF** öffnet den Bericht als druckfertige Seite (ab fünf Spalten
 im Querformat), **CSV** liefert dieselben Zeilen mit einer Spalte „Ebene" zum
@@ -1620,7 +1751,7 @@ steht, trägt statt dessen „im Oberkonto geplant“.
 **Kein Plan.** Ist für die Periode kein Plan erfasst, weist ein Hinweis auf
 den Finanzplan hin, in dem die Planwerte stehen.
 
-**Schwellen anpassen.** Zahnrad → Einstellungen, Abschnitt **Ampel im
+**Schwellen anpassen.** *Nextcloud-Einstellungen → Vereinsbuchhaltung*, Abschnitt **Ampel im
 Gliederungsbericht** (nur Rolle Verwalter): fünf Schwellen, vereinsweit
 dieselben für alle. Zulässig sind ganze Zahlen von 0 bis 999. Bei den Ausgaben
 muss „orange ab“ unter „rot über“ liegen, bei den Einnahmen „rot unter“ unter
@@ -1650,8 +1781,9 @@ abweichen und kürzer als zwölf Monate sein.
 
 ### 8.1 Das Geschäftsjahr festlegen
 
-Zahnrad → *Geschäftsjahr* (nur Verwalter). Die Seite hat zwei Karten: oben
-die **Regel**, nach der Zeiträume entstehen, unten die **Zeiträume** selbst.
+*Nextcloud-Einstellungen → Vereinsbuchhaltung → Geschäftsjahr* (nur Verwalter). Oben steht die **Regel**,
+nach der Zeiträume entstehen, darunter die **Zeiträume** selbst (die dritte
+Karte, *Kassenbericht ablegen*, beschreibt Kapitel 8.2).
 
 **Karte 1: die Regel.** Zur Auswahl stehen vier Vorlagen und eine eigene:
 
@@ -1754,7 +1886,7 @@ Bewusst *nicht* umgestellt sind drei Dinge:
 
 ### 8.2 Zeitraum abschließen
 
-Zahnrad → *Geschäftsjahr* → Karte *Zeiträume* (nur Verwalter). Bei Bedarf
+*Nextcloud-Einstellungen → Vereinsbuchhaltung → Geschäftsjahr* → Karte *Zeiträume* (nur Verwalter). Bei Bedarf
 „Abschließen" bestätigen; der Dialog nennt Bezeichnung und Von–Bis, damit
 nicht der falsche Zeitraum erwischt wird. Der Zeitraum ist danach mit einem
 🔒 in der Auswahl in der Kopfzeile markiert.
@@ -1965,7 +2097,7 @@ selbst als lesbare Seite aus, es muss also nichts auf GitHub gesucht werden.
 
 ### 12.1 „Alle Daten löschen" / Reset
 
-Zahnrad → *Daten* → *Alle Daten löschen* (nur Verwalter, mit
+*Nextcloud-Einstellungen → Vereinsbuchhaltung → Zurücksetzen* → *Alle Daten löschen* (nur Verwalter, mit
 Bestätigungsdialog) entfernt Konten, Buchungen, Importe, Belege, offene Posten
 (auch die Forderungen an Mitglieder), **alle Auslagenanträge samt Historie und Belegen** (Kapitel 4.6), **alle Rechnungen samt PDF und E-Rechnung** (Rechnungen sind acht Jahre aufzubewahren: vorher mit dem Beleg-ZIP unter Berichte → Auswertung sichern), die Vorlagen des
 Gliederungsberichts (danach stehen wieder die beiden Standardvorlagen bereit)
@@ -1974,6 +2106,9 @@ Mandate, Beitragsgruppen und Zuweisungen (Kapitel 13) gehören nicht zum
 Buchungsbestand und bleiben unberührt (der Einzug wird mitgeräumt, siehe unten).
 Ebenso bleiben die **Entwürfe von Auslagen**, die Mitglieder noch nicht
 eingereicht haben (4.6) – sie gehören den Mitgliedern, nicht der Buchhaltung.
+Auch ausgestellte **Zuwendungsbestätigungen** (13.12) bleiben samt PDF: Ihr
+Doppel ist zehn Jahre aufzubewahren, und es enthält die bestätigten Zahlungen selbst.
+Die **Spenderzuordnungen** der Buchungen dagegen werden mit den Buchungen gelöscht.
 Gleiches gilt für den Reset-Modus beim xbuc-Import. Beides ist
 unwiderruflich – also nur nach Rücksprache und nie aus Versehen. Wer wirklich
 alles entfernen will, auch Mitglieder, Mandate und Einstellungen – etwa um
@@ -2015,7 +2150,7 @@ nach Wiedereröffnung (Verwalter, Kapitel 8.4) korrigieren.
 
 ### 12.3 Sicherung und Umzug
 
-Zahnrad → *Sicherung und Umzug* (nur Verwalter) sichert den **gesamten
+*Nextcloud-Einstellungen → Vereinsbuchhaltung → Sicherung und Umzug* (nur Verwalter) sichert den **gesamten
 Bestand** in eine einzige, verschlüsselte Datei (`.vbhbackup`) und spielt eine
 solche Datei wieder ein – auf derselben Nextcloud oder auf einer anderen. Das
 ist der Weg für den Umzug auf einen neuen Server und für eine Sicherung, die
@@ -2071,6 +2206,32 @@ vergeben Sie unter *Berechtigungen* neu oder legen die Konten mit demselben
 Namen an. Die IBANs der Mitglieder werden im Ziel mit dessen eigenem Schlüssel
 neu verschlüsselt – die `config.php` der alten Nextcloud braucht es dafür
 nicht.
+
+**Sicherung von einer anderen Nextcloud:** Rollen und Mitglied-Verknüpfungen
+hängen an Benutzer- und Gruppennamen, und auf einer anderen Nextcloud kann
+derselbe Name einem anderen Menschen gehören. Die App merkt sich deshalb beim
+Sichern, auf welcher Nextcloud die Datei entstanden ist (erkannt an der
+Kennung der Nextcloud-Installation). Beim Einspielen gibt es drei Fälle:
+
+- **Dieselbe Nextcloud** (etwa nach *Bestand vollständig leeren*): Alles wird
+  wie gesichert übernommen, auch die Verknüpfungen.
+- **Eine andere Nextcloud:** *Sicherung prüfen* weist darauf hin. Bestätigte
+  Verknüpfungen von Mitgliedern mit Konten werden zurückgesetzt – jedes
+  Mitglied bestätigt sie neu (13.2). Das gilt auch, wenn Sie Ihre Nextcloud
+  nach einem Ausfall **neu installiert** haben: Eine neue Installation hat
+  eine neue Kennung und zählt als andere Nextcloud. Stellen Sie dagegen die
+  ganze Nextcloud samt `config.php` wieder her, bleibt es dieselbe.
+- **Unbekannte Herkunft** (die Datei enthält keine Angabe dazu, etwa weil die
+  Quelle keine Kennung hatte): Verknüpfungen werden wie gesichert
+  übernommen, *Sicherung prüfen* und der Bericht warnen aber deutlich.
+  Prüfen Sie dann unter *Mitglieder*, ob jedes verknüpfte Konto dem richtigen
+  Menschen gehört.
+
+Stammt die Sicherung nicht nachweislich von dieser Nextcloud, nennt der
+Bericht außerdem **jedes vorhandene Konto und jede vorhandene Gruppe, die eine
+Rolle bekommen hat**. Prüfen Sie diese Liste unter *Berechtigungen*, bevor
+jemand weiterarbeitet. Sicherungen einer anderen App-Version lassen sich
+ohnehin nicht einspielen (siehe oben).
 
 **Bestand vollständig leeren:** bereitet das Einspielen vor und geht weiter
 als *Alle Daten löschen* (12.1): Es entfernt auch Mitglieder, Mandate,
@@ -2153,8 +2314,9 @@ müssen es nicht der Reihe nach lesen.
    wird eingezogen.
 
 Gläubiger-ID und einziehendes Konto tragen Sie unter *Nextcloud-Einstellungen
-→ Vereinsbuchhaltung → Beiträge & SEPA → Grundeinstellungen* ein. Dort steht
-auch der Schalter, der den Reiter **„Beiträge"** in der Hauptnavigation
+→ Vereinsbuchhaltung → Beiträge & SEPA* in der Karte *Lastschrift: Gläubiger-ID
+und Konto* ein. Darüber, in der Karte *Beitragsmodul*, steht der Schalter, der
+den Reiter **„Beiträge"** in der Hauptnavigation
 einblendet (siehe 13.2) – ist bereits ein Mitglied angelegt, erscheint er
 automatisch, auch ohne den Schalter.
 
@@ -2173,12 +2335,18 @@ zugänglich:
 
 | Karte / Abschnitt | Was Sie dort einstellen |
 |---|---|
-| *Beiträge & SEPA → Grundeinstellungen* | **SEPA-Gläubiger-ID**, **Einziehendes Konto**, der Schalter für den Reiter „Beiträge", der Schalter für den Self-Service „Mein Beitrag" und der Zusatzschalter, ob Mitglieder dort ihre **Zahlungsart selbst auf Überweisung** umstellen dürfen (13.11) |
+| *Beiträge & SEPA → Beitragsmodul* | der Schalter für den Reiter „Beiträge", der Schalter für den Self-Service „Mein Beitrag" und der Zusatzschalter, ob Mitglieder dort ihre **Zahlungsart selbst auf Überweisung** umstellen dürfen (13.11) |
+| *… → Lastschrift: Gläubiger-ID und Konto* | **SEPA-Gläubiger-ID** und **Einziehendes Konto** |
 | *… → Beitragsjahr und Einzugszyklus* | **Beitragsjahr beginnt im** (Monat, Standard Januar – unabhängig vom Geschäftsjahr; bestimmt die Beitragsperioden und die Beitragsbestätigung, 13.12) und die drei **Fristen vor dem Einzug** – **Vorwarnfenster** (Standard 21 Tage), **Vorabinfo-Vorlauf** (Standard 14) und **Freigabe-Vorlauf** (Standard 5; alle 13.5). Eine Beispielzeile rechnet sie auf einen Einzugstermin um, ein Hinweis erscheint bei unüblicher Reihenfolge |
 | *… → Ablage der Einzugsdatei (XML)* | zusätzliche Kopie der pain.008-Datei in einem Nextcloud-Ordner (13.5), standardmäßig aus |
 | *… → Mandate* | **Mandatsreferenz-Präfix**, **Ablauf-Vorwarnung** (Tage vor Verfall, Standard 180), **Nachweis-Ordner** und **Auf Mandate ohne Nachweis hinweisen** (13.2, 13.9) |
 | *… → Rücklastschriften und Mahnwesen* | **Konto für Rücklastschriftgebühren (Aufwand)**, **Standard-Erlöskonto für Beitragsforderungen (Ertrag)**, **Rücklastschriftgebühren an das Mitglied weiterbelasten** (standardmäßig aus) und **Mahnabstand (Tage)** (13.7, 13.8, 13.10) |
-| *Mandats-Rechtstext* (eigener Abschnitt) | der Text auf Mandatsformular und Zustimmungsseite (13.2) |
+| *Mandats-Rechtstext* (eigener Abschnitt direkt darunter) | der Text auf Mandatsformular und Zustimmungsseite (13.2) |
+| *Willkommens-Mail* (eigener Abschnitt direkt darunter) | Betreff und Text der Mail an neu aufgenommene Mitglieder (13.2) |
+
+Ist der Reiter „Beiträge" ausgeschaltet, zeigt der Abschnitt nur die Karten
+*Beitragsmodul* und *Lastschrift: Gläubiger-ID und Konto*; alle übrigen Karten
+und die beiden Abschnitte darunter erscheinen, sobald er an ist.
 
 Nachweis-Ordner und XML-Ablage liegen im Home des Nutzers, den Sie unter
 *Belege* für die Ablage im Nextcloud-Dateibaum gewählt haben (2.4); ohne ihn
@@ -2950,8 +3118,8 @@ Dafür ist **keine Buchhaltungsrolle** nötig, es gibt keinen Antrag, und jede
 **Freischalten.** Zwei Dinge müssen zusammenkommen:
 
 1. Ein Verwalter schaltet unter *Nextcloud-Einstellungen → Vereinsbuchhaltung →
-   Beiträge & SEPA → Grundeinstellungen* den Schalter **„Self-Service „Mein
-   Beitrag" für verknüpfte Nextcloud-Konten freischalten"** ein. Ab Werk ist er
+   Beiträge & SEPA → Beitragsmodul* den Schalter **„Self-Service „Mein
+   Beitrag" freischalten"** ein. Ab Werk ist er
    aus.
 2. Das Mitglied ist in der Akte mit seinem Nextcloud-Konto verknüpft (13.2) –
    nach Ihrer Bestätigung, nie von selbst – und hat die Verknüpfung über den
@@ -3071,6 +3239,100 @@ Betrag, am Ende die **Summe**. Dabei gilt:
 
 Fehlt dem Mitglied die Adresse, weist ein Hinweis auf dem Bildschirm („Adresse
 jetzt hinterlegen") darauf hin; im Ausdruck erscheint er nicht.
+
+#### Zuwendungsbestätigungen über Beiträge und Spenden
+
+Ist der Verein steuerbegünstigt, kann die App die **amtliche Bestätigung über
+Geldzuwendungen/Mitgliedsbeiträge** nach § 10b EStG ausstellen – nach den
+verbindlichen Mustern des BMF (Schreiben vom 07.11.2013): als
+**Sammelbestätigung** je Zuwendendem und **Kalenderjahr** oder als
+**Einzelbestätigung** über eine einzelne Geldspende. Bestätigt werden
+Mitgliedsbeiträge und **Geldspenden** von Mitgliedern wie von externen Spendern
+(etwa Sponsoren); Sachspenden nicht. *Keine Steuerberatung:*
+Klären Sie im Zweifel mit Finanzamt oder Steuerberatung, ob Ihre
+Mitgliedsbeiträge abziehbar sind und wer unterschreibt.
+
+**Einschalten.** *Nextcloud-Einstellungen → Vereinsbuchhaltung → Zuwendungsbestätigungen*
+(eigener Abschnitt unter den Modulen, nur Verwalter). Der Schalter
+**„Zuwendungsbestätigungen ausstellen"** wirkt sofort; danach erscheinen die
+übrigen Angaben, die „Speichern" übernimmt:
+
+- die **Grundlage der Steuerbegünstigung**: *Freistellungsbescheid* (bzw. Anlage
+  zum Körperschaftsteuerbescheid, mit dem **Veranlagungszeitraum**) oder
+  *Feststellung nach § 60a AO*; dazu **Finanzamt**, **Steuernummer** (ohne
+  Angabe die aus *Verein → Angaben des Vereins*) und **Datum des Bescheids**;
+- die **begünstigten Zwecke**, so wie sie im Bescheid stehen (z. B. „der
+  Bildung und Erziehung (§ 52 Abs. 2 Satz 1 Nr. 7 AO)");
+- **Ort** und **wer unterschreibt** (Name und Funktion unter der
+  Unterschriftslinie) – oder das **maschinelle Verfahren** ohne Unterschrift,
+  wenn es dem Finanzamt angezeigt ist (R 10b.1 Abs. 4 EStR);
+- die Bestätigung, dass der Verein **keine Zwecke fördert, bei denen
+  Mitgliedsbeiträge nicht abziehbar sind** – Sport, kulturelle Betätigungen der
+  Freizeitgestaltung, Heimatpflege, Freizeitzwecke (§ 10b Abs. 1 Satz 8 EStG).
+  Mit diesem Haken enthalten die Sammelbestätigungen der Mitglieder auch ihre
+  Beiträge. Ohne ihn bestätigt die App nur Spenden und druckt den Satz des
+  Musters, dass es sich nicht um einen nicht abziehbaren Mitgliedsbeitrag
+  handelt;
+- die **Spendenkonten**: Ertragskonten, auf denen Geldspenden gebucht werden
+  (etwa *4100 Spenden*);
+- der **Ablageordner** (Standard *Vereinsbuchhaltung/Zuwendungsbestätigungen*,
+  je Jahr ein Unterordner; ohne Belegablage-Nutzer app-intern).
+
+Name und Anschrift des Vereins kommen aus *Verein → Angaben des Vereins* (2.5);
+diese Karte ist auch bei ausgeschaltetem Rechnungsmodul sichtbar.
+Fehlt etwas, nennt die Akte es, statt auszustellen. Ist der Bescheid älter als
+**5 Jahre** (Freistellung) bzw. **3 Jahre** (§ 60a AO), stellt die App ebenfalls
+nichts aus – solche Bestätigungen erkennt das Finanzamt nicht an (§ 63 Abs. 5 AO).
+
+**Spender zuordnen.** Unter *Buchungen* → **„Spenden"** (nur sichtbar, solange
+die Funktion an ist; Buchhalter und Verwalter) stehen je Jahr alle Buchungen mit
+Haben auf einem Spendenkonto – maßgeblich ist der Anteil auf den Spendenkonten,
+bei einer Splitbuchung also nur dieser. Je Spende wird der **Spender** gewählt:
+ein Mitglied oder ein Empfänger aus den Rechnungen als **externer Spender**
+(**„Neuer externer Spender"** legt ihn mit Anschrift an). Das Häkchen
+**„Verzicht auf Erstattung von Aufwendungen"** kennzeichnet eine
+Aufwandsspende. Betrag und Datum kommen immer aus der Buchung; ändert sie sich,
+gilt der neue Stand. Ist eine Spende bereits bestätigt, lässt sich ihr Spender
+erst nach dem Stornieren der Bestätigung ändern; einen Empfänger, der als
+Spender eingetragen ist, kann man nicht löschen.
+
+**Einzelbestätigung.** **„Einzeln bestätigen"** stellt für eine Spende sofort die
+Bestätigung nach dem Einzelmuster aus (frühestens ab dem Tag der Gutschrift) –
+ohne Anlage, mit Betrag, Tag der Zuwendung und der Angabe zum Verzicht. Diese
+Spende fehlt dann in der Sammelbestätigung des Jahres.
+
+**Ausstellen.** In der Akte (13.2) zeigt der Abschnitt
+**„Zuwendungsbestätigung"** jedes abgeschlossene Kalenderjahr mit Zuwendungen
+(Beiträge und zugeordnete Spenden) und deren Summe; unter *Buchungen → Spenden*
+stehen für das gewählte abgeschlossene Jahr alle Spender, auch die externen.
+**„Ausstellen"** erzeugt die Sammelbestätigung mit einer
+fortlaufenden Nummer (*ZB-2026-0001*) und legt das PDF als **Doppel** ab
+(§ 50 Abs. 7 EStDV, zehn Jahre aufzubewahren). Das laufende Jahr lässt sich erst
+nach seinem Ende bestätigen. Seite 1 ist die Bestätigung mit dem Betrag in
+Ziffern und Buchstaben, danach folgt die **Anlage** mit jeder einzelnen Zahlung
+(Datum, Verzicht auf Erstattung von Aufwendungen, Art – *Geldzuwendung* oder
+*Mitgliedsbeitrag* –, Betrag) und der Gesamtsumme. Je Zuwendendem und Jahr gibt
+es eine gültige Sammelbestätigung; einzeln bestätigte Spenden fehlen darin. Das Mitglied lädt sie unter *Mein Beitrag* herunter (13.11);
+Mitglieder ohne Nextcloud-Konto bekommen das PDF aus der Akte.
+
+**Welche Zahlungen.** Anders als bei der informellen Bestätigung zählt der
+**Tag der Zahlung**, nicht die Fälligkeitsperiode: das Datum der Buchung, die
+den Beitrag beglichen hat, ohne Buchung der Tag, an dem er als bezahlt markiert
+wurde. Gebühren, stornierte und erlassene Forderungen zählen nie.
+
+**Korrigieren.** Eine ausgestellte Bestätigung ändert sich nicht mehr. Ist sie
+falsch – oder hat sich eine bestätigte Zahlung später geändert (etwa durch eine
+Rücklastschrift; die Akte markiert sie dann als *überholt*) –, wird sie mit
+Grund **storniert**; das PDF bleibt als Doppel erhalten. Danach lässt sich für
+das Jahr (bzw. die Spende) eine neue ausstellen. Als *überholt* gilt eine
+Bestätigung auch, wenn sich Betrag oder Verzicht einer bestätigten Spende
+geändert haben. Ausstellen und Stornieren stehen im
+Änderungsprotokoll.
+
+**Die informelle Beitragsbestätigung entfällt**, solange Zuwendungsbestätigungen
+eingeschaltet sind und die Beiträge enthalten: Das amtliche Muster bestätigt,
+dass über die Beiträge keine weiteren Bestätigungen oder Beitragsquittungen
+ausgestellt werden. Sind Mitgliedsbeiträge nicht abziehbar, bleibt sie.
 
 ### 13.13 Datenschutz: Datenübersicht und Anonymisierung
 
@@ -3284,8 +3546,8 @@ Mit dem Rechnungsmodul stellt der Verein Rechnungen in seinem eigenen Namen aus 
 
 *Nextcloud-Einstellungen → Vereinsbuchhaltung → Rechnungen* (nur Verwalter):
 
-1. **Rechnungsmodul einschalten.**
-2. **Angaben des Vereins** eintragen. Pflicht nach § 14 Abs. 4 UStG sind Name und Anschrift sowie die **Steuernummer** (vom Finanzamt) oder die USt-IdNr. Register, Vorstand, Telefon und E-Mail erscheinen zusätzlich im Fuß der Rechnung. Den Vereinsnamen pflegen Sie weiter oben unter „Verein". Ist er für Rechnungen zu lang oder soll er dort anders lauten, tragen Sie einen **Namen auf Rechnungen** ein; er steht dann im Briefkopf, in der Absenderzeile, im Fuß, in der E-Rechnung und in den Rechnungs-Mails. Der **Kontoinhaber** (höchstens 70 Zeichen, so viel fasst der GiroCode) steht im Zahlungsblock und im GiroCode; leer gilt der Name auf Rechnungen.
+1. **Rechnungsmodul einschalten.** Der Schalter wirkt sofort; erst danach erscheinen die übrigen Karten des Abschnitts.
+2. **Angaben des Vereins** eintragen – sie stehen oben im Abschnitt *Verein* (Karte *Angaben des Vereins*), weil auch die Zuwendungsbestätigungen sie brauchen. Pflicht nach § 14 Abs. 4 UStG sind Name und Anschrift sowie die **Steuernummer** (vom Finanzamt) oder die USt-IdNr. Register, Vorstand, Telefon und E-Mail erscheinen zusätzlich im Fuß der Rechnung. Den Vereinsnamen pflegen Sie weiter oben unter „Verein". Ist er für Rechnungen zu lang oder soll er dort anders lauten, tragen Sie einen **Namen auf Rechnungen** ein; er steht dann im Briefkopf, in der Absenderzeile, im Fuß, in der E-Rechnung und in den Rechnungs-Mails. Der **Kontoinhaber** (höchstens 70 Zeichen, so viel fasst der GiroCode) steht im Zahlungsblock und im GiroCode; leer gilt der Name auf Rechnungen.
 3. **Steuer und Zahlung:** Die meisten kleinen Vereine sind **Kleinunternehmer** (§ 19 UStG) und weisen keine Umsatzsteuer aus; auf der Rechnung steht dann der vorgeschriebene Hinweis. Ob das für Ihren Verein gilt, klärt das Finanzamt oder Ihre Steuerberatung. Das **Konto für Zahlungsangaben und GiroCode** wählt die App selbst: das Konto des SEPA-Einzugs, sonst das einzige Geldkonto mit IBAN. Selbst wählen müssen Sie es nur, wenn mehrere Geldkonten eine IBAN haben; fehlt die IBAN, führt der Hinweis in der Prüfliste direkt zum Konto. Legen Sie außerdem das Zahlungsziel und bei Bedarf Standardtexte fest.
 4. **Rechnungsnummern:** Voreingestellt ist `RE-{JJJJ}-{NNNN}` (z. B. `RE-2026-0042`), jedes Jahr neu ab 1; Stornorechnungen zählen getrennt (`ST-…`). Mit `{MM}` kommt der Monat des Rechnungsdatums dazu, etwa `RE-{JJJJ}{MM}-{NNNN}` für `RE-202611-0001`; der Zähler kann dann auch jeden Monat neu ab 1 beginnen. Die Nummern sind fortlaufend und einmalig – ändern Sie das Muster nur, bevor Sie die erste Rechnung schreiben.
 
@@ -3308,7 +3570,7 @@ Buchhalter dürfen Entwürfe anlegen; **Festschreiben, Versenden und Stornieren*
 
 ### 15.4 Festschreiben
 
-**Festschreiben …** prüft die Pflichtangaben (Anschrift und Steuernummer des Vereins, Empfänger, Leistungszeitpunkt, Positionen, Betrag). Unter **Zur Beachtung** nennt der Editor Hinweise, die das Festschreiben nicht verhindern: eine Position auf einem Konto des ideellen Bereichs (**Spenden und echte Mitgliedsbeiträge sind keine Rechnung** – dafür gibt es die Zuwendungsbestätigung bzw. das Beitragsmodul), ein eingetragener Verein ohne „e. V.“ im Namen und eine fehlende Bankverbindung. Optional druckt die Rechnung einen **Hinweis auf die Gemeinnützigkeit** (Einstellungen → Rechnungen → Angaben des Vereins); er ersetzt keinen Steuerhinweis. Danach:
+**Festschreiben …** prüft die Pflichtangaben (Anschrift und Steuernummer des Vereins, Empfänger, Leistungszeitpunkt, Positionen, Betrag). Unter **Zur Beachtung** nennt der Editor Hinweise, die das Festschreiben nicht verhindern: eine Position auf einem Konto des ideellen Bereichs (**Spenden und echte Mitgliedsbeiträge sind keine Rechnung** – dafür gibt es die Zuwendungsbestätigung bzw. das Beitragsmodul), ein eingetragener Verein ohne „e. V.“ im Namen und eine fehlende Bankverbindung. Optional druckt die Rechnung einen **Hinweis auf die Gemeinnützigkeit** (Einstellungen → Verein → Angaben des Vereins); er ersetzt keinen Steuerhinweis. Danach:
 
 - bekommt die Rechnung ihre **Nummer** und ist **unveränderlich** – korrigieren lässt sie sich nur durch Stornieren;
 - entsteht das **PDF** (PDF/A-3b, mit GiroCode zum Scannen in der Banking-App) und liegt als Datei im Home des Belegablage-Nutzers unter `Vereinsbuchhaltung/Rechnungen/<Jahr>/` (der Ordner lässt sich in den Rechnungs-Einstellungen ändern; der Pfad beginnt im Home dieses Nutzers, nicht im eigenen); die Prüfsumme (SHA-256) zeigt später, ob die Datei verändert wurde;

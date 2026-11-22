@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace OCA\Vereinsbuchhaltung\Tests\Unit;
 
 use OCA\Vereinsbuchhaltung\Service\Pdf\ReportPdf;
+use OCA\Vereinsbuchhaltung\Service\Pdf\ReportPdfDocument;
 use OCA\Vereinsbuchhaltung\Service\Pdf\ReportPdfFactory;
 use OCA\Vereinsbuchhaltung\Tests\Unit\Support\KeepPdf;
+use OCA\Vereinsbuchhaltung\Tests\Unit\Support\RecordingPdfDocument;
 use OCP\IAppConfig;
 use OCP\IL10N;
 use PHPUnit\Framework\TestCase;
@@ -113,5 +115,59 @@ class ReportPdfTest extends TestCase {
 		$pdf = $this->pdf();
 		$pdf->titleBlock('TSV Beispiel e. V.', 'Testbericht', '', 'kein Bild');
 		$this->assertStringStartsWith('%PDF-', $pdf->output());
+	}
+
+	/**
+	 * Eine Kette aus Abschnitts- und Zwischenüberschrift steht nie allein am
+	 * Seitenende: Egal, wie viel Platz vor ihr übrig ist, landen beide Überschriften
+	 * auf der Seite der ersten Zeile darunter.
+	 */
+	public function testUeberschriftenKetteBleibtMitDerErstenZeileZusammen(): void {
+		require_once __DIR__ . '/Support/RecordingPdfDocument.php';
+		$appConfig = $this->createMock(IAppConfig::class);
+		$appConfig->method('getValueString')->willReturnCallback(static fn (string $app, string $key, string $default = ''): string => $default);
+		$broke = 0;
+		for ($filler = 0; $filler <= 45; $filler++) {
+			/** @var \ArrayObject<string, int> $pages */
+			$pages = new \ArrayObject();
+			$factory = new class($appConfig, $this->l10n(), $pages) extends ReportPdfFactory {
+				public function __construct(
+					IAppConfig $config,
+					IL10N $l10n,
+					private \ArrayObject $pages,
+				) {
+					parent::__construct($config, $l10n);
+				}
+
+				protected function newDocument(string $orientation): ReportPdfDocument {
+					return new RecordingPdfDocument(new \ArrayObject(), $orientation, $this->pages);
+				}
+			};
+			$pdf = $factory->create('Titel', 'Vermerk', false);
+			$rows = [];
+			for ($i = 0; $i < $filler; $i++) {
+				$rows[] = ['cells' => ['F' . $i, 'Füller ' . $i, '1,00 €']];
+			}
+			$rows[] = ['style' => ReportPdf::ROW_HEAD, 'repeat' => false, 'span' => [3], 'align' => 'L', 'cells' => ['Abschnitt']];
+			$rows[] = ['style' => ReportPdf::ROW_SUBHEAD, 'span' => [3], 'align' => 'L', 'cells' => ['Unterabschnitt']];
+			$rows[] = ['cells' => ['K1', 'Konto', '2,00 €']];
+			$pdf->table([['label' => 'Nr.', 'width' => 0.2], ['label' => 'Bez.', 'width' => 0.5], ['label' => 'Wert', 'width' => 0.3, 'align' => 'R']], $rows);
+
+			$this->assertSame($pages['Konto'], $pages['Abschnitt'], "Abschnitt allein am Seitenende bei $filler Füllzeilen");
+			$this->assertSame($pages['Konto'], $pages['Unterabschnitt'], "Unterabschnitt allein am Seitenende bei $filler Füllzeilen");
+			$broke += $pages['Konto'] > 1 ? 1 : 0;
+		}
+		$this->assertGreaterThan(0, $broke, 'Der Test erreicht Seitenumbrüche');
+	}
+
+	/** Querformat für breite Tabellen: Seite breiter als hoch, Inhaltsbreite wächst mit. */
+	public function testQuerformatVergroessertDieInhaltsbreite(): void {
+		$hoch = $this->pdf();
+		$quer = $this->factory()->create('Titel', 'Vermerk', false, true);
+
+		$this->assertGreaterThan($hoch->contentWidth(), $quer->contentWidth());
+		$this->assertEqualsWithDelta(257.0, $quer->contentWidth(), 0.01);
+		$this->assertGreaterThan($quer->document()->getPageHeight(), $quer->document()->getPageWidth());
+		$this->assertLessThan($hoch->document()->getPageHeight(), $hoch->document()->getPageWidth());
 	}
 }

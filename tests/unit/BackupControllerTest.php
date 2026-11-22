@@ -247,14 +247,14 @@ class BackupControllerTest extends TestCase {
 		$this->upload = ['tmp_name' => $file, 'name' => 'x.vbhbackup', 'error' => 0];
 		$this->params = ['password' => self::PASSWORD];
 		$this->import->method('inspect')->willReturn(['clubName' => 'SC Muster', 'createdAt' => '2026-11-12T10:00:00+01:00']);
-		$result = ['rows' => 120, 'tables' => 46, 'files' => 4, 'missingFiles' => [], 'unknownUsers' => ['gone'], 'unknownGroups' => []];
+		$result = ['rows' => 120, 'tables' => 46, 'files' => 4, 'missingFiles' => [], 'unknownUsers' => ['gone'], 'unknownGroups' => [], 'origin' => 'foreign', 'existingPrincipals' => [['type' => 'user', 'id' => 'kassierer', 'role' => 'buchhalter']], 'memberLinksReset' => 2];
 		$this->import->expects($this->once())->method('import')->with($file, self::PASSWORD, 'alice')->willReturn($result);
 
 		$response = $this->controller()->import();
 
 		$this->assertSame(Http::STATUS_OK, $response->getStatus());
 		$this->assertSame($result, $response->getData());
-		$this->assertSame([['Sicherung eingespielt', ['verein' => 'SC Muster', 'stand' => '2026-11-12T10:00:00+01:00', 'zeilen' => 120, 'dateien' => 4, 'unbekannte_benutzer' => ['gone'], 'unbekannte_gruppen' => []]]], $this->logged);
+		$this->assertSame([['Sicherung eingespielt', ['verein' => 'SC Muster', 'stand' => '2026-11-12T10:00:00+01:00', 'zeilen' => 120, 'dateien' => 4, 'unbekannte_benutzer' => ['gone'], 'unbekannte_gruppen' => [], 'herkunft' => 'foreign', 'rollen_an_vorhandene' => ['user:kassierer=buchhalter'], 'verknuepfungen_zurueckgesetzt' => 2]]], $this->logged);
 		$this->assertStringNotContainsString(self::PASSWORD, json_encode($this->logged));
 	}
 
@@ -268,7 +268,7 @@ class BackupControllerTest extends TestCase {
 		$seen = null;
 		$this->import->expects($this->once())->method('import')->willReturnCallback(function (string $path) use (&$seen): array {
 			$seen = file_get_contents($path);
-			return ['rows' => 1, 'tables' => 46, 'files' => 0, 'missingFiles' => [], 'unknownUsers' => [], 'unknownGroups' => []];
+			return ['rows' => 1, 'tables' => 46, 'files' => 0, 'missingFiles' => [], 'unknownUsers' => [], 'unknownGroups' => [], 'origin' => 'same', 'existingPrincipals' => [], 'memberLinksReset' => 0];
 		});
 
 		$this->assertSame(Http::STATUS_OK, $this->controller()->import()->getStatus());

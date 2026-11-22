@@ -1,7 +1,7 @@
 <template>
 	<div class="vbh-card">
 		<SettingsToggle :modelValue="enabled" :label="t('Kontoauszüge automatisch einlesen')" @update:modelValue="changeEnabled">
-			{{ t('Legt man den im Onlinebanking heruntergeladenen Kontoauszug in einen Ordner, liest die App ihn von allein ein – kein Hochladen mehr von Hand. Erkannt werden CSV-CAMT, CAMT.052 und CAMT.053 (XML, auch als ZIP-Archiv) und MT940. Beim Ausschalten wird der Ordner nicht mehr geprüft.') }}
+			{{ t('Legt man den im Onlinebanking heruntergeladenen Kontoauszug in einen Ordner, liest die App ihn von allein ein – kein Hochladen mehr von Hand. Erkannt werden CSV-CAMT, CAMT.052 und CAMT.053 (XML, auch als ZIP-Archiv), MT940 und PayPal-CSV. Beim Ausschalten wird der Ordner nicht mehr geprüft.') }}
 		</SettingsToggle>
 		<div v-if="enabled" class="vbh-form">
 			<label class="vbh-grow">{{ t('Nextcloud-Nutzer') }}
@@ -15,7 +15,7 @@
 				inputId="vbh-statement-path"
 				:user="statementWatchUser"
 				placeholder="Vereinsbuchhaltung/Kontoauszüge" />
-			<NcButton variant="primary" :disabled="storageSaving" @click="saveStorageSettings">
+			<NcButton variant="primary" :disabled="storageSaving" @click="saveStorageSettings('watch')">
 				{{ t('Speichern') }}
 			</NcButton>
 		</div>
@@ -88,7 +88,7 @@ export default {
 			this.enabled = on
 			if (!on) {
 				this.$emit('update:statementWatchUser', '')
-				this.$nextTick(() => this.saveStorageSettings())
+				this.$nextTick(() => this.saveStorageSettings('watch'))
 			}
 		},
 	},

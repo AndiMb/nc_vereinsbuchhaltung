@@ -7,6 +7,7 @@ namespace OCA\Vereinsbuchhaltung\Service\Sepa;
 use OCA\Vereinsbuchhaltung\Service\BillingPeriod;
 use OCA\Vereinsbuchhaltung\Service\EmailValidator;
 use OCA\Vereinsbuchhaltung\Service\OptionalL10n;
+use OCA\Vereinsbuchhaltung\Service\Text\AmountParser;
 use OCP\IL10N;
 
 /**
@@ -527,26 +528,14 @@ class MemberCsvParser {
 	}
 
 	/**
-	 * Wie CamtCsvParser::parseAmount(). Das Minuszeichen wird ausdrücklich
-	 * mitgeführt, obwohl ein negativer Beitrag unsinnig ist: würde es hier
-	 * einfach wegfallen, machte der Import aus „-42,50" klaglos eine Forderung
-	 * über 42,50 €. Lieber ein negativer Wert, den der Aufrufer beanstandet.
+	 * Deutsche Tabellen, also die deutschen Textregeln von {@see AmountParser}.
+	 * Das Minuszeichen wird ausdrücklich mitgeführt, obwohl ein negativer
+	 * Beitrag unsinnig ist: würde es hier einfach wegfallen, machte der Import
+	 * aus „-42,50" klaglos eine Forderung über 42,50 €. Lieber ein negativer
+	 * Wert, den der Aufrufer beanstandet.
 	 */
 	private function parseAmount(string $value): ?int {
-		$value = trim($value);
-		$negative = str_starts_with($value, '-');
-		$v = (string)preg_replace('/[^0-9,.]/', '', $value);
-		if ($v === '') {
-			return null;
-		}
-		if (str_contains($v, ',')) {
-			$v = str_replace(['.', ','], ['', '.'], $v);
-		}
-		if (!is_numeric($v)) {
-			return null;
-		}
-		$cents = (int)round(((float)$v) * 100);
-		return $negative ? -$cents : $cents;
+		return AmountParser::germanText($value);
 	}
 
 	/** @return list<string> */

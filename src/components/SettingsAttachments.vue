@@ -25,7 +25,7 @@
 					placeholder="Vereinsbuchhaltung/Belege"
 					:readonly="storageMode === 'watch'" />
 			</template>
-			<NcButton variant="primary" :disabled="storageSaving" @click="saveStorageSettings">
+			<NcButton variant="primary" :disabled="storageSaving" @click="saveStorageSettings('storage')">
 				{{ t('Speichern') }}
 			</NcButton>
 		</div>

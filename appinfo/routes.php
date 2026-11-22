@@ -158,6 +158,9 @@ return [
 		['name' => 'self#certificateYears', 'url' => '/api/self/certificate/years', 'verb' => 'GET'],
 		['name' => 'self#certificate', 'url' => '/api/self/certificate', 'verb' => 'GET'],
 		['name' => 'self#certificatePdf', 'url' => '/api/self/certificate/pdf', 'verb' => 'GET'],
+		// Issue #10: eigene Zuwendungsbestätigungen; die ID prüft der Controller gegen die Verknüpfung.
+		['name' => 'self#donationReceipts', 'url' => '/api/self/donation-receipts', 'verb' => 'GET'],
+		['name' => 'self#donationReceiptPdf', 'url' => '/api/self/donation-receipts/{id}/pdf', 'verb' => 'GET'],
 
 		// Issue #78: eigene "Datenübersicht" (Art. 15 DSGVO) unter "Meine
 		// Daten" - member_id ausschließlich aus der Kontoverknüpfung, siehe
@@ -420,6 +423,7 @@ return [
 		['name' => 'export#gliederungsberichtVisuell', 'url' => '/api/export/gliederungsbericht-visuell', 'verb' => 'GET'],
 		['name' => 'export#multiyear', 'url' => '/api/export/multiyear', 'verb' => 'GET'],
 		['name' => 'export#kassenbericht', 'url' => '/api/export/kassenbericht', 'verb' => 'GET'],
+		['name' => 'export#gliederungsberichtPdf', 'url' => '/api/export/gliederungsbericht/pdf', 'verb' => 'GET'],
 		['name' => 'export#kassenberichtPdf', 'url' => '/api/export/kassenbericht/pdf', 'verb' => 'GET'],
 		['name' => 'export#kurzbericht', 'url' => '/api/export/kurzbericht', 'verb' => 'GET'],
 		['name' => 'export#attachments', 'url' => '/api/export/attachments', 'verb' => 'GET'],
@@ -429,6 +433,18 @@ return [
 		['name' => 'export#beitragsbescheinigungYears', 'url' => '/api/export/beitragsbescheinigung/{memberId}/years', 'verb' => 'GET'],
 		['name' => 'export#beitragsbescheinigung', 'url' => '/api/export/beitragsbescheinigung/{memberId}', 'verb' => 'GET'],
 		['name' => 'export#beitragsbescheinigungPdf', 'url' => '/api/export/beitragsbescheinigung/{memberId}/pdf', 'verb' => 'GET'],
+
+		// Issue #10: Zuwendungsbestätigungen über Mitgliedsbeiträge.
+		['name' => 'donationReceipt#settings', 'url' => '/api/donation-receipts/settings', 'verb' => 'GET'],
+		['name' => 'donationReceipt#updateSettings', 'url' => '/api/donation-receipts/settings', 'verb' => 'PUT'],
+		['name' => 'donationReceipt#member', 'url' => '/api/donation-receipts/member/{memberId}', 'verb' => 'GET'],
+		['name' => 'donationReceipt#issue', 'url' => '/api/donation-receipts', 'verb' => 'POST'],
+		['name' => 'donationReceipt#issueSingle', 'url' => '/api/donation-receipts/single', 'verb' => 'POST'],
+		['name' => 'donationReceipt#donations', 'url' => '/api/donations', 'verb' => 'GET'],
+		['name' => 'donationReceipt#assignDonation', 'url' => '/api/donations/{journalId}', 'verb' => 'PUT'],
+		['name' => 'donationReceipt#unassignDonation', 'url' => '/api/donations/{journalId}', 'verb' => 'DELETE'],
+		['name' => 'donationReceipt#void', 'url' => '/api/donation-receipts/{id}/void', 'verb' => 'POST'],
+		['name' => 'donationReceipt#pdf', 'url' => '/api/donation-receipts/{id}/pdf', 'verb' => 'GET'],
 
 		// Issue #78: "Datenübersicht" eines Mitglieds (Art. 15 DSGVO),
 		// Stellvertretung durch den Kassenwart über die Admin-Akte (Spec §3.8).

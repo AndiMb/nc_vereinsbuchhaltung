@@ -32,15 +32,16 @@ class ReportPdfFactory {
 	 * @param string $title Titel des Dokuments (Metadaten und laufender Kopf ab Seite 2)
 	 * @param string $footerNote Vermerk links in der Fußzeile jeder Seite
 	 * @param bool $compress false erzeugt lesbare Streams (nur für Tests)
+	 * @param bool $landscape A4 quer – für breite Tabellen mit vielen Wertspalten
 	 * @throws UserFacingException wenn die PDF-Bibliothek fehlt
 	 */
-	public function create(string $title, string $footerNote, bool $compress = true): ReportPdf {
+	public function create(string $title, string $footerNote, bool $compress = true, bool $landscape = false): ReportPdf {
 		// ReportPdfDocument erweitert TCPDF aus vendor/: erst den Autoloader, dann die Klasse (#265).
 		Application::loadComposerAutoloader();
 		if (!class_exists(\TCPDF::class)) {
 			throw new UserFacingException($this->l10n->t('Die PDF-Bibliothek (TCPDF) ist nicht installiert.'));
 		}
-		$pdf = new ReportPdfDocument('P', 'mm', 'A4', true, 'UTF-8', false, 3);
+		$pdf = $this->newDocument($landscape ? 'L' : 'P');
 		$pdf->setCompression($compress);
 		$pdf->runningTitle = $title;
 		$pdf->footerNote = $footerNote;
@@ -48,6 +49,16 @@ class ReportPdfFactory {
 		$pdf->accent = self::rgb(PrintableReportPage::accentColor($this->config->getValueString(Application::APP_ID, 'brand_color', ''), '#222222'));
 		ReportPdf::setUp($pdf, $title, $this->clubName());
 		return new ReportPdf($pdf);
+	}
+
+	/**
+	 * Eigene Methode, damit Tests ein Dokument unterschieben können, das den
+	 * gesetzten Text mitschreibt (im fertigen PDF liegt er nur als Glyphennummern).
+	 *
+	 * @param string $orientation 'P' Hochformat, 'L' Querformat
+	 */
+	protected function newDocument(string $orientation): ReportPdfDocument {
+		return new ReportPdfDocument($orientation, 'mm', 'A4', true, 'UTF-8', false, 3);
 	}
 
 	public function clubName(): string {

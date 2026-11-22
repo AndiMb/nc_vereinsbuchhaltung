@@ -39,6 +39,12 @@ class StatementFormatTest extends TestCase {
 		$this->assertSame('mt940', $this->registry->detect($this->fixture('beispiel-mt940.sta'))->sourceKey());
 	}
 
+	public function testErkenntPayPal(): void {
+		$this->assertSame('paypal', $this->registry->detect($this->fixture('beispiel-paypal.csv'))->sourceKey());
+		$this->assertSame(2, $this->registry->skipped($this->fixture('beispiel-paypal.csv')));
+		$this->assertSame(0, $this->registry->skipped($this->fixture('beispiel-camt.csv')));
+	}
+
 	public function testUnbekanntesFormatWirdAbgelehnt(): void {
 		$this->expectException(\RuntimeException::class);
 		$this->registry->detect("Das ist einfach nur ein Fliesstext ohne jede Struktur.\n");

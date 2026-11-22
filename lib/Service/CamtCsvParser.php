@@ -9,6 +9,7 @@ use OCA\Vereinsbuchhaltung\Service\Statement\RowNormalizer;
 use OCA\Vereinsbuchhaltung\Service\Statement\StatementBalance;
 use OCA\Vereinsbuchhaltung\Service\Statement\StatementBalanceReader;
 use OCA\Vereinsbuchhaltung\Service\Statement\StatementParser;
+use OCA\Vereinsbuchhaltung\Service\Text\AmountParser;
 use OCP\IL10N;
 
 /**
@@ -44,7 +45,7 @@ class CamtCsvParser implements StatementParser, StatementBalanceReader {
 	) {
 	}
 
-	/** @param array<string,mixed> $params Parameter für sprintf, siehe {@see IL10N::t()} */
+	/** @param list<mixed> $params Parameter für sprintf in Reihenfolge, siehe {@see IL10N::t()} */
 	private function msg(string $text, array $params = []): string {
 		if ($this->l10n !== null) {
 			return $this->l10n->t($text, $params);
@@ -111,7 +112,8 @@ class CamtCsvParser implements StatementParser, StatementBalanceReader {
 		$content = $this->toUtf8($content);
 		$content = preg_replace('/^\xEF\xBB\xBF/', '', $content); // BOM entfernen
 
-		$records = $this->readRecords($content);
+		$lines = [];
+		$records = $this->readRecords($content, $lines);
 		if (count($records) < 2) {
 			throw new UserFacingException($this->msg('Die Datei enthält keine Buchungszeilen.'));
 		}
@@ -127,7 +129,7 @@ class CamtCsvParser implements StatementParser, StatementBalanceReader {
 			if (count($cols) === 1 && trim((string)$cols[0]) === '') {
 				continue;
 			}
-			$row = $this->buildRow($cols, $map);
+			$row = $this->buildRow($cols, $map, $lines[$i]);
 			if ($row !== null) {
 				$rows[] = $row;
 			}
@@ -233,9 +235,11 @@ class CamtCsvParser implements StatementParser, StatementBalanceReader {
 	 * bekam verschobene Spalten, und beides fiel erst beim Abgleich der Salden
 	 * auf.
 	 *
+	 * @param array<int, int> $lines wird gefüllt: Zeilennummer in der Datei, in
+	 *                               der der Datensatz gleichen Index' beginnt
 	 * @return array<int, array<int, string|null>>
 	 */
-	private function readRecords(string $content): array {
+	private function readRecords(string $content, array &$lines = []): array {
 		$firstLine = strtok($content, "\r\n");
 		$delimiter = $this->detectDelimiter($firstLine === false ? '' : $firstLine);
 
@@ -247,7 +251,15 @@ class CamtCsvParser implements StatementParser, StatementBalanceReader {
 		rewind($handle);
 
 		$records = [];
+		$lines = [];
+		$line = 1;
+		$offset = 0;
 		while (($cols = fgetcsv($handle, 0, $delimiter, '"', '\\')) !== false) {
+			// Zeilennummer mitzählen: ein Datensatz kann mehrere Zeilen umfassen.
+			$start = $line;
+			$end = (int)ftell($handle);
+			$line += substr_count($content, "\n", $offset, max(0, $end - $offset));
+			$offset = $end;
 			// Vollständig leere Zeilen überspringen (fgetcsv liefert [null]).
 			if ($cols === [null]) {
 				continue;
@@ -257,6 +269,7 @@ class CamtCsvParser implements StatementParser, StatementBalanceReader {
 				continue;
 			}
 			$records[] = $cols;
+			$lines[] = $start;
 		}
 		fclose($handle);
 
@@ -266,9 +279,11 @@ class CamtCsvParser implements StatementParser, StatementBalanceReader {
 	/**
 	 * @param string[] $cols
 	 * @param array<string, int> $map
+	 * @param int $line Zeilennummer in der Datei (für Fehlermeldungen)
 	 * @return array<string, mixed>|null
+	 * @throws UserFacingException wenn ein angegebener Betrag nicht lesbar ist
 	 */
-	private function buildRow(array $cols, array $map): ?array {
+	private function buildRow(array $cols, array $map, int $line): ?array {
 		$get = static function (string $field) use ($cols, $map): ?string {
 			if (!isset($map[$field])) {
 				return null;
@@ -297,7 +312,15 @@ class CamtCsvParser implements StatementParser, StatementBalanceReader {
 			return null;
 		}
 
-		$amountCents = $this->parseAmount($get('amount'));
+		$rawAmount = $get('amount');
+		$amountCents = $this->parseAmount($rawAmount);
+		// Eine leere Betragszelle (Summen- oder Fußzeile) bleibt still draußen.
+		// Ein angegebener, aber unlesbarer Betrag ist ein Fehler der Datei:
+		// still übergangen, fehlte die Buchung, und erst der Saldenabgleich
+		// fiele auf.
+		if ($amountCents === null && $rawAmount !== null) {
+			throw new UserFacingException($this->msg('Zeile %1$d: Der Betrag „%2$s“ ist nicht lesbar.', [$line, $rawAmount]));
+		}
 		return $this->normalizer->build([
 			'ownAccount' => $get('ownAccount'),
 			'bookingDate' => $this->parseDate($get('bookingDate')),
@@ -421,31 +444,11 @@ class CamtCsvParser implements StatementParser, StatementBalanceReader {
 	}
 
 	/**
-	 * Wandelt "1.234,56" oder "-1234,56" oder "1234.56" in Cent (int) um.
+	 * "1.234,56", "-1234,56" oder "1234.56" in Cent. Bank-CSV ist deutsch
+	 * formatiert: „1.234" ist 1.234,00 € (Regeln: {@see AmountParser}).
 	 */
 	private function parseAmount(?string $value): ?int {
-		if ($value === null || $value === '') {
-			return null;
-		}
-		$v = trim($value);
-		$negative = false;
-		if (str_starts_with($v, '-')) {
-			$negative = true;
-		}
-		$v = preg_replace('/[^0-9,.]/', '', $v) ?? '';
-		if ($v === '') {
-			return null;
-		}
-		if (str_contains($v, ',')) {
-			// deutsches Format: Punkt = Tausender, Komma = Dezimal
-			$v = str_replace('.', '', $v);
-			$v = str_replace(',', '.', $v);
-		}
-		if (!is_numeric($v)) {
-			return null;
-		}
-		$cents = (int)round(((float)$v) * 100);
-		return $negative ? -abs($cents) : $cents;
+		return $value === null ? null : AmountParser::germanText($value);
 	}
 
 	private function normalizeKey(string $name): string {
@@ -456,11 +459,15 @@ class CamtCsvParser implements StatementParser, StatementBalanceReader {
 	}
 
 	private function toUtf8(string $content): string {
-		$encoding = mb_detect_encoding($content, ['UTF-8', 'Windows-1252', 'ISO-8859-1'], true);
-		if ($encoding === false || $encoding === 'UTF-8') {
+		// BOM zuerst entfernen: Unter PHP 8.1/8.2 stuft mb_detect_encoding gueltiges
+		// UTF-8 mit BOM als Windows-1252 ein und wuerde es doppelt kodieren (die
+		// Spaltenkoepfe mit Umlauten passten dann nicht mehr).
+		$content = (string)preg_replace('/^\xEF\xBB\xBF/', '', $content);
+		if (mb_check_encoding($content, 'UTF-8')) {
 			return $content;
 		}
-		$converted = mb_convert_encoding($content, 'UTF-8', $encoding);
+		$encoding = mb_detect_encoding($content, ['Windows-1252', 'ISO-8859-1'], true);
+		$converted = mb_convert_encoding($content, 'UTF-8', $encoding === false ? 'Windows-1252' : $encoding);
 		return $converted === false ? $content : $converted;
 	}
 }

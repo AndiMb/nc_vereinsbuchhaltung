@@ -17,6 +17,130 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 
 ## [Unreleased]
 
+**New:**
+- **Structured report as PDF:** in the table view, the new **PDF** button next
+  to *Print / PDF* and *CSV* downloads the report as a finished PDF file –
+  with page numbers, a repeated table header and landscape format from five
+  value columns on. The visual view stays a print page. Described in chapter
+  7.4 of the manual.
+- **PayPal import** (#375): the German PayPal activity download (CSV) is
+  recognized by its content in the normal statement import and in the watch
+  folder and posted to the PayPal cash account. Fees become bank transactions
+  of their own ("PayPal fee for ..."), which one rule can post automatically;
+  duplicates are recognized by the PayPal transaction code. Assignment works
+  through the new field **PayPal address (optional)** on the bank account.
+  The account reconciliation accepts PayPal files too. Described in
+  chapter 3.2 of the manual.
+- **Donation receipts for membership fees** (#10, part A): a tax-privileged
+  club issues the official **collective receipt for monetary
+  donations/membership fees** under § 10b EStG per member and calendar year –
+  following the binding template of the German Federal Ministry of Finance,
+  with the amount in figures and words and the annex listing every single
+  payment. The payment date counts. The PDF is stored as the duplicate with a
+  sequential number (*ZB-2026-0001*); a wrong receipt is voided with a reason.
+  Members download their receipts under *My contribution*. Set it up in the
+  *Donation receipts* settings section (exemption notice or assessment under
+  § 60a AO, tax office, purposes, signature). The app only confirms fees once
+  it is confirmed that they are deductible (no sports, culture, leisure or
+  local heritage purposes); with a notice that is too old (§ 63 (5) AO) it
+  issues nothing. The informal contribution confirmation is then not offered.
+- **Donation receipts for monetary donations** (#10, part B): *Bookings →
+  Donations* lists all bookings on the **donation accounts** chosen in the
+  settings; for each donation you assign the donor – a member or an **external
+  donor** (an invoice recipient, such as a sponsor) – optionally with a
+  **waiver of expense reimbursement**. A donation can be **confirmed
+  individually** right away (official single-receipt template); after the year
+  ends, each donor gets a **collective receipt**, for members together with
+  their fees. If membership fees are not deductible (as for sports clubs), the
+  app only confirms donations and the informal contribution confirmation stays.
+  Donations in kind are not covered.
+
+**Changed:**
+- The file name of the treasurer's report PDF now transliterates umlauts
+  (ä → ae, ö → oe, ü → ue, ß → ss), so it saves without special characters on
+  every system.
+- **Settings page reordered:** the sections now follow the task instead of
+  the order they were built in – *Basics* (club, permissions, receipts,
+  automatic bank statement import, fiscal year), *Lists and reports*
+  (display, status), *Modules* (fees & SEPA with the mandate legal text and
+  the welcome email directly below, donation receipts as a section of their
+  own, invoices, expenses, cost centres) and *Data and backup* (data import,
+  backup and migration, reset). A table of contents with jump links sits at
+  the top, and a question mark next to each section heading opens the
+  matching handbook chapter. "Delete all data" now has its own *Reset*
+  section directly below "Clear data set completely", with a note on how the
+  two ways of deleting differ. "Bank data" is now called "Automatically import
+  bank statements", "Data" is now "Data import". All existing jump addresses
+  (`#settings-section_…`) keep working.
+- **Handbook:** chapter 2 explains where the settings are (Personal or
+  Administration) and in which order; the outdated paths via the "gear icon"
+  and the never-existing "Basic settings" card are replaced by the real
+  section and card names.
+- **Switched-off modules without their cards:** when a module is off, the
+  settings page only shows its switch and a note – for fees & SEPA (including
+  the mandate legal text and the welcome email), invoices, donation receipts
+  and the expense numbers. The table of contents marks it as "off". Saved
+  details are kept.
+- **Club details under "Club":** address, tax number, register and board are
+  now in the *Club details* card of the *Club* section (previously "Details
+  of the association on the invoice" under *Invoices*) and always visible –
+  donation receipts need them too, so a club without the invoice module can
+  still reach them. The jump address `#settings-section_rechnungen-angaben`
+  keeps working.
+- **Consistent saving:** module switches now take effect immediately
+  everywhere (invoice module, cost centres, expense reimbursement, donation
+  receipts – as the contributions module already did); if saving fails, the
+  switch flips back. Everything else is saved by the button of its card, and
+  only that card's fields: until now "Save" under club, display, receipts,
+  bank statements or creditor ID also took along unsaved input from all the
+  other cards of that group, and in the invoice cards saving one card
+  discarded the input in the others.
+- **Amounts in imports** are now read by one shared parser with fixed rules
+  (CSV bank statement, CAMT.053, MT940, PayPal, XBUC, member CSV). What
+  changes:
+  - "1.234" in the CSV bank statement, XBUC and the member CSV now means
+    1,234.00 EUR (previously 1.23 EUR). If both a dot and a comma occur, the
+    last one is the decimal separator.
+  - A trailing minus ("12,50-"), the typographic minus and the en dash
+    ("–12,50") now count as negative; previously such amounts were partly
+    read as positive.
+  - Whole euros without decimals ("60," as in MT940, "12,-") stay readable.
+  - Values with other text ("ca. 12,50", "12,50 S") are no longer accepted as
+    an amount. In the CSV bank statement and in XBUC the import then stops and
+    names the line or entry; previously the text was silently removed. An
+    empty amount cell (such as a totals line) is still skipped.
+  - CAMT.053 with a comma as decimal separator ("<Amt>12,50</Amt>"), which
+    the standard does not allow but some programs produce, now stops the
+    import and names the entry instead of being read.
+  - In MT940 and the SEPA remittance information, "12.50" now means
+    12.50 EUR (previously 1,250.00 EUR); banks write a comma there anyway.
+
+**Security:**
+- **GiroCode of an expense claim:** a line break in the account holder could
+  make the GiroCode show a different IBAN and a higher amount. The account
+  holder may no longer contain line breaks or control characters, and every
+  GiroCode removes them from all free-text fields.
+- **Backup from another Nextcloud:** backups now record which Nextcloud they
+  were made on. If a backup comes from a different Nextcloud – including one
+  reinstalled after a failure –, confirmed links between members and accounts
+  no longer apply after the restore and have to be confirmed again. If the
+  origin is missing, the links are kept, but the check and the report show a
+  clear warning. In both cases the report lists every existing account and
+  group that received a role. A backup of the same Nextcloud is restored
+  unchanged (handbook 12.3).
+
+**Fixed:**
+- **CAMT.053 and MT940:** an entry with a missing or unreadable amount was
+  silently dropped; the import now stops and names the entry.
+- **Expense claims:** the account holder may not contain line breaks or
+  control characters even in a draft.
+- **Assigning a bank transaction:** a database error while loading the old
+  booking could leave the booking in place when unassigning, or book twice
+  when reassigning; the operation now aborts completely.
+- **Raising the minimum of a contribution group** and changes to assignments
+  run in one transaction: an error halfway leaves no partly raised group and
+  no change without a history entry.
+
 ## [0.54.0] – 2026-11-17
 
 **New:**

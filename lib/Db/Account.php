@@ -37,6 +37,8 @@ use OCP\AppFramework\Db\Entity;
  * @method void setReserveKind(?string $reserveKind)
  * @method string|null getIban()
  * @method void setIban(?string $iban)
+ * @method string|null getPaypalEmail()
+ * @method void setPaypalEmail(?string $paypalEmail)
  * @method int|null getCostCenterId()
  * @method void setCostCenterId(?int $costCenterId)
  * @method string|null getShortName()
@@ -64,6 +66,8 @@ class Account extends Entity implements \JsonSerializable, AccountNature {
 	protected $reserveKind;
 	/** IBAN des Geldkontos – ordnet importierte Bankumsätze diesem Konto zu. */
 	protected $iban;
+	/** PayPal-Adresse(n) des Geldkontos, kommagetrennt in Normalform – ordnet PayPal-Umsätze zu (Issue #375). */
+	protected $paypalEmail;
 	/**
 	 * Frei vergebene Kostenstelle (vbh_costcenters.id) – nur im Kostenstellen-
 	 * Modus 'manual' ausgewertet, siehe ReportService::costCenterReport().
@@ -204,6 +208,7 @@ class Account extends Entity implements \JsonSerializable, AccountNature {
 			'sphere' => $this->sphere,
 			'reserveKind' => $this->reserveKind,
 			'iban' => $this->iban,
+			'paypalEmail' => $this->paypalEmail,
 			'costCenterId' => $this->costCenterId,
 			'costCenterRequired' => $this->isCostCenterRequired(),
 			'shortName' => $this->shortName,

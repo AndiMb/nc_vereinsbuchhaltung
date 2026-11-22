@@ -99,13 +99,22 @@ class EpcQrCodeGenerator {
 		if ($amountCents <= 0) {
 			throw new \InvalidArgumentException('Der Betrag für einen GiroCode muss größer als 0 sein.');
 		}
-		$iban = strtoupper(str_replace(' ', '', $creditorIban));
+		// Der Payload ist zeilenweise aufgebaut, Banking-Apps lesen die Felder nach
+		// ihrer Position. Ein Zeilenumbruch in einem Freitext (etwa im Kontoinhaber
+		// einer Auslage, den das Mitglied selbst eingibt) schöbe sonst eine eigene
+		// IBAN- und Betragszeile vor die echten (Review 2026-11-18, Sicherheit I-1).
+		// Deshalb hier für alle Aufrufer: in Name und Verwendungszweck werden
+		// Steuerzeichen und Zeilentrenner zu einem Leerzeichen, IBAN, BIC und
+		// Referenz verlieren jeden Leerraum.
+		$creditorName = self::singleLine($creditorName);
+		$remittanceText = self::singleLine($remittanceText);
+		$iban = strtoupper(self::compact($creditorIban));
 		if ($iban === '') {
 			throw new \InvalidArgumentException('Ein GiroCode braucht eine IBAN.');
 		}
-		$bic = $creditorBic !== null ? strtoupper(str_replace(' ', '', $creditorBic)) : '';
+		$bic = $creditorBic !== null ? strtoupper(self::compact($creditorBic)) : '';
 		$amount = 'EUR' . number_format($amountCents / 100, 2, '.', '');
-		$reference = $creditorReference !== null ? strtoupper(str_replace(' ', '', trim($creditorReference))) : '';
+		$reference = $creditorReference !== null ? strtoupper(self::compact($creditorReference)) : '';
 		if ($reference !== '') {
 			$remittanceText = '';
 		}
@@ -141,6 +150,22 @@ class EpcQrCodeGenerator {
 		// „The last populated element is not followed by any character or element
 		// separator" (EPC069-12 2.2): ohne Verwendungszweck enden die Zeilen früher.
 		return rtrim($prefix . $remittance, "\n");
+	}
+
+	/**
+	 * Der Text auf einer Zeile: jede Folge aus Steuerzeichen (C0, DEL, C1 wie
+	 * NEL) und Unicode-Zeilen-/Absatztrennern wird zu einem Leerzeichen.
+	 * Bei ungültigem UTF-8 scheitert die Unicode-Regex; dann bleiben nur die
+	 * druckbaren ASCII-Zeichen, ein Zeilenumbruch kommt auch so nicht durch.
+	 */
+	private static function singleLine(string $value): string {
+		return preg_replace('/[\p{Cc}\p{Zl}\p{Zp}]+/u', ' ', $value)
+			?? (string)preg_replace('/[^\x20-\x7E]+/', ' ', $value);
+	}
+
+	/** Kennungen (IBAN, BIC, Referenz) ohne jeden Leerraum und ohne Steuerzeichen. */
+	private static function compact(string $value): string {
+		return (string)preg_replace('/[\s\p{Cc}\p{Z}]+/u', '', self::singleLine($value));
 	}
 
 	private function truncate(string $value, int $maxLength): string {

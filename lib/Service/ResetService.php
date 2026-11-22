@@ -13,6 +13,7 @@ use OCA\Vereinsbuchhaltung\Db\BudgetMapper;
 use OCA\Vereinsbuchhaltung\Db\ContributionGroupMapper;
 use OCA\Vereinsbuchhaltung\Db\CostCenterBudgetMapper;
 use OCA\Vereinsbuchhaltung\Db\CostCenterMapper;
+use OCA\Vereinsbuchhaltung\Db\DonationMapper;
 use OCA\Vereinsbuchhaltung\Db\IncomingPaymentRejectionMapper;
 use OCA\Vereinsbuchhaltung\Db\InvoiceBatchMapper;
 use OCA\Vereinsbuchhaltung\Db\InvoiceDocumentMapper;
@@ -74,6 +75,7 @@ class ResetService {
 		private BookingCostCenterMapper $bookingCostCenters,
 		private ContributionGroupMapper $contributionGroups,
 		private CostCenterBudgetMapper $costCenterBudgets,
+		private ?DonationMapper $donations = null,
 	) {
 	}
 
@@ -117,6 +119,10 @@ class ResetService {
 			// Beitragsgruppen bleiben stehen; ihre Vorgabe-Kostenstelle (Issue #333)
 			// zeigte sonst auf eine gelöschte – oder später auf eine fremde, neue.
 			$this->contributionGroups->clearBookingCostCenters();
+			// Spender je Spendenbuchung (#10): Blieben sie liegen, zeigten sie auf
+			// neue Buchungen mit wiederverwendeter ID. Die Zuwendungsbestätigungen
+			// selbst bleiben als Doppel stehen.
+			$this->donations?->deleteAll();
 			$this->lineMapper->deleteAllForUser($userId);
 			$this->journalMapper->deleteAllForUser($userId);
 			$this->txMapper->deleteAllForUser($userId);

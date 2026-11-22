@@ -19,6 +19,9 @@
 				<button v-if="reimbursementsVisible" :class="{ active: bookingView === 'reimbursements' }" @click="$emit('update:booking-view', 'reimbursements')">
 					{{ t('Auslagen') }}
 				</button>
+				<button v-if="canWrite && donationsVisible" :class="{ active: bookingView === 'donations' }" @click="$emit('update:booking-view', 'donations')">
+					{{ t('Spenden') }}
+				</button>
 				<button v-if="canWrite" :class="{ active: bookingView === 'rules' }" @click="$emit('update:booking-view', 'rules')">
 					{{ t('Regeln') }}
 				</button>
@@ -61,7 +64,7 @@
 		</div>
 
 		<!-- Die Auslagen haben ihre eigene Suche und ihre eigenen Filter (ReimbursementsPanel). -->
-		<div v-if="bookingView !== 'reimbursements'" class="vbh-filterbar">
+		<div v-if="bookingView !== 'reimbursements' && bookingView !== 'donations'" class="vbh-filterbar">
 			<!-- Bewusst ohne v-model: ein reaktiver Wert würde bei jedem Tastendruck
 			     die ganze Komponente samt Journal-Tabelle neu rendern. Gefiltert wird
 			     erst über den entprellten bookingSearch (onSearchInput). -->
@@ -829,6 +832,11 @@
 					@pay="$emit('pay-reimbursement', $event)" />
 			</template>
 
+			<!-- SPENDEN (Zuwendungsbestätigungen, Issue #10 Teil B) -->
+			<template v-else-if="bookingView === 'donations' && canWrite && donationsVisible">
+				<DonationsPanel :canWrite="canWrite" />
+			</template>
+
 			<!-- REGELN -->
 			<template v-else-if="bookingView === 'rules' && canWrite">
 				<RulesPanel />
@@ -863,6 +871,7 @@ import AllocationBadge from './AllocationBadge.vue'
 import AmountInput from './AmountInput.vue'
 import BookingCard from './BookingCard.vue'
 import CommentMark from './CommentMark.vue'
+import DonationsPanel from './DonationsPanel.vue'
 import ReceiptSuggestionConfirmDialog from './ReceiptSuggestionConfirmDialog.vue'
 import ReimbursementAssignDialog from './ReimbursementAssignDialog.vue'
 import ReimbursementsPanel from './ReimbursementsPanel.vue'
@@ -893,7 +902,7 @@ const JOURNAL_PAGE = 200
 
 export default {
 	name: 'BookingsTab',
-	components: { NcButton, NcActions, NcActionButton, NcActionLink, NcSelect, NcEllipsisedOption, NcEmptyContent, NcIconSvgWrapper, AllocationBadge, AmountInput, BookingCard, CommentMark, ReceiptSuggestionConfirmDialog, ReimbursementAssignDialog, ReimbursementsPanel, RulesPanel },
+	components: { NcButton, NcActions, NcActionButton, NcActionLink, NcSelect, NcEllipsisedOption, NcEmptyContent, NcIconSvgWrapper, AllocationBadge, AmountInput, BookingCard, CommentMark, DonationsPanel, ReceiptSuggestionConfirmDialog, ReimbursementAssignDialog, ReimbursementsPanel, RulesPanel },
 	props: {
 		isMobile: { type: Boolean, required: true },
 		// 'plain' | 'signed': Vorzeichen und Farbe am Betrag, siehe lib/flow.js
@@ -932,6 +941,8 @@ export default {
 		openFolderPickerForBookings: { type: Function, default: async () => false },
 		// Hochzählen = die Auslagen neu laden (nach der Auszahlungsbuchung in App.vue).
 		reimbursementsReloadKey: { type: Number, default: 0 },
+		// Zuwendungsbestätigungen eingeschaltet: Unterreiter „Spenden“ (#10, Teil B).
+		donationsVisible: { type: Boolean, default: false },
 		// Kontofilter des Journals von außen (URL-Parameter account, Sprung aus
 		// dem Gliederungsbericht). Eine Änderung in der Auswahl meldet
 		// update:filter-account-id zurück; ein Kategoriefilter meldet null.

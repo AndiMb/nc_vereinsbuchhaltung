@@ -118,7 +118,8 @@ class BackupSchemaTest extends TestCase {
 		$this->assertSame(['file_id' => null, 'file_owner' => null], $tables['vbh_reimbursement_files']['replace']);
 		$this->assertSame(['file_id' => 0], $tables['vbh_invoice_documents']['replace']);
 		$this->assertSame(['document_file_id' => 'mandates'], $tables['vbh_mandates']['replaceIfFile']);
-		$this->assertSame(['attachments', 'reimbursements', 'invoices', 'mandates'], BackupSchema::FILE_KINDS);
+		$this->assertSame(['file_id' => 0], $tables['vbh_donation_receipts']['replace']);
+		$this->assertSame(['attachments', 'reimbursements', 'invoices', 'mandates', 'donation_receipts'], BackupSchema::FILE_KINDS);
 	}
 
 	public function testEinstellungenWerdenGesichertAusserInstanzgebundenen(): void {

@@ -104,8 +104,8 @@ class SettingsController extends Controller {
 	 * tatsächlich ändern, und vor jeder Prüfung, die Nutzer oder Ordner
 	 * nachschlägt: deren Meldungen verrieten sonst, welche Nutzer und Ordner es
 	 * gibt. Ein unverändert gespeicherter Wert öffnet keinen fremden Ordner, der
-	 * nicht schon offen war, und die Einstellungsseite sendet immer den
-	 * vollständigen Feldsatz (siehe validateUser()).
+	 * nicht schon offen war, und die Karte „Belege“ sendet Nutzer, Pfad und
+	 * Art immer gemeinsam (siehe validateUser()).
 	 *
 	 * @return string|null Fehlermeldung oder null, wenn alles in Ordnung ist
 	 */
@@ -169,10 +169,11 @@ class SettingsController extends Controller {
 	 * gespeicherter Name kann verwaisen, ohne dass die App etwas davon merkt:
 	 * der UserDeletedListener räumt ihn zwar ab, erreicht aber nicht jede
 	 * Löschung (fremdes Nutzer-Backend, eingespielter Datenbank-Dump, Löschung
-	 * bei abgeschalteter App). Die Einstellungsseite sendet immer den
-	 * vollständigen Feldsatz (SettingsApp.vue::saveSettings()) – ein verwaister
-	 * Name ließe sonst auch das Speichern des Vereinsnamens mit HTTP 400
-	 * scheitern. An der Absicherung oben ändert das nichts: der gespeicherte
+	 * bei abgeschalteter App). Die Einstellungsseite speichert je Karte nur
+	 * deren Felder (src/lib/settingsSave.js), die Karte „Belege“ aber Nutzer,
+	 * Pfad und Art immer gemeinsam; ein Aufrufer ohne Teilangabe schickt
+	 * weiter den vollständigen Feldsatz – ein verwaister Name ließe sonst das
+	 * Speichern der übrigen Felder derselben Anfrage mit HTTP 400 scheitern. An der Absicherung oben ändert das nichts: der gespeicherte
 	 * Wert hat sie schon einmal bestanden, unverändert öffnet er keinen
 	 * fremden Ordner, der nicht schon offen war.
 	 *
@@ -434,11 +435,12 @@ class SettingsController extends Controller {
 		if (array_key_exists('sepa_debtor_account_id', $params)) {
 			$debtorAccountParam = $params['sepa_debtor_account_id'];
 			$debtorAccountId = $debtorAccountParam !== null && $debtorAccountParam !== '' ? (int)$debtorAccountParam : null;
-			// Die Einstellungsseite sendet immer den vollständigen Feldsatz
-			// (SettingsApp.vue::saveSettings()). Ein unverändert durchgereichtes
-			// Konto, das inzwischen ungültig geworden ist – etwa weil es seine
-			// IBAN verloren hat –, ließe sonst auch das Speichern des
-			// Vereinsnamens oder der Belegablage mit HTTP 400 scheitern.
+			// Die Karte „Beiträge & SEPA“ sendet das Konto bei jedem Speichern mit
+			// (Teil 'sepa' in src/lib/settingsSave.js), ebenso Aufrufer ohne
+			// Teilangabe, die den vollständigen Feldsatz schicken. Ein unverändert
+			// durchgereichtes Konto, das inzwischen ungültig geworden ist – etwa
+			// weil es seine IBAN verloren hat –, ließe sonst auch das Speichern
+			// der übrigen Felder dieser Anfrage mit HTTP 400 scheitern.
 			if ($debtorAccountId !== null && $debtorAccountId !== $this->sepaDebtorAccount->getAccountId()) {
 				try {
 					$account = $this->accountMapper->find($debtorAccountId, $this->userId());

@@ -41,7 +41,7 @@
 					</p>
 				</div>
 				<p class="vbh-hint">
-					{{ t('Erkannt werden CSV-CAMT, CAMT.052 und CAMT.053 (XML, auch als ZIP-Archiv) und MT940 – das Format wird am Inhalt bestimmt, die Dateiendung spielt keine Rolle. Nur neue Buchungen werden übernommen; bereits importierte werden automatisch erkannt (Dublettenprüfung).') }}
+					{{ t('Erkannt werden CSV-CAMT, CAMT.052 und CAMT.053 (XML, auch als ZIP-Archiv), MT940 und PayPal-CSV – das Format wird am Inhalt bestimmt, die Dateiendung spielt keine Rolle. Nur neue Buchungen werden übernommen; bereits importierte werden automatisch erkannt (Dublettenprüfung).') }}
 				</p>
 				<NcCheckboxRadioSwitch v-model="applyRules">
 					{{ t('Auto-Zuordnungsregeln anwenden') }}
@@ -51,6 +51,13 @@
 						<span class="vbh-badge pos">{{ t('{n} neu', { n: previewResult.new }) }}</span>
 						<span class="vbh-badge muted">{{ t('{n} Dubletten', { n: previewResult.duplicate }) }}</span>
 						<span class="vbh-badge muted">{{ t('{n} gesamt', { n: previewResult.total }) }}</span>
+						<span
+							v-if="previewResult.skipped > 0"
+							class="vbh-badge muted"
+							data-testid="import-skipped"
+							:title="t('Hinweiszeilen und Fremdwährung')">
+							{{ t('{n} übersprungen', { n: previewResult.skipped }) }}
+						</span>
 					</p>
 					<p v-if="previewResult.existingBookings > 0" class="vbh-hint">
 						{{ t('Davon {n} bereits als vorhandene Buchung erkannt (z. B. aus einem XBUC-Import) und daher übersprungen.', { n: previewResult.existingBookings }) }}

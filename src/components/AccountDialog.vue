@@ -66,6 +66,18 @@
 				{{ t('Damit ordnet die App importierte Kontoauszüge dem richtigen Konto zu (bei mehreren Geldkonten), und Rechnungen nennen die Bankverbindung. Leerzeichen sind egal.') }}
 			</p>
 			<div v-if="form.isBank" class="vbh-form">
+				<label class="vbh-grow">{{ t('PayPal-Adresse (optional)') }}
+					<input
+						v-model="form.paypalEmail"
+						type="text"
+						data-testid="account-paypal-email"
+						autocapitalize="off">
+				</label>
+			</div>
+			<p v-if="form.isBank" class="vbh-hint">
+				{{ t('E-Mail-Adresse(n) des PayPal-Kontos für den PayPal-Import; mehrere durch Komma trennen.') }}
+			</p>
+			<div v-if="form.isBank" class="vbh-form">
 				<NcCheckboxRadioSwitch v-model="form.countInTotal">
 					{{ t('Zählt in den Geldbestand oben in der Kopfzeile') }}
 				</NcCheckboxRadioSwitch>
@@ -171,7 +183,7 @@ import { focusOnOpen } from '../lib/modalFocus.js'
  *
  */
 function emptyForm() {
-	return { number: '', name: '', shortName: '', description: '', type: 'income', category: '', isBank: false, countInTotal: true, parentId: null, sphere: '', reserveKind: '', iban: '', costCenterId: null, costCenterRequired: false, active: true }
+	return { number: '', name: '', shortName: '', description: '', type: 'income', category: '', isBank: false, countInTotal: true, parentId: null, sphere: '', reserveKind: '', iban: '', paypalEmail: '', costCenterId: null, costCenterRequired: false, active: true }
 }
 
 export default {
