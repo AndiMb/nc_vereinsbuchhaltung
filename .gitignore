@@ -41,3 +41,6 @@ composer.phar
 /.superpowers/
 # Superpowers-Spezifikationen und -Pläne (nur lokal)
 /docs/superpowers/
+# Python-Bytecode der Videopipeline
+__pycache__/
+*.pyc
