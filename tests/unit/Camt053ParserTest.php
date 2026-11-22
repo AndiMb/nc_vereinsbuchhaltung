@@ -82,6 +82,36 @@ class Camt053ParserTest extends TestCase {
 	}
 
 	/**
+	 * Ab Version .08 steht der Name in <Dbtr><Pty><Nm> bzw. <Cdtr><Pty><Nm>
+	 * (#384). Ohne diese Ebene zeigte der Import den Buchungstext
+	 * („Basislastschrift“) statt des Empfängers.
+	 */
+	public function testNameUnterPtyAbVersion08(): void {
+		$entry = static fn (string $amount, string $dir): string => <<<XML
+			<Ntry>
+				<Amt Ccy="EUR">{$amount}</Amt><CdtDbtInd>{$dir}</CdtDbtInd><Sts><Cd>BOOK</Cd></Sts>
+				<BookgDt><Dt>2026-11-02</Dt></BookgDt>
+				<AddtlNtryInf>Basislastschrift</AddtlNtryInf>
+				<NtryDtls><TxDtls><RltdPties>
+					<Dbtr><Pty><Nm>Unser Verein</Nm></Pty></Dbtr>
+					<Cdtr><Pty><Nm>Versicherung Beispiel</Nm></Pty></Cdtr>
+				</RltdPties></TxDtls></NtryDtls>
+			</Ntry>
+			XML;
+		$xml = '<?xml version="1.0" encoding="UTF-8"?>'
+			. '<Document xmlns="urn:iso:std:iso:20022:tech:xsd:camt.052.001.08"><BkToCstmrAcctRpt><Rpt>'
+			. '<Acct><Id><IBAN>DE12500105170648489890</IBAN></Id></Acct>'
+			. $entry('49.90', 'DBIT') . $entry('20.00', 'CRDT')
+			. '</Rpt></BkToCstmrAcctRpt></Document>';
+
+		$rows = $this->parser->parse($xml);
+
+		$this->assertCount(2, $rows);
+		$this->assertSame('Versicherung Beispiel', $rows[0]['counterparty'], 'Abbuchung: Empfänger aus Cdtr/Pty/Nm');
+		$this->assertSame('Unser Verein', $rows[1]['counterparty'], 'Gutschrift: Zahler aus Dbtr/Pty/Nm');
+	}
+
+	/**
 	 * Eine Sammelbuchung bleibt eine Zeile – die Bank hat auch nur einen Betrag
 	 * gebucht. Die Zahl der Einzelposten wird im Text vermerkt.
 	 */

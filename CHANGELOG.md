@@ -147,6 +147,10 @@ verwenden, z. B. `**Neu:**`.
   spielt sich unverändert ein (Handbuch 12.3).
 
 **Behoben:**
+- **CAMT-Import (u. a. CAMT.052 der VR-Banken):** Steht der Name des
+  Zahlungspartners eine Ebene tiefer (`<Cdtr><Pty><Nm>`, ab Version .08),
+  zeigte der Import statt des Namens den Buchungstext, etwa
+  „Basislastschrift“. Jetzt wird der Name in beiden Formen erkannt (#384).
 - **Vereinslogo:** Hochladen oder Entfernen des Logos lud alle Einstellungen
   neu und verwarf dabei ungespeicherte Eingaben auf der Seite.
 - **CAMT.053 und MT940:** Eine Buchung mit fehlendem oder unlesbarem Betrag
