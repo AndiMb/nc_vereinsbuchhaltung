@@ -25,6 +25,17 @@ import { compareVersions, isNewerVersion } from '../lib/version.js'
 export function buildWhatsNewEntries() {
 	return [
 		{
+			version: '0.55.0',
+			roles: ['verwalter', 'buchhalter'],
+			items: [
+				t('Neu: Zuwendungsbestätigungen über Mitgliedsbeiträge und Geldspenden nach amtlichem Muster – einzeln oder als Sammelbestätigung je Jahr (Einstellungen → Zuwendungsbestätigungen).'),
+				t('Neu: Der PayPal-Aktivitätsdownload (CSV) lässt sich wie ein Kontoauszug importieren; Gebühren werden eigene Bankbuchungen.'),
+				t('Neu: Der Gliederungsbericht lässt sich als PDF-Datei herunterladen.'),
+				t('Geändert: Die Einstellungsseite ist neu geordnet und hat ein Inhaltsverzeichnis; ausgeschaltete Module zeigen nur noch ihren Schalter.'),
+				t('Behoben: Beim CAMT-Import (u. a. VR-Banken) erscheint jetzt der Name des Zahlungspartners statt des Buchungstexts.'),
+			],
+		},
+		{
 			version: '0.54.0',
 			roles: ['verwalter', 'buchhalter'],
 			items: [

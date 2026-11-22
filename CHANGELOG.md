@@ -19,6 +19,8 @@ verwenden, z. B. `**Neu:**`.
 
 ## [Unreleased]
 
+## [0.55.0] – 2026-11-22
+
 **Neu:**
 - **Gliederungsbericht als PDF:** In der Tabellenansicht lädt der neue Knopf
   **PDF** neben *Drucken / PDF* und *CSV* den Bericht als fertige PDF-Datei

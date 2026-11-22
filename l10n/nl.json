@@ -5028,7 +5028,12 @@
         "Eigener Hinweistext zur Steuer, BIC": "Eigen belastingtekst, BIC",
         "E-Rechnung": "E-factuur",
         "Eingeschaltet: {list}": "Ingeschakeld: {list}",
-        "Zahlungsreferenz und E-Rechnung beim Festschreiben, beide aus": "Betalingsreferentie en e-factuur bij vastleggen, beide uit"
+        "Zahlungsreferenz und E-Rechnung beim Festschreiben, beide aus": "Betalingsreferentie en e-factuur bij vastleggen, beide uit",
+        "Neu: Zuwendungsbestätigungen über Mitgliedsbeiträge und Geldspenden nach amtlichem Muster – einzeln oder als Sammelbestätigung je Jahr (Einstellungen → Zuwendungsbestätigungen).": "Nieuw: giftbevestigingen (Zuwendungsbestätigungen) voor contributies en geldgiften volgens het officiële model – afzonderlijk of als verzamelbevestiging per jaar (Instellingen → Giftbevestigingen).",
+        "Neu: Der PayPal-Aktivitätsdownload (CSV) lässt sich wie ein Kontoauszug importieren; Gebühren werden eigene Bankbuchungen.": "Nieuw: de PayPal-activiteitendownload (CSV) kan als een bankafschrift worden geïmporteerd; kosten worden afzonderlijke banktransacties.",
+        "Neu: Der Gliederungsbericht lässt sich als PDF-Datei herunterladen.": "Nieuw: het indelingsrapport kan als PDF-bestand worden gedownload.",
+        "Geändert: Die Einstellungsseite ist neu geordnet und hat ein Inhaltsverzeichnis; ausgeschaltete Module zeigen nur noch ihren Schalter.": "Gewijzigd: de instellingenpagina is opnieuw ingedeeld en heeft een inhoudsopgave; uitgeschakelde modules tonen alleen nog hun schakelaar.",
+        "Behoben: Beim CAMT-Import (u. a. VR-Banken) erscheint jetzt der Name des Zahlungspartners statt des Buchungstexts.": "Opgelost: bij de CAMT-import (o.a. VR-banken) verschijnt nu de naam van de tegenpartij in plaats van de boekingstekst."
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

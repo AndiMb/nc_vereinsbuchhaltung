@@ -17,6 +17,8 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 
 ## [Unreleased]
 
+## [0.55.0] – 2026-11-22
+
 **New:**
 - **Structured report as PDF:** in the table view, the new **PDF** button next
   to *Print / PDF* and *CSV* downloads the report as a finished PDF file –

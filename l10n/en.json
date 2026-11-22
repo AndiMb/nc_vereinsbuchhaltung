@@ -5028,7 +5028,12 @@
         "Eigener Hinweistext zur Steuer, BIC": "Custom tax note, BIC",
         "E-Rechnung": "E-invoice",
         "Eingeschaltet: {list}": "Switched on: {list}",
-        "Zahlungsreferenz und E-Rechnung beim Festschreiben, beide aus": "Payment reference and e-invoice on finalising, both off"
+        "Zahlungsreferenz und E-Rechnung beim Festschreiben, beide aus": "Payment reference and e-invoice on finalising, both off",
+        "Neu: Zuwendungsbestätigungen über Mitgliedsbeiträge und Geldspenden nach amtlichem Muster – einzeln oder als Sammelbestätigung je Jahr (Einstellungen → Zuwendungsbestätigungen).": "New: donation receipts for membership fees and monetary donations following the official template – single or as an annual collective receipt (Settings → Donation receipts).",
+        "Neu: Der PayPal-Aktivitätsdownload (CSV) lässt sich wie ein Kontoauszug importieren; Gebühren werden eigene Bankbuchungen.": "New: the PayPal activity download (CSV) can be imported like a bank statement; fees become separate bank transactions.",
+        "Neu: Der Gliederungsbericht lässt sich als PDF-Datei herunterladen.": "New: the structured report can be downloaded as a PDF file.",
+        "Geändert: Die Einstellungsseite ist neu geordnet und hat ein Inhaltsverzeichnis; ausgeschaltete Module zeigen nur noch ihren Schalter.": "Changed: the settings page is reorganised and has a table of contents; switched-off modules only show their switch.",
+        "Behoben: Beim CAMT-Import (u. a. VR-Banken) erscheint jetzt der Name des Zahlungspartners statt des Buchungstexts.": "Fixed: the CAMT import (e.g. VR banks) now shows the counterparty name instead of the booking text."
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }
