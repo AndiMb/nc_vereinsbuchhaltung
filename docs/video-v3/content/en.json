@@ -9,6 +9,7 @@
 		"title": "Vereinsbuchhaltung",
 		"subtitle": "Club finances in your own Nextcloud",
 		"claim": "Your data. Your cloud.",
+		"aiNote": "App and video created with AI assistance",
 		"memberLabel": "Member",
 		"outroTitle": "Try it now",
 		"outroLines": [
@@ -187,7 +188,9 @@
 			"The app is free and open source (AGPL) and available in the Nextcloud App Store.",
 			"Source code: https://github.com/AndiMb/nc_vereinsbuchhaltung",
 			"",
-			"All data shown is invented: a sample choir, made-up names, IBANs from the documented test range."
+			"All data shown is invented: a sample choir, made-up names, IBANs from the documented test range.",
+			"",
+			"App and video were created with the help of AI; the narrator’s voice is AI-generated."
 		],
 		"schlagworte": [
 			"Nextcloud",

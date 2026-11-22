@@ -50,6 +50,14 @@
       font-weight: 700;
       color: #fff;
     }
+    #{{P}}-ai {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 118px;
+      font-size: 28px;
+      color: #8fa6bd;
+    }
 <!--HTML-->
     <div id="{{P}}-end" class="clip" data-start="{{END_AT}}" data-duration="{{END_DURATION}}" data-track-index="5">
       <div id="{{P}}-end-bg"></div>
@@ -60,6 +68,7 @@
         <div id="{{P}}-end-url">{{URL}}</div>
         <div id="{{P}}-claim">{{CLAIM}}</div>
       </div>
+      <div id="{{P}}-ai">{{AI_NOTE}}</div>
     </div>
 <!--JS-->
       tl.fromTo(q("end-bg"), { opacity: 0 }, { opacity: 1, duration: 0.6, ease: "power1.out" }, D.endAt);
@@ -70,3 +79,5 @@
       });
       tl.fromTo(q("end-url"), { opacity: 0 }, { opacity: 1, duration: 0.45 }, D.endAt + 1.7);
       tl.fromTo(q("claim"), { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" }, D.claimAt);
+      // Hinweis auf die KI-Unterstuetzung, nach dem Claim.
+      tl.fromTo(q("ai"), { opacity: 0 }, { opacity: 1, duration: 0.5, ease: "power1.out" }, D.claimAt + 0.7);

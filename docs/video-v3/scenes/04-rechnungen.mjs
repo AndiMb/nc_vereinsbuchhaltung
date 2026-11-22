@@ -24,6 +24,11 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 
 export const needsFreshData = true;
 export const needsMember = true;
+// Mias Einreichen braucht eine Server-Runde und dauert bis etwa 15,4 s; die
+// Freigabe des Vorstands (Freigeben -> vorbereiten -> abgeschlossen) laeuft
+// deshalb rund 3 s hinter dem Sprechtext und braucht den laengeren Ausklang,
+// sonst endet der Block mit dem Zeiger auf "Freigeben".
+export const tail = 6.0;
 
 const T = {
 	de: {

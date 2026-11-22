@@ -164,7 +164,8 @@ async function recordScene({ tab, scene, module_, lang, content, clipsDir, keepF
 		duration = module_.duration;
 	} else {
 		cues = loadCues(lang, scene.id);
-		duration = HEAD + cues.duration + TAIL;
+		// Eine Szene darf laenger ausklingen (Abspann: Endkarte bleibt stehen).
+		duration = HEAD + cues.duration + (module_.tail ?? TAIL);
 	}
 
 	if (module_.needsFreshData) {

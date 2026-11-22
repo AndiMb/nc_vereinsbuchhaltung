@@ -54,7 +54,7 @@ test('memberRect: Rechteck im Mitgliederfenster in Filmkoordinaten', async () =>
 	});
 });
 
-import { introShots } from '../lib/film.mjs';
+import { introShots, quietStart } from '../lib/film.mjs';
 
 const introInput = () => ({
 	intro: [
@@ -82,4 +82,21 @@ test('introShots: unbekannter Shot wirft mit Namen', () => {
 	const input = introInput();
 	input.intro[1].shot = 'fehlt';
 	assert.throws(() => introShots(input), /s2.*fehlt/);
+});
+
+test('quietStart: laesst den Wunsch stehen, wenn kein Bildwechsel im Ausschnitt liegt', () => {
+	assert.equal(quietStart({ want: 12.4, duration: 1.4, min: 12.1, max: 16, changes: [12.17, 13.9] }), 12.4);
+});
+
+test('quietStart: weicht nach vorn aus, wenn kurz vor dem Ende ein Dialog aufgeht', () => {
+	// Ausschnitt 12,48-13,87 + Rand trifft den Wechsel bei 13,87.
+	assert.equal(quietStart({ want: 12.481, duration: 1.394, min: 12.13, max: 16.12, changes: [12.167, 13.867, 13.967] }), 12.403);
+});
+
+test('quietStart: weicht hinter den Wechsel aus, wenn davor kein Platz ist', () => {
+	assert.equal(quietStart({ want: 1.0, duration: 2, min: 0.5, max: 10, changes: [2.0] }), 2);
+});
+
+test('quietStart: null, wenn die Einstellung keinen ruhigen Abschnitt hat', () => {
+	assert.equal(quietStart({ want: 1.0, duration: 2, min: 0.5, max: 4, changes: [1.5, 2.5] }), null);
 });

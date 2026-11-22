@@ -117,9 +117,40 @@ export function introShots({ intro, titleCue, at, manifests, head = 0.55 }) {
 		const shot = manifests[s.scene]?.shots.find((x) => x.id === s.shot);
 		if (!shot) throw new Error(`Auftakt: Shot ${s.scene}/${s.shot} fehlt im Manifest`);
 		const end = i + 1 < intro.length ? starts[i + 1] : titleAt + 0.6;
-		return { scene: s.scene, start: starts[i], duration: r3(end - starts[i]), mediaStart: r3(shot.t + (s.offset ?? 0)) };
+		// Grenzen der Einstellung im Quellclip: bis zur naechsten Einstellung
+		// (quietStart verschiebt nur darin). Eine Schnittluecke davor zaehlt
+		// nicht als Ende - in ihr steht das letzte Bild.
+		const m = manifests[s.scene];
+		const danach = [...(m.shots ?? []).map((x) => x.t), m.duration]
+			.filter((t) => typeof t === 'number' && t > shot.t + 0.01);
+		return {
+			scene: s.scene, start: starts[i], duration: r3(end - starts[i]), mediaStart: r3(shot.t + (s.offset ?? 0)),
+			sourceStart: shot.t, sourceEnd: danach.length ? Math.min(...danach) : null,
+		};
 	});
 	return { titleAt, shots };
+}
+
+/**
+ * Anfang eines Auftakt-Ausschnitts so legen, dass kein sprunghafter
+ * Bildwechsel der Quellszene hineinfaellt (ein aufgehender Dialog blitzte
+ * sonst vor dem Schnitt ein Bild lang auf). Bleibt so nah wie moeglich an
+ * `want`; null, wenn die Einstellung keinen ruhigen Abschnitt dieser Laenge hat.
+ *
+ * @param {object} p
+ * @param {number} p.want      gewuenschter Anfang (s im Quellclip)
+ * @param {number} p.duration  Laenge des Ausschnitts
+ * @param {number} p.min       fruehester Anfang (Beginn der Einstellung)
+ * @param {number|null} p.max  Ende der Einstellung
+ * @param {number[]} p.changes Zeitpunkte sprunghafter Bildwechsel
+ */
+export function quietStart({ want, duration, min, max = null, changes, margin = 0.07 }) {
+	const laenge = duration + margin;
+	const ruhig = (t) => t >= min - 1e-6 && (max == null || t + laenge <= max + 1e-6)
+		&& !changes.some((c) => c > t + 0.02 && c < t + laenge - 1e-6);
+	const kandidaten = [want, min, ...changes.map((c) => c - laenge), ...changes].filter(ruhig);
+	if (kandidaten.length === 0) return null;
+	return r3(kandidaten.reduce((a, b) => (Math.abs(b - want) < Math.abs(a - want) ? b : a)));
 }
 const r3 = (v) => Math.round(v * 1000) / 1000;
 
@@ -155,7 +186,7 @@ function blockFile({ tplBlock, tplExtra, block, content, cues, isLast }) {
 		const vars = {
 			P, END_AT: endAt, END_DURATION: r3(block.duration - endAt), TITLE: esc(content.cards.title),
 			LINES: content.cards.outroLines.map((l) => `        <div class="${P}-end-line">${esc(l)}</div>`).join('\n'),
-			URL: esc(content.cards.repoUrl), CLAIM: esc(content.cards.claim),
+			URL: esc(content.cards.repoUrl), CLAIM: esc(content.cards.claim), AI_NOTE: esc(content.cards.aiNote ?? ''),
 		};
 		extraCss = fill(teil('CSS'), vars);
 		extraHtml = fill(teil('HTML'), vars);
@@ -214,7 +245,7 @@ export const buildTimeline = (lang, opts) => loadFilmInputs(lang, opts).timeline
 
 /** Alle Dateien des Films als Map fuer writeGenerated. */
 export async function buildFilm(lang, { templateDir = join(root, 'film-template'), buildDir = join(root, 'build', lang), musicFile = join(root, '..', '..', 'lvymusic-calm-background-for-video-121519.mp3') } = {}) {
-	const { duration: probeDuration } = await import('./ffmpeg.mjs');
+	const { duration: probeDuration, sceneChanges } = await import('./ffmpeg.mjs');
 	const { content, timing, manifests, cues, timeline: tl } = loadFilmInputs(lang, { buildDir });
 
 	const files = {};
@@ -232,6 +263,14 @@ export async function buildFilm(lang, { templateDir = join(root, 'film-template'
 				intro: content.cards.intro, titleCue: content.cards.titleCue,
 				at: (w) => cues[b.id].at(w), manifests,
 			});
+			// Ausschnitte auf ruhige Abschnitte der Quellclips legen.
+			for (const s of intro.shots) {
+				const min = s.sourceStart + 0.05;
+				const changes = sceneChanges(join(buildDir, 'clips', `${s.scene}.mp4`), { from: s.sourceStart, to: s.sourceEnd ?? undefined });
+				const t = quietStart({ want: s.mediaStart, duration: s.duration, min, max: s.sourceEnd, changes });
+				if (t == null) console.warn(`Auftakt: ${s.scene} hat ab ${s.mediaStart} s keinen ruhigen Abschnitt von ${s.duration} s - Bildwechsel im Ausschnitt`);
+				else if (t !== s.mediaStart) { console.log(`Auftakt: ${s.scene} ${s.mediaStart} -> ${t} s (Bildwechsel umgangen)`); s.mediaStart = t; }
+			}
 			const shotTags = intro.shots.map((s, k) => [
 				`    <div id="a00-shot${k}" class="a00-shot">`,
 				`      <video id="a00-v${k}" class="clip" src="assets/clips/${s.scene}.mp4" muted playsinline`,

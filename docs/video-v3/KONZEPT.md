@@ -1,5 +1,14 @@
 # Werbevideo v3 — Konzept
 
+> **Neuer Stand (15.11.2026): Vorstandsfassung.** Das Video wurde für Vorstände
+> neu gebaut – Botschaft „Eure Daten, eure Cloud“, acht Blöcke statt neun
+> Szenen, Montage in HyperFrames statt ffmpeg, Stimme über ElevenLabs. Maßgeblich
+> ist jetzt die Spec
+> [`docs/superpowers/specs/2026-11-15-werbevideo-vorstand-design.md`](../superpowers/specs/2026-11-15-werbevideo-vorstand-design.md);
+> Bedienung und Messwerte stehen in der [README](README.md). Dieses Dokument
+> bleibt als Grundlage der Aufnahmetechnik (Kapitel 4, 7, 8, 10) stehen,
+> Szenenplan und Längen (Kapitel 1–3, 9, 11) sind überholt.
+
 Stand: 23.08.2026 · App-Version 0.27.2 · Nachfolger von
 [youtu.be/eaF-tAQ_OOM](https://youtu.be/eaF-tAQ_OOM) (v2, 2:13, nur Deutsch)
 

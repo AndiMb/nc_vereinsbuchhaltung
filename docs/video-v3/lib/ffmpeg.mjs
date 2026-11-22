@@ -87,3 +87,22 @@ export function run(args, { label = 'ffmpeg' } = {}) {
 	}
 	return res.stderr || '';
 }
+
+/**
+ * Zeitpunkte (s) im Ausschnitt [from, to], an denen sich das Bild sprunghaft
+ * aendert: ein Dialog geht auf, die Seite wechselt. Zeigerwege und Rollen
+ * liegen unter der Schwelle (um 0,05), harte Wechsel deutlich darueber.
+ */
+export function sceneChanges(file, { from = 0, to, threshold = 0.1 } = {}) {
+	const args = ['-v', 'info', '-ss', String(Math.max(0, from)), '-copyts', '-i', file];
+	if (to != null) args.push('-to', String(to));
+	args.push('-vf', `select='gt(scene,${threshold})',metadata=print`, '-an', '-f', 'null', '-');
+	const res = spawnSync(ffmpegPath().path, args, { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+	if (res.status !== 0) throw new Error(`Bildwechsel in ${file} nicht messbar:\n${(res.stderr || '').split('\n').slice(-5).join('\n')}`);
+	const zeiten = [];
+	const re = /pts_time:([0-9.]+)/g;
+	let m;
+	while ((m = re.exec(res.stderr || ''))) zeiten.push(Number(m[1]));
+	// Mit -copyts greift -to nicht verlaesslich; hier begrenzen.
+	return zeiten.filter((t) => to == null || t <= to);
+}

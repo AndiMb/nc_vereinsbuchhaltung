@@ -6,6 +6,9 @@
 // her (needsEmptyData).
 
 export const needsEmptyData = true;
+// Die Endkarte bleibt gut zwei Sekunden stehen. Nebenbei haelt das den Block
+// ueber den 10 s, die YouTube je Kapitel verlangt (en: 9,0 s Sprechtext).
+export const tail = 2.0;
 
 const T = {
 	de: { demo: 'Erst mit Beispieldaten ausprobieren', aktiv: 'Beispieldaten aktiv.', cueKlick: 'Klick', cueBeispiel: 'Beispielverein', cueAn: 'an' },
