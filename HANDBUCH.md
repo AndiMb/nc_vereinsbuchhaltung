@@ -2881,7 +2881,10 @@ App das beim nächsten **Kontoauszugs-Import**: die Rücklastschrift erscheint i
 Segment **„Bankabgleich"** (13.10), zugeordnet zu dem Posten, zu dem sie gehört,
 mit dem **Grund in Klartext**. Nach dem Import meldet der Import-Dialog, wie
 viele mögliche Rücklastschriften erkannt wurden; ein Lauf des Wachordners
-vermerkt es im Protokoll.
+vermerkt es im Protokoll. **Importregeln buchen eine erkannte Rücklastschrift
+nicht**, auch wenn ihr Text zu einer Regel passt: der Umsatz bleibt für den
+Bankabgleich unzugeordnet, sonst gälte die zurückgegebene Forderung weiter als
+bezahlt.
 
 Erst Ihr **Urteil und Verbuchen** löst aus, was die Zeile und die Vorschau
 ankündigen: die Forderung wird wieder offen, je nach Grund wird das Mandat

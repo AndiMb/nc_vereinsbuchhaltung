@@ -67,11 +67,10 @@ class SelfContactService {
 			);
 		}
 
-		if ($result['emailChanged'] && $result['oldEmail'] !== null) {
-			$newEmail = $member->getEmail();
-			if ($newEmail !== null && $newEmail !== '') {
-				$this->receiptMail->sendOldAddressWarning($member, $result['oldEmail'], $newEmail);
-			}
+		if ($result['emailChanged'] && $result['oldEmail'] !== null && $result['oldEmail'] !== '') {
+			// Auch wenn die Adresse nur entfernt wurde: sonst ließe sich die Warnung
+			// umgehen, indem man sie erst löscht und dann eine neue einträgt.
+			$this->receiptMail->sendOldAddressWarning($member, $result['oldEmail'], $member->getEmail());
 		}
 
 		return $member;

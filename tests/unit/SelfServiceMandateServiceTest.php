@@ -319,6 +319,8 @@ class SelfServiceMandateServiceTest extends TestCase {
 		$this->mandateService->expects($this->once())->method('reconfirmElectronic')
 			->with(7, 3, $this->isType('string'), '203.0.113.5', 'TestBrowser/1.0', 'katrin.b')
 			->willReturn($old);
+		// Der Link aus der Mail ist mit der Zustimmung in der Sitzung erledigt.
+		$this->mandateService->expects($this->once())->method('invalidateActivationLinks')->with(7);
 		$this->receiptMailer->expects($this->once())->method('send');
 
 		$this->service()->reconfirm(42);

@@ -6,10 +6,12 @@ namespace OCA\Vereinsbuchhaltung\Tests\Unit;
 
 use OCA\Vereinsbuchhaltung\Db\AssignmentMapper;
 use OCA\Vereinsbuchhaltung\Db\Mandate;
+use OCA\Vereinsbuchhaltung\Db\MandateActivationTokenMapper;
 use OCA\Vereinsbuchhaltung\Db\MandateMapper;
 use OCA\Vereinsbuchhaltung\Db\Member;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
+use OCA\Vereinsbuchhaltung\Service\AuditService;
 use OCA\Vereinsbuchhaltung\Service\ClubClock;
 use OCA\Vereinsbuchhaltung\Service\MemberService;
 use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubClockStub;
@@ -45,12 +47,12 @@ class MemberServiceTest extends TestCase {
 		$this->userManager = $this->createMock(IUserManager::class);
 	}
 
-	private function service(?ClubClock $clock = null): MemberService {
+	private function service(?ClubClock $clock = null, ?MandateActivationTokenMapper $tokens = null, ?AuditService $audit = null): MemberService {
 		$l10n = $this->createMock(IL10N::class);
 		$l10n->method('t')->willReturnCallback(
 			static fn (string $text, array $parameters = []): string => vsprintf(str_replace('%s', '%1$s', $text), $parameters),
 		);
-		return new MemberService($this->mapper, $this->mandateMapper, $this->assignmentMapper, $this->openItemMapper, $this->userManager, $l10n, $clock ?? ClubClockStub::system());
+		return new MemberService($this->mapper, $this->mandateMapper, $this->assignmentMapper, $this->openItemMapper, $this->userManager, $l10n, $clock ?? ClubClockStub::system(), null, $tokens, $audit);
 	}
 
 	// --- splitLabel(): reine Split-Heuristik (Spec §3.1 "Umbaupfad") ---
@@ -348,6 +350,49 @@ class MemberServiceTest extends TestCase {
 		$this->assertSame('neu@example.org', $result['member']->getEmail());
 	}
 
+	/** Ein Mandat des Mitglieds mit der Kennung $id – für die Zustimmungslinks. */
+	private function mandateOf(int $id): Mandate {
+		$mandate = new Mandate();
+		$mandate->setId($id);
+		return $mandate;
+	}
+
+	/**
+	 * Die offenen Zustimmungslinks gingen an die alte Adresse. Ändert das Mitglied
+	 * sie, werden sie ungültig – sonst könnte, wer dort mitliest, ein Mandat erteilen.
+	 */
+	public function testEmailWechselImSelfServiceMachtOffeneZustimmungslinksUngueltig(): void {
+		$this->mapper->method('find')->with(5)->willReturn($this->fullPerson());
+		$this->mapper->method('update')->willReturnArgument(0);
+		$this->mandateMapper->method('findByMember')->with(5)->willReturn([$this->mandateOf(7), $this->mandateOf(8)]);
+		$tokens = $this->createMock(MandateActivationTokenMapper::class);
+		$tokens->expects($this->exactly(2))->method('deleteOutstandingByMandate')->willReturnMap([[7, 1], [8, 0]]);
+		$audit = $this->createMock(AuditService::class);
+		$audit->expects($this->once())->method('log')->with('Zustimmungslinks nach Adressänderung ungültig', 'member', 5, ['links' => 1]);
+
+		$this->service(null, $tokens, $audit)->updateOwnContactData(5, ['email' => 'neu@example.org']);
+	}
+
+	public function testEmailWechselDurchDieVerwaltungMachtOffeneZustimmungslinksUngueltig(): void {
+		$this->mapper->method('find')->with(5)->willReturn($this->fullPerson());
+		$this->mapper->method('update')->willReturnArgument(0);
+		$this->mandateMapper->method('findByMember')->willReturn([$this->mandateOf(7)]);
+		$tokens = $this->createMock(MandateActivationTokenMapper::class);
+		$tokens->expects($this->once())->method('deleteOutstandingByMandate')->with(7)->willReturn(1);
+
+		$this->service(null, $tokens)->update(5, ['memberType' => Member::TYPE_PERSON, 'lastName' => 'Brunner', 'email' => 'neu@example.org']);
+	}
+
+	/** Ohne neue Adresse bleiben die Links, wie sie sind. */
+	public function testAndereAenderungLaesstZustimmungslinksStehen(): void {
+		$this->mapper->method('find')->with(5)->willReturn($this->fullPerson());
+		$this->mapper->method('update')->willReturnArgument(0);
+		$tokens = $this->createMock(MandateActivationTokenMapper::class);
+		$tokens->expects($this->never())->method('deleteOutstandingByMandate');
+
+		$this->service(null, $tokens)->updateOwnContactData(5, ['phone' => '0351 000']);
+	}
+
 	/** #305: unverändert gesendete Daten schreiben nichts und melden keine Änderung. */
 	public function testUpdateOwnContactDataOhneAenderungSchreibtNichts(): void {
 		$person = $this->fullPerson();
@@ -557,6 +602,32 @@ class MemberServiceTest extends TestCase {
 		$result = $this->service()->leave(4, '2030-01-01');
 
 		$this->assertSame('2030-01-01', $result->getLeftAt());
+	}
+
+	/**
+	 * Der Austritt beendet später Mandat und Zuweisungen im Namen des Systems.
+	 * Wer ihn erklärt oder zurückgenommen hat, steht deshalb im Protokoll.
+	 */
+	public function testAustrittUndRuecknahmeStehenImProtokoll(): void {
+		$member = new Member();
+		$member->setId(4);
+		$this->mapper->method('find')->willReturn($member);
+		$this->mapper->method('update')->willReturnArgument(0);
+		$logged = [];
+		$audit = $this->createMock(AuditService::class);
+		$audit->method('log')->willReturnCallback(static function (string $action, ?string $type, ?int $id, array $details) use (&$logged): void {
+			$logged[] = [$action, $type, $id, $details];
+		});
+		$service = $this->service(null, null, $audit);
+
+		$service->leave(4, '2030-01-01');
+		$service->reactivate(4);
+		$service->reactivate(4); // schon zurückgenommen: kein zweiter Eintrag
+
+		$this->assertSame([
+			['Austritt erklärt', 'member', 4, ['von' => null, 'nach' => '2030-01-01']],
+			['Austritt zurückgenommen', 'member', 4, ['von' => '2030-01-01']],
+		], $logged);
 	}
 
 	public function testLeaveMitUngueltigemDatumSchlaegtFehl(): void {
