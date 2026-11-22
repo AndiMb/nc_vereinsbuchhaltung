@@ -1,0 +1,11 @@
+{
+  "name": "film-template",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "npx --yes hyperframes@0.9.53 preview",
+    "check": "npx --yes hyperframes@0.9.53 check",
+    "render": "npx --yes hyperframes@0.9.53 render",
+    "publish": "npx --yes hyperframes@0.9.53 publish"
+  }
+}

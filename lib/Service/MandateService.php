@@ -14,6 +14,7 @@ use OCA\Vereinsbuchhaltung\Db\MandateEventMapper;
 use OCA\Vereinsbuchhaltung\Db\MandateMapper;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
+use OCA\Vereinsbuchhaltung\Service\Sepa\Bic;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\IAppConfig;
 use OCP\IL10N;
@@ -1036,9 +1037,12 @@ class MandateService {
 		return $normalized;
 	}
 
+	/** @throws \InvalidArgumentException wenn die BIC nicht dem Format von pain.008 entspricht */
 	private function normalizeBic(?string $bic): ?string {
-		$bic = trim((string)$bic);
-		return $bic !== '' ? strtoupper($bic) : null;
+		if (trim((string)$bic) === '') {
+			return null;
+		}
+		return Bic::normalize($bic) ?? throw new \InvalidArgumentException($this->l10n->t('Die BIC sieht nicht gültig aus (8 oder 11 Zeichen).'));
 	}
 
 	/**

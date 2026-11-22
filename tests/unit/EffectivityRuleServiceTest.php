@@ -97,4 +97,18 @@ class EffectivityRuleServiceTest extends TestCase {
 		];
 		$this->assertSame('2026-03-01', EffectivityRuleService::firstUnlockedDay($periods));
 	}
+
+	/**
+	 * Eine frühere Periode ohne Vorabinfo (bezahlt, beitragsfrei, Überweiser-Zeit)
+	 * hebt die Sperre der späteren nicht auf: maßgeblich ist die späteste Vorabinfo.
+	 */
+	public function testFruehereUngesperrtePeriodeHebtDieSperreNichtAuf(): void {
+		$periods = [
+			['periodStart' => '2026-01-01', 'periodEnd' => '2026-01-31', 'prenotifiedAt' => null],
+			['periodStart' => '2026-02-01', 'periodEnd' => '2026-02-28', 'prenotifiedAt' => '2026-01-15T00:00:00+00:00'],
+			['periodStart' => '2026-03-01', 'periodEnd' => '2026-03-31', 'prenotifiedAt' => null],
+		];
+		$this->assertSame('2026-03-01', EffectivityRuleService::firstUnlockedDay($periods));
+		$this->assertSame('2026-03-01', EffectivityRuleService::firstEffectiveDate($periods, '2026-02-10'));
+	}
 }

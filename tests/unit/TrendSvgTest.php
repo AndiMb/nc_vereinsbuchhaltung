@@ -67,8 +67,8 @@ class TrendSvgTest extends TestCase {
 
 		// Ist durchgezogen, Hochrechnung gestrichelt, Plan gepunktet
 		$this->assertSame('', $attrs['income actual'][1]);
-		$this->assertSame('6 4', $attrs['income forecast'][1]);
-		$this->assertSame('1.5 3', $attrs['income plan'][1]);
+		$this->assertSame('6,4', $attrs['income forecast'][1]);
+		$this->assertSame('1.5,3', $attrs['income plan'][1]);
 		// Einnahmen in der Akzent-, Ausgaben in der Textfarbe
 		$this->assertSame(TrendSvg::INCOME_COLOR, $attrs['income actual'][0]);
 		$this->assertSame(TrendSvg::EXPENSE_COLOR, $attrs['expense plan'][0]);

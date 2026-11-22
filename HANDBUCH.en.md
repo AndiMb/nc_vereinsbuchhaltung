@@ -1634,11 +1634,11 @@ appears at the end under "Accounts not covered" and a notice names it. An
 account counted in several sections is marked. The grand total always
 covers all income and expenses and matches the financial plan.
 
-**PDF** (table view only) downloads the report as a finished PDF file – with
-page numbers, a table header repeated on every page and automatically in
-landscape format from five value columns on. The file is named
-*Gliederungsbericht-<template>-<period>.pdf* (umlauts are transliterated). The
-visual view (chapter 7.5) remains a print page only.
+**PDF** downloads the report as a finished PDF file – with page numbers, a
+table header repeated on every page and automatically in landscape format from
+five value columns on. The file is named
+*Gliederungsbericht-<template>-<period>.pdf* (umlauts are transliterated). For
+the PDF file of the visual view see chapter 7.5.
 
 **Print / PDF** opens the report as a print-ready page (landscape from five
 columns on), **CSV** delivers the same lines with a "level" column for
@@ -1724,8 +1724,11 @@ below "green from". **Default values** restores the defaults.
 
 **Print / PDF** opens a print-ready page of the visual view for the chosen
 snapshot and comparison: key figures, status counts, deviations, trend and
-breakdown with bars. It is readable in black and white. There is no CSV of
-the visual view; the table's CSV remains.
+breakdown with bars. It is readable in black and white. **PDF** downloads the
+same content as a finished PDF file, likewise for the chosen snapshot and
+comparison, with page numbers and the breakdown header repeated on every page
+(file name *Gliederungsbericht-visuell-<template>-<period>.pdf*). There is no
+CSV of the visual view; the table's CSV remains.
 
 On phones the tiles stack and the rows of the breakdown wrap onto two lines.
 
@@ -2286,8 +2289,10 @@ only:
 | *Welcome email* (*Willkommens-Mail*, a section of its own directly below) | subject and text of the email to newly admitted members (13.2) |
 
 If the "Contributions" tab is switched off, the section only shows the
-*Contributions module* and *Direct debit: creditor ID and account* cards; all
-other cards and the two sections below appear as soon as it is on.
+*Contributions module* card; *Direct debit: creditor ID and account*, all
+other cards and the two sections below appear as soon as it is on. The
+switches of the *Contributions module* card take effect immediately and save
+only themselves; creditor ID and account are saved by the button of their card.
 
 The proof folder and the XML storage live in the home of the user you chose
 under *Receipts* for storage in the Nextcloud file tree (2.4); without one,
@@ -3118,6 +3123,18 @@ amount. A change that therefore could only take effect later is rejected by the
 app with an explanation – the message states the date from which it would be
 possible – instead of being silently postponed; the board can make it in the
 record (13.4) – for periods already announced, nothing changes anyway.
+What counts is the latest pre-notification sent, even if an earlier claim never
+got one (because it was already paid or free of charge). An assignment that only
+starts in the future is not locked: its change applies from its start.
+
+**Changing the interval without a gap.** A change of interval must not leave any
+time without a contribution. Once the contribution has been calculated for a
+period, the change is only possible if the next period of the new interval
+follows directly. Someone who wants to switch from monthly to yearly in February
+therefore gets a rejection naming both dates: otherwise March to December would
+remain without a contribution. Switching to a shorter interval always works,
+switching to a longer one at the latest at the end of the contribution year.
+This applies to members and to the administration alike.
 The **payment method** has none either: if a member switches to bank transfer
 after the pre-notification, the announced collection is dropped, the claim stays
 open, and the next daily run sends the payment request with GiroCode (13.8). If
@@ -3480,9 +3497,9 @@ With the invoice module the association issues invoices in its own name – for 
 
 *Nextcloud settings → Vereinsbuchhaltung → Invoices* (administrators only):
 
-1. **Turn on the invoice module.** The switch takes effect immediately; only then do the other cards of the section appear.
+1. **Turn on the invoice module.** The switch takes effect immediately; only then do the other cards of the section appear. The rarely changed switches **Use a structured payment reference** and **Create the e-invoice when finalizing** sit collapsed under *Advanced* (*Erweitert*) in the same card; the line next to it says which of them are on.
 2. Enter the **details of the association** – they are at the top in the *Club* section (*Club details* card), because donation receipts need them too. Section 14 (4) UStG requires the name and address and the **tax number** (from the tax office) or the VAT ID. Register, board, phone and email additionally appear in the footer of the invoice. You maintain the name of the association further up under "Club". If it is too long for invoices or should read differently there, enter a **name on invoices**; it then appears in the letterhead, the sender line, the footer, the e-invoice and the invoice emails. The **account holder** (at most 70 characters, the limit of the GiroCode) appears in the payment block and the GiroCode; if empty, the name on invoices is used.
-3. **Tax and payment:** Most small associations are **small businesses** (section 19 UStG) and do not show value added tax; the invoice then carries the required notice. Whether this applies to your association is determined by the tax office or your tax adviser. The app picks the **account for payment details and GiroCode** itself: the SEPA direct debit account, otherwise the only cash account with an IBAN. You only need to choose it if several cash accounts have an IBAN; if the IBAN is missing, the checklist hint leads straight to the account. Also set the payment term and, if you like, default texts.
+3. **Tax and payment:** Most small associations are **small businesses** (section 19 UStG) and do not show value added tax; the invoice then carries the required notice. Whether this applies to your association is determined by the tax office or your tax adviser. The app picks the **account for payment details and GiroCode** itself: the SEPA direct debit account, otherwise the only cash account with an IBAN. You only need to choose it if several cash accounts have an IBAN; if the IBAN is missing, the checklist hint leads straight to the account. Also set the payment term and, if you like, default texts. A custom **tax note** and the **BIC** are in this card under *Advanced*; if either is filled in, that area is open.
 4. **Invoice numbers:** The default is `RE-{JJJJ}-{NNNN}` (e.g. `RE-2026-0042`), restarting at 1 every year; credit notes are counted separately (`ST-…`). `{MM}` adds the month of the invoice date, e.g. `RE-{JJJJ}{MM}-{NNNN}` for `RE-202611-0001`; the counter can then also restart at 1 every month. Numbers are consecutive and unique – change the pattern only before you write the first invoice.
 
 As long as mandatory details are missing, no invoice can be finalized; the app tells you what is missing.

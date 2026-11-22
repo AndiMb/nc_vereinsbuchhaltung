@@ -1670,11 +1670,11 @@ es am Ende unter „Nicht erfasste Konten", und ein Hinweis nennt es. Zählt ein
 Konto in mehreren Abschnitten, wird es markiert. Die Gesamtzeile umfasst
 immer alle Einnahmen und Ausgaben und stimmt mit dem Finanzplan überein.
 
-**PDF** (nur in der Tabellenansicht) lädt den Bericht als fertige PDF-Datei
-herunter – mit Seitenzahlen, auf jeder Seite wiederholtem Tabellenkopf und ab
-fünf Wertspalten automatisch im Querformat. Der Dateiname lautet
-*Gliederungsbericht-<Vorlage>-<Zeitraum>.pdf* (Umlaute werden umschrieben). Die
-visuelle Ansicht (Kapitel 7.5) gibt es weiterhin nur als Druckseite.
+**PDF** lädt den Bericht als fertige PDF-Datei herunter – mit Seitenzahlen,
+auf jeder Seite wiederholtem Tabellenkopf und ab fünf Wertspalten automatisch
+im Querformat. Der Dateiname lautet *Gliederungsbericht-<Vorlage>-<Zeitraum>.pdf*
+(Umlaute werden umschrieben). Zur PDF-Datei der visuellen Ansicht siehe
+Kapitel 7.5.
 
 **Drucken / PDF** öffnet den Bericht als druckfertige Seite (ab fünf Spalten
 im Querformat), **CSV** liefert dieselben Zeilen mit einer Spalte „Ebene" zum
@@ -1759,8 +1759,12 @@ muss „orange ab“ unter „rot über“ liegen, bei den Einnahmen „rot unte
 
 **Drucken / PDF** öffnet in der visuellen Ansicht eine druckfertige Seite für
 den gewählten Stand und Vergleich: Kennzahlen, Ampelzahlen, Abweichungen,
-Verlauf und Aufriss mit Balken. Sie ist auch in Schwarzweiß lesbar. Ein CSV
-der visuellen Ansicht gibt es nicht; das CSV der Tabelle bleibt.
+Verlauf und Aufriss mit Balken. Sie ist auch in Schwarzweiß lesbar. **PDF**
+lädt denselben Inhalt als fertige PDF-Datei herunter, ebenfalls für den
+gewählten Stand und Vergleich, mit Seitenzahlen und auf jeder Seite
+wiederholtem Kopf des Aufrisses (Dateiname
+*Gliederungsbericht-visuell-<Vorlage>-<Zeitraum>.pdf*). Ein CSV der visuellen
+Ansicht gibt es nicht; das CSV der Tabelle bleibt.
 
 Am Handy stapeln sich die Kacheln, und die Zeilen des Aufrisses brechen auf
 zwei Zeilen um.
@@ -2344,9 +2348,11 @@ zugänglich:
 | *Mandats-Rechtstext* (eigener Abschnitt direkt darunter) | der Text auf Mandatsformular und Zustimmungsseite (13.2) |
 | *Willkommens-Mail* (eigener Abschnitt direkt darunter) | Betreff und Text der Mail an neu aufgenommene Mitglieder (13.2) |
 
-Ist der Reiter „Beiträge" ausgeschaltet, zeigt der Abschnitt nur die Karten
-*Beitragsmodul* und *Lastschrift: Gläubiger-ID und Konto*; alle übrigen Karten
-und die beiden Abschnitte darunter erscheinen, sobald er an ist.
+Ist der Reiter „Beiträge" ausgeschaltet, zeigt der Abschnitt nur die Karte
+*Beitragsmodul*; *Lastschrift: Gläubiger-ID und Konto*, alle übrigen Karten
+und die beiden Abschnitte darunter erscheinen, sobald er an ist. Die Schalter
+der Karte *Beitragsmodul* wirken sofort und speichern nur sich selbst,
+Gläubiger-ID und Konto speichert der Knopf ihrer Karte.
 
 Nachweis-Ordner und XML-Ablage liegen im Home des Nutzers, den Sie unter
 *Belege* für die Ablage im Nextcloud-Dateibaum gewählt haben (2.4); ohne ihn
@@ -3162,7 +3168,19 @@ angekündigt. Eine Änderung, die deshalb erst später wirken dürfte, weist die
 zurück und erklärt warum – die Meldung nennt das Datum, ab dem sie möglich wäre –,
 statt sie stillschweigend zu verschieben; der Vorstand kann sie in der Akte
 vornehmen (13.4) – für bereits angekündigte Perioden ändert sich dann trotzdem
-nichts mehr. Die **IBAN** kennt kein Sperrfenster: die Vorabinfo nennt
+nichts mehr. Maßgeblich ist die späteste verschickte Vorabinfo, auch wenn eine
+frühere Forderung keine bekommen hat (weil sie schon bezahlt oder beitragsfrei
+war). Eine Zuweisung, die erst künftig beginnt, ist nicht gesperrt: ihre
+Änderung gilt ab ihrem Beginn.
+
+**Turnuswechsel ohne Lücke.** Ein Wechsel des Turnus darf keine Zeit ohne
+Beitrag hinterlassen. Ist der Beitrag schon für eine Periode berechnet, geht
+der Wechsel nur, wenn die nächste Periode des neuen Turnus direkt daran
+anschließt. Wer im Februar von monatlich auf jährlich wechseln will, bekommt
+deshalb eine Ablehnung mit den beiden Daten: sonst blieben März bis Dezember
+ohne Beitrag. Der Wechsel auf einen kürzeren Turnus geht immer, der auf einen
+längeren spätestens zum Ende des Beitragsjahres. Das gilt für Mitglieder wie
+für die Verwaltung. Die **IBAN** kennt kein Sperrfenster: die Vorabinfo nennt
 keine IBAN, und der Lauf friert sie erst bei der Freigabe ein – sie lässt sich bis
 dahin ändern. Auch die **Zahlungsart** kennt keines: wechselt ein Mitglied nach
 der Vorabinfo auf Überweisung, entfällt der angekündigte Einzug, die Forderung
@@ -3537,9 +3555,9 @@ Mit dem Rechnungsmodul stellt der Verein Rechnungen in seinem eigenen Namen aus 
 
 *Nextcloud-Einstellungen → Vereinsbuchhaltung → Rechnungen* (nur Verwalter):
 
-1. **Rechnungsmodul einschalten.** Der Schalter wirkt sofort; erst danach erscheinen die übrigen Karten des Abschnitts.
+1. **Rechnungsmodul einschalten.** Der Schalter wirkt sofort; erst danach erscheinen die übrigen Karten des Abschnitts. Die selten geänderten Schalter **Strukturierte Zahlungsreferenz verwenden** und **E-Rechnung beim Festschreiben erzeugen** stehen in derselben Karte eingeklappt unter *Erweitert*; die Zeile daneben nennt, welche davon an sind.
 2. **Angaben des Vereins** eintragen – sie stehen oben im Abschnitt *Verein* (Karte *Angaben des Vereins*), weil auch die Zuwendungsbestätigungen sie brauchen. Pflicht nach § 14 Abs. 4 UStG sind Name und Anschrift sowie die **Steuernummer** (vom Finanzamt) oder die USt-IdNr. Register, Vorstand, Telefon und E-Mail erscheinen zusätzlich im Fuß der Rechnung. Den Vereinsnamen pflegen Sie weiter oben unter „Verein". Ist er für Rechnungen zu lang oder soll er dort anders lauten, tragen Sie einen **Namen auf Rechnungen** ein; er steht dann im Briefkopf, in der Absenderzeile, im Fuß, in der E-Rechnung und in den Rechnungs-Mails. Der **Kontoinhaber** (höchstens 70 Zeichen, so viel fasst der GiroCode) steht im Zahlungsblock und im GiroCode; leer gilt der Name auf Rechnungen.
-3. **Steuer und Zahlung:** Die meisten kleinen Vereine sind **Kleinunternehmer** (§ 19 UStG) und weisen keine Umsatzsteuer aus; auf der Rechnung steht dann der vorgeschriebene Hinweis. Ob das für Ihren Verein gilt, klärt das Finanzamt oder Ihre Steuerberatung. Das **Konto für Zahlungsangaben und GiroCode** wählt die App selbst: das Konto des SEPA-Einzugs, sonst das einzige Geldkonto mit IBAN. Selbst wählen müssen Sie es nur, wenn mehrere Geldkonten eine IBAN haben; fehlt die IBAN, führt der Hinweis in der Prüfliste direkt zum Konto. Legen Sie außerdem das Zahlungsziel und bei Bedarf Standardtexte fest.
+3. **Steuer und Zahlung:** Die meisten kleinen Vereine sind **Kleinunternehmer** (§ 19 UStG) und weisen keine Umsatzsteuer aus; auf der Rechnung steht dann der vorgeschriebene Hinweis. Ob das für Ihren Verein gilt, klärt das Finanzamt oder Ihre Steuerberatung. Das **Konto für Zahlungsangaben und GiroCode** wählt die App selbst: das Konto des SEPA-Einzugs, sonst das einzige Geldkonto mit IBAN. Selbst wählen müssen Sie es nur, wenn mehrere Geldkonten eine IBAN haben; fehlt die IBAN, führt der Hinweis in der Prüfliste direkt zum Konto. Legen Sie außerdem das Zahlungsziel und bei Bedarf Standardtexte fest. Einen eigenen **Hinweistext zur Steuer** und die **BIC** finden Sie in dieser Karte unter *Erweitert*; ist dort etwas eingetragen, steht der Bereich offen.
 4. **Rechnungsnummern:** Voreingestellt ist `RE-{JJJJ}-{NNNN}` (z. B. `RE-2026-0042`), jedes Jahr neu ab 1; Stornorechnungen zählen getrennt (`ST-…`). Mit `{MM}` kommt der Monat des Rechnungsdatums dazu, etwa `RE-{JJJJ}{MM}-{NNNN}` für `RE-202611-0001`; der Zähler kann dann auch jeden Monat neu ab 1 beginnen. Die Nummern sind fortlaufend und einmalig – ändern Sie das Muster nur, bevor Sie die erste Rechnung schreiben.
 
 Solange Pflichtangaben fehlen, lässt sich keine Rechnung festschreiben; die App sagt, was fehlt.

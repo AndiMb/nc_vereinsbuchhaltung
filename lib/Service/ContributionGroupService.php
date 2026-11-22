@@ -131,6 +131,8 @@ class ContributionGroupService {
 		if ($newMinAmountCents <= $group->minAmountCents()) {
 			throw new \InvalidArgumentException($this->l10n->t('Das ist keine Erhöhung der bisherigen Untergrenze.'));
 		}
+		// Die neue Untergrenze wird zum Beitrag aller Zuweisungen darunter.
+		MonthlyAmount::assertValid($newMinAmountCents, $this->l10n, $annual);
 
 		$affected = [];
 		$unaffected = [];
@@ -223,9 +225,8 @@ class ContributionGroupService {
 			throw new \InvalidArgumentException($this->l10n->t('Unbekannte Betragsangabe.'));
 		}
 		$annual = $amountBasis === ContributionGroup::BASIS_YEAR;
-		if ($minAmountCents < 0 || $defaultAmountCents < 0) {
-			throw new \InvalidArgumentException($this->l10n->t('Beträge dürfen nicht negativ sein.'));
-		}
+		MonthlyAmount::assertValid($minAmountCents, $this->l10n, $annual);
+		MonthlyAmount::assertValid($defaultAmountCents, $this->l10n, $annual);
 		if ($defaultAmountCents < $minAmountCents) {
 			throw new \InvalidArgumentException($annual
 				? $this->l10n->t('Der Standard-Jahresbeitrag darf die Untergrenze nicht unterschreiten.')

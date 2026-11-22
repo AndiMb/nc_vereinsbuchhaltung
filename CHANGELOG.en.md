@@ -17,6 +17,54 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 
 ## [Unreleased]
 
+## [0.56.0] – 2026-11-22
+
+**New:**
+- **Visual structured report as PDF:** the **PDF** button is now also
+  available in the visual view. It downloads key figures, status lights,
+  largest deviations, trend and the breakdown with bars as a finished PDF file
+  – for the chosen snapshot and comparison, with page numbers and a table
+  header repeated on every page. *Print / PDF* remains available next to it.
+  Described in chapter 7.5 of the manual.
+
+**Changed:**
+- **Changing the payment interval without a gap:** a change of interval that
+  would leave time without a contribution is rejected with an explanation and
+  both dates – for members and for the administration alike. Until now, a
+  change from monthly to annual in February, for example, left March to
+  December without a claim. A shorter interval is always possible, a longer
+  one at the latest at the end of the contribution year. Described in
+  chapter 13.11 of the manual.
+- **BIC of a mandate:** a BIC that does not match the SEPA format is rejected
+  on every input – in self-service, in the administration and in the CSV
+  import.
+- **Maximum contribution:** a monthly fee may be at most 1 million, an annual
+  fee at most 12 million, and never negative. This also applies to individual
+  minimum amounts and the amounts of a contribution group.
+
+**Security:**
+- **Member data overview:** start and end of an assignment must be a calendar
+  date. The printable data overview used to output both fields unfiltered, so
+  HTML could be injected through them.
+
+**Fixed:**
+- **SEPA file:** a single invalid BIC that was already stored made the direct
+  debit file invalid for all payers. It is now left out when writing, like a
+  missing BIC.
+- **Claim run:** if the daily run failed on one assignment, none of the others
+  got their claim either. Each assignment now runs on its own; the failed one
+  appears as a task until the next clean run ("The daily run could not create
+  a claim for …").
+- **Lock window after the advance notice:** the latest advance notice sent is
+  now decisive. An earlier claim without advance notice (paid, free of charge
+  or from the time as a bank-transfer payer) used to lift the lock.
+- **Self-service:** an assignment that only starts in the future can now be
+  changed. Until now self-service refused this, pointing to an advance notice
+  that did not exist.
+- Very large amounts could overflow when converted to cents.
+
+## [0.55.0] – 2026-11-22
+
 **New:**
 - **Structured report as PDF:** in the table view, the new **PDF** button next
   to *Print / PDF* and *CSV* downloads the report as a finished PDF file –
@@ -95,6 +143,15 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   bank statements or creditor ID also took along unsaved input from all the
   other cards of that group, and in the invoice cards saving one card
   discarded the input in the others.
+- **Contributions module in the settings:** its switches ("Contributions"
+  tab, self-service, switch to bank transfer) now save only themselves;
+  until now they took along an unsaved creditor ID and account, and an error
+  there made the switch fail. The *Direct debit: creditor ID and account* card
+  only appears while the module is on.
+- **"Advanced" in the invoice settings:** structured payment reference and
+  e-invoice on finalizing as well as a custom tax note and the BIC sit
+  collapsed under *Advanced*. The summary says which switches are on; if a
+  field is filled in, the area is open.
 - **Amounts in imports** are now read by one shared parser with fixed rules
   (CSV bank statement, CAMT.053, MT940, PayPal, XBUC, member CSV). What
   changes:
@@ -130,6 +187,12 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   unchanged (handbook 12.3).
 
 **Fixed:**
+- **CAMT import (e.g. CAMT.052 from VR banks):** if the counterparty name
+  sits one level deeper (`<Cdtr><Pty><Nm>`, from version .08 on), the import
+  showed the booking text, such as "Basislastschrift", instead of the name.
+  Both forms are now recognised (#384).
+- **Club logo:** uploading or removing the logo reloaded all settings and
+  discarded unsaved input on the page.
 - **CAMT.053 and MT940:** an entry with a missing or unreadable amount was
   silently dropped; the import now stops and names the entry.
 - **Expense claims:** the account holder may not contain line breaks or

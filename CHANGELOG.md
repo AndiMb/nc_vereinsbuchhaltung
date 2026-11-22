@@ -19,6 +19,53 @@ verwenden, z. B. `**Neu:**`.
 
 ## [Unreleased]
 
+## [0.56.0] – 2026-11-22
+
+**Neu:**
+- **Visueller Gliederungsbericht als PDF:** Der Knopf **PDF** gibt es jetzt
+  auch in der visuellen Ansicht. Er lädt Kennzahlen, Ampel, größte
+  Abweichungen, Verlauf und Aufriss mit Balken als fertige PDF-Datei herunter –
+  für den gewählten Stand und Vergleich, mit Seitenzahlen und auf jeder Seite
+  wiederholtem Tabellenkopf. *Drucken / PDF* bleibt daneben erhalten.
+  Beschrieben in Kapitel 7.5 des Handbuchs.
+
+**Geändert:**
+- **Turnuswechsel ohne Lücke:** Ein Wechsel des Turnus, der Zeit ohne Beitrag
+  ließe, wird mit Erklärung und den beiden Daten abgelehnt – für Mitglieder wie
+  für die Verwaltung. Bisher blieb etwa beim Wechsel von monatlich auf jährlich
+  im Februar die Zeit von März bis Dezember ohne Forderung. Auf einen kürzeren
+  Turnus geht es immer, auf einen längeren spätestens zum Ende des
+  Beitragsjahres. Beschrieben in Kapitel 13.11 des Handbuchs.
+- **BIC eines Mandats:** Eine BIC, die nicht dem SEPA-Format entspricht, wird
+  bei jeder Eingabe abgelehnt – im Self-Service, in der Verwaltung und beim
+  CSV-Import.
+- **Höchstbetrag für Beiträge:** Ein Monatsbeitrag darf höchstens 1 Mio., ein
+  Jahresbeitrag höchstens 12 Mio. betragen und nie negativ sein. Das gilt auch
+  für individuelle Untergrenzen und die Beträge einer Beitragsgruppe.
+
+**Sicherheit:**
+- **Datenübersicht eines Mitglieds:** Beginn und Ende einer Zuweisung müssen
+  ein Kalenderdatum sein. Die druckbare Datenübersicht gab beide Felder bisher
+  ungefiltert aus, sodass sich darüber HTML einschleusen ließ.
+
+**Behoben:**
+- **SEPA-Datei:** Eine einzige schon gespeicherte ungültige BIC machte die
+  Lastschriftdatei für alle Zahler ungültig. Sie fällt beim Schreiben jetzt weg
+  wie eine fehlende BIC.
+- **Forderungslauf:** Scheiterte der Tageslauf an einer Zuweisung, bekam auch
+  keine der übrigen ihre Forderung. Jetzt läuft jede Zuweisung für sich; die
+  gescheiterte erscheint bis zum nächsten sauberen Lauf als Aufgabe („Für …
+  konnte der Tageslauf keine Forderung erzeugen“).
+- **Sperrfenster nach der Vorabinfo:** Maßgeblich ist jetzt die späteste
+  verschickte Vorabinfo. Eine frühere Forderung ohne Vorabinfo (bezahlt,
+  beitragsfrei oder aus der Zeit als Überweiser) hob die Sperre bisher auf.
+- **Self-Service:** Eine Zuweisung, die erst künftig beginnt, lässt sich jetzt
+  ändern. Bisher lehnte der Self-Service das mit dem Hinweis auf eine Vorabinfo
+  ab, die es nicht gab.
+- Sehr große Beträge konnten bei der Umrechnung in Cent überlaufen.
+
+## [0.55.0] – 2026-11-22
+
 **Neu:**
 - **Gliederungsbericht als PDF:** In der Tabellenansicht lädt der neue Knopf
   **PDF** neben *Drucken / PDF* und *CSV* den Bericht als fertige PDF-Datei
@@ -100,6 +147,16 @@ verwenden, z. B. `**Neu:**`.
   Belege, Kontoauszüge oder Gläubiger-ID auch ungespeicherte Eingaben aller
   anderen dieser Karten mit, und in den Rechnungskarten verwarf das Speichern
   einer Karte die Eingaben der übrigen.
+- **Beitragsmodul in den Einstellungen:** Die Schalter (Reiter „Beiträge“,
+  Self-Service, Umstellung auf Überweisung) speichern jetzt nur sich selbst;
+  bisher nahmen sie eine ungespeicherte Gläubiger-ID samt Konto mit, und ein
+  Fehler darin ließ den Schalter scheitern. Die Karte *Lastschrift:
+  Gläubiger-ID und Konto* erscheint nur noch bei eingeschaltetem Modul.
+- **„Erweitert“ in den Rechnungseinstellungen:** Strukturierte
+  Zahlungsreferenz und E-Rechnung beim Festschreiben sowie eigener
+  Hinweistext zur Steuer und BIC stehen eingeklappt unter *Erweitert*. Die
+  Zusammenfassung nennt, welche Schalter an sind; ist ein Feld gefüllt, steht
+  der Bereich offen.
 - **Beträge in Importen** liest jetzt ein gemeinsamer Leser mit festen Regeln
   (Kontoauszug als CSV, CAMT.053, MT940, PayPal, XBUC, Mitglieder-CSV). Was
   sich dadurch ändert:
@@ -137,6 +194,12 @@ verwenden, z. B. `**Neu:**`.
   spielt sich unverändert ein (Handbuch 12.3).
 
 **Behoben:**
+- **CAMT-Import (u. a. CAMT.052 der VR-Banken):** Steht der Name des
+  Zahlungspartners eine Ebene tiefer (`<Cdtr><Pty><Nm>`, ab Version .08),
+  zeigte der Import statt des Namens den Buchungstext, etwa
+  „Basislastschrift“. Jetzt wird der Name in beiden Formen erkannt (#384).
+- **Vereinslogo:** Hochladen oder Entfernen des Logos lud alle Einstellungen
+  neu und verwarf dabei ungespeicherte Eingaben auf der Seite.
 - **CAMT.053 und MT940:** Eine Buchung mit fehlendem oder unlesbarem Betrag
   fiel still weg; der Import bricht jetzt ab und nennt die Buchung.
 - **Auslagen:** Der Kontoinhaber darf schon im Entwurf keine Zeilenumbrüche

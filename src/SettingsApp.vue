@@ -12,11 +12,10 @@
 					v-model:clubName="clubName"
 					v-model:brandColor="brandColor"
 					v-model:clubCurrency="clubCurrency"
+					v-model:hasLogo="hasLogo"
 					:clubCurrencies="clubCurrencies"
-					:hasLogo="hasLogo"
 					:storageSaving="storageSaving"
-					:saveStorageSettings="saveSettings"
-					@changed="loadSettings" />
+					:saveStorageSettings="saveSettings" />
 				<!-- Anschrift und Steuernummer: Rechnungen UND Zuwendungsbestätigungen
 				     brauchen sie, deshalb hier und unabhängig von jedem Modulschalter. -->
 				<SettingsClubIssuer
@@ -83,7 +82,8 @@
 					v-model:selfServiceEnabled="selfServiceEnabled"
 					v-model:selfServiceTransferSwitchEnabled="selfServiceTransferSwitchEnabled"
 					:storageSaving="storageSaving"
-					:saveSettings="saveSepaBasics" />
+					:saveSettings="saveSepaBasics"
+					:saveModule="saveSepaModule" />
 				<!-- Ausgeschaltetes Modul: Fristen, Mandate, Rücklastschriften,
 				     Rechtstext und Willkommens-Mail ausblenden – rund 30 Felder, die
 				     dann nichts bewirken. Der Schalter oben bleibt sichtbar. -->
@@ -99,7 +99,7 @@
 					</NcButton>
 				</div>
 				<p v-else-if="settingsLoaded" class="vbh-hint vbh-hint--info" data-testid="settings-module-off-beitraege">
-					{{ t('Das Beitragsmodul ist ausgeschaltet. Beitragsjahr und Fristen, Mandate, Rücklastschriften, Mandats-Rechtstext und Willkommens-Mail erscheinen hier, sobald Sie den Reiter „Beiträge“ einschalten.') }}
+					{{ t('Das Beitragsmodul ist ausgeschaltet. Gläubiger-ID und Konto, Beitragsjahr und Fristen, Mandate, Rücklastschriften, Mandats-Rechtstext und Willkommens-Mail erscheinen hier, sobald Sie den Reiter „Beiträge“ einschalten.') }}
 				</p>
 			</NcSettingsSection>
 		</div>
@@ -412,10 +412,10 @@ export default {
 			}
 		},
 
-		// Speichern einer Karte: nur deren Felder (lib/settingsSave.js). Ohne
-		// Angabe – so ruft SettingsSepaBasics.vue die Funktion auf, die zum
-		// SEPA-Modul gehört und unverändert bleibt – über saveSepaBasics() der
-		// Teil 'sepa'. cost_center_mode bleibt bei ReportsTab/App.vue.
+		// Speichern einer Karte: nur deren Felder (lib/settingsSave.js).
+		// SettingsSepaBasics.vue ruft ohne Angabe auf und kommt deshalb über
+		// saveSepaBasics()/saveSepaModule(). cost_center_mode bleibt bei
+		// ReportsTab/App.vue.
 		async saveSettings(...args) {
 			// Als Klick-Handler bekäme die Funktion das Ereignis mit; nur bekannte
 			// Teile zählen, sonst wie früher der vollständige Satz.
@@ -431,7 +431,7 @@ export default {
 				if (saved.has('storage')) {
 					this.storageUser = data.storage_user || ''
 				}
-				if (saved.has('sepa')) {
+				if (saved.has('sepaModule')) {
 					// Ohne gespeicherten Schalter gilt das Modul als an, sobald es
 					// Mitglieder gibt – maßgeblich ist, was der Server meldet.
 					this.membershipEnabled = !!data.membership_enabled
@@ -458,14 +458,20 @@ export default {
 				// Die Modulschalter wirken sofort; scheitert das, sollen sie (und
 				// die davon abhängigen Karten) nicht einen Stand zeigen, den der
 				// Server nicht hat.
-				if (!parts.length || parts.includes('sepa')) {
+				if (!parts.length || parts.includes('sepaModule')) {
 					await this.reloadModuleFlags()
 				}
 			} finally { this.storageSaving = false }
 		},
 
+		/** Karte „Lastschrift: Gläubiger-ID und Konto“. */
 		saveSepaBasics() {
 			return this.saveSettings('sepa')
+		},
+
+		/** Schalter der Karte „Beitragsmodul“, wirken sofort. */
+		saveSepaModule() {
+			return this.saveSettings('sepaModule')
 		},
 
 		/** Nur die Schalter des Beitragsmoduls neu laden, ohne andere Eingaben zu überschreiben. */

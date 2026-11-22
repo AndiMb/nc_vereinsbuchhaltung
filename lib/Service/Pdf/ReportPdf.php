@@ -190,7 +190,11 @@ final class ReportPdf {
 	 * `indent` (Einzug in mm; gilt für die erste Zelle, oder für die in `indentCell`
 	 * genannte – etwa die Bezeichnung hinter einer Nummernspalte) und `align` (Ausrichtung
 	 * der ersten Zelle, wenn die der letzten überspannten Spalte nicht passt), `muted`
-	 * (graue Schrift) und `size` (Schriftgröße in pt, sonst die der Zeilenart).
+	 * (graue Schrift) und `size` (Schriftgröße in pt, sonst die der Zeilenart),
+	 * `colors` (Schriftfarbe je Zelle, z. B. für eine Ampelstufe), `keepWithNext`
+	 * (die Zeile bleibt wie eine Überschrift nie allein am Seitenende) und `decorate`
+	 * (zeichnet nach dem Text in die Zeile, etwa einen Balken; bekommt das Dokument,
+	 * je Zelle `[x, Breite]`, das obere y und die Höhe).
 	 *
 	 * Bricht die Tabelle um, steht oben auf der neuen Seite wieder der letzte
 	 * Zwischenkopf – oder die Kopfzeile, wenn es keinen gab. Ein Zwischenkopf mit
@@ -198,7 +202,7 @@ final class ReportPdf {
 	 * die Kopfzeile nicht: Sonst fehlten auf Folgeseiten die Spaltenköpfe.
 	 *
 	 * @param list<array{label?: string, width: float, align?: string}> $columns
-	 * @param list<array{cells: list<string>, style?: string, span?: list<int>, indent?: float, indentCell?: int, repeat?: bool, align?: string, muted?: bool, size?: float}> $rows
+	 * @param list<array{cells: list<string>, style?: string, span?: list<int>, indent?: float, indentCell?: int, repeat?: bool, align?: string, muted?: bool, size?: float, colors?: array<int, array{0:int, 1:int, 2:int}>, keepWithNext?: bool, decorate?: callable(ReportPdfDocument, list<array{0: float, 1: float}>, float, float): void}> $rows
 	 */
 	public function table(array $columns, array $rows): void {
 		$total = $this->contentWidth();
@@ -220,10 +224,10 @@ final class ReportPdf {
 			// Unterabschnitt umbricht.
 			$replaces = $style === self::ROW_HEAD && ($row['repeat'] ?? true);
 			$needed = $height;
-			if ($this->isHead($style)) {
+			if ($this->keepsWithNext($row)) {
 				for ($next = $index + 1; $next < count($rows); $next++) {
 					$needed += $this->rowHeight($widths, $rows[$next]);
-					if (!$this->isHead($rows[$next]['style'] ?? self::ROW_NORMAL)) {
+					if (!$this->keepsWithNext($rows[$next])) {
 						break;
 					}
 				}
@@ -312,6 +316,11 @@ final class ReportPdf {
 		return $style === self::ROW_HEAD || $style === self::ROW_SUBHEAD;
 	}
 
+	/** @param array{style?: string, keepWithNext?: bool} $row */
+	private function keepsWithNext(array $row): bool {
+		return $this->isHead($row['style'] ?? self::ROW_NORMAL) || ($row['keepWithNext'] ?? false);
+	}
+
 	private function bottom(): float {
 		return $this->pdf->getPageHeight() - $this->pdf->getBreakMargin();
 	}
@@ -341,7 +350,7 @@ final class ReportPdf {
 
 	/**
 	 * @param list<float> $widths
-	 * @param array{cells: list<string>, style?: string, span?: list<int>, indent?: float, indentCell?: int, repeat?: bool, align?: string, muted?: bool, size?: float} $row
+	 * @param array{cells: list<string>, style?: string, span?: list<int>, indent?: float, indentCell?: int, repeat?: bool, align?: string, muted?: bool, size?: float, colors?: array<int, array{0:int, 1:int, 2:int}>, keepWithNext?: bool, decorate?: callable(ReportPdfDocument, list<array{0: float, 1: float}>, float, float): void} $row
 	 */
 	private function rowHeight(array $widths, array $row): float {
 		$this->font($row['style'] ?? self::ROW_NORMAL, $row['size'] ?? null);
@@ -356,7 +365,7 @@ final class ReportPdf {
 	/**
 	 * @param list<float> $widths
 	 * @param list<string> $aligns
-	 * @param array{cells: list<string>, style?: string, span?: list<int>, indent?: float, indentCell?: int, align?: string, muted?: bool, size?: float} $row
+	 * @param array{cells: list<string>, style?: string, span?: list<int>, indent?: float, indentCell?: int, repeat?: bool, align?: string, muted?: bool, size?: float, colors?: array<int, array{0:int, 1:int, 2:int}>, keepWithNext?: bool, decorate?: callable(ReportPdfDocument, list<array{0: float, 1: float}>, float, float): void} $row
 	 */
 	private function row(array $widths, array $aligns, array $row, ?float $height = null): void {
 		$style = $row['style'] ?? self::ROW_NORMAL;
@@ -371,13 +380,25 @@ final class ReportPdf {
 		$this->pdf->SetFillColor(242, 242, 242);
 		$y = $this->pdf->GetY();
 		$x = (float)self::MARGIN_LEFT;
+		$placed = [];
 		foreach ($this->cells($widths, $aligns, $row) as $i => [$width, $align]) {
 			$indent = $i === (int)($row['indentCell'] ?? 0) ? (float)($row['indent'] ?? 0) : 0.0;
 			if ($fill && $indent > 0) {
 				$this->pdf->Rect($x, $y, $indent, $height, 'F');
 			}
+			$color = $row['colors'][$i] ?? null;
+			if ($color !== null) {
+				$this->pdf->SetTextColor(...$color);
+			}
 			$this->pdf->MultiCell($width - $indent, $height, $row['cells'][$i], 0, $align, $fill, 0, $x + $indent, $y, true, 0, false, true, $height, 'M');
+			if ($color !== null) {
+				$muted ? $this->pdf->SetTextColor(110, 110, 110) : $this->pdf->SetTextColor(0, 0, 0);
+			}
+			$placed[] = [$x, $width];
 			$x += $width;
+		}
+		if (isset($row['decorate'])) {
+			($row['decorate'])($this->pdf, $placed, $y, $height);
 		}
 		$right = self::MARGIN_LEFT + array_sum($widths);
 		$bottom = $y + $height;

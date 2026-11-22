@@ -6,9 +6,9 @@ Eine schlanke Buchhaltungs-App für Vereine, direkt in Nextcloud integriert. Kon
 
 ## 🎬 Die App in zwei Minuten
 
-[![App zur Vereinsbuchhaltung für Nextcloud – Video ansehen](https://img.youtube.com/vi/eaF-tAQ_OOM/maxresdefault.jpg)](https://youtu.be/eaF-tAQ_OOM)
+[![App zur Vereinsbuchhaltung für Nextcloud – Video ansehen](https://img.youtube.com/vi/pxH3CKygV9c/maxresdefault.jpg)](https://youtu.be/pxH3CKygV9c)
 
-**[App zur Vereinsbuchhaltung für Nextcloud](https://youtu.be/eaF-tAQ_OOM)** – Kontoauszüge importieren, Umsätze zuordnen, auswerten und den Kassenbericht für die Mitgliederversammlung erzeugen.
+**[App zur Vereinsbuchhaltung für Nextcloud](https://youtu.be/pxH3CKygV9c)** – Kasse führen, Beiträge einziehen, Rechnungen schreiben, planen und die Kassenprüfung vorbereiten. · [English version](https://youtu.be/QxIaGEKdo5s)
 
 > 📖 **Einsteiger-Leitfaden:** Das beiliegende **[HANDBUCH.md](HANDBUCH.md)** führt Schatzmeisterinnen Schritt für Schritt durch die App – von der Ersteinrichtung über die laufende Buchung bis zum Jahresabschluss und der Kassenprüfung.
 
@@ -31,11 +31,12 @@ Eine schlanke Buchhaltungs-App für Vereine, direkt in Nextcloud integriert. Kon
   - **Anfangsbestände**: werden beim Mehrjahres-Import erkannt und übersprungen, wenn sie durch Vorjahresbuchungen abgedeckt sind (mit Abweichungswarnung)
   - Buchungen ohne Gegenkonto landen als offene Bankbuchungen im Tab „Zuzuordnen"
   - Reset-Modus (nur Verwalter): alle Daten werden vorher gelöscht
-- **Kontoauszüge** in vier Formaten, einzeln oder gebündelt als **ZIP-Archiv** – das Format wird am **Inhalt** erkannt, die Dateiendung spielt keine Rolle:
+- **Kontoauszüge** in fünf Formaten, einzeln oder gebündelt als **ZIP-Archiv** – das Format wird am **Inhalt** erkannt, die Dateiendung spielt keine Rolle:
   - **CSV-CAMT** (Sparkasse, Volksbank/VR-NetWorld, …): automatische Erkennung von Trennzeichen und Zeichensatz, deutsches Zahlen- und Datumsformat
   - **CAMT.053 (XML)**: das ISO-20022-Standardformat – Vorzeichen, Datum und Zahlungsbeteiligte sind eindeutig ausgezeichnet statt geraten; vorgemerkte Umsätze (`PDNG`) werden übersprungen, Sammelbuchungen bleiben eine Zeile mit Posten-Hinweis
   - **CAMT.052 (XML)**: Umsatz- bzw. Tagesreports, wie sie manche Institute statt CAMT.053 anbieten – gleich aufgebaut, gleich behandelt
   - **MT940** (SWIFT, oft als `.sta`): mehrteilige Verwendungszwecke und Namen werden zusammengesetzt, Storni (`RC`/`RD`) kehren die Richtung um
+  - **PayPal** (Aktivitätsdownload als CSV): Zuordnung zum PayPal-Geldkonto über dessen PayPal-Adresse, Gebühren als eigene Bankbuchungen, Dubletten am Transaktionscode erkannt
   - **Dublettenerkennung** per SHA-256-Hash, zusätzlich gegen bereits per xbuc importierte Buchungen und – formatübergreifend – gegen vorhandene Bankbuchungen über Datum/Betrag/Text (auch bei abweichendem Valutadatum). Derselbe Auszug lässt sich also gefahrlos in einem anderen Format erneut einlesen
   - 0-€-Buchungen (z. B. ABSCHLUSS) werden übersprungen; bank-interne Buchungen ohne Zahlungsbeteiligten (ENTGELTABSCHLUSS …) bleiben buchbar
   - Import direkt im Tab „Buchungen" mit Drag-&-Drop, Vorschau und Erfolgsübersicht
@@ -69,7 +70,7 @@ Eine schlanke Buchhaltungs-App für Vereine, direkt in Nextcloud integriert. Kon
 - **Finanzplan**: geplante Beträge je Konto und Jahr, Soll-Ist-Vergleich mit farbiger Abweichung – als Baum über die Kontenhierarchie summiert (eine Planungsebene je Zweig, Filter „Nur Auffälligkeiten"), auch als druckfertige Seite für den Vorstand; Vergleich mit einem anderen Zeitraum (vorbelegt: Ist des Vorjahres) samt Veränderung in Euro und Prozent
   - **Notizen je Planzahl** (z. B. Herleitung „40 Mitglieder × 25 €")
   - **Plan-Stände**: kompletten Plan als benannten, datierten Stand einfrieren (z. B. „Beschluss MV") und später mit dem aktuellen Plan vergleichen
-- **Gliederungsbericht nach Vorlage**: Plan und Buchungen nach einer Vorlage gegliedert – zwei Standardvorlagen (Haushaltsplan nach Titelgruppen für Zuwendungsgeber, Ergebnis je Bereich und Projekt), die sich wie jede Vorlage bearbeiten, löschen und zurückholen lassen; neue Vorlagen bei null oder als Kopie, mit frei wählbaren Abschnitten, Spalten (Plan/Ist, auch Vorperioden) und Gruppen; druckfertig und als CSV. Dazu eine **visuelle Ansicht** derselben Vorlage: Kennzahlen, Ampeln, Verlauf und Balken mit wählbarem Stand, druckfertig, mit Sprung von jedem Konto in die passenden Buchungen
+- **Gliederungsbericht nach Vorlage**: Plan und Buchungen nach einer Vorlage gegliedert – zwei Standardvorlagen (Haushaltsplan nach Titelgruppen für Zuwendungsgeber, Ergebnis je Bereich und Projekt), die sich wie jede Vorlage bearbeiten, löschen und zurückholen lassen; neue Vorlagen bei null oder als Kopie, mit frei wählbaren Abschnitten, Spalten (Plan/Ist, auch Vorperioden) und Gruppen; druckfertig, als PDF-Datei (Seitenzahlen, wiederholter Tabellenkopf, Querformat bei vielen Spalten) und als CSV. Dazu eine **visuelle Ansicht** derselben Vorlage: Kennzahlen, Ampeln, Verlauf und Balken mit wählbarem Stand, druckfertig und als PDF-Datei, mit Sprung von jedem Konto in die passenden Buchungen
 - **Kassenbericht (druckfertig)**: eigenständige Druckseite für die Mitgliederversammlung – Vereinsname, Vermögensübersicht der Geldkonten (Bestand 01.01./31.12.), Einnahmen-/Ausgaben-Rechnung, Soll-Ist-Vergleich, Sphärenübersicht (steuerlich) mit Freigrenzen-Hinweis, Vollständigkeitsvermerk, Abschlussvermerk und Unterschriftszeilen; Drucken über den Browser oder als fertige **PDF-Datei** (PDF/A, „Seite x von y“, Unterschriftsfelder bleiben beim Vollständigkeitsvermerk); auf Wunsch legt die App das PDF beim Jahresabschluss im Berichtsordner ab
 - **Kurzbericht für Vorstandssitzungen (druckfertig)**: kompakte Druckseite mit wählbarem Stichtag – Kontostände seither, Bewegungen, Finanzplan-Kurzfassung; optional im Corporate Design (Vereinslogo + Akzentfarbe, unter Einstellungen → Vereinsbuchhaltung → Verein hinterlegbar)
 - **CSV-Exporte** (für Kassenprüfung/Excel): Journal, Saldenliste, Einnahmen-/Ausgaben-Übersicht, Soll-Ist-Vergleich (inkl. Notizen)
@@ -96,6 +97,7 @@ Optionales Zusatzmodul (Reiter „Beiträge", erscheint automatisch sobald ein M
 - **CSV-Massenimport**: legt Mitglieder samt Mandat und Zuweisung an; Prüflauf zeigt je Zeile, was entstehen würde, bevor etwas angelegt wird; Spaltennamen deutsch/englisch, beliebige Reihenfolge, unbekannte Spalten werden übergangen; E-Mail-Validierung akzeptiert Umlaute im lokalen Teil (z. B. `m.müller@gmx.de`)
 - **Einzugszyklus**: Zeitstrahl der Einzugstermine, Vorabinfo per E-Mail (Standard 14 Tage vorher), **Freigabe** (Beträge und Bankdaten werden eingefroren, die **pain.008**-Datei entsteht) und Einreichung als zwei getrennte Schritte; Lauf verwerfen oder nach hinten verschieben, solange nichts eingereicht ist
 - **Bankabgleich**: Sammelgutschriften, Rücklastschriften (mit Grund in Klartext) und Zahlungseingänge aus dem Kontoauszugs-Import erscheinen als Vorschläge mit Begründung und werden erst nach Ihrem Urteil verbucht
+- **Zuwendungsbestätigungen** (optional, für steuerbegünstigte Vereine): amtliche Bestätigungen nach BMF-Muster über Mitgliedsbeiträge und Geldspenden – einzeln oder als Sammelbestätigung je Kalenderjahr, für Mitglieder und externe Spender, mit fortlaufender Nummer, abgelegtem Doppel und Storno mit Grund; Mitglieder laden ihre Bestätigungen unter *Mein Beitrag*
 - **Mahnwesen und Aufgaben**: Zahlungsaufforderung, Zahlungserinnerung und Mahnung nach Abstand; Stundung, Erlass und Storno; eine Aufgabenliste für Störfälle statt stiller Fehler
 - **Mein Bereich** mit „Beitrag“ (Self-Service für verknüpfte Konten) und **Auslagen** (Mitglieder reichen Belege ein oder rechnen **Reisekosten** ab, Anträge lassen sich als Entwurf speichern, mindestens N Verwalter geben frei und können den Betrag mit Begründung korrigieren, danach offener Posten zur Überweisung, Historie mit Hash-Kette), informelle **Beitragsbestätigung** (Druckseite oder PDF), **Datenübersicht** nach Art. 15 DSGVO und Anonymisierung nach Ablauf der Aufbewahrungsfrist
 

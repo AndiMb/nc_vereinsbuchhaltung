@@ -17,6 +17,7 @@ use OCA\Vereinsbuchhaltung\Service\Export\DatenuebersichtRenderer;
 use OCA\Vereinsbuchhaltung\Service\Export\FinanzplanRenderer;
 use OCA\Vereinsbuchhaltung\Service\Export\GliederungsberichtPdfRenderer;
 use OCA\Vereinsbuchhaltung\Service\Export\GliederungsberichtRenderer;
+use OCA\Vereinsbuchhaltung\Service\Export\GliederungsberichtVisuellPdfRenderer;
 use OCA\Vereinsbuchhaltung\Service\Export\GliederungsberichtVisuellRenderer;
 use OCA\Vereinsbuchhaltung\Service\Export\KassenberichtPdfRenderer;
 use OCA\Vereinsbuchhaltung\Service\Export\KassenberichtRenderer;
@@ -82,6 +83,7 @@ class ExportController extends Controller {
 		private ?GliederungsberichtPdfRenderer $gliederungsberichtPdf = null,
 		private ?BeitragsbescheinigungPdfRenderer $beitragsbescheinigungPdf = null,
 		private ?LoggerInterface $logger = null,
+		private ?GliederungsberichtVisuellPdfRenderer $gliederungsberichtVisuellPdf = null,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -233,17 +235,46 @@ class ExportController extends Controller {
 	#[NoAdminRequired]
 	#[NoCSRFRequired]
 	public function gliederungsberichtVisuell(string $template, ?int $period = null, ?string $asOf = null, string $basis = 'year'): DataDisplayResponse|DataResponse {
+		$visual = $this->visualReport($template, $period, $asOf);
+		if ($visual instanceof DataResponse) {
+			return $visual;
+		}
+		return $this->printableResponse($this->gliederungsberichtVisuell->render($visual, $basis === 'time' ? 'time' : 'year'));
+	}
+
+	/**
+	 * Visuelle Gliederungsansicht als PDF: derselbe Inhalt wie die Druckseite, als
+	 * Datei mit Seitenzahlen. Unbekannte Vorlage oder ungültiger Stand: dieselben
+	 * Antworten wie dort.
+	 *
+	 * @param string|null $asOf Stand `YYYY-MM` oder `current`; leer oder fehlend = Vorgabe
+	 * @param string $basis `time` (zeitanteiliger Plan), sonst Jahresplan
+	 */
+	#[NoAdminRequired]
+	#[NoCSRFRequired]
+	public function gliederungsberichtVisuellPdf(string $template, ?int $period = null, ?string $asOf = null, string $basis = 'year'): DataDownloadResponse|DataResponse {
+		$visual = $this->visualReport($template, $period, $asOf);
+		if ($visual instanceof DataResponse) {
+			return $visual;
+		}
+		return $this->pdfResponse(function () use ($visual, $basis): array {
+			$renderer = $this->gliederungsberichtVisuellPdf ?? throw new \RuntimeException('GliederungsberichtVisuellPdfRenderer fehlt');
+			return ['content' => $renderer->render($visual, $basis === 'time' ? 'time' : 'year'), 'fileName' => $renderer->fileName($visual)];
+		});
+	}
+
+	/** @return array<string, mixed>|DataResponse Daten der visuellen Ansicht oder die Fehlerantwort */
+	private function visualReport(string $template, ?int $period, ?string $asOf): array|DataResponse {
 		$userId = $this->userId();
 		$found = $this->reportTemplates->find($userId, $template);
 		if ($found === null) {
 			return $this->templateNotFound();
 		}
 		try {
-			$visual = $this->visualReport->build($userId, $found, $period, $asOf === '' ? null : $asOf);
+			return $this->visualReport->build($userId, $found, $period, $asOf === '' ? null : $asOf);
 		} catch (\InvalidArgumentException) {
 			return new DataResponse(['message' => $this->l10n->t('Ungültiger Stand')], Http::STATUS_UNPROCESSABLE_ENTITY);
 		}
-		return $this->printableResponse($this->gliederungsberichtVisuell->render($visual, $basis === 'time' ? 'time' : 'year'));
 	}
 
 	/** @return array<string, mixed>|null */

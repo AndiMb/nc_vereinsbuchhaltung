@@ -27,9 +27,9 @@ Man muss kein Buchhalter sein: im **Einfach-Modus** erfasst man „Einnahme" ode
 Hintergrund erledigt die App. Wer Soll und Haben selbst setzen möchte, schaltet
 in den Experten-Modus um.
 
-**[▶ Die App in zwei Minuten (Video)](https://youtu.be/eaF-tAQ_OOM)** – Kontoauszüge
-importieren, Umsätze zuordnen, auswerten und den Kassenbericht für die
-Mitgliederversammlung erzeugen.
+**[▶ Die App in zwei Minuten (Video)](https://youtu.be/pxH3CKygV9c)** – Kasse führen,
+Beiträge einziehen, Rechnungen schreiben, planen und die Kassenprüfung
+vorbereiten.
 
 ## Der Arbeitsablauf
 
@@ -128,9 +128,9 @@ or "expense" with amount, date and category – the app handles double-entry
 bookkeeping in the background. If you'd rather set debit and credit yourself,
 switch to expert mode.
 
-**[▶ The app in two minutes (video, German)](https://youtu.be/eaF-tAQ_OOM)** –
-import bank statements, assign transactions, evaluate and produce the annual
-treasurer's report.
+**[▶ The app in two minutes (video)](https://youtu.be/QxIaGEKdo5s)** –
+keep the books, collect membership fees, write invoices, plan and prepare
+the audit.
 
 ## The workflow
 
@@ -219,7 +219,7 @@ Existing data from "zero Buchhaltung" can be taken over via its xbuc files.
 
 Full manual in German and English: see documentation.
 	]]></description>
-	<version>0.54.0</version>
+	<version>0.56.0</version>
 	<licence>agpl</licence>
 	<author mail="hauffe.andreas@googlemail.com">Andreas Hauffe</author>
 	<namespace>Vereinsbuchhaltung</namespace>
