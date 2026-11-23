@@ -566,6 +566,7 @@ OC.L10N.register("vereinsbuchhaltung", {
 	"Belege": "Bewijsstukken",
 	"Alle Buchungen": "Alle boekingen",
 	"Zuzuordnen": "Toe te wijzen",
+	"Das Journal konnte nicht exportiert werden.": "Het journaal kon niet worden geëxporteerd.",
 	"Journal als CSV exportieren": "Journaal exporteren als CSV",
 	"Suche…": "Zoeken…",
 	"Konto filtern": "Filteren op rekening",

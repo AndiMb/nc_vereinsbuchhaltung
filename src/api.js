@@ -403,6 +403,10 @@ export default {
 
 	// Export (CSV-Download – Browser-Navigation, kein Axios)
 	exportJournalUrl: (period) => generateUrl(base + '/export/journal') + (period ? `?period=${period}` : ''),
+	// Gefilterte Buchungsliste: nur die angezeigten Buchungen. Die Filter
+	// arbeiten im Browser, also gehen die IDs mit – per POST, für eine URL
+	// wäre die Liste zu lang.
+	exportJournalSelection: (period, ids) => axios.post(url('/export/journal'), { period: period ?? null, ids: ids.join(',') }, { responseType: 'blob' }),
 	exportCostCenterAllocationsUrl: (period) => generateUrl(base + '/export/cost-center-allocations') + (period ? `?period=${period}` : ''),
 	exportCostCenterAllocationsCsvUrl: (period) => generateUrl(base + '/export/cost-center-allocations-csv') + (period ? `?period=${period}` : ''),
 	// Kontenblatt: Zeitraum und "inkl. Unterkonten" wie im Kontoauszug.

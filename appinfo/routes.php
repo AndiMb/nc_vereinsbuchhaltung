@@ -412,6 +412,7 @@ return [
 
 		// Export (CSV-Download)
 		['name' => 'export#journal',  'url' => '/api/export/journal',  'verb' => 'GET'],
+		['name' => 'export#journalSelection', 'url' => '/api/export/journal', 'verb' => 'POST'],
 		['name' => 'export#balances', 'url' => '/api/export/balances', 'verb' => 'GET'],
 		['name' => 'export#accountStatement', 'url' => '/api/export/account/{id}', 'verb' => 'GET'],
 		['name' => 'export#accountStatementPrint', 'url' => '/api/export/account/{id}/print', 'verb' => 'GET'],

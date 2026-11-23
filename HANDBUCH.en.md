@@ -1940,7 +1940,10 @@ the auditor from having to read through this entire manual.
 
 - **"Only without receipt" filter** in the Bookings tab (journal): shows
   all postings without an attached receipt. Clearing these beforehand saves
-  follow-up questions during the audit.
+  follow-up questions during the audit. The **CSV** button then
+  exports exactly the postings shown – this holds for every filter of the
+  list, including the search; without a filter you get the whole journal of
+  the financial year.
 - **Date filter "From" / "To"** in the journal: narrows the list to a range
   of booking dates, both days included – a quarter, say, or a single day.
   Each field works on its own; the cross next to them clears the filter. The
