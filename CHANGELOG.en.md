@@ -17,6 +17,13 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 
 ## [Unreleased]
 
+**Fixed:**
+- **CSV export of the filtered booking list:** when the booking list is
+  filtered – by account, date range, search term or with **no receipt
+  only** – the CSV export now contains exactly the bookings shown. Until
+  now it always contained the whole journal of the financial year, whatever
+  the filter.
+
 ## [0.56.0] – 2026-11-22
 
 **New:**

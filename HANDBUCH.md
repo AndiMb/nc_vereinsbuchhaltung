@@ -1992,7 +1992,9 @@ Handbuch einzulesen.
 
 - **Filter „nur ohne Beleg"** im Tab Buchungen (Journal): zeigt alle
   Buchungen ohne angehängten Beleg. Diese vorab zu klären spart in der
-  Prüfung Rückfragen.
+  Prüfung Rückfragen. Der Knopf **CSV** exportiert dabei genau die
+  angezeigten Buchungen – das gilt für jeden Filter der Liste, auch für die
+  Suche; ohne Filter kommt das ganze Journal des Geschäftsjahres.
 - **Datumsfilter „Von“ / „Bis“** im Journal: grenzt die Liste auf eine
   Spanne des Buchungsdatums ein, beide Tage eingeschlossen – etwa ein Quartal
   oder einen einzelnen Tag. Jedes Feld gilt für sich; das Kreuz daneben hebt

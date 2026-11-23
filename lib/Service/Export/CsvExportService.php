@@ -83,8 +83,13 @@ class CsvExportService {
 	 *
 	 * Eine Splittbuchung belegt mehrere Zeilen mit derselben Nummer, siehe
 	 * {@see JournalService::pairLines()}.
+	 *
+	 * @param list<int>|null $onlyIds Auswahl aus einer gefilterten Buchungsliste;
+	 *                                null = alle Buchungen des Zeitraums. Die Auswahl
+	 *                                schränkt nur ein – fremde oder unbekannte Nummern
+	 *                                bleiben wirkungslos.
 	 */
-	public function journal(string $userId, ?int $periodId = null): CsvFile {
+	public function journal(string $userId, ?int $periodId = null, ?array $onlyIds = null): CsvFile {
 		[$from, $to] = $this->periods->range($userId, $periodId);
 
 		$accountMap = [];
@@ -93,6 +98,10 @@ class CsvExportService {
 		}
 
 		$journals = $this->journalMapper->findAll($userId, 100000, 0, $from, $to);
+		if ($onlyIds !== null) {
+			$wanted = array_flip($onlyIds);
+			$journals = array_values(array_filter($journals, static fn ($j): bool => isset($wanted[$j->getId()])));
+		}
 		// Alle Zeilen gebündelt laden – sonst eine Abfrage je Buchung.
 		$linesByJournal = $this->lineMapper->findByJournals(array_map(
 			static fn ($j): int => $j->getId(),

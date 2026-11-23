@@ -19,6 +19,12 @@ verwenden, z. B. `**Neu:**`.
 
 ## [Unreleased]
 
+**Behoben:**
+- **CSV-Export der gefilterten Buchungsliste:** Ist die Buchungsliste
+  gefiltert – nach Konto, Zeitraum, Suchbegriff oder mit **nur ohne Beleg** –,
+  enthält der CSV-Export jetzt genau die angezeigten Buchungen. Bisher kam
+  unabhängig vom Filter immer das ganze Journal des Geschäftsjahres.
+
 ## [0.56.0] – 2026-11-22
 
 **Neu:**

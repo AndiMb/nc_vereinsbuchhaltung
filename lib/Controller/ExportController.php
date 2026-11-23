@@ -136,6 +136,29 @@ class ExportController extends Controller {
 		return $this->download($this->csv->journal($this->userId(), $period));
 	}
 
+	/**
+	 * Journal als CSV, beschränkt auf die Buchungen einer gefilterten Liste.
+	 *
+	 * Die Filter der Buchungsliste (Konto, Zeitraum, Suche, „nur ohne Beleg“)
+	 * arbeiten im Browser; der schickt deshalb die Nummern der angezeigten
+	 * Buchungen. Per POST, weil die Liste für eine URL zu lang werden kann.
+	 *
+	 * Trotz POST ein reiner Lesezugriff: ohne die ausdrückliche Rolle stufte
+	 * die Verb-Heuristik ihn als Schreiben ein, und der Revisor könnte seine
+	 * gefilterte Liste nicht exportieren.
+	 *
+	 * @param string $ids Buchungs-IDs, durch Komma getrennt
+	 */
+	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_READ)]
+	public function journalSelection(?int $period = null, string $ids = ''): DataDownloadResponse {
+		$onlyIds = array_values(array_filter(
+			array_map('intval', explode(',', $ids)),
+			static fn (int $id): bool => $id > 0,
+		));
+		return $this->download($this->csv->journal($this->userId(), $period, $onlyIds));
+	}
+
 	/** Saldenliste aller Konten als CSV. */
 	#[NoAdminRequired]
 	#[NoCSRFRequired]

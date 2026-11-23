@@ -33,7 +33,8 @@
 					<NcActionLink
 						v-if="bookingView === 'journal'"
 						:href="exportJournalUrl"
-						download="">
+						download=""
+						@click="exportJournal">
 						<template #icon>
 							<NcIconSvgWrapper :path="mdiDownload" :size="20" />
 						</template>
@@ -53,7 +54,8 @@
 					:href="exportJournalUrl"
 					download
 					class="vbh-export-btn"
-					:title="t('Journal als CSV exportieren')"><NcIconSvgWrapper :path="mdiDownload" :size="16" inline /> CSV</a>
+					:title="t('Journal als CSV exportieren')"
+					@click="exportJournal"><NcIconSvgWrapper :path="mdiDownload" :size="16" inline /> CSV</a>
 				<NcButton v-if="canWrite" variant="secondary" @click="openImport">
 					<template #icon>
 						<NcIconSvgWrapper :path="mdiUpload" :size="18" />
@@ -1346,6 +1348,32 @@ export default {
 	},
 
 	methods: {
+		/**
+		 * CSV-Export des Journals. Ungefiltert lädt der Link selbst das ganze
+		 * Journal des Zeitraums. Ist die Liste gefiltert (Konto, Zeitraum,
+		 * Suche, „nur ohne Beleg“), kommen genau die angezeigten Buchungen –
+		 * auch die jenseits von „Weitere Buchungen anzeigen“.
+		 *
+		 * @param {Event} event Klick auf den Export-Link
+		 */
+		async exportJournal(event) {
+			if (!this.journalFilterActive && !this.searchQuery) { return }
+			event.preventDefault()
+			try {
+				const res = await api.exportJournalSelection(this.selectedPeriodId, this.filteredJournalRows.map((r) => r.id))
+				const name = /filename="?([^";]+)/.exec(res.headers['content-disposition'] || '')?.[1] || 'journal.csv'
+				const link = document.createElement('a')
+				link.href = URL.createObjectURL(res.data)
+				link.download = name
+				document.body.appendChild(link)
+				link.click()
+				link.remove()
+				setTimeout(() => URL.revokeObjectURL(link.href), 1000)
+			} catch {
+				showError(this.t('Das Journal konnte nicht exportiert werden.'))
+			}
+		},
+
 		currencySymbol,
 		formatMoney,
 		formatDate,
