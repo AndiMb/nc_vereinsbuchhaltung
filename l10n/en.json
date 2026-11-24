@@ -5070,7 +5070,11 @@
         "Der Platzhalter {naechste_schritte} gehört in den Text, nicht in den Betreff.": "The placeholder {naechste_schritte} belongs in the text, not in the subject.",
         "{platzhalter} setzt an seiner Stelle die nächsten Schritte des Mitglieds ein: Passwort festlegen bei einem neuen Konto, Mandat einrichten bei Lastschrift ohne Mandat. Gibt es keine, fällt er weg; ohne den Platzhalter stehen die Schritte am Ende.": "{platzhalter} inserts the member's next steps in its place: set a password for a new account, set up the mandate for direct debit without a mandate. If there are none, it disappears; without the placeholder, the steps come at the end.",
         "Die Zuweisung wurde vor ihrem Beginn beendet.": "The assignment was ended before it began.",
-        "Für einen Einzug am {scheduled} ist die Frist für die Vorabinformation schon zu knapp. Der erste Beitrag wird deshalb mit dem nächsten Termin am {due} eingezogen.": "For a collection on {scheduled} the pre-notification period is already too short. The first contribution will therefore be collected on the next date, {due}."
+        "Für einen Einzug am {scheduled} ist die Frist für die Vorabinformation schon zu knapp. Der erste Beitrag wird deshalb mit dem nächsten Termin am {due} eingezogen.": "For a collection on {scheduled} the pre-notification period is already too short. The first contribution will therefore be collected on the next date, {due}.",
+        "Neu: Beim Aufnehmen bekommt ein Mitglied eine Mail statt zwei – die Willkommens-Mail bringt den Link zum Passwort und bei Bedarf die Bitte um ein Mandat mit.": "New: when admitted, a member gets one email instead of two – the welcome email carries the password link and, if needed, the request for a mandate.",
+        "Neu: Aus der Mitgliederakte lässt sich ein Mandat per Mail anfragen; das Mitglied hinterlegt IBAN und Mandat selbst.": "New: a mandate can be requested by email from the member record; the member enters IBAN and mandate themselves.",
+        "Neu: Das Zahlungsziel einer Rechnung kann ab dem Leistungsdatum zählen, auch mit negativen Tagen.": "New: an invoice's payment term can count from the service date, negative days included.",
+        "Behoben: Die erste Forderung eines neuen Mitglieds entsteht rechtzeitig für den ersten Einzugstermin.": "Fixed: the first claim of a new member is created in time for the first collection date."
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

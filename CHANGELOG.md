@@ -19,6 +19,8 @@ verwenden, z. B. `**Neu:**`.
 
 ## [Unreleased]
 
+## [0.57.0] – 2026-11-25
+
 **Neu:**
 - **Zahlungsziel ab Leistungsdatum (#391):** In den Einstellungen der
   Rechnungen legen Sie fest, ob das Zahlungsziel ab dem **Rechnungsdatum**
@@ -26,8 +28,53 @@ verwenden, z. B. `**Neu:**`.
   negative Tage möglich, etwa −3 für „drei Tage vor dem Auftritt“. Der Editor
   trägt das Ziel selbst ein und passt es an, wenn Sie Rechnungs- oder
   Leistungsdatum ändern – bis Sie es von Hand überschreiben.
+- **Eine Mail bei der Aufnahme:** Legen Sie beim Aufnehmen ein Nextcloud-Konto
+  ohne Passwort an und schicken eine Willkommens-Mail, steht der Link zum
+  Festlegen des Passworts in der Willkommens-Mail; Nextcloud schickt keine
+  eigene Einladung mehr. Zahlt das Mitglied per Lastschrift und hat noch kein
+  Mandat, bittet die Mail es außerdem, unter „Mein Bereich“ IBAN und Mandat zu
+  hinterlegen. Wo diese nächsten Schritte im Text stehen, bestimmt der neue
+  Platzhalter `{naechste_schritte}`; ohne ihn stehen sie am Ende. Die Mail geht
+  jetzt auch dann raus, wenn Mandat oder Beitrag beim Aufnehmen scheitern.
+  Beschrieben in Kapitel 13.2 des Handbuchs.
+- **Mandat per Mail anfragen:** Im Abschnitt *Mandat* der Mitgliederakte
+  bittet **Per Mail anfragen** ein Mitglied mit verknüpftem Konto, aber ohne
+  Mandat, IBAN und Mandat selbst in „Mein Bereich“ zu hinterlegen – die
+  Verwaltung muss dafür keine IBAN erfassen. Ist die Verknüpfung noch nicht
+  bestätigt, enthält dieselbe Mail den Bestätigungsschritt.
+
+**Geändert:**
+- **Selbst angelegte Konten gelten sofort als verknüpft:** Ein Konto, das sich
+  noch nie angemeldet hat und das Sie in Nextcloud verwalten dürfen
+  (Administration, delegierte Administration, Gruppen-Administration), ist
+  sofort mit dem Mitglied verknüpft – ohne „Bestätigung ausstehend“.
+  Bestehende Konten brauchen weiter die Bestätigung per Mail-Link.
+- **Passwort-Bestätigung vor dem Versand:** Willkommens-Mail und
+  Mandats-Anfrage können einen Passwort-Link tragen. Wie in Nextclouds
+  Benutzerverwaltung fragt Nextcloud deshalb vorher nach Ihrem Passwort, wenn
+  Sie es nicht gerade erst bestätigt haben.
 
 **Behoben:**
+- **Erste Forderung neuer Mitglieder:** Der Tageslauf legte die erste
+  Forderung erst am Beitrittstag an. Dann reichte die Zeit für die Vorabinfo
+  meist nicht mehr, und der Einzug rutschte auf den nächsten Termin des Turnus
+  – bei Beitritt am 1.12. und Einzug am 15. etwa in den Januar statt auf den
+  15.12., obwohl die Vorschau beim Anlegen den 15.12. nannte. Jetzt entsteht
+  die erste Forderung im Vorwarnfenster wie jede andere, also auch schon vor
+  dem Beitritt. Wird ein Mitglied so spät erfasst, dass die Vorabinfo nicht
+  mehr reicht, sagt das schon die Vorschau. Zurücknehmen der Zuweisung oder
+  Austritt vor dem Beitritt storniert solche Forderungen wieder. Beschrieben
+  in Kapitel 13.4 des Handbuchs.
+- **Änderungen an der Zuweisung:** Eine Forderung, die der Tageslauf schon
+  angelegt, aber noch nicht angekündigt hatte (keine Vorabinfo, keine
+  Zahlungsaufforderung), behielt nach einer Änderung von Betrag, Gruppe oder
+  Untergrenze den alten Betrag, obwohl die Vorschau den neuen nannte. Jetzt
+  folgen Betrag und Bezeichnung der Änderung; Zeitraum und Einzugstermin
+  bleiben.
+- **Aufgaben zu Mandaten:** Die Aufgaben zu einem fehlenden oder erloschenen
+  Mandat bei gewollter Lastschrift melden ein neues Mitglied jetzt schon vor
+  dem Beitritt. Ein Mitglied mit erloschenem Mandat und künftiger Zuweisung
+  fehlte bisher ganz.
 - **Kommentar-Symbol in der Übersicht (#395):** Die Liste **Letzte
   Buchungen** zeigt das Kommentar-Symbol jetzt wie der Reiter *Buchungen*.
 - **Rechnungsposten unter „Offene Posten“ (#396):** Bei Posten, die zu einer

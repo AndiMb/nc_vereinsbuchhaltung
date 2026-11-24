@@ -25,6 +25,16 @@ import { compareVersions, isNewerVersion } from '../lib/version.js'
 export function buildWhatsNewEntries() {
 	return [
 		{
+			version: '0.57.0',
+			roles: ['verwalter', 'buchhalter'],
+			items: [
+				t('Neu: Beim Aufnehmen bekommt ein Mitglied eine Mail statt zwei – die Willkommens-Mail bringt den Link zum Passwort und bei Bedarf die Bitte um ein Mandat mit.'),
+				t('Neu: Aus der Mitgliederakte lässt sich ein Mandat per Mail anfragen; das Mitglied hinterlegt IBAN und Mandat selbst.'),
+				t('Neu: Das Zahlungsziel einer Rechnung kann ab dem Leistungsdatum zählen, auch mit negativen Tagen.'),
+				t('Behoben: Die erste Forderung eines neuen Mitglieds entsteht rechtzeitig für den ersten Einzugstermin.'),
+			],
+		},
+		{
 			version: '0.56.0',
 			roles: ['verwalter', 'buchhalter'],
 			items: [

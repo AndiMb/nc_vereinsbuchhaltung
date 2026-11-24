@@ -17,6 +17,8 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 
 ## [Unreleased]
 
+## [0.57.0] – 2026-11-25
+
 **New:**
 - **Payment term counted from the service date (#391):** in the invoice
   settings you choose whether the payment term counts from the **invoice
@@ -24,8 +26,52 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   negative days are possible too, e.g. −3 for "three days before the
   performance". The editor fills in the due date itself and adjusts it when
   you change the invoice or service date – until you overwrite it by hand.
+- **One email on admission:** if you create a Nextcloud account without a
+  password while admitting a member and send a welcome email, the link to set
+  the password is in the welcome email; Nextcloud no longer sends its own
+  invitation. If the member pays by direct debit and has no mandate yet, the
+  email also asks them to enter their IBAN and mandate under "My area". The new
+  placeholder `{naechste_schritte}` decides where these next steps appear in
+  the text; without it they go at the end. The email is now sent even if the
+  mandate or contribution fails during admission. Described in chapter 13.2 of
+  the handbook.
+- **Request a mandate by email:** in the *Mandate* section of the member
+  record, **Request by email** asks a member with a linked account but no
+  mandate to enter IBAN and mandate themselves under "My area" – the
+  administration does not need to record an IBAN. If the link is not yet
+  confirmed, the same email contains the confirmation step.
+
+**Changed:**
+- **Accounts you just created count as linked right away:** an account that
+  has never logged in and that you may manage in Nextcloud (administration,
+  delegated administration, group administration) is linked to the member
+  immediately – without "Confirmation pending". Existing accounts still need
+  confirmation via the email link.
+- **Password confirmation before sending:** the welcome email and the mandate
+  request can carry a password link. As in Nextcloud's user management,
+  Nextcloud therefore asks for your password first unless you confirmed it
+  just now.
 
 **Fixed:**
+- **First claim of new members:** the daily run created the first claim only
+  on the joining date. By then there was usually no time left for the
+  pre-notification, and the collection slipped to the next date of the cycle
+  – with joining on 1 Dec and collection on the 15th, into January instead of
+  15 Dec, although the preview on creation said 15 Dec. Now the first claim
+  is created in the warning window like any other, i.e. even before the
+  joining date. If a member is recorded so late that the pre-notification no
+  longer fits, the preview says so. Withdrawing the assignment or leaving
+  before the joining date cancels such claims again. Described in chapter 13.4
+  of the handbook.
+- **Changes to an assignment:** a claim the daily run had already created
+  but not yet announced (no pre-notification, no payment request) kept the
+  old amount after a change of amount, group or minimum, although the preview
+  showed the new one. Now amount and description follow the change; period
+  and collection date stay.
+- **Tasks about mandates:** the tasks about a missing or expired mandate
+  while direct debit is wanted now report a new member even before the
+  joining date. A member with an expired mandate and a future assignment was
+  missing entirely so far.
 - **Comment icon on the overview (#395):** the **Recent entries** list now
   shows the comment icon just like the *Bookings* tab.
 - **Invoice items under "Open items" (#396):** items belonging to an invoice
