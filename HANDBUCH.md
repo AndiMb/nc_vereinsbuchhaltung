@@ -2432,15 +2432,18 @@ sich nachholen.
 
 Die **Willkommens-Mail** geht an die Mailadresse der Akte, unabhängig davon, ob
 das Mitglied ein Konto hat. Die Vorlage (Betreff und Text mit Platzhaltern wie
-`{name}`, `{vorname}`, `{verein}`, `{mitgliedsnummer}`, `{beitritt}` und
-`{cloud}`) pflegen Verwalter in den Nextcloud-Einstellungen unter
+`{name}`, `{vorname}`, `{verein}`, `{mitgliedsnummer}`, `{beitritt}`,
+`{cloud}` und `{naechste_schritte}`) pflegen Verwalter in den Nextcloud-Einstellungen unter
 *Willkommens-Mail*. Beim Aufnehmen ist sie eingeklappt und lässt sich für das
 einzelne Mitglied anpassen; aus der Akte schickt *Willkommens-Mail senden …*
-sie später nach. Unter dem Text des Vereins stehen die **nächsten Schritte**:
-das Passwort für ein neu angelegtes Konto und, wenn das Mitglied per
-Lastschrift zahlt und noch kein Mandat hat, die Bitte, unter „Mein Bereich"
-die IBAN zu hinterlegen und das Mandat zu erteilen (dort wählt es auch den
-Turnus, falls die Gruppe mehrere erlaubt). Weil die Mail einen Passwort-Link
+sie später nach. Dazu kommen die **nächsten Schritte** des Mitglieds: das
+Passwort für ein neu angelegtes Konto und, wenn das Mitglied per Lastschrift
+zahlt und noch kein Mandat hat, die Bitte, unter „Mein Bereich" die IBAN zu
+hinterlegen und das Mandat zu erteilen (dort wählt es auch den Turnus, falls
+die Gruppe mehrere erlaubt). Sie stehen dort, wo im Text
+`{naechste_schritte}` steht; fehlt der Platzhalter, stehen sie am Ende, und
+gibt es keine Schritte, fällt er weg. Ihre Texte gibt die App vor, in der
+Sprache und Anrede des Mitglieds. Weil die Mail einen Passwort-Link
 tragen kann, fragt Nextcloud vor dem Versand wie in der Benutzerverwaltung
 nach Ihrem Passwort, wenn Sie es nicht gerade erst bestätigt haben.
 

@@ -2886,7 +2886,6 @@
         "Die Willkommens-Mail konnte nicht gesendet werden: %s": "De welkomstmail kon niet worden verzonden: %s",
         "Die Willkommens-Mail konnte nicht gesendet werden.": "De welkomstmail kon niet worden verzonden.",
         "Willkommen bei {verein}": "Welkom bij {verein}",
-        "Guten Tag {name},\n\nwillkommen bei {verein}! Schön, dass Sie dabei sind.\n\nBei Fragen melden Sie sich gern beim Vorstand.": "Beste {name},\n\nwelkom bij {verein}! Fijn dat u erbij bent.\n\nMet vragen kunt u altijd terecht bij het bestuur.",
         "Betreff und Text der Willkommens-Mail dürfen nicht leer sein.": "Onderwerp en tekst van de welkomstmail mogen niet leeg zijn.",
         "Der Betreff ist zu lang (höchstens %d Zeichen).": "Het onderwerp is te lang (maximaal %d tekens).",
         "Der Text ist zu lang (höchstens %d Zeichen).": "De tekst is te lang (maximaal %d tekens).",
@@ -5066,7 +5065,10 @@
         "Passwort festlegen": "Wachtwoord instellen",
         "Damit Ihr Mitgliedsbeitrag und andere Beträge bequem per Lastschrift eingezogen werden können, hinterlegen Sie bitte unter „Mein Bereich\" Ihre IBAN und erteilen Sie das SEPA-Lastschriftmandat.": "Zodat uw contributie en andere bedragen gemakkelijk via incasso kunnen worden geïnd, legt u onder „Mijn omgeving” uw IBAN vast en verleent u de SEPA-incassomachtiging.",
         "Dort können Sie auch wählen, wie oft der Beitrag eingezogen wird.": "Daar kunt u ook kiezen hoe vaak de contributie wordt geïnd.",
-        "„Mein Bereich\" öffnen": "„Mijn omgeving” openen"
+        "„Mein Bereich\" öffnen": "„Mijn omgeving” openen",
+        "Guten Tag {name},\n\nwillkommen bei {verein}! Schön, dass Sie dabei sind.\n\n{naechste_schritte}\n\nBei Fragen melden Sie sich gern beim Vorstand.": "Beste {name},\n\nwelkom bij {verein}! Fijn dat u erbij bent.\n\n{naechste_schritte}\n\nMet vragen kunt u altijd terecht bij het bestuur.",
+        "Der Platzhalter {naechste_schritte} gehört in den Text, nicht in den Betreff.": "De placeholder {naechste_schritte} hoort in de tekst, niet in het onderwerp.",
+        "{platzhalter} setzt an seiner Stelle die nächsten Schritte des Mitglieds ein: Passwort festlegen bei einem neuen Konto, Mandat einrichten bei Lastschrift ohne Mandat. Gibt es keine, fällt er weg; ohne den Platzhalter stehen die Schritte am Ende.": "{platzhalter} voegt op die plek de volgende stappen van het lid in: wachtwoord instellen bij een nieuw account, machtiging inrichten bij incasso zonder machtiging. Zijn er geen, dan valt hij weg; zonder de placeholder staan de stappen aan het eind."
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

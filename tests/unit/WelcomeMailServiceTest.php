@@ -257,4 +257,44 @@ class WelcomeMailServiceTest extends TestCase {
 
 		$this->service()->send(7);
 	}
+
+	/** {naechste_schritte} bestimmt, wo die Schritte stehen – hier zwischen Begrüßung und Gruß. */
+	public function testSchritteStehenAnDerStelleDesPlatzhalters(): void {
+		$this->members->method('find')->willReturn($this->member());
+		$this->setupSteps->method('forWelcome')->willReturn([
+			['text' => 'Legen Sie ein Passwort fest.', 'button' => 'Passwort festlegen', 'url' => 'https://cloud.example.org/p'],
+		]);
+		$texts = [];
+		$this->template->method('addBodyText')->willReturnCallback(static function (string $html, string $plain = '') use (&$texts): void {
+			$texts[] = $plain;
+		});
+
+		$this->service()->send(7, 'Willkommen', "Hallo {vorname},\n\n{naechste_schritte}\n\nViele Grüße");
+
+		$this->assertSame(['Hallo Anna,', 'So geht es weiter:', 'Legen Sie ein Passwort fest.', 'Viele Grüße'], $texts);
+	}
+
+	/** Gibt es keine Schritte, fällt der Platzhalter weg und geht nie wörtlich an das Mitglied. */
+	public function testOhneSchritteFaelltDerPlatzhalterWeg(): void {
+		$this->members->method('find')->willReturn($this->member());
+		$this->setupSteps->method('forWelcome')->willReturn([]);
+		$texts = [];
+		$this->template->method('addBodyText')->willReturnCallback(static function (string $html, string $plain = '') use (&$texts): void {
+			$texts[] = $plain;
+		});
+
+		$this->service()->send(7, 'Willkommen', "Hallo {vorname},\n\n{naechste_schritte}\n\nViele Grüße {naechste_schritte}");
+
+		$this->assertSame(['Hallo Anna,', 'Viele Grüße'], $texts);
+	}
+
+	public function testPlatzhalterFuerDieSchritteImBetreffWirdAbgelehnt(): void {
+		$this->expectException(\InvalidArgumentException::class);
+		$this->service()->saveTemplate('Willkommen {naechste_schritte}', 'Hallo {name}');
+	}
+
+	/** Der Standardtext setzt die Schritte vor den Gruß. */
+	public function testStandardtextEnthaeltDieSchritte(): void {
+		$this->assertStringContainsString("\n\n{naechste_schritte}\n\n", $this->service()->defaultTemplate()['body']);
+	}
 }

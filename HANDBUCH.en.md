@@ -2374,14 +2374,17 @@ Nextcloud account …*.
 The **welcome email** goes to the email address of the record, regardless of
 whether the member has an account. The template (subject and text with
 placeholders such as `{name}`, `{vorname}`, `{verein}`, `{mitgliedsnummer}`,
-`{beitritt}` and `{cloud}`) is maintained by administrators in the Nextcloud
+`{beitritt}`, `{cloud}` and `{naechste_schritte}`) is maintained by administrators in the Nextcloud
 settings under *Welcome email* (*Willkommens-Mail*). When admitting, it is
 collapsed and can be adapted for the individual member; from the record,
-*Send welcome email …* sends it later. Below the club's text come the **next
+*Send welcome email …* sends it later. It also carries the member's **next
 steps**: the password for a newly created account and, if the member pays by
 direct debit and has no mandate yet, the request to enter the IBAN and grant
 the mandate under "My area" (*Mein Bereich*; that is also where they choose
-the interval if the group allows several). Because the email can carry a
+the interval if the group allows several). They appear where the text says
+`{naechste_schritte}`; without the placeholder they come at the end, and if
+there are no steps, it disappears. The app provides their wording, in the
+member's language and form of address. Because the email can carry a
 password link, Nextcloud asks for your password before sending, as in the user
 management, unless you have just confirmed it.
 

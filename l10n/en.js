@@ -2890,7 +2890,6 @@ OC.L10N.register("vereinsbuchhaltung", {
 	"Die Willkommens-Mail konnte nicht gesendet werden: %s": "The welcome email could not be sent: %s",
 	"Die Willkommens-Mail konnte nicht gesendet werden.": "The welcome email could not be sent.",
 	"Willkommen bei {verein}": "Welcome to {verein}",
-	"Guten Tag {name},\n\nwillkommen bei {verein}! Schön, dass Sie dabei sind.\n\nBei Fragen melden Sie sich gern beim Vorstand.": "Hello {name},\n\nwelcome to {verein}! We are glad to have you.\n\nIf you have any questions, please contact the board.",
 	"Betreff und Text der Willkommens-Mail dürfen nicht leer sein.": "Subject and text of the welcome email must not be empty.",
 	"Der Betreff ist zu lang (höchstens %d Zeichen).": "The subject is too long (at most %d characters).",
 	"Der Text ist zu lang (höchstens %d Zeichen).": "The text is too long (at most %d characters).",
@@ -5065,5 +5064,8 @@ OC.L10N.register("vereinsbuchhaltung", {
 	"Passwort festlegen": "Set password",
 	"Damit Ihr Mitgliedsbeitrag und andere Beträge bequem per Lastschrift eingezogen werden können, hinterlegen Sie bitte unter „Mein Bereich\" Ihre IBAN und erteilen Sie das SEPA-Lastschriftmandat.": "So that your membership fee and other amounts can be collected conveniently by direct debit, please enter your IBAN under “My area” and grant the SEPA direct debit mandate.",
 	"Dort können Sie auch wählen, wie oft der Beitrag eingezogen wird.": "There you can also choose how often the fee is collected.",
-	"„Mein Bereich\" öffnen": "Open “My area”"
+	"„Mein Bereich\" öffnen": "Open “My area”",
+	"Guten Tag {name},\n\nwillkommen bei {verein}! Schön, dass Sie dabei sind.\n\n{naechste_schritte}\n\nBei Fragen melden Sie sich gern beim Vorstand.": "Hello {name},\n\nwelcome to {verein}! We are glad to have you.\n\n{naechste_schritte}\n\nIf you have any questions, please contact the board.",
+	"Der Platzhalter {naechste_schritte} gehört in den Text, nicht in den Betreff.": "The placeholder {naechste_schritte} belongs in the text, not in the subject.",
+	"{platzhalter} setzt an seiner Stelle die nächsten Schritte des Mitglieds ein: Passwort festlegen bei einem neuen Konto, Mandat einrichten bei Lastschrift ohne Mandat. Gibt es keine, fällt er weg; ohne den Platzhalter stehen die Schritte am Ende.": "{platzhalter} inserts the member's next steps in its place: set a password for a new account, set up the mandate for direct debit without a mandate. If there are none, it disappears; without the placeholder, the steps come at the end."
 }, "nplurals=2; plural=(n != 1);");
