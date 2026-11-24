@@ -7,6 +7,7 @@ namespace OCA\Vereinsbuchhaltung\Service;
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\Assignment;
 use OCA\Vereinsbuchhaltung\Db\AssignmentMapper;
+use OCA\Vereinsbuchhaltung\Db\ContributionGroup;
 use OCA\Vereinsbuchhaltung\Db\ContributionGroupMapper;
 use OCA\Vereinsbuchhaltung\Db\DebitItemMapper;
 use OCA\Vereinsbuchhaltung\Db\DunningNoticeMapper;
@@ -110,15 +111,14 @@ class ClaimGenerationService {
 	 */
 	public function generateDue(?string $today = null): array {
 		$today ??= $this->today();
-		$horizon = (new \DateTimeImmutable($today))->modify('+' . $this->settings->warningLeadDays() . ' days')->format('Y-m-d');
-		$leadDays = $this->settings->prenotificationLeadDays();
+		$horizon = $this->settings->warningHorizon($today);
 
 		$created = 0;
 		$blocked = 0;
 		$failed = [];
 		foreach ($this->assignments->findActiveOrStartingBy($today, $horizon) as $assignment) {
 			try {
-				[$c, $b] = $this->generateForAssignment($assignment, $today, $horizon, $leadDays);
+				[$c, $b] = $this->generateForAssignment($assignment, $today, $horizon);
 			} catch (\Throwable $e) {
 				// \Throwable: ein Überlauf beim Rechnen ist ein TypeError, keine Exception.
 				$failed[] = (int)$assignment->getId();
@@ -138,7 +138,7 @@ class ClaimGenerationService {
 	}
 
 	/** @return array{0:int,1:int} [erzeugt, blockiert] */
-	private function generateForAssignment(Assignment $assignment, string $today, string $horizon, int $leadDays): array {
+	private function generateForAssignment(Assignment $assignment, string $today, string $horizon): array {
 		$created = 0;
 		while (true) {
 			$pending = $this->nextPendingPeriod($assignment);
@@ -146,7 +146,7 @@ class ClaimGenerationService {
 				return [$created, 0]; // Zuweisung ist zeitlich (validTo) beendet
 			}
 			[$periodStart, $periodEnd, $isFirst] = $pending;
-			$dueAnchor = $this->dueAnchor($assignment, $periodStart, $isFirst);
+			$dueAnchor = $this->effectiveStart($assignment, $periodStart, $isFirst);
 
 			$naturalDue = $this->schedule->dueDateForPeriod($assignment->getIntervalMonths(), $dueAnchor);
 			if ($naturalDue > $horizon) {
@@ -169,109 +169,64 @@ class ClaimGenerationService {
 				return [$created, 1];
 			}
 
-			$dueDate = $assignment->getPaymentMethod() === Assignment::PAYMENT_METHOD_DIRECT_DEBIT
-				? $this->dueDateWithNachzuegler($assignment->getIntervalMonths(), $dueAnchor, $periodEnd, $today, $leadDays)
-				: $naturalDue;
-
-			$this->createClaim($assignment, $periodStart, $periodEnd, $dueDate, $isFirst);
+			$this->createClaim($assignment, $periodStart, $periodEnd, $this->dueDateFor($assignment, $dueAnchor, $periodEnd, $today), $isFirst);
 			$created++;
 		}
 	}
 
 	/**
 	 * Der Einzugstermin, den der Tageslauf der ersten Forderung einer neuen
-	 * Zuweisung geben wird, von `$today` aus gesehen – für die Vorschau beim
-	 * Anlegen ({@see AssignmentService::previewFirstPeriod()}), damit sie nie
-	 * einen Termin verspricht, den der Lauf nicht hält. Dieselbe Rechnung wie
-	 * {@see generateForAssignment()}: Termin laut Terminplan ab dem Beitritt,
-	 * bei Lastschrift dazu die Nachzügler-Regel an dem Tag, an dem der Lauf die
-	 * Forderung anlegen wird (sobald Zuweisung und Termin im Vorwarnfenster
-	 * liegen, frühestens heute).
+	 * Zuweisung geben wird – für die Vorschau beim Anlegen
+	 * ({@see AssignmentService::previewFirstPeriod()}). Dieselbe
+	 * Terminentscheidung wie im Lauf ({@see dueDateFor()}), getroffen an dem Tag,
+	 * an dem der Lauf die Forderung anlegen wird. Ein fehlendes Mandat bleibt
+	 * außen vor: wann es kommt, weiß die Vorschau nicht.
 	 *
-	 * Ein fehlendes Mandat bleibt außen vor: Es hält die Forderung auf, bis es
-	 * da ist, und wann das sein wird, weiß die Vorschau nicht.
-	 *
-	 * @param string|null $today Stichtag, sonst heute (für Tests)
-	 * @return array{dueDate:string, scheduledDueDate:string} `dueDate` ist der
-	 *                                                        Termin, an dem eingezogen wird, `scheduledDueDate` der laut Terminplan
-	 *                                                        (verschieden, wenn die Nachzügler-Regel greift)
-	 * @throws \InvalidArgumentException bei unmöglichem Datum
+	 * @return array{dueDate:string, scheduledDueDate:string} Termin des Einzugs und Termin laut Terminplan (verschieden, wenn die Nachzügler-Regel greift)
 	 */
-	public function firstClaimDueDate(Assignment $assignment, ?string $today = null): array {
-		$today ??= $this->today();
-		$intervalMonths = $assignment->getIntervalMonths();
-		[$periodStart, $periodEnd] = $this->contributionYear->periodContaining($intervalMonths, $assignment->getValidFrom());
-		$dueAnchor = $this->dueAnchor($assignment, $periodStart, true);
-		$scheduled = $this->schedule->dueDateForPeriod($intervalMonths, $dueAnchor);
-
-		// Beitragsfrei steht am Betrag der Zuweisung selbst; die Vorschau kennt bei Monatsbeträgen keine Gruppe.
-		$feeFree = ($assignment->isAnnual() ? $assignment->getAnnualAmountCents() : $assignment->getMonthlyAmountCents()) === 0;
-		if ($assignment->getPaymentMethod() !== Assignment::PAYMENT_METHOD_DIRECT_DEBIT || $feeFree) {
-			return ['dueDate' => $scheduled, 'scheduledDueDate' => $scheduled];
+	public function firstClaimDueDate(Assignment $assignment): array {
+		// Anker der ersten Periode ist der Beitritt, siehe effectiveStart().
+		$anchor = $assignment->getValidFrom();
+		[, $periodEnd] = $this->contributionYear->periodContaining($assignment->getIntervalMonths(), $anchor);
+		$scheduled = $this->schedule->dueDateForPeriod($assignment->getIntervalMonths(), $anchor);
+		if ($assignment->amountCents() === 0) {
+			return ['dueDate' => $scheduled, 'scheduledDueDate' => $scheduled]; // beitragsfrei: kein Nachzügler
 		}
-
+		// Der Lauf legt die Forderung an, sobald Zuweisung und Termin im Vorwarnfenster liegen – frühestens heute.
 		$warningDays = $this->settings->warningLeadDays();
-		$generationDay = max(
-			$today,
-			self::minusDays($scheduled, $warningDays),
-			self::minusDays($assignment->getValidFrom(), $warningDays),
-		);
-		return [
-			'dueDate' => $this->dueDateWithNachzuegler($intervalMonths, $dueAnchor, $periodEnd, $generationDay, $this->settings->prenotificationLeadDays()),
-			'scheduledDueDate' => $scheduled,
-		];
+		$generationDay = max($this->today(), self::minusDays($scheduled, $warningDays), self::minusDays($anchor, $warningDays));
+		return ['dueDate' => $this->dueDateFor($assignment, $anchor, $periodEnd, $generationDay), 'scheduledDueDate' => $scheduled];
 	}
 
 	/**
-	 * Zieht die schon erzeugten, aber noch nicht gesperrten Forderungen einer
-	 * Zuweisung nach einer Änderung (Betrag, Gruppe, Untergrenze) nach – Spec
-	 * §3.3 „Eine Wirksamkeitsregel für alles": eine Änderung wirkt ab der
-	 * ersten Periode ohne versandte Vorabinfo, also auch auf eine Forderung,
-	 * die der Tageslauf im Vorwarnfenster schon angelegt hat. Ohne das bliebe
-	 * eine Korrektur zwischen Vorwarnung (D−21) und Vorabinfo (D−14) in der
-	 * nächsten Forderung wirkungslos.
+	 * Zieht die schon angelegten, aber noch nicht angekündigten Forderungen
+	 * einer Zuweisung nach einer Änderung von Betrag oder Gruppe nach – Spec
+	 * §3.3: eine Änderung wirkt ab der ersten Periode ohne Vorabinfo, auch wenn
+	 * der Lauf deren Forderung im Vorwarnfenster schon angelegt hat.
 	 *
-	 * Gerechnet wird an Ort und Stelle, mit derselben Rechnung wie beim Anlegen:
-	 * Betrag und Bezeichnung folgen der Zuweisung, Zeitraum und Einzugstermin
-	 * bleiben – eine Korrektur am Tag der Vorabinfo soll den Einzug nicht um
-	 * einen Turnus verschieben, und eine gerissene Vorlauffrist verschiebt
-	 * nichts automatisch (Spec §3.5). An Ort und Stelle statt neu erzeugt, weil
-	 * an einer Forderung Zahlungen, Mahnungen und Lastschriftposten hängen
-	 * können. Fällt der Betrag auf 0, wird die Forderung zum beitragsfreien
-	 * Eintrag (siehe Klassendoc); wird ein beitragsfreier Eintrag zahlungspflichtig,
-	 * wird er zur Forderung, mit dem Termin, den der Lauf ihr heute gäbe.
+	 * An Ort und Stelle statt neu erzeugt, weil an einer Forderung Zahlungen,
+	 * Mahnungen und Lastschriftposten hängen können: Betrag und Bezeichnung
+	 * folgen der Zuweisung, Zeitraum und Termin bleiben (eine gerissene
+	 * Vorlauffrist verschiebt nichts automatisch, Spec §3.5). Nur ein
+	 * beitragsfreier Eintrag, der zahlungspflichtig wird, bekommt den Termin,
+	 * den der Lauf ihm heute gäbe.
 	 *
-	 * Angefasst wird nur, was noch niemand angekündigt oder bezahlt hat: offen
-	 * (bzw. vom Lauf beitragsfrei gestellt), keine Vorabinfo, keine
-	 * Zahlungsaufforderung oder Mahnung (bei Überweisern übernimmt die
-	 * Zahlungsaufforderung die Rolle der Vorabinfo, {@see DunningLadderService}),
-	 * Termin nach heute, nichts bezahlt, in keinem lebenden Lastschriftlauf.
-	 *
-	 * @param string|null $today Stichtag, sonst heute (für Tests)
+	 * @param ContributionGroup|null $group die Gruppe der Zuweisung, falls schon geladen
 	 * @return int Anzahl nachgezogener Forderungen
 	 */
-	public function refreshUnlockedClaims(Assignment $assignment, ?string $today = null): int {
-		$today ??= $this->today();
-		$group = null;
+	public function refreshUnlockedClaims(Assignment $assignment, ?ContributionGroup $group = null): int {
+		$today = $this->today();
 		$refreshed = 0;
 		foreach ($this->openItems->findByAssignment((int)$assignment->getId()) as $item) {
-			$periodStart = $item->getPeriodStart();
-			$periodEnd = $item->getPeriodEnd();
-			$feeFreeEntry = $item->getStatus() === 'waived' && $item->getAmountCents() === 0 && $item->getSettledBy() === null;
-			if ($periodStart === null || $periodEnd === null
-				|| ($item->getStatus() !== 'open' && !$feeFreeEntry)
-				|| $item->getPrenotifiedAt() !== null
-				|| $item->getCancelledAt() !== null
-				|| $item->getDueDate() === null || $item->getDueDate() <= $today
-				|| $item->getSettledCents() > 0 || $item->getPaidJournalId() !== null
-				|| $this->debitItems->findLiveBatchStatusByOpenItem((int)$item->getId()) !== null
-				|| $this->dunningNotices->findByOpenItem((int)$item->getId()) !== []) {
+			$feeFreeEntry = self::isFeeFreeEntry($item);
+			if (!self::isUnannounced($item, $feeFreeEntry, $today)) {
 				continue;
 			}
-
 			$group ??= $this->groups->find($assignment->getGroupId());
-			$amountCents = ContributionAmount::forPeriod($assignment, $group, $periodStart, $periodEnd);
-			if ($amountCents === $item->getAmountCents() && $item->getDescription() === $group->getName()) {
+			$periodStart = (string)$item->getPeriodStart();
+			$amountCents = ContributionAmount::forPeriod($assignment, $group, $periodStart, (string)$item->getPeriodEnd());
+			if (($amountCents === $item->getAmountCents() && $item->getDescription() === $group->getName())
+				|| $this->isUnderway($item)) {
 				continue;
 			}
 			$item->setDescription($group->getName());
@@ -282,7 +237,8 @@ class ClaimGenerationService {
 			} elseif ($amountCents > 0 && $feeFreeEntry) {
 				$item->setStatus('open');
 				$item->setSettledAt(null);
-				$item->setDueDate($this->dueDateIfCreatedToday($assignment, $periodStart, $today));
+				[, $naturalEnd] = $this->contributionYear->periodContaining($assignment->getIntervalMonths(), $periodStart);
+				$item->setDueDate($this->dueDateFor($assignment, $periodStart, $naturalEnd, $today));
 			}
 			$this->openItems->update($item);
 			$refreshed++;
@@ -290,29 +246,54 @@ class ClaimGenerationService {
 		return $refreshed;
 	}
 
-	/**
-	 * Der Termin, den {@see generateForAssignment()} einer Periode mit diesem
-	 * (tatsächlichen) Beginn heute gäbe: Terminplan, bei Lastschrift mit der
-	 * Nachzügler-Regel. Der gespeicherte Beginn ist schon der Anker – bei der
-	 * ersten Periode der Beitritt, sonst der Periodenbeginn.
-	 */
-	private function dueDateIfCreatedToday(Assignment $assignment, string $periodStart, string $today): string {
-		$intervalMonths = $assignment->getIntervalMonths();
-		if ($assignment->getPaymentMethod() !== Assignment::PAYMENT_METHOD_DIRECT_DEBIT) {
-			return $this->schedule->dueDateForPeriod($intervalMonths, $periodStart);
-		}
-		[, $naturalEnd] = $this->contributionYear->periodContaining($intervalMonths, $periodStart);
-		return $this->dueDateWithNachzuegler($intervalMonths, $periodStart, $naturalEnd, $today, $this->settings->prenotificationLeadDays());
+	/** Der vom Lauf festgehaltene Eintrag einer beitragsfreien Periode (siehe Klassendoc), kein Erlass von Hand. */
+	private static function isFeeFreeEntry(OpenItem $item): bool {
+		return $item->getStatus() === 'waived' && $item->getAmountCents() === 0 && $item->getSettledBy() === null;
 	}
 
 	/**
-	 * Anker für die Terminplan-Berechnung: im Regelfall der Periodenbeginn
-	 * selbst, bei der allerersten (Prorata-)Periode einer Zuweisung aber deren
-	 * tatsächlicher Beitritt – sonst hätte eine erst im März beigetretene
+	 * Periodische Forderung, die noch niemand angekündigt oder bezahlt hat:
+	 * offen (oder beitragsfreier Eintrag), keine Vorabinfo, Termin nach heute,
+	 * nichts bezahlt. Ohne Datenbank; die Abfragen stehen in {@see isUnderway()}.
+	 */
+	private static function isUnannounced(OpenItem $item, bool $feeFreeEntry, string $today): bool {
+		return $item->getPeriodStart() !== null && $item->getPeriodEnd() !== null
+			&& ($feeFreeEntry || ClaimStateResolver::resolveForItem($item) === ClaimStateResolver::STATE_OPEN)
+			&& !EffectivityRuleService::isLocked($item->getPrenotifiedAt())
+			&& $item->getDueDate() !== null && $item->getDueDate() > $today
+			&& $item->getSettledCents() <= 0 && $item->getPaidJournalId() === null;
+	}
+
+	/**
+	 * Steckt in einem lebenden Lastschriftlauf, oder eine Zahlungsaufforderung
+	 * bzw. Mahnung ist verschickt – bei Überweisern das Gegenstück der
+	 * Vorabinfo ({@see DunningLadderService}).
+	 */
+	private function isUnderway(OpenItem $item): bool {
+		return $this->debitItems->findLiveBatchStatusByOpenItem((int)$item->getId()) !== null
+			|| $this->dunningNotices->findByOpenItem((int)$item->getId()) !== [];
+	}
+
+	/**
+	 * Die Terminentscheidung des Laufs, getroffen am Tag `$day`: Terminplan ab
+	 * `$anchor`, bei Lastschrift mit der Nachzügler-Regel. Eine Stelle für
+	 * Tageslauf, Vorschau und Nachziehen.
+	 */
+	private function dueDateFor(Assignment $assignment, string $anchor, string $periodEnd, string $day): string {
+		if ($assignment->getPaymentMethod() !== Assignment::PAYMENT_METHOD_DIRECT_DEBIT) {
+			return $this->schedule->dueDateForPeriod($assignment->getIntervalMonths(), $anchor);
+		}
+		return $this->dueDateWithNachzuegler($assignment->getIntervalMonths(), $anchor, $periodEnd, $day, $this->settings->prenotificationLeadDays());
+	}
+
+	/**
+	 * Tatsächlicher Beginn einer Periode und zugleich Anker des Terminplans:
+	 * der Periodenbeginn, bei der allerersten (Prorata-)Periode einer
+	 * Zuweisung aber der Beitritt – sonst hätte eine erst im März beigetretene
 	 * Zuweisung mit Jahresturnus einen „natürlichen" Termin am 1. Januar, den
 	 * das Mitglied nie erlebt hat (siehe {@see DueDateScheduleService::dueDateForPeriod()}).
 	 */
-	private function dueAnchor(Assignment $assignment, string $periodStart, bool $isFirst): string {
+	private function effectiveStart(Assignment $assignment, string $periodStart, bool $isFirst): string {
 		return $isFirst ? max($periodStart, $assignment->getValidFrom()) : $periodStart;
 	}
 
@@ -417,7 +398,7 @@ class ClaimGenerationService {
 	 * @return array{0:int,1:string,2:string} Betrag in Cent, tatsächlicher Beginn und Ende der Periode
 	 */
 	private function periodFigures(Assignment $assignment, string $periodStart, string $periodEnd, bool $isFirst): array {
-		$effectiveFrom = $isFirst ? max($periodStart, $assignment->getValidFrom()) : $periodStart;
+		$effectiveFrom = $this->effectiveStart($assignment, $periodStart, $isFirst);
 		$effectiveTo = ($assignment->getValidTo() !== null && $assignment->getValidTo() < $periodEnd)
 			? $assignment->getValidTo()
 			: $periodEnd;

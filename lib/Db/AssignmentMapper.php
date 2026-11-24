@@ -181,41 +181,11 @@ class AssignmentMapper extends QBMapper {
 	}
 
 	/**
-	 * Zuweisungen, die an `$date` aktiv sind (validFrom <= $date, validTo NULL
-	 * oder erst danach) – Grundlage für die periodische Forderungserzeugung
-	 * (Issue #70, {@see \OCA\Vereinsbuchhaltung\Service\ClaimGenerationService})
-	 * und die Störfall-Abfrage „Kein Mandat + Lastschrift gewollt"
-	 * ({@see \OCA\Vereinsbuchhaltung\Service\ContributionCycleTaskService}).
-	 *
-	 * @return Assignment[]
-	 */
-	public function findActiveAsOf(string $date): array {
-		return $this->readCache->entities('assignments.activeAsOf.' . $date, function () use ($date): array {
-			$qb = $this->db->getQueryBuilder();
-			$qb->select('*')
-				->from($this->getTableName())
-				->where($qb->expr()->lte('valid_from', $qb->createNamedParameter($date)))
-				->andWhere($qb->expr()->orX(
-					$qb->expr()->isNull('valid_to'),
-					$qb->expr()->gte('valid_to', $qb->createNamedParameter($date)),
-				))
-				->orderBy('id', 'ASC');
-			return array_values($this->findEntities($qb));
-		});
-	}
-
-	/**
 	 * Zuweisungen, für die der Tageslauf bis `$horizon` Forderungen anlegen
-	 * kann: an `$today` aktiv wie bei {@see findActiveAsOf()}, und zusätzlich
-	 * die, die erst nach `$today`, aber spätestens an `$horizon` beginnen.
-	 * Eine Zuweisung, die in zwei Wochen beginnt, kann ihren ersten
-	 * Einzugstermin schon im Vorwarnfenster haben – wartete die
-	 * Forderungserzeugung auf den Beginn, wäre die Vorabinfo-Frist dann oft
-	 * schon gerissen ({@see \OCA\Vereinsbuchhaltung\Service\ClaimGenerationService}).
-	 *
-	 * Ohne zurückgenommene Zuweisungen: Ihr Ende liegt einen Tag vor dem Beginn
-	 * ({@see \OCA\Vereinsbuchhaltung\Service\AssignmentService::end()}), sie
-	 * werden nie wirksam.
+	 * kann: an `$today` aktiv oder spätestens an `$horizon` beginnend, ohne
+	 * zurückgenommene (Ende vor dem Beginn). Grundlage der Forderungserzeugung
+	 * ({@see \OCA\Vereinsbuchhaltung\Service\ClaimGenerationService}, dort warum
+	 * auch künftig beginnende) und der Aufgaben, die sie begleiten.
 	 *
 	 * @return Assignment[]
 	 */

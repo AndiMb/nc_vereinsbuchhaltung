@@ -82,6 +82,8 @@ class MandateTaskService {
 		private AssignmentMapper $assignments,
 		private OpenItemMapper $openItems,
 		private ReturnedDebitMapper $returnedDebits,
+		// Vorwarnfenster: dieselben Zuweisungen wie der Tageslauf, siehe findEndedWithDirectDebitTasks().
+		private ContributionCycleSettings $settings,
 		private ITimeFactory $time,
 		private IL10N $l10n,
 		?ClubClock $clock = null,
@@ -173,7 +175,9 @@ class MandateTaskService {
 		}
 
 		$wanted = [];
-		foreach ($this->assignments->findActiveAsOf($today) as $assignment) {
+		// Dieselben Zuweisungen wie der Tageslauf, auch künftig beginnende: Die Störfall-Liste
+		// (ContributionCycleTaskService) blendet diese Mitglieder aus und verlässt sich auf diese Aufgabe.
+		foreach ($this->assignments->findActiveOrStartingBy($today, $this->settings->warningHorizon($today)) as $assignment) {
 			if ($assignment->getPaymentMethod() === Assignment::PAYMENT_METHOD_DIRECT_DEBIT && isset($endedOnly[$assignment->getMemberId()])) {
 				$wanted[$assignment->getMemberId()] = true;
 			}

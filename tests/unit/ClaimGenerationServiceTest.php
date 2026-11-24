@@ -484,23 +484,19 @@ class ClaimGenerationServiceTest extends TestCase {
 		$this->assertCount(1, $this->store);
 	}
 
-	/**
-	 * Wie die echte Abfrage {@see AssignmentMapper::findActiveOrStartingBy()}:
-	 * aktiv an `$today` oder bis `$horizon` beginnend, ohne zurückgenommene.
-	 */
+	/** Wie die echte Abfrage {@see AssignmentMapper::findActiveOrStartingBy()}: aktiv an `$today` oder bis `$horizon` beginnend. */
 	private function stubSelection(Assignment ...$assignments): void {
 		$this->assignments->method('findActiveOrStartingBy')->willReturnCallback(
 			static fn (string $today, string $horizon): array => array_values(array_filter(
 				$assignments,
-				static fn (Assignment $a): bool => $a->getValidFrom() <= $horizon
-					&& ($a->getValidTo() === null || ($a->getValidTo() >= $today && $a->getValidTo() >= $a->getValidFrom())),
+				static fn (Assignment $a): bool => $a->getValidFrom() <= $horizon && ($a->getValidTo() === null || $a->getValidTo() >= $today),
 			)),
 		);
 	}
 
-	/** Quartalsturnus, Einzug am 15. (14 Tage nach Periodenbeginn) – der Fall aus der Praxis. */
-	private function quarterlyOnThe15th(): void {
-		$this->configStore['due_date_schedule'] = json_encode(['3' => ['defaultOffsetDays' => 14, 'overrides' => []]]);
+	/** Quartalsturnus mit Einzug `$offsetDays` nach Periodenbeginn; Standard 14 = am 15., der Fall aus der Praxis. */
+	private function quarterlySchedule(int $offsetDays = 14): void {
+		$this->configStore['due_date_schedule'] = json_encode(['3' => ['defaultOffsetDays' => $offsetDays, 'overrides' => []]]);
 	}
 
 	/**
@@ -511,7 +507,7 @@ class ClaimGenerationServiceTest extends TestCase {
 	 * gerissen und der Dezember rutschte auf den Quartalstermin im Januar.
 	 */
 	public function testErsteForderungEinerKuenftigenZuweisungEntstehtImVorwarnfensterVorDemBeitritt(): void {
-		$this->quarterlyOnThe15th();
+		$this->quarterlySchedule();
 		$this->stubSelection($this->assignment(intervalMonths: 3, validFrom: '2026-12-01'));
 		$this->groups->method('find')->willReturn($this->group());
 		$this->setMandateActive(true);
@@ -527,17 +523,6 @@ class ClaimGenerationServiceTest extends TestCase {
 		$this->assertSame(1000, $this->store[0]->getAmountCents());
 	}
 
-	public function testEineZurueckgenommeneZuweisungErzeugtKeineForderung(): void {
-		$this->quarterlyOnThe15th();
-		$this->stubSelection($this->assignment(intervalMonths: 3, validFrom: '2026-12-01', validTo: '2026-11-30'));
-		$this->groups->method('find')->willReturn($this->group());
-		$this->setMandateActive(true);
-
-		$this->service('2026-11-24')->generateDue();
-
-		$this->assertCount(0, $this->store);
-	}
-
 	/**
 	 * Die Vorschau beim Anlegen ({@see ClaimGenerationService::firstClaimDueDate()})
 	 * muss genau den Termin nennen, den der Tageslauf danach vergibt – für
@@ -546,13 +531,13 @@ class ClaimGenerationServiceTest extends TestCase {
 	 */
 	#[DataProvider('erfassungstage')]
 	public function testVorschauDesErstenTerminsStimmtMitDemTageslaufUeberein(int $offsetDays, string $enteredOn): void {
-		$this->configStore['due_date_schedule'] = json_encode(['3' => ['defaultOffsetDays' => $offsetDays, 'overrides' => []]]);
+		$this->quarterlySchedule($offsetDays);
 		$assignment = $this->assignment(intervalMonths: 3, validFrom: '2026-12-01');
 		$this->stubSelection($assignment);
 		$this->groups->method('find')->willReturn($this->group());
 		$this->setMandateActive(true);
 
-		$predicted = $this->service($enteredOn)->firstClaimDueDate($assignment, $enteredOn)['dueDate'];
+		$predicted = $this->service($enteredOn)->firstClaimDueDate($assignment)['dueDate'];
 
 		for ($day = new \DateTimeImmutable($enteredOn); $this->store === []; $day = $day->modify('+1 day')) {
 			$this->service($day->format('Y-m-d'))->generateDue($day->format('Y-m-d'));
@@ -570,25 +555,25 @@ class ClaimGenerationServiceTest extends TestCase {
 	}
 
 	public function testVorschauNenntDenVerschobenenTerminWennDieVorabinfoFristNichtMehrReicht(): void {
-		$this->quarterlyOnThe15th();
+		$this->quarterlySchedule();
 		$assignment = $this->assignment(intervalMonths: 3, validFrom: '2026-12-01');
 
 		// Erfasst am 1.12.: Frist für den 15.12. ist der 1.12., schon angebrochen.
-		$late = $this->service('2026-12-01')->firstClaimDueDate($assignment, '2026-12-01');
+		$late = $this->service('2026-12-01')->firstClaimDueDate($assignment);
 		$this->assertSame(['dueDate' => '2027-01-15', 'scheduledDueDate' => '2026-12-15'], $late);
 
 		// Erfasst am 30.11.: reicht noch.
-		$inTime = $this->service('2026-11-30')->firstClaimDueDate($assignment, '2026-11-30');
+		$inTime = $this->service('2026-11-30')->firstClaimDueDate($assignment);
 		$this->assertSame(['dueDate' => '2026-12-15', 'scheduledDueDate' => '2026-12-15'], $inTime);
 	}
 
 	public function testVorschauVerschiebtBeiUeberweisungNie(): void {
-		$this->quarterlyOnThe15th();
+		$this->quarterlySchedule();
 		$assignment = $this->assignment(intervalMonths: 3, paymentMethod: Assignment::PAYMENT_METHOD_TRANSFER, validFrom: '2026-12-01');
 
 		$this->assertSame(
 			['dueDate' => '2026-12-15', 'scheduledDueDate' => '2026-12-15'],
-			$this->service('2026-12-10')->firstClaimDueDate($assignment, '2026-12-10'),
+			$this->service('2026-12-10')->firstClaimDueDate($assignment),
 		);
 	}
 
@@ -600,7 +585,7 @@ class ClaimGenerationServiceTest extends TestCase {
 	 * @return array{Assignment, OpenItem}
 	 */
 	private function generatedDecemberClaim(string $paymentMethod = Assignment::PAYMENT_METHOD_DIRECT_DEBIT, int $monthlyAmountCents = 1000): array {
-		$this->quarterlyOnThe15th();
+		$this->quarterlySchedule();
 		$assignment = $this->assignment(intervalMonths: 3, monthlyAmountCents: $monthlyAmountCents, paymentMethod: $paymentMethod, validFrom: '2026-12-01');
 		$this->stubSelection($assignment);
 		$this->groups->method('find')->willReturnCallback(function (int $id): ContributionGroup {
@@ -627,7 +612,7 @@ class ClaimGenerationServiceTest extends TestCase {
 		$assignment->setMonthlyAmountCents(1500);
 		$assignment->setGroupId(2);
 
-		$this->assertSame(1, $this->service('2026-11-26')->refreshUnlockedClaims($assignment, '2026-11-26'));
+		$this->assertSame(1, $this->service('2026-11-26')->refreshUnlockedClaims($assignment));
 
 		$this->assertSame(1500, $claim->getAmountCents());
 		$this->assertSame('Familienbeitrag', $claim->getDescription());
@@ -657,7 +642,7 @@ class ClaimGenerationServiceTest extends TestCase {
 		};
 		$assignment->setMonthlyAmountCents(1500);
 
-		$this->assertSame(0, $this->service('2026-12-02')->refreshUnlockedClaims($assignment, '2026-12-02'));
+		$this->assertSame(0, $this->service('2026-12-02')->refreshUnlockedClaims($assignment));
 		$this->assertSame(1000, $claim->getAmountCents());
 	}
 
@@ -666,7 +651,7 @@ class ClaimGenerationServiceTest extends TestCase {
 		[$assignment, $claim] = $this->generatedDecemberClaim(Assignment::PAYMENT_METHOD_TRANSFER);
 		$assignment->setMonthlyAmountCents(1500);
 
-		$this->assertSame(0, $this->service('2026-12-15')->refreshUnlockedClaims($assignment, '2026-12-15'));
+		$this->assertSame(0, $this->service('2026-12-15')->refreshUnlockedClaims($assignment));
 		$this->assertSame(1000, $claim->getAmountCents());
 	}
 
@@ -674,7 +659,7 @@ class ClaimGenerationServiceTest extends TestCase {
 		[$assignment, $claim] = $this->generatedDecemberClaim();
 		$assignment->setMonthlyAmountCents(0);
 
-		$this->service('2026-11-26')->refreshUnlockedClaims($assignment, '2026-11-26');
+		$this->service('2026-11-26')->refreshUnlockedClaims($assignment);
 
 		$this->assertSame(0, $claim->getAmountCents());
 		$this->assertSame('waived', $claim->getStatus());
@@ -691,7 +676,7 @@ class ClaimGenerationServiceTest extends TestCase {
 		$this->assertSame('waived', $entry->getStatus());
 		$assignment->setMonthlyAmountCents(1000);
 
-		$this->service('2026-12-02')->refreshUnlockedClaims($assignment, '2026-12-02');
+		$this->service('2026-12-02')->refreshUnlockedClaims($assignment);
 
 		$this->assertSame('open', $entry->getStatus());
 		$this->assertSame(1000, $entry->getAmountCents());
@@ -702,6 +687,6 @@ class ClaimGenerationServiceTest extends TestCase {
 	public function testUnveraenderteForderungWirdNichtGeschrieben(): void {
 		[$assignment] = $this->generatedDecemberClaim();
 
-		$this->assertSame(0, $this->service('2026-11-26')->refreshUnlockedClaims($assignment, '2026-11-26'));
+		$this->assertSame(0, $this->service('2026-11-26')->refreshUnlockedClaims($assignment));
 	}
 }

@@ -15,10 +15,12 @@ use OCA\Vereinsbuchhaltung\Db\OpenItemMapper;
 use OCA\Vereinsbuchhaltung\Db\ReturnedDebit;
 use OCA\Vereinsbuchhaltung\Db\ReturnedDebitMapper;
 use OCA\Vereinsbuchhaltung\Db\Task;
+use OCA\Vereinsbuchhaltung\Service\ContributionCycleSettings;
 use OCA\Vereinsbuchhaltung\Service\MandateDocumentService;
 use OCA\Vereinsbuchhaltung\Service\MandateExpiryCalculator;
 use OCA\Vereinsbuchhaltung\Service\MandateService;
 use OCA\Vereinsbuchhaltung\Service\MandateTaskService;
+use OCA\Vereinsbuchhaltung\Tests\Unit\Support\AppConfigStub;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\IL10N;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -84,6 +86,7 @@ class MandateTaskServiceTest extends TestCase {
 			$this->assignments,
 			$this->openItems,
 			$this->returnedDebits,
+			new ContributionCycleSettings(AppConfigStub::create($this)),
 			$time,
 			$l10n,
 		);
@@ -179,7 +182,7 @@ class MandateTaskServiceTest extends TestCase {
 		$this->members->expects($this->once())->method('findAllById')->willReturn(self::byId($members));
 		$this->mandates->expects($this->never())->method('find');
 		$this->members->expects($this->never())->method('find');
-		$this->assignments->expects($this->never())->method('findActiveAsOf');
+		$this->assignments->expects($this->never())->method('findActiveOrStartingBy');
 		$this->openItems->expects($this->never())->method('findOpenClaims');
 		$this->returnedDebits->expects($this->never())->method('findAllByDebitItem');
 
@@ -352,7 +355,7 @@ class MandateTaskServiceTest extends TestCase {
 		$this->givenBestand([
 			$this->mandate(3, 7, Mandate::STATUS_ENDED, ['endReason' => Mandate::END_REASON_REVOKED]),
 		], [$this->member(7)]);
-		$this->assignments->method('findActiveAsOf')->with(self::TODAY)->willReturn([$this->directDebitAssignment(7)]);
+		$this->assignments->method('findActiveOrStartingBy')->with(self::TODAY)->willReturn([$this->directDebitAssignment(7)]);
 
 		$task = $this->only($this->service()->findTasks(self::TODAY));
 
@@ -368,7 +371,7 @@ class MandateTaskServiceTest extends TestCase {
 			$this->mandate(3, 7, Mandate::STATUS_ENDED, ['endReason' => Mandate::END_REASON_REPLACED]),
 			$this->mandate(8, 7, Mandate::STATUS_ENDED, ['endReason' => Mandate::END_REASON_EXPIRED]),
 		], [$this->member(7)]);
-		$this->assignments->method('findActiveAsOf')->willReturn([$this->directDebitAssignment(7)]);
+		$this->assignments->method('findActiveOrStartingBy')->willReturn([$this->directDebitAssignment(7)]);
 
 		$task = $this->only($this->service()->findTasks(self::TODAY));
 
@@ -381,7 +384,7 @@ class MandateTaskServiceTest extends TestCase {
 		$this->givenBestand([
 			$this->mandate(3, 7, Mandate::STATUS_ENDED, ['endReason' => Mandate::END_REASON_DISCARDED]),
 		], [$this->member(7)]);
-		$this->assignments->method('findActiveAsOf')->willReturn([$this->directDebitAssignment(7)]);
+		$this->assignments->method('findActiveOrStartingBy')->willReturn([$this->directDebitAssignment(7)]);
 
 		$task = $this->only($this->service()->findTasks(self::TODAY));
 
@@ -391,15 +394,15 @@ class MandateTaskServiceTest extends TestCase {
 	public function testErloschenesMandatOhneLastschriftWunschIstKeineAufgabe(): void {
 		$this->givenBestand([$this->mandate(3, 7, Mandate::STATUS_ENDED, ['endReason' => Mandate::END_REASON_REVOKED])], [$this->member(7)]);
 		// Die Zuweisung läuft über Überweisung: nichts mehr zu tun.
-		$this->assignments->method('findActiveAsOf')->willReturn([$this->directDebitAssignment(7, Assignment::PAYMENT_METHOD_TRANSFER)]);
+		$this->assignments->method('findActiveOrStartingBy')->willReturn([$this->directDebitAssignment(7, Assignment::PAYMENT_METHOD_TRANSFER)]);
 
 		$this->assertSame([], $this->service()->findTasks(self::TODAY));
 	}
 
 	public function testErloschenesMandatOhneLaufendeZuweisungIstKeineAufgabe(): void {
-		// Austritt/Zuweisung beendet: findActiveAsOf liefert sie nicht mehr.
+		// Austritt/Zuweisung beendet: findActiveOrStartingBy liefert sie nicht mehr.
 		$this->givenBestand([$this->mandate(3, 7, Mandate::STATUS_ENDED, ['endReason' => Mandate::END_REASON_REVOKED])], [$this->member(7)]);
-		$this->assignments->method('findActiveAsOf')->willReturn([]);
+		$this->assignments->method('findActiveOrStartingBy')->willReturn([]);
 
 		$this->assertSame([], $this->service()->findTasks(self::TODAY));
 	}
@@ -411,7 +414,7 @@ class MandateTaskServiceTest extends TestCase {
 			$this->mandate(3, 7, Mandate::STATUS_ENDED, ['endReason' => Mandate::END_REASON_REVOKED]),
 			$this->mandate(4, 7, Mandate::STATUS_ACTIVE, ['signedAt' => '2026-09-01']),
 		], [$this->member(7)]);
-		$this->assignments->expects($this->never())->method('findActiveAsOf');
+		$this->assignments->expects($this->never())->method('findActiveOrStartingBy');
 
 		$this->assertSame([], $this->service()->findTasks(self::TODAY));
 	}
@@ -576,7 +579,7 @@ class MandateTaskServiceTest extends TestCase {
 
 	public function testAusgetretenMitBeendetemMandatIstKeineAufgabe(): void {
 		$this->givenBestand([$this->mandate(3, 7, Mandate::STATUS_ENDED, ['endReason' => Mandate::END_REASON_TERMINATED])], [$this->departedMember()]);
-		$this->assignments->method('findActiveAsOf')->willReturn([]);
+		$this->assignments->method('findActiveOrStartingBy')->willReturn([]);
 		$this->openItems->expects($this->never())->method('findOpenClaims');
 
 		$this->assertSame([], $this->service()->findTasks(self::TODAY));

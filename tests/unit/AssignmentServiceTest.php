@@ -314,6 +314,13 @@ class AssignmentServiceTest extends TestCase {
 		$this->assertSame(1, $count);
 	}
 
+	/** Zuweisung 5, die erst am 1.7. beginnt – heute (Standard im Test) ist der 15.6. */
+	private function unstartedAssignment(): Assignment {
+		$assignment = $this->assignmentInGroup1();
+		$assignment->setValidFrom('2026-07-01');
+		return $assignment;
+	}
+
 	/** Eine Forderung der Zuweisung 5 im Zustand `$status`. */
 	private function claimOfAssignment5(int $id, string $status = 'open'): OpenItem {
 		$item = new OpenItem();
@@ -330,8 +337,7 @@ class AssignmentServiceTest extends TestCase {
 	 * Bezahltes bleibt unberührt.
 	 */
 	public function testZuruecknehmenStorniertSchonErzeugteOffeneForderungen(): void {
-		$assignment = $this->assignmentInGroup1();
-		$assignment->setValidFrom('2026-07-01'); // heute (Standard im Test): 2026-06-15
+		$assignment = $this->unstartedAssignment();
 		$this->mapper->method('find')->willReturn($assignment);
 		$this->mapper->method('update')->willReturnArgument(0);
 		$this->openItemsByAssignment[5] = [$this->claimOfAssignment5(11), $this->claimOfAssignment5(12, 'paid')];
@@ -343,8 +349,7 @@ class AssignmentServiceTest extends TestCase {
 	}
 
 	public function testZuruecknehmenScheitertSolangeDieForderungInEinemFreigegebenenLaufSteckt(): void {
-		$assignment = $this->assignmentInGroup1();
-		$assignment->setValidFrom('2026-07-01');
+		$assignment = $this->unstartedAssignment();
 		$this->mapper->method('find')->willReturn($assignment);
 		$this->openItemsByAssignment[5] = [$this->claimOfAssignment5(11)];
 		$this->claims->method('cancel')->willThrowException(new \InvalidArgumentException('Verwerfen Sie zuerst den Lauf'));
@@ -360,8 +365,7 @@ class AssignmentServiceTest extends TestCase {
 	 * (freigegebener Lauf), darf das den Austritts-Lauf nicht anhalten.
 	 */
 	public function testAustrittVorDemBeginnStorniertSchonErzeugteForderungen(): void {
-		$assignment = $this->assignmentInGroup1();
-		$assignment->setValidFrom('2026-07-01');
+		$assignment = $this->unstartedAssignment();
 		$this->mapper->method('findOpenAsOf')->willReturn([$assignment]);
 		$this->mapper->expects($this->once())->method('update')->willReturnArgument(0);
 		$this->openItemsByAssignment[5] = [$this->claimOfAssignment5(11), $this->claimOfAssignment5(12)];
@@ -1020,6 +1024,7 @@ class AssignmentServiceTest extends TestCase {
 		$assignment->setMonthlyAmountCents(417);
 		$assignment->setAnnualAmountCents(5000);
 		$assignment->setValidFrom('2026-06-15');
+		$assignment->setPaymentMethod(Assignment::PAYMENT_METHOD_TRANSFER);
 
 		$preview = $this->service()->previewFirstPeriod($assignment);
 
@@ -1035,6 +1040,7 @@ class AssignmentServiceTest extends TestCase {
 		$assignment->setMonthlyAmountCents(417);
 		$assignment->setAnnualAmountCents(5000);
 		$assignment->setValidFrom('2026-06-15');
+		$assignment->setPaymentMethod(Assignment::PAYMENT_METHOD_TRANSFER);
 
 		$this->assertSame(5000, $this->service()->previewFirstPeriod($assignment)['amountCents']);
 	}
