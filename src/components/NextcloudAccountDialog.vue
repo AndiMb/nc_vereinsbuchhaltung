@@ -101,7 +101,8 @@ export default {
 				// Abgebrochene Passwortbestätigung: der Dialog bleibt offen, nichts ist angelegt.
 				if (!await confirmAccountCreation()) { return }
 				await createAndLinkAccount(this.member.id, accountPayload(this.account))
-				showSuccess(this.t('Nextcloud-Konto angelegt. Die Verknüpfung gilt, sobald das Mitglied den Link in seiner Mail bestätigt.'))
+				// Ein Konto, das die angemeldete Person gerade selbst angelegt hat, gilt sofort (AccountHandoverService).
+				showSuccess(this.t('Nextcloud-Konto angelegt und mit der Akte verknüpft.'))
 				this.$emit('changed')
 				this.$emit('close')
 			} catch (e) {

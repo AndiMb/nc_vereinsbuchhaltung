@@ -352,18 +352,20 @@ class MemberService {
 	 * Die neue Verknüpfung ist zunächst nur ausstehend (#295): sie gilt erst,
 	 * wenn das Konto den Einmal-Link an die Mailadresse des Mitglieds bestätigt
 	 * hat ({@see MemberLinkConfirmationService}). Ohne Mailadresse gibt es
-	 * deshalb keine Verknüpfung.
+	 * deshalb keine Verknüpfung. Ausnahme `$freshAccount`: ein Konto, das die
+	 * Verwaltung für das Mitglied neu angelegt hat ({@see AccountHandoverService}),
+	 * gilt sofort.
 	 *
 	 * @throws DoesNotExistException wenn es das Mitglied nicht (mehr) gibt
 	 * @throws \InvalidArgumentException wenn das Konto nicht existiert oder schon verknüpft ist,
 	 *                                   das Mitglied anonymisiert ist oder keine Mailadresse hat
 	 */
-	public function link(int $id, string $ncUserId): Member {
+	public function link(int $id, string $ncUserId, bool $freshAccount = false): Member {
 		$member = $this->mapper->find($id);
 		if ($member->isRedacted()) {
 			throw new \InvalidArgumentException($this->l10n->t('Ein anonymisiertes Mitglied lässt sich nicht verknüpfen.'));
 		}
-		if (trim((string)$member->getEmail()) === '') {
+		if (!$freshAccount && trim((string)$member->getEmail()) === '') {
 			throw new \InvalidArgumentException($this->l10n->t('Für dieses Mitglied ist keine Mailadresse hinterlegt. Der Bestätigungslink geht an diese Adresse – bitte zuerst eine hinterlegen.'));
 		}
 		if (!$this->userManager->userExists($ncUserId)) {
@@ -377,6 +379,13 @@ class MemberService {
 			MemberLinkConfirmationService::reset($member);
 		}
 		$member->setNcUserId($ncUserId);
+		if ($freshAccount && !$member->isNcLinkConfirmed()) {
+			MemberLinkConfirmationService::reset($member);
+			$member->setNcLinkConfirmedAt((new \DateTime())->format('Y-m-d H:i:s')); // UTC-Zeitstempel (#263), wie MemberLinkConfirmationService
+			$member = $this->mapper->update($member);
+			$this->audit->log('Kontoverknüpfung ohne Bestätigung: Konto neu angelegt', 'member', $id, ['konto' => $ncUserId]);
+			return $member;
+		}
 		return $this->mapper->update($member);
 	}
 

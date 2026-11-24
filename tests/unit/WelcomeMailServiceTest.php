@@ -8,6 +8,8 @@ use OCA\Vereinsbuchhaltung\Db\Member;
 use OCA\Vereinsbuchhaltung\Db\MemberMapper;
 use OCA\Vereinsbuchhaltung\Service\AuditService;
 use OCA\Vereinsbuchhaltung\Service\ClubMailBranding;
+use OCA\Vereinsbuchhaltung\Service\MemberSetupSteps;
+use OCA\Vereinsbuchhaltung\Service\RecipientL10n;
 use OCA\Vereinsbuchhaltung\Service\WelcomeMailService;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\IAppConfig;
@@ -32,6 +34,7 @@ class WelcomeMailServiceTest extends TestCase {
 	private IMessage&MockObject $message;
 	private MemberMapper&MockObject $members;
 	private AuditService&MockObject $audit;
+	private MemberSetupSteps&MockObject $setupSteps;
 
 	protected function setUp(): void {
 		$this->stored = ['club_name' => 'Popchor Magdeburg e.V.'];
@@ -47,6 +50,7 @@ class WelcomeMailServiceTest extends TestCase {
 		$this->mailer->method('send')->willReturn([]);
 		$this->members = $this->createMock(MemberMapper::class);
 		$this->audit = $this->createMock(AuditService::class);
+		$this->setupSteps = $this->createMock(MemberSetupSteps::class);
 	}
 
 	private function service(): WelcomeMailService {
@@ -63,7 +67,9 @@ class WelcomeMailServiceTest extends TestCase {
 		$l10n->method('t')->willReturnCallback(static fn (string $text, array $parameters = []): string => vsprintf($text, $parameters));
 		$urls = $this->createMock(IURLGenerator::class);
 		$urls->method('getAbsoluteURL')->willReturn('https://cloud.example.org/');
-		return new WelcomeMailService($config, $this->mailer, $urls, $l10n, $this->members, $this->audit, $this->createMock(ClubMailBranding::class));
+		$recipientL10n = $this->createMock(RecipientL10n::class);
+		$recipientL10n->method('forMember')->willReturn($l10n);
+		return new WelcomeMailService($config, $this->mailer, $urls, $l10n, $this->members, $this->audit, $this->createMock(ClubMailBranding::class), $this->setupSteps, $recipientL10n);
 	}
 
 	private function member(?string $email = 'anna@example.org'): Member {
@@ -236,5 +242,59 @@ class WelcomeMailServiceTest extends TestCase {
 		$this->expectException(\RuntimeException::class);
 
 		$this->service()->send(7);
+	}
+
+	/** Unter dem Text des Vereins stehen die nächsten Schritte (MemberSetupSteps), hier der Passwort-Link. */
+	public function testHaengtDieNaechstenSchritteAn(): void {
+		$this->members->method('find')->willReturn($this->member());
+		$this->setupSteps->method('forWelcome')->willReturn([
+			['text' => 'Legen Sie ein Passwort fest.', 'button' => 'Passwort festlegen', 'url' => 'https://cloud.example.org/lostpassword/reset/form/t/anna'],
+		]);
+		$this->template->expects($this->once())->method('addBodyButton')
+			->with('Passwort festlegen', 'https://cloud.example.org/lostpassword/reset/form/t/anna');
+		$this->audit->expects($this->once())->method('log')
+			->with('Willkommens-Mail versendet', 'member', 7, $this->callback(static fn (array $d): bool => $d['schritte'] === 1));
+
+		$this->service()->send(7);
+	}
+
+	/** {naechste_schritte} bestimmt, wo die Schritte stehen – hier zwischen Begrüßung und Gruß. */
+	public function testSchritteStehenAnDerStelleDesPlatzhalters(): void {
+		$this->members->method('find')->willReturn($this->member());
+		$this->setupSteps->method('forWelcome')->willReturn([
+			['text' => 'Legen Sie ein Passwort fest.', 'button' => 'Passwort festlegen', 'url' => 'https://cloud.example.org/p'],
+		]);
+		$texts = [];
+		$this->template->method('addBodyText')->willReturnCallback(static function (string $html, string $plain = '') use (&$texts): void {
+			$texts[] = $plain;
+		});
+
+		$this->service()->send(7, 'Willkommen', "Hallo {vorname},\n\n{naechste_schritte}\n\nViele Grüße");
+
+		$this->assertSame(['Hallo Anna,', 'So geht es weiter:', 'Legen Sie ein Passwort fest.', 'Viele Grüße'], $texts);
+	}
+
+	/** Gibt es keine Schritte, fällt der Platzhalter weg und geht nie wörtlich an das Mitglied. */
+	public function testOhneSchritteFaelltDerPlatzhalterWeg(): void {
+		$this->members->method('find')->willReturn($this->member());
+		$this->setupSteps->method('forWelcome')->willReturn([]);
+		$texts = [];
+		$this->template->method('addBodyText')->willReturnCallback(static function (string $html, string $plain = '') use (&$texts): void {
+			$texts[] = $plain;
+		});
+
+		$this->service()->send(7, 'Willkommen', "Hallo {vorname},\n\n{naechste_schritte}\n\nViele Grüße {naechste_schritte}");
+
+		$this->assertSame(['Hallo Anna,', 'Viele Grüße'], $texts);
+	}
+
+	public function testPlatzhalterFuerDieSchritteImBetreffWirdAbgelehnt(): void {
+		$this->expectException(\InvalidArgumentException::class);
+		$this->service()->saveTemplate('Willkommen {naechste_schritte}', 'Hallo {name}');
+	}
+
+	/** Der Standardtext setzt die Schritte vor den Gruß. */
+	public function testStandardtextEnthaeltDieSchritte(): void {
+		$this->assertStringContainsString("\n\n{naechste_schritte}\n\n", $this->service()->defaultTemplate()['body']);
 	}
 }

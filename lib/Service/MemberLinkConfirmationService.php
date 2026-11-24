@@ -64,6 +64,23 @@ class MemberLinkConfirmationService {
 	 * @throws UserFacingException wenn die Mail nicht zugestellt werden konnte
 	 */
 	public function send(Member $member): array {
+		$link = $this->issueLink($member);
+		if ($this->sendMail($member, $link['email'], (string)$member->getNcUserId(), $link['url']) !== []) {
+			throw new UserFacingException($this->l10n->t('Die Mail mit dem Bestätigungslink konnte nicht zugestellt werden.'));
+		}
+		$this->audit->log('Kontoverknüpfung: Bestätigungslink versendet', 'member', (int)$member->getId(), ['konto' => $member->getNcUserId()]);
+		return ['email' => $link['email'], 'expiresAt' => $link['expiresAt']];
+	}
+
+	/**
+	 * Stellt einen neuen Bestätigungslink aus, ohne ihn zu verschicken – für
+	 * Mails, die den Bestätigungsschritt mit anderen bündeln
+	 * ({@see MemberSetupSteps}). Ein älterer Link verfällt damit.
+	 *
+	 * @return array{url: string, email: string, expiresAt: string}
+	 * @throws \InvalidArgumentException wenn nichts zu bestätigen ist oder keine Mailadresse hinterlegt ist
+	 */
+	public function issueLink(Member $member): array {
 		$uid = (string)$member->getNcUserId();
 		if ($uid === '') {
 			throw new \InvalidArgumentException($this->l10n->t('Das Mitglied ist mit keinem Nextcloud-Konto verknüpft.'));
@@ -85,12 +102,11 @@ class MemberLinkConfirmationService {
 		$member->setNcLinkTokenExpiresAt($expiresAt);
 		$this->members->update($member);
 
-		$url = $this->urlGenerator->linkToRouteAbsolute('vereinsbuchhaltung.memberLink.show', ['token' => $token]);
-		if ($this->sendMail($member, $email, $uid, $url) !== []) {
-			throw new UserFacingException($this->l10n->t('Die Mail mit dem Bestätigungslink konnte nicht zugestellt werden.'));
-		}
-		$this->audit->log('Kontoverknüpfung: Bestätigungslink versendet', 'member', (int)$member->getId(), ['konto' => $uid]);
-		return ['email' => $email, 'expiresAt' => $expiresAt];
+		return [
+			'url' => $this->urlGenerator->linkToRouteAbsolute('vereinsbuchhaltung.memberLink.show', ['token' => $token]),
+			'email' => $email,
+			'expiresAt' => $expiresAt,
+		];
 	}
 
 	/**

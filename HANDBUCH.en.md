@@ -2344,6 +2344,13 @@ Suggestion and confirmation dialog show the account's **user ID** – any
 account can choose its display name and email address freely, but not its ID.
 Links that existed before this rule count as confirmed.
 
+**Exception: an account you have just created yourself.** If an account has
+never signed in and you may manage it in Nextcloud (administration, delegated
+administration, group administration for its groups), the link takes effect
+immediately – without a confirmation link. An unrelated account posing as a
+member had to sign in to set its profile email and therefore does not fall
+under the exception.
+
 The member list shows in the **"Nextcloud account?"** column (*Nextcloud-Konto?*)
 whether an account is linked: "Yes", "Confirmation pending", a link **"Link
 suggestion …"** with the user ID (exactly one account carries the member's
@@ -2352,23 +2359,41 @@ when there are several matches, otherwise "No".
 
 When **admitting** a member you can **create a Nextcloud account** right away
 (*Create a Nextcloud account for this member*): account name (suggested from
-the name), display name, email, password – empty means Nextcloud sends an
-invitation with a link to set the password –, groups, storage and language,
-the same details as in the user management. Only Nextcloud administrators,
+the name), display name, email, password, groups, storage and language, the
+same details as in the user management. If the password stays empty and a
+welcome email goes out, the link to set the password is in the welcome email
+and Nextcloud sends no invitation of its own – the member gets one email
+instead of two. Without a welcome email, Nextcloud sends its invitation as
+usual. Only Nextcloud administrators,
 delegated administrators and group administrators (for their groups) see the
 section; the rights and password rules are Nextcloud's. The new account is
-linked to the record; here too, the link only takes effect once the member
-confirms it. If creating it fails, the member is admitted anyway – it
+linked to the record and takes effect immediately (see above). If creating it fails, the member is admitted anyway – it
 can be done later in the record under *Nextcloud account* → *Create a new
 Nextcloud account …*.
 
 The **welcome email** goes to the email address of the record, regardless of
 whether the member has an account. The template (subject and text with
 placeholders such as `{name}`, `{vorname}`, `{verein}`, `{mitgliedsnummer}`,
-`{beitritt}` and `{cloud}`) is maintained by administrators in the Nextcloud
+`{beitritt}`, `{cloud}` and `{naechste_schritte}`) is maintained by administrators in the Nextcloud
 settings under *Welcome email* (*Willkommens-Mail*). When admitting, it is
 collapsed and can be adapted for the individual member; from the record,
-*Send welcome email …* sends it later.
+*Send welcome email …* sends it later. It also carries the member's **next
+steps**: the password for a newly created account and, if the member pays by
+direct debit and has no mandate yet, the request to enter the IBAN and grant
+the mandate under "My area" (*Mein Bereich*; that is also where they choose
+the interval if the group allows several). They appear where the text says
+`{naechste_schritte}`; without the placeholder they come at the end, and if
+there are no steps, it disappears. The app provides their wording, in the
+member's language and form of address. Because the email can carry a
+password link, Nextcloud asks for your password before sending, as in the user
+management, unless you have just confirmed it.
+
+**Request a mandate by email.** If a member has a linked Nextcloud account but
+no mandate yet, *Request by email* (*Per Mail anfragen*) in the record's
+*Mandate* section asks them to enter the IBAN and grant the mandate themselves
+in "My area" – you do not need to enter an IBAN. If the link is not confirmed
+yet, the same email contains the confirmation step (an older confirmation link
+expires). This requires "My area" to be switched on in the settings.
 
 Two more pieces of information attach to the member, both optional and
 possible to add at any time:

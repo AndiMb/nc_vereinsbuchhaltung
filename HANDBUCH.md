@@ -2402,6 +2402,13 @@ verschicken. Vorschlag und Rückfrage nennen die **Benutzer-ID** des Kontos –
 Anzeigename und Mailadresse kann jedes Konto frei wählen, die ID nicht.
 Verknüpfungen, die schon vor dieser Regel bestanden, gelten als bestätigt.
 
+**Ausnahme: ein Konto, das Sie gerade selbst angelegt haben.** Hat sich ein
+Konto noch nie angemeldet und dürfen Sie es in Nextcloud verwalten
+(Administration, delegierte Administration, Gruppen-Administration für seine
+Gruppen), gilt die Verknüpfung sofort – ohne Bestätigungslink. Ein fremdes
+Konto, das sich als Mitglied ausgibt, musste sich angemeldet haben, um seine
+Profil-Mail zu setzen, und fällt damit nicht unter die Ausnahme.
+
 Die Mitgliederliste zeigt in der Spalte **„Nextcloud-Konto?"**, ob ein Konto
 verknüpft ist: „Ja", „Bestätigung ausstehend", ein Link **„Vorschlag …
 verknüpfen"** mit der Benutzer-ID (genau ein Konto trägt die Mailadresse des
@@ -2410,24 +2417,43 @@ Knopf in die Akte, sonst „Nein".
 
 Beim **Aufnehmen** lässt sich gleich ein **Nextcloud-Konto anlegen**
 (*Nextcloud-Konto für dieses Mitglied anlegen*): Kontoname (aus dem Namen
-vorgeschlagen), Anzeigename, E-Mail, Passwort – leer heißt: Nextcloud schickt
-eine Einladung mit einem Link zum Passwort-Setzen –, Gruppen, Speicherplatz und
-Sprache, also dieselben Angaben wie in der Benutzerverwaltung. Den Abschnitt
+vorgeschlagen), Anzeigename, E-Mail, Passwort, Gruppen, Speicherplatz und
+Sprache, also dieselben Angaben wie in der Benutzerverwaltung. Bleibt das
+Passwort leer und geht eine Willkommens-Mail raus, steht der Link zum
+Festlegen des Passworts in der Willkommens-Mail, und Nextcloud schickt keine
+eigene Einladung – das Mitglied bekommt eine Mail statt zwei. Ohne
+Willkommens-Mail schickt Nextcloud wie gewohnt seine Einladung. Den Abschnitt
 sehen nur Nextcloud-Administratoren, delegierte Administratoren und
 Gruppen-Administratoren (diese für ihre Gruppen); die Rechte und
 Passwortregeln sind die von Nextcloud. Das neue Konto wird mit der Akte
-verknüpft; auch hier gilt die Verknüpfung erst nach der Bestätigung durch das
-Mitglied. Scheitert das Anlegen, ist das Mitglied trotzdem aufgenommen – in
+verknüpft und gilt sofort (siehe oben). Scheitert das Anlegen, ist das Mitglied trotzdem aufgenommen – in
 der Akte unter *Nextcloud-Konto* → *Neues Nextcloud-Konto anlegen …* lässt es
 sich nachholen.
 
 Die **Willkommens-Mail** geht an die Mailadresse der Akte, unabhängig davon, ob
 das Mitglied ein Konto hat. Die Vorlage (Betreff und Text mit Platzhaltern wie
-`{name}`, `{vorname}`, `{verein}`, `{mitgliedsnummer}`, `{beitritt}` und
-`{cloud}`) pflegen Verwalter in den Nextcloud-Einstellungen unter
+`{name}`, `{vorname}`, `{verein}`, `{mitgliedsnummer}`, `{beitritt}`,
+`{cloud}` und `{naechste_schritte}`) pflegen Verwalter in den Nextcloud-Einstellungen unter
 *Willkommens-Mail*. Beim Aufnehmen ist sie eingeklappt und lässt sich für das
 einzelne Mitglied anpassen; aus der Akte schickt *Willkommens-Mail senden …*
-sie später nach.
+sie später nach. Dazu kommen die **nächsten Schritte** des Mitglieds: das
+Passwort für ein neu angelegtes Konto und, wenn das Mitglied per Lastschrift
+zahlt und noch kein Mandat hat, die Bitte, unter „Mein Bereich" die IBAN zu
+hinterlegen und das Mandat zu erteilen (dort wählt es auch den Turnus, falls
+die Gruppe mehrere erlaubt). Sie stehen dort, wo im Text
+`{naechste_schritte}` steht; fehlt der Platzhalter, stehen sie am Ende, und
+gibt es keine Schritte, fällt er weg. Ihre Texte gibt die App vor, in der
+Sprache und Anrede des Mitglieds. Weil die Mail einen Passwort-Link
+tragen kann, fragt Nextcloud vor dem Versand wie in der Benutzerverwaltung
+nach Ihrem Passwort, wenn Sie es nicht gerade erst bestätigt haben.
+
+**Mandat per Mail anfragen.** Hat ein Mitglied ein verknüpftes Nextcloud-Konto,
+aber noch kein Mandat, bittet *Per Mail anfragen* im Abschnitt *Mandat* der
+Akte es, IBAN und Mandat selbst in „Mein Bereich" zu hinterlegen – eine IBAN
+müssen Sie dafür nicht erfassen. Ist die Verknüpfung noch nicht bestätigt,
+enthält dieselbe Mail den Bestätigungsschritt (ein älterer Bestätigungslink
+verfällt). Voraussetzung ist, dass „Mein Bereich" in den Einstellungen
+eingeschaltet ist.
 
 Zwei weitere Angaben hängen am Mitglied, beide optional und jederzeit
 nachzutragen:

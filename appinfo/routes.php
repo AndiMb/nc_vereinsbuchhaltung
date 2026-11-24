@@ -192,6 +192,8 @@ return [
 		['name' => 'member#link', 'url' => '/api/members/{id}/link', 'verb' => 'POST'],
 		['name' => 'member#unlink', 'url' => '/api/members/{id}/unlink', 'verb' => 'POST'],
 		['name' => 'member#resendLinkConfirmation', 'url' => '/api/members/{id}/link/resend', 'verb' => 'POST'],
+		// Bittet das Mitglied per Mail, sein SEPA-Mandat in „Mein Bereich" selbst einzurichten.
+		['name' => 'member#requestMandate', 'url' => '/api/members/{id}/mandate-request', 'verb' => 'POST'],
 		// Willkommens-Mail an die Mailadresse der Akte, unabhängig vom Nextcloud-Konto: Vorlage in den
 		// Einstellungen, beim Aufnehmen für den einzelnen Fall überschreibbar.
 		['name' => 'welcomeMail#template', 'url' => '/api/welcome-mail/template', 'verb' => 'GET'],

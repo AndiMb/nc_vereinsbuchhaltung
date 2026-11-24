@@ -12,27 +12,36 @@ use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\IAppConfig;
 use OCP\IL10N;
 use OCP\IURLGenerator;
+use OCP\Mail\IEMailTemplate;
 use OCP\Mail\IMailer;
 
 /**
  * Willkommens-Mail an ein neues Mitglied: ein Text des Vereins, der an die Mailadresse
- * der Mitgliedsakte geht – unabhängig davon, ob das Mitglied ein Nextcloud-Konto hat
- * (die Einladung zum Konto verschickt Nextcloud selbst, siehe
- * `src/lib/nextcloudAccount.js`). Der Text liegt als Vorlage in den Einstellungen
- * (Betreff und Text mit Platzhaltern) und lässt sich beim Aufnehmen eines Mitglieds
- * für diesen einen Fall überschreiben.
+ * der Mitgliedsakte geht – unabhängig davon, ob das Mitglied ein Nextcloud-Konto hat.
+ * Der Text liegt als Vorlage in den Einstellungen (Betreff und Text mit Platzhaltern)
+ * und lässt sich beim Aufnehmen eines Mitglieds für diesen einen Fall überschreiben.
+ *
+ * Dazu kommen die nächsten Schritte des Mitglieds ({@see MemberSetupSteps}): das
+ * Passwort für ein Konto, das die Verwaltung gerade angelegt hat (statt einer eigenen
+ * Einladung von Nextcloud, siehe `src/lib/nextcloudAccount.js`), und das
+ * SEPA-Lastschriftmandat in „Mein Bereich". Sie stehen an der Stelle des Platzhalters
+ * {@see STEPS_PLACEHOLDER}, ohne ihn am Ende; gibt es keine, fällt er weg.
  *
  * Der Verein schreibt den Text selbst und damit in der Anrede, die zu ihm passt: die
  * Mail folgt hier bewusst keiner Du-/Sie-Regel der App. Nur der Standardtext kommt
- * aus der Sprache der anfragenden Person.
+ * aus der Sprache der anfragenden Person; die Schritte stehen in der Sprache des
+ * Mitglieds ({@see RecipientL10n}).
  */
 class WelcomeMailService {
 
 	public const KEY_SUBJECT = 'welcome_mail_subject';
 	public const KEY_BODY = 'welcome_mail_body';
 
-	/** Platzhalter in `{…}`: Schlüssel => wird beim Senden ersetzt, siehe {@see values()}. */
-	public const PLACEHOLDERS = ['name', 'vorname', 'verein', 'mitgliedsnummer', 'beitritt', 'cloud'];
+	/** Platzhalter für die nächsten Schritte: kein Text, sondern Absätze mit Schaltflächen, siehe {@see send()}. */
+	public const STEPS_PLACEHOLDER = 'naechste_schritte';
+
+	/** Platzhalter in `{…}`: Schlüssel => wird beim Senden ersetzt, siehe {@see values()} und {@see STEPS_PLACEHOLDER}. */
+	public const PLACEHOLDERS = ['name', 'vorname', 'verein', 'mitgliedsnummer', 'beitritt', 'cloud', self::STEPS_PLACEHOLDER];
 
 	private const MAX_SUBJECT = 200;
 	private const MAX_BODY = 8000;
@@ -45,6 +54,8 @@ class WelcomeMailService {
 		private MemberMapper $memberMapper,
 		private AuditService $audit,
 		private ClubMailBranding $mailBranding,
+		private MemberSetupSteps $setupSteps,
+		private RecipientL10n $recipientL10n,
 	) {
 	}
 
@@ -112,13 +123,13 @@ class WelcomeMailService {
 		$mail->setSubject($subject);
 		$this->mailBranding->addHeader($mail);
 		$mail->addHeading($subject);
-		foreach (preg_split('/\R{2,}/', $body) ?: [] as $paragraph) {
-			$paragraph = trim($paragraph);
-			if ($paragraph === '') {
-				continue;
-			}
-			$mail->addBodyText(nl2br(htmlspecialchars($paragraph, ENT_QUOTES)), $paragraph);
-		}
+		$recipientL10n = $this->recipientL10n->forMember($member);
+		$steps = $this->setupSteps->forWelcome($member, $recipientL10n);
+		// Vor dem Platzhalter der Text, dann die Schritte, danach der Rest; ein zweites Vorkommen fällt weg.
+		$parts = explode('{' . self::STEPS_PLACEHOLDER . '}', $body, 2);
+		$this->addParagraphs($mail, $parts[0]);
+		MemberSetupSteps::render($mail, $steps, $recipientL10n);
+		$this->addParagraphs($mail, str_replace('{' . self::STEPS_PLACEHOLDER . '}', '', $parts[1] ?? ''));
 		$this->mailBranding->addFooter($mail);
 
 		try {
@@ -135,7 +146,17 @@ class WelcomeMailService {
 			throw new UserFacingException($this->l10n->t('Die Willkommens-Mail konnte nicht gesendet werden.'));
 		}
 
-		$this->audit->log('Willkommens-Mail versendet', 'member', (int)$member->getId(), ['subject' => $subject]);
+		$this->audit->log('Willkommens-Mail versendet', 'member', (int)$member->getId(), ['subject' => $subject, 'schritte' => count($steps)]);
+	}
+
+	/** Ein Text als Absätze (getrennt durch Leerzeilen), Zeilenumbrüche bleiben. */
+	private function addParagraphs(IEMailTemplate $mail, string $text): void {
+		foreach (preg_split('/\R{2,}/', $text) ?: [] as $paragraph) {
+			$paragraph = trim($paragraph);
+			if ($paragraph !== '') {
+				$mail->addBodyText(nl2br(htmlspecialchars($paragraph, ENT_QUOTES)), $paragraph);
+			}
+		}
 	}
 
 	/**
@@ -147,7 +168,7 @@ class WelcomeMailService {
 	public function defaultTemplate(): array {
 		return [
 			'subject' => $this->l10n->t('Willkommen bei {verein}'),
-			'body' => $this->l10n->t("Guten Tag {name},\n\nwillkommen bei {verein}! Schön, dass Sie dabei sind.\n\nBei Fragen melden Sie sich gern beim Vorstand."),
+			'body' => $this->l10n->t("Guten Tag {name},\n\nwillkommen bei {verein}! Schön, dass Sie dabei sind.\n\n{naechste_schritte}\n\nBei Fragen melden Sie sich gern beim Vorstand."),
 		];
 	}
 
@@ -186,6 +207,9 @@ class WelcomeMailService {
 		}
 		if (mb_strlen($body) > self::MAX_BODY) {
 			throw new \InvalidArgumentException($this->l10n->t('Der Text ist zu lang (höchstens %d Zeichen).', [self::MAX_BODY]));
+		}
+		if (str_contains($subject, '{' . self::STEPS_PLACEHOLDER . '}')) {
+			throw new \InvalidArgumentException($this->l10n->t('Der Platzhalter {naechste_schritte} gehört in den Text, nicht in den Betreff.'));
 		}
 		// Ein Tippfehler im Platzhalter („{Name}“) ginge sonst wörtlich an das Mitglied.
 		preg_match_all('/\{([^{}\s]+)\}/u', $subject . "\n" . $body, $found);

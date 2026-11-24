@@ -14,6 +14,9 @@
 			{{ t('Platzhalter, die beim Versand ersetzt werden:') }}
 			<code v-for="key in placeholders" :key="key" class="vbh-placeholder">{{ '{' + key + '}' }}</code>
 		</p>
+		<p v-if="placeholders.includes('naechste_schritte')" class="vbh-hint">
+			{{ t('{platzhalter} setzt an seiner Stelle die nächsten Schritte des Mitglieds ein: Passwort festlegen bei einem neuen Konto, Mandat einrichten bei Lastschrift ohne Mandat. Gibt es keine, fällt er weg; ohne den Platzhalter stehen die Schritte am Ende.', { platzhalter: '{naechste_schritte}' }) }}
+		</p>
 	</div>
 </template>
 

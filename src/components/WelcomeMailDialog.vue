@@ -39,6 +39,7 @@ import WelcomeMailFields from './WelcomeMailFields.vue'
 import api from '../api.js'
 import { errMsg } from '../lib/format.js'
 import { focusOnOpen } from '../lib/modalFocus.js'
+import { withPasswordConfirmation } from '../lib/passwordGate.js'
 
 /** Willkommens-Mail an ein Mitglied der Akte schicken, mit dem Text der Vorlage oder einem angepassten. */
 export default {
@@ -80,6 +81,9 @@ export default {
 	methods: {
 		async send() {
 			if (!this.canSend) { return }
+			// Die Mail kann den Passwort-Link eines neu angelegten Kontos tragen: Nextcloud verlangt dafür,
+			// wie in der Benutzerverwaltung, ein kürzlich bestätigtes Passwort (WelcomeMailController::send).
+			if (!await withPasswordConfirmation()) { return }
 			this.sending = true
 			try {
 				// Unveränderte Texte gehen als null raus: dann gilt die Vorlage so, wie sie beim Versand in den Einstellungen steht.
