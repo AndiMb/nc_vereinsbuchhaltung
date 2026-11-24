@@ -89,6 +89,7 @@ class InvoiceController extends Controller {
 			'taxMode' => $this->settings->taxMode(),
 			'smallBusinessNotice' => $this->l10n->t(InvoiceSettings::SMALL_BUSINESS_NOTICE),
 			'defaultDueDays' => $this->settings->defaultDueDays(),
+			'defaultDueBasis' => $this->settings->dueBasis(),
 			'missingIssuerFields' => array_keys($this->settings->missingIssuerFields()),
 			'active' => $this->settings->isActive(),
 			// Vorgaben für einen neuen Entwurf; der Server übernimmt dieselben Texte beim Anlegen.

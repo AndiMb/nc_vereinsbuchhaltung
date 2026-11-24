@@ -548,8 +548,8 @@ import { useAuth } from '../composables/useAuth.js'
 import { useBookingCostCenters } from '../composables/useBookingCostCenters.js'
 import { errMsg, formatMoney } from '../lib/format.js'
 import {
-	addDays,
 	checklistTarget,
+	defaultDueDate,
 	defaultPlanName,
 	dueDaysOf,
 	editorLineNet,
@@ -630,6 +630,8 @@ export default {
 			leistungMode: 'date',
 			form: this.blankForm(),
 			dirty: false,
+			// Folgt das Zahlungsziel den Daten? Erst nach dem Laden (siehe Watcher dueSource).
+			dueFollows: false,
 			savedAt: null,
 			checklist: [],
 			autosaveTimer: null,
@@ -646,6 +648,12 @@ export default {
 	},
 
 	computed: {
+		/** Die Daten, aus denen sich das vorgegebene Zahlungsziel ergibt (Issue #391). */
+		dueSource() {
+			const f = this.form
+			return { issueDate: f.issueDate, deliveryDate: f.deliveryDate, periodStart: f.periodStart, periodEnd: f.periodEnd }
+		},
+
 		unitCodes() { return this.meta?.unitCodes || ['C62', 'HUR', 'DAY', 'MON', 'LS'] },
 		taxModes() { return this.meta?.taxModes || ['kleinunternehmer'] },
 		regular() { return this.form.taxMode === 'regular' },
@@ -726,11 +734,15 @@ export default {
 			}
 		},
 
-		'form.issueDate': function(date, old) {
-			// Das Zahlungsziel folgt dem Rechnungsdatum, solange es nicht von Hand geändert wurde.
-			if (this.loading || !date || !old) { return }
-			const days = this.meta?.defaultDueDays ?? 14
-			if (this.form.dueDate === addDays(old, days)) { this.form.dueDate = addDays(date, days) }
+		dueSource(now, old) {
+			// Das Zahlungsziel folgt Rechnungsdatum und Leistungszeitpunkt, solange es
+			// nicht von Hand geändert wurde: es steht noch auf dem Wert, den die
+			// Einstellungen für die bisherigen Daten vorgaben. Nicht beim Laden –
+			// ein gespeichertes Ziel bleibt, wie es ist.
+			if (!this.dueFollows) { return }
+			const before = this.defaultDueFor(old)
+			const after = this.defaultDueFor(now)
+			if (before && after && this.form.dueDate === before) { this.form.dueDate = after }
 		},
 	},
 
@@ -791,9 +803,13 @@ export default {
 		planIntervalLabel,
 		unitLabel,
 
+		/** Das Zahlungsziel, das die Einstellungen für diese Daten vorgeben; leer ohne Rechnungsdatum. */
+		defaultDueFor(dates) {
+			return defaultDueDate(dates, this.meta?.defaultDueDays ?? 14, this.meta?.defaultDueBasis)
+		},
+
 		blankForm() {
 			const today = todayIso()
-			const days = this.meta?.defaultDueDays ?? 14
 			const d = this.meta?.defaults || {}
 			return {
 				debtorId: null,
@@ -801,7 +817,7 @@ export default {
 				deliveryDate: today,
 				periodStart: '',
 				periodEnd: '',
-				dueDate: addDays(today, days),
+				dueDate: this.defaultDueFor({ issueDate: today, deliveryDate: today }),
 				buyerReference: '',
 				orderReference: '',
 				taxMode: this.meta?.taxMode || 'kleinunternehmer',
@@ -876,6 +892,7 @@ export default {
 
 		async load() {
 			this.loading = true
+			this.dueFollows = false
 			try {
 				if (this.plan) {
 					this.applyPlan(this.plan)
@@ -897,7 +914,10 @@ export default {
 				this.error = errMsg(e, this.t('Die Rechnung konnte nicht geladen werden.'))
 			} finally {
 				this.loading = false
-				this.$nextTick(() => { this.dirty = false })
+				this.$nextTick(() => {
+					this.dirty = false
+					this.dueFollows = true
+				})
 			}
 		},
 

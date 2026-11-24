@@ -6,6 +6,7 @@ namespace OCA\Vereinsbuchhaltung\Service;
 
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\Invoice;
+use OCA\Vereinsbuchhaltung\Service\Invoice\InvoiceDueDate;
 use OCA\Vereinsbuchhaltung\Service\Invoice\InvoiceDunningService;
 use OCA\Vereinsbuchhaltung\Service\Invoice\InvoiceMailService;
 use OCP\IAppConfig;
@@ -46,6 +47,8 @@ class InvoiceSettings {
 	public const SETTING_TAX_MODE = 'invoice_tax_mode';
 	public const SETTING_EXEMPTION_TEXT = 'invoice_default_exemption_text';
 	public const SETTING_DUE_DAYS = 'invoice_default_due_days';
+	/** Ab wann die Zahlungsfrist zählt: Rechnungsdatum oder Leistungszeitpunkt (Issue #391). */
+	public const SETTING_DUE_BASIS = 'invoice_due_basis';
 	public const SETTING_PAYMENT_TERMS = 'invoice_payment_terms';
 	public const SETTING_NOTE_HEAD = 'invoice_note_head';
 	public const SETTING_NOTE_FOOT = 'invoice_note_foot';
@@ -189,9 +192,20 @@ class InvoiceSettings {
 		return in_array($mode, self::AVAILABLE_TAX_MODES, true) ? $mode : Invoice::TAX_SMALL_BUSINESS;
 	}
 
+	/**
+	 * Zahlungsfrist in Tagen. Negativ („Tage vor der Leistung") nur, wenn die
+	 * Frist ab dem Leistungszeitpunkt zählt ({@see dueBasis()}).
+	 */
 	public function defaultDueDays(): int {
 		$days = (int)$this->get(self::SETTING_DUE_DAYS, (string)self::DEFAULT_DUE_DAYS);
-		return $days >= 0 && $days <= self::MAX_DUE_DAYS ? $days : self::DEFAULT_DUE_DAYS;
+		$min = $this->dueBasis() === InvoiceDueDate::BASIS_DELIVERY ? -self::MAX_DUE_DAYS : 0;
+		return $days >= $min && $days <= self::MAX_DUE_DAYS ? $days : self::DEFAULT_DUE_DAYS;
+	}
+
+	/** Bezug der Zahlungsfrist: `issue` (Rechnungsdatum) oder `delivery` (Leistungszeitpunkt). */
+	public function dueBasis(): string {
+		$basis = $this->get(self::SETTING_DUE_BASIS, InvoiceDueDate::BASIS_ISSUE);
+		return in_array($basis, InvoiceDueDate::BASES, true) ? $basis : InvoiceDueDate::BASIS_ISSUE;
 	}
 
 	public function folder(): string {
@@ -332,6 +346,7 @@ class InvoiceSettings {
 			self::SETTING_RATE_WIRTSCHAFTLICH => $this->defaultRates()['wirtschaftlich'],
 			self::SETTING_EXEMPTION_TEXT => $this->get(self::SETTING_EXEMPTION_TEXT),
 			self::SETTING_DUE_DAYS => $this->defaultDueDays(),
+			self::SETTING_DUE_BASIS => $this->dueBasis(),
 			self::SETTING_PAYMENT_TERMS => $this->get(self::SETTING_PAYMENT_TERMS),
 			self::SETTING_NOTE_HEAD => $this->get(self::SETTING_NOTE_HEAD),
 			self::SETTING_NOTE_FOOT => $this->get(self::SETTING_NOTE_FOOT),
@@ -475,9 +490,27 @@ class InvoiceSettings {
 			$writes[$key] = $value;
 		}
 
-		if (array_key_exists(self::SETTING_DUE_DAYS, $params)) {
-			$days = (int)$params[self::SETTING_DUE_DAYS];
-			if ($days < 0 || $days > self::MAX_DUE_DAYS) {
+		$dueBasis = $this->dueBasis();
+		if (array_key_exists(self::SETTING_DUE_BASIS, $params)) {
+			$dueBasis = (string)$params[self::SETTING_DUE_BASIS];
+			if (!in_array($dueBasis, InvoiceDueDate::BASES, true)) {
+				return $this->msg('Unbekannter Bezug für das Zahlungsziel.');
+			}
+			$writes[self::SETTING_DUE_BASIS] = $dueBasis;
+		}
+
+		// Frist und Bezug gehören zusammen: „Tage vor der Leistung" (negativ)
+		// gibt es nur ab dem Leistungszeitpunkt. Geprüft wird deshalb auch, wenn
+		// nur der Bezug wechselt und die gespeicherte Frist dazu nicht mehr passt.
+		if (array_key_exists(self::SETTING_DUE_DAYS, $params) || array_key_exists(self::SETTING_DUE_BASIS, $params)) {
+			$days = array_key_exists(self::SETTING_DUE_DAYS, $params)
+				? (int)$params[self::SETTING_DUE_DAYS]
+				: (int)$this->get(self::SETTING_DUE_DAYS, (string)self::DEFAULT_DUE_DAYS);
+			if ($dueBasis === InvoiceDueDate::BASIS_DELIVERY) {
+				if ($days < -self::MAX_DUE_DAYS || $days > self::MAX_DUE_DAYS) {
+					return $this->msg('Das Zahlungsziel muss zwischen %1$d und %2$d Tagen liegen.', [-self::MAX_DUE_DAYS, self::MAX_DUE_DAYS]);
+				}
+			} elseif ($days < 0 || $days > self::MAX_DUE_DAYS) {
 				return $this->msg('Das Zahlungsziel muss zwischen 0 und %d Tagen liegen.', [self::MAX_DUE_DAYS]);
 			}
 			$writes[self::SETTING_DUE_DAYS] = (string)$days;

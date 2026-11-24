@@ -213,14 +213,14 @@ class InvoiceMailService {
 
 	/**
 	 * Zahlungsziel; bei Entwürfen ohne eigenes das, was das Festschreiben heute
-	 * setzen würde (Rechnungsdatum bzw. heute plus Standard-Zahlungsfrist).
+	 * setzen würde (Standard-Zahlungsfrist ab Rechnungsdatum bzw. heute oder
+	 * ab dem Leistungszeitpunkt, siehe InvoiceDueDate).
 	 */
 	private function dueDate(Invoice $invoice): ?string {
 		if ($invoice->getDueDate() !== null || $invoice->isIssued()) {
 			return $invoice->getDueDate();
 		}
-		$days = $invoice->isCredit() ? 0 : $this->settings->defaultDueDays();
-		return (new \DateTimeImmutable($invoice->getIssueDate() ?? $this->clock->today()))->modify('+' . $days . ' days')->format('Y-m-d');
+		return InvoiceDueDate::forInvoice($invoice, $invoice->getIssueDate() ?? $this->clock->today(), $this->settings->defaultDueDays(), $this->settings->dueBasis());
 	}
 
 	private function date(string $iso): string {

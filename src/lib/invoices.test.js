@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
 	addDays,
 	checklistTarget,
+	defaultDueDate,
 	defaultPlanName,
 	displayStatus,
 	dueDaysOf,
@@ -225,6 +226,36 @@ describe('Positionsvorlagen', () => {
 	})
 	it('lässt den Preis bei einer Vorlage ohne Preis leer', () => {
 		expect(lineFromTemplate({ name: 'Spende', unitCode: 'LS', unitPriceCents: 0, taxCategory: 'E', taxRateBp: 0, accountId: null })).toMatchObject({ unitPrice: '', taxKey: 'E', accountId: null })
+	})
+})
+
+describe('Vorgegebenes Zahlungsziel (#391)', () => {
+	// Dieselben Fälle wie tests/unit/InvoiceDueDateTest.php: Editor und Server rechnen gleich.
+	const gig = { issueDate: '2026-11-01', deliveryDate: '2027-01-10' }
+	const period = { issueDate: '2026-11-01', deliveryDate: '', periodStart: '2027-01-01', periodEnd: '2027-01-31' }
+	it('zählt ab dem Rechnungsdatum', () => {
+		expect(defaultDueDate(gig, 14, 'issue')).toBe('2026-11-15')
+		expect(defaultDueDate({ issueDate: '2026-12-20' }, 14, 'issue')).toBe('2027-01-03')
+		expect(defaultDueDate(gig, 14, undefined)).toBe('2026-11-15')
+		expect(defaultDueDate(gig, -3, 'issue')).toBe('2026-11-01')
+	})
+	it('zählt ab dem Leistungsdatum, auch davor', () => {
+		expect(defaultDueDate(gig, 3, 'delivery')).toBe('2027-01-13')
+		expect(defaultDueDate(gig, -3, 'delivery')).toBe('2027-01-07')
+		expect(defaultDueDate(gig, 0, 'delivery')).toBe('2027-01-10')
+	})
+	it('nimmt beim Zeitraum das Ende für Fristen danach und den Beginn für Fristen davor', () => {
+		expect(defaultDueDate(period, 7, 'delivery')).toBe('2027-02-07')
+		expect(defaultDueDate(period, -7, 'delivery')).toBe('2026-12-25')
+	})
+	it('liegt nie vor dem Rechnungsdatum', () => {
+		expect(defaultDueDate({ issueDate: '2027-01-20', deliveryDate: '2027-01-10' }, 3, 'delivery')).toBe('2027-01-20')
+		expect(defaultDueDate({ issueDate: '2027-01-09', deliveryDate: '2027-01-10' }, -3, 'delivery')).toBe('2027-01-09')
+	})
+	it('fällt ohne Leistungszeitpunkt auf das Rechnungsdatum zurück', () => {
+		expect(defaultDueDate({ issueDate: '2026-11-01', deliveryDate: '' }, 3, 'delivery')).toBe('2026-11-04')
+		expect(defaultDueDate({ issueDate: '2026-11-01', deliveryDate: '' }, -3, 'delivery')).toBe('2026-11-01')
+		expect(defaultDueDate({ issueDate: '' }, 14, 'issue')).toBe('')
 	})
 })
 

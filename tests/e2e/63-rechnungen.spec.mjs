@@ -176,4 +176,79 @@ test.describe.serial('Rechnungen', () => {
 		await expect(dialog.getByRole('heading', { name: new RegExp(first.number) })).toBeVisible()
 		await expect(dialog.getByText('Hallenmiete')).toBeVisible()
 	})
+
+	test('Offene Posten: ein Rechnungsposten führt zur Rechnung statt „Bezahlt“ und „Stornieren“ anzubieten (#396)', async ({ page, request }) => {
+		const draft = await (await api.raw(request, 'POST', '/invoices', {
+			data: { debtorId: debtor.id, issueDate: TODAY, deliveryDate: TODAY, lines: lines(5550).map((l) => ({ ...l, accountId: income.id })) },
+		})).json()
+		const open = await (await api.raw(request, 'POST', `/invoices/${draft.id}/issue`, { data: {} })).json()
+
+		await openApp(page, USERS.verwalter)
+		await switchTab(page, 'Buchungen')
+		await visibleSection(page).getByRole('button', { name: 'Offene Posten' }).click()
+		const row = visibleSection(page).locator('tbody tr', { hasText: open.number })
+		await expect(row).toBeVisible()
+		// Beides lehnte der Server für Rechnungsposten ohnehin ab.
+		await expect(row.getByRole('button', { name: 'Bezahlt' })).toHaveCount(0)
+		await expect(row.getByRole('button', { name: 'Stornieren' })).toHaveCount(0)
+
+		await row.getByRole('button', { name: 'Zur Rechnung' }).click()
+		await expect(page.getByRole('dialog').getByRole('heading', { name: new RegExp(open.number) })).toBeVisible()
+	})
+
+	const inDays = (n) => new Date(Date.UTC(YEAR, new Date().getMonth(), new Date().getDate() + n)).toISOString().slice(0, 10)
+
+	test('Editor: „Zahlbar bis“ folgt dem Leistungsdatum, bis es von Hand gesetzt wird (#391)', async ({ page, request }) => {
+		await api.updateSettings(request, { invoice_default_due_days: -3, invoice_due_basis: 'delivery' })
+		try {
+			await openApp(page, USERS.verwalter)
+			await page.getByRole('button', { name: 'Neu', exact: true }).click()
+			await page.getByRole('menuitem', { name: 'Rechnung', exact: true }).click()
+			await expect(page.getByText('Neue Rechnung', { exact: true })).toBeVisible()
+
+			const due = page.getByLabel('Zahlbar bis')
+			const delivery = page.locator('.vbh-inv-delivery-row input[type="date"]')
+			// Leistung heute, drei Tage davor läge vor dem Rechnungsdatum: sofort fällig.
+			await expect(due).toHaveValue(TODAY)
+			await delivery.fill(inDays(30))
+			await expect(due).toHaveValue(inDays(27))
+			await delivery.fill(inDays(40))
+			await expect(due).toHaveValue(inDays(37))
+
+			// Ein von Hand gesetztes Ziel bleibt stehen.
+			await due.fill(inDays(5))
+			await delivery.fill(inDays(50))
+			await expect(due).toHaveValue(inDays(5))
+		} finally {
+			await api.updateSettings(request, { invoice_default_due_days: 14, invoice_due_basis: 'issue' })
+		}
+	})
+
+	test('Zahlungsziel ab Leistungsdatum, auch Tage davor (#391)', async ({ request }) => {
+		const issueWithoutDueDate = async (deliveryDate) => {
+			const draft = await (await api.raw(request, 'POST', '/invoices', {
+				data: { debtorId: debtor.id, issueDate: TODAY, deliveryDate, lines: lines(1000).map((l) => ({ ...l, accountId: income.id })) },
+			})).json()
+			return (await api.raw(request, 'POST', `/invoices/${draft.id}/issue`, { data: {} })).json()
+		}
+		try {
+			// Negative Tage gibt es nur ab dem Leistungsdatum.
+			expect((await api.updateSettings(request, { invoice_default_due_days: -3 }, { expectOk: false })).status()).toBe(400)
+			await api.updateSettings(request, { invoice_default_due_days: -3, invoice_due_basis: 'delivery' })
+			const meta = await api.getJson(request, '/invoices/meta')
+			expect(meta.defaultDueDays).toBe(-3)
+			expect(meta.defaultDueBasis).toBe('delivery')
+
+			// Auftritt in 30 Tagen, zahlbar drei Tage vorher.
+			expect((await issueWithoutDueDate(inDays(30))).dueDate).toBe(inDays(27))
+			// Liegt die Leistung schon hinter uns, ist die Rechnung sofort fällig – nie vor ihrem Datum.
+			expect((await issueWithoutDueDate(inDays(-10))).dueDate).toBe(TODAY)
+
+			// Zurück auf das Rechnungsdatum geht nur mit einer Frist, die dazu passt.
+			expect((await api.updateSettings(request, { invoice_due_basis: 'issue' }, { expectOk: false })).status()).toBe(400)
+		} finally {
+			await api.updateSettings(request, { invoice_default_due_days: 14, invoice_due_basis: 'issue' })
+		}
+		expect((await issueWithoutDueDate(inDays(30))).dueDate).toBe(inDays(14))
+	})
 })

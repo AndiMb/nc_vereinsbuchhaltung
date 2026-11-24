@@ -17,6 +17,22 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 
 ## [Unreleased]
 
+**New:**
+- **Payment term counted from the service date (#391):** in the invoice
+  settings you choose whether the payment term counts from the **invoice
+  date** or from the **service date**. Counting from the service date,
+  negative days are possible too, e.g. −3 for "three days before the
+  performance". The editor fills in the due date itself and adjusts it when
+  you change the invoice or service date – until you overwrite it by hand.
+
+**Fixed:**
+- **Comment icon on the overview (#395):** the **Recent entries** list now
+  shows the comment icon just like the *Bookings* tab.
+- **Invoice items under "Open items" (#396):** items belonging to an invoice
+  offered **Paid** and **Cancel** there, although both only work in the
+  *Invoices* tab – a click ended in an error message. Now **Go to invoice**
+  leads straight to the invoice.
+
 ## [0.56.1] – 2026-11-24
 
 **Fixed:**

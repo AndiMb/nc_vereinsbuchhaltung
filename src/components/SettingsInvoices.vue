@@ -76,10 +76,19 @@
 							v-model.number="form.invoice_default_due_days"
 							class="vbh-short"
 							type="number"
-							min="0"
+							:min="form.invoice_due_basis === 'delivery' ? -365 : 0"
 							max="365">
 					</label>
+					<label>{{ t('Zahlungsziel zählt ab') }}
+						<select v-model="form.invoice_due_basis">
+							<option value="issue">{{ t('Rechnungsdatum') }}</option>
+							<option value="delivery">{{ t('Leistungsdatum') }}</option>
+						</select>
+					</label>
 				</div>
+				<p v-if="form.invoice_due_basis === 'delivery'" class="vbh-hint">
+					{{ t('Die Frist zählt ab dem Leistungsdatum, bei einem Leistungszeitraum ab dessen Ende. Negative Tage bedeuten „vor der Leistung“, zum Beispiel -3 für drei Tage vor dem Auftritt; bei einem Zeitraum zählen sie ab dessen Beginn. Vor dem Rechnungsdatum liegt das Zahlungsziel nie.') }}
+				</p>
 				<template v-if="form.invoice_tax_mode === 'regular'">
 					<p class="vbh-hint">
 						{{ t('Bei Regelbesteuerung wird die Umsatzsteuer je Position ausgewiesen und beim Zahlungseingang auf das Umsatzsteuerkonto gebucht. Legen Sie die Konten im Kontenrahmen an (Passivkonto) und wählen Sie sie hier.') }}
@@ -370,6 +379,7 @@ const KEYS = [
 	'invoice_tax_mode',
 	'invoice_default_exemption_text',
 	'invoice_default_due_days',
+	'invoice_due_basis',
 	'invoice_payment_terms',
 	'invoice_note_head',
 	'invoice_note_foot',
@@ -495,6 +505,7 @@ export default {
 			form.invoice_rate_zweckbetrieb = data.invoice_rate_zweckbetrieb ?? 700
 			form.invoice_rate_wirtschaftlich = data.invoice_rate_wirtschaftlich ?? 1900
 			form.invoice_default_due_days = data.invoice_default_due_days ?? 14
+			form.invoice_due_basis = data.invoice_due_basis || 'issue'
 			return form
 		},
 
@@ -532,7 +543,7 @@ export default {
 		saveModule() { return this.store(['invoice_module_active', 'invoice_auto_assign', 'invoice_einvoice_auto', 'invoice_rf_reference'], 'stateError') },
 
 		saveTax() {
-			return this.store(['invoice_tax_mode', 'invoice_vat_account_19', 'invoice_vat_account_7', 'invoice_rate_zweckbetrieb', 'invoice_rate_wirtschaftlich', 'invoice_default_due_days', 'invoice_default_exemption_text', 'invoice_account_id', 'invoice_bic', 'invoice_payment_terms', 'invoice_note_head', 'invoice_note_foot', 'invoice_folder'], 'taxError')
+			return this.store(['invoice_tax_mode', 'invoice_vat_account_19', 'invoice_vat_account_7', 'invoice_rate_zweckbetrieb', 'invoice_rate_wirtschaftlich', 'invoice_default_due_days', 'invoice_due_basis', 'invoice_default_exemption_text', 'invoice_account_id', 'invoice_bic', 'invoice_payment_terms', 'invoice_note_head', 'invoice_note_foot', 'invoice_folder'], 'taxError')
 		},
 
 		saveDunning() {

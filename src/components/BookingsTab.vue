@@ -805,6 +805,16 @@
 												{{ canWrite ? t('Im Einzug bearbeiten') : t('Im Einzug ansehen') }}
 											</NcButton>
 										</template>
+										<!-- Rechnungsposten gehören dem Reiter „Rechnungen“: Zahlung, Storno und
+										     Statuswechsel lehnt der Server hier ab (OpenItemService, Issue #396). -->
+										<template v-else-if="o.invoiceId">
+											<NcButton
+												v-if="invoicesActive"
+												variant="tertiary"
+												@click="$emit('go-invoice', o.invoiceId)">
+												{{ t('Zur Rechnung') }}
+											</NcButton>
+										</template>
 										<template v-else-if="canWrite && o.status === 'open'">
 											<NcButton variant="tertiary" @click="markOpenItemPaid(o)">
 												{{ t('Bezahlt') }}
@@ -959,7 +969,7 @@ export default {
 		filterIncludeSub: { type: Boolean, default: false },
 	},
 
-	emits: ['attachments-changed', 'go-claims', 'help', 'invoice-paid', 'pay-reimbursement', 'reimbursement-booking-changed', 'update:booking-view', 'update:filter-account-id', 'update:filter-from', 'update:filter-include-sub', 'update:filter-to'],
+	emits: ['attachments-changed', 'go-claims', 'go-invoice', 'help', 'invoice-paid', 'pay-reimbursement', 'reimbursement-booking-changed', 'update:booking-view', 'update:filter-account-id', 'update:filter-from', 'update:filter-include-sub', 'update:filter-to'],
 
 	setup() {
 		const auth = useAuth()
