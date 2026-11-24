@@ -17,12 +17,32 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 
 ## [Unreleased]
 
+## [0.56.1] – 2026-11-24
+
 **Fixed:**
 - **CSV export of the filtered booking list:** when the booking list is
   filtered – by account, date range, search term or with **no receipt
   only** – the CSV export now contains exactly the bookings shown. Until
   now it always contained the whole journal of the financial year, whatever
   the filter.
+
+**Security:**
+- **Consent links for SEPA mandates:** when a member's e-mail address
+  changes, the open consent links of their mandates become invalid. If the
+  member consents while signed in to the app, the link from the e-mail no
+  longer works either. A link that has already been used shows the IBAN
+  masked only.
+- **Warning to the old e-mail address:** removing your own e-mail address
+  now also notifies the previous address. Until now the warning could be
+  bypassed by deleting the address first and entering a new one afterwards.
+- **IBAN of the counterparty:** in the list of bank transactions the
+  counterparty's IBAN now leaves the server masked only – auditors see this
+  list as well.
+- **Returned direct debits in the bank import:** a detected SEPA return is no
+  longer booked automatically by an import rule or by invoice matching; it
+  stays unassigned for the bank reconciliation.
+- **Change log:** a member leaving, and the withdrawal of that, are recorded
+  with the acting user.
 
 ## [0.56.0] – 2026-11-22
 

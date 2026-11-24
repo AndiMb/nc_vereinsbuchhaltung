@@ -19,11 +19,31 @@ verwenden, z. B. `**Neu:**`.
 
 ## [Unreleased]
 
+## [0.56.1] – 2026-11-24
+
 **Behoben:**
 - **CSV-Export der gefilterten Buchungsliste:** Ist die Buchungsliste
   gefiltert – nach Konto, Zeitraum, Suchbegriff oder mit **nur ohne Beleg** –,
   enthält der CSV-Export jetzt genau die angezeigten Buchungen. Bisher kam
   unabhängig vom Filter immer das ganze Journal des Geschäftsjahres.
+
+**Sicherheit:**
+- **Zustimmungslinks für SEPA-Mandate:** Ändert sich die Mailadresse eines
+  Mitglieds, werden die offenen Zustimmungslinks seiner Mandate ungültig.
+  Stimmt das Mitglied angemeldet in der App zu, gilt der Link aus der Mail
+  ebenfalls nicht mehr. Ein bereits verbrauchter Link zeigt die IBAN nur noch
+  maskiert.
+- **Warnung an die alte Mailadresse:** Auch das Entfernen der eigenen
+  Mailadresse benachrichtigt jetzt die bisherige Adresse. Bisher ließ sich die
+  Warnung umgehen, indem man die Adresse erst löschte und dann neu eintrug.
+- **IBAN des Zahlungspartners:** In der Liste der Bankumsätze verlässt die
+  IBAN des Zahlungspartners den Server nur noch maskiert – die Liste sehen
+  auch Kassenprüfer.
+- **Rücklastschriften im Bankimport:** Eine erkannte SEPA-Rücklastschrift wird
+  von keiner Importregel und keinem Rechnungsabgleich mehr automatisch
+  gebucht; sie bleibt für den Bankabgleich unzugeordnet.
+- **Protokoll:** Austritt eines Mitglieds und dessen Rücknahme stehen mit dem
+  handelnden Nutzer im Änderungsprotokoll.
 
 ## [0.56.0] – 2026-11-22
 
