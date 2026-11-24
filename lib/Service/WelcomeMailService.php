@@ -16,15 +16,19 @@ use OCP\Mail\IMailer;
 
 /**
  * Willkommens-Mail an ein neues Mitglied: ein Text des Vereins, der an die Mailadresse
- * der Mitgliedsakte geht – unabhängig davon, ob das Mitglied ein Nextcloud-Konto hat
- * (die Einladung zum Konto verschickt Nextcloud selbst, siehe
- * `src/lib/nextcloudAccount.js`). Der Text liegt als Vorlage in den Einstellungen
- * (Betreff und Text mit Platzhaltern) und lässt sich beim Aufnehmen eines Mitglieds
- * für diesen einen Fall überschreiben.
+ * der Mitgliedsakte geht – unabhängig davon, ob das Mitglied ein Nextcloud-Konto hat.
+ * Der Text liegt als Vorlage in den Einstellungen (Betreff und Text mit Platzhaltern)
+ * und lässt sich beim Aufnehmen eines Mitglieds für diesen einen Fall überschreiben.
+ *
+ * Unter dem Text stehen die nächsten Schritte des Mitglieds ({@see MemberSetupSteps}):
+ * das Passwort für ein Konto, das die Verwaltung gerade angelegt hat (statt einer
+ * eigenen Einladung von Nextcloud, siehe `src/lib/nextcloudAccount.js`), und das
+ * SEPA-Lastschriftmandat in „Mein Bereich".
  *
  * Der Verein schreibt den Text selbst und damit in der Anrede, die zu ihm passt: die
  * Mail folgt hier bewusst keiner Du-/Sie-Regel der App. Nur der Standardtext kommt
- * aus der Sprache der anfragenden Person.
+ * aus der Sprache der anfragenden Person; die Schritte stehen in der Sprache des
+ * Mitglieds ({@see RecipientL10n}).
  */
 class WelcomeMailService {
 
@@ -45,6 +49,8 @@ class WelcomeMailService {
 		private MemberMapper $memberMapper,
 		private AuditService $audit,
 		private ClubMailBranding $mailBranding,
+		private MemberSetupSteps $setupSteps,
+		private RecipientL10n $recipientL10n,
 	) {
 	}
 
@@ -119,6 +125,9 @@ class WelcomeMailService {
 			}
 			$mail->addBodyText(nl2br(htmlspecialchars($paragraph, ENT_QUOTES)), $paragraph);
 		}
+		$recipientL10n = $this->recipientL10n->forMember($member);
+		$steps = $this->setupSteps->forWelcome($member, $recipientL10n);
+		MemberSetupSteps::render($mail, $steps, $recipientL10n);
 		$this->mailBranding->addFooter($mail);
 
 		try {
@@ -135,7 +144,7 @@ class WelcomeMailService {
 			throw new UserFacingException($this->l10n->t('Die Willkommens-Mail konnte nicht gesendet werden.'));
 		}
 
-		$this->audit->log('Willkommens-Mail versendet', 'member', (int)$member->getId(), ['subject' => $subject]);
+		$this->audit->log('Willkommens-Mail versendet', 'member', (int)$member->getId(), ['subject' => $subject, 'schritte' => count($steps)]);
 	}
 
 	/**

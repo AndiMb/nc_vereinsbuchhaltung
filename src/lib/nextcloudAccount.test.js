@@ -1,15 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const post = vi.fn()
+const put = vi.fn()
 const confirmPassword = vi.fn()
 
 class PasswordConfirmationCancelledError extends Error {}
 
 vi.mock('@nextcloud/axios', () => ({
-	default: { post: (...args) => post(...args), interceptors: { response: { use: () => {} } } },
+	default: { post: (...args) => post(...args), put: (...args) => put(...args), interceptors: { response: { use: () => {} } } },
 }))
 vi.mock('@nextcloud/router', () => ({
-	generateOcsUrl: (path) => `/ocs/v2.php${path}`,
+	generateOcsUrl: (path, params = {}) => `/ocs/v2.php${path.replace(/{(\w+)}/g, (_, key) => params[key])}`,
 	generateUrl: (path) => path,
 }))
 
@@ -78,6 +79,36 @@ describe('createNextcloudAccount()', () => {
 		post.mockRejectedValue(failure)
 
 		await expect(createNextcloudAccount(ACCOUNT)).rejects.toBe(failure)
+	})
+})
+
+// Die Willkommensmail bringt den Passwort-Link mit (AccountHandoverService): Nextcloud soll dann keine
+// eigene Einladung schicken. Ohne Passwort UND mit Mailadresse täte es das.
+describe('createNextcloudAccount() mit Einladung über die Willkommensmail', () => {
+	beforeEach(() => {
+		post.mockReset().mockResolvedValue({ data: { ocs: { data: { id: 'anna.koch' } } } })
+		put.mockReset().mockResolvedValue({})
+		confirmPassword.mockReset().mockResolvedValue()
+	})
+
+	it('legt das Konto mit Zufallspasswort und ohne Mailadresse an und setzt die Adresse danach', async () => {
+		await createNextcloudAccount(ACCOUNT, { byWelcomeMail: true })
+
+		const sent = post.mock.calls[0][1]
+		expect(sent.email).toBe('')
+		expect(sent.password.length).toBeGreaterThanOrEqual(40)
+		expect(sent.password).toMatch(/[a-z]/)
+		expect(sent.password).toMatch(/[A-Z]/)
+		expect(sent.password).toMatch(/[0-9]/)
+		expect(put).toHaveBeenCalledWith('/ocs/v2.php/cloud/users/anna.koch', { key: 'email', value: 'anna@example.org' })
+	})
+
+	it('übergibt die Mailadresse sofort, wenn die Instanz sie beim Anlegen verlangt', async () => {
+		await createNextcloudAccount(ACCOUNT, { byWelcomeMail: true, requireEmail: true })
+
+		expect(post.mock.calls[0][1].email).toBe('anna@example.org')
+		expect(post.mock.calls[0][1].password).not.toBe('')
+		expect(put).not.toHaveBeenCalled()
 	})
 })
 

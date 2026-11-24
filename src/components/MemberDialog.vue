@@ -842,6 +842,14 @@ export default {
 				payload.account = this.form.createAccount && this.accountOptions
 					? accountPayload(this.form.account)
 					: null
+				// Geht eine Willkommensmail raus und steht kein Passwort fest, bringt sie den Link zum
+				// Passwort-Festlegen mit, und Nextcloud schickt keine eigene Einladung (lib/nextcloudAccount.js).
+				payload.accountInvite = payload.account
+					? {
+							byWelcomeMail: this.form.sendWelcome && payload.account.password === '',
+							requireEmail: Boolean(this.accountOptions.requireEmail),
+						}
+					: null
 				// Unveränderte Texte gehen als null raus: dann gilt die Vorlage so, wie sie beim Versand in den Einstellungen steht.
 				const unchanged = (text, template) => (text.trim() === template ? null : text.trim())
 				payload.welcomeMail = this.form.sendWelcome

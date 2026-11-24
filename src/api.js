@@ -229,6 +229,8 @@ export default {
 	linkMember: (id, ncUserId) => axios.post(url(`/members/${id}/link`), { ncUserId }),
 	unlinkMember: (id) => axios.post(url(`/members/${id}/unlink`)),
 	resendMemberLinkConfirmation: (id) => axios.post(url(`/members/${id}/link/resend`)),
+	// Bittet das Mitglied per Mail, sein SEPA-Mandat in „Mein Bereich" selbst einzurichten.
+	requestMandateByMail: (id) => axios.post(url(`/members/${id}/mandate-request`)),
 	// Nextcloud-Konto anlegen (Auswahlen und Rechte; das Konto selbst legt lib/nextcloudAccount.js über OCS an)
 	// und die Willkommens-Mail an die Mailadresse der Akte (Vorlage in den Einstellungen).
 	nextcloudAccountOptions: () => axios.get(url('/nextcloud-account/options')),

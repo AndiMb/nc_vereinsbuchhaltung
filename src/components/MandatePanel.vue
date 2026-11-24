@@ -265,6 +265,15 @@
 					<NcButton variant="primary" :disabled="busy" @click="openAction('create')">
 						{{ t('Mandat anlegen') }}
 					</NcButton>
+					<!-- Ohne IBAN: das Mitglied hinterlegt sie und erteilt das Mandat selbst in „Mein Bereich“. -->
+					<NcButton
+						v-if="member.ncUserId"
+						variant="secondary"
+						:disabled="busy || !hasEmail"
+						:title="t('Bittet das Mitglied per Mail, IBAN und Mandat selbst in „Mein Bereich“ zu hinterlegen.')"
+						@click="doRequestByMail">
+						{{ t('Per Mail anfragen') }}
+					</NcButton>
 				</div>
 
 				<div v-if="action === 'create'" class="vbh-mandate-form">
@@ -412,6 +421,7 @@ import {
 	statusTone,
 	suspensionOriginLabel,
 } from '../lib/mandateView.js'
+import { withPasswordConfirmation } from '../lib/passwordGate.js'
 
 const emptyCreateForm = () => ({ signatureType: 'papier', iban: '', bic: '', accountHolder: '', mandateReference: '', signedAt: '' })
 
@@ -831,6 +841,19 @@ export default {
 			if (ok) { this.accountDialogOpen = false }
 			// Wie beim Anlegen auch im Fehlerfall neu laden: das alte Mandat kann schon ersetzt sein.
 			await this.afterChange()
+		},
+
+		/**
+		 * Bittet das Mitglied per Mail, sein Mandat in „Mein Bereich“ einzurichten; ist die Verknüpfung
+		 * noch offen, enthält dieselbe Mail den Bestätigungsschritt (MandateRequestMailService).
+		 */
+		async doRequestByMail() {
+			if (!await withPasswordConfirmation()) { return }
+			const ok = await this.run(async () => {
+				const { data } = await api.requestMandateByMail(this.member.id)
+				showSuccess(this.tRaw('Anfrage an {email} verschickt.', { email: data.mandateRequestSentTo }))
+			}, this.t('Versand fehlgeschlagen'))
+			if (ok) { await this.afterChange() }
 		},
 
 		async doSendLink() {
