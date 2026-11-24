@@ -181,23 +181,26 @@ class AssignmentMapper extends QBMapper {
 	}
 
 	/**
-	 * Zuweisungen, die an `$date` aktiv sind (validFrom <= $date, validTo NULL
-	 * oder erst danach) – Grundlage für die periodische Forderungserzeugung
-	 * (Issue #70, {@see \OCA\Vereinsbuchhaltung\Service\ClaimGenerationService})
-	 * und die Störfall-Abfrage „Kein Mandat + Lastschrift gewollt"
-	 * ({@see \OCA\Vereinsbuchhaltung\Service\ContributionCycleTaskService}).
+	 * Zuweisungen, für die der Tageslauf bis `$horizon` Forderungen anlegen
+	 * kann: an `$today` aktiv oder spätestens an `$horizon` beginnend, ohne
+	 * zurückgenommene (Ende vor dem Beginn). Grundlage der Forderungserzeugung
+	 * ({@see \OCA\Vereinsbuchhaltung\Service\ClaimGenerationService}, dort warum
+	 * auch künftig beginnende) und der Aufgaben, die sie begleiten.
 	 *
 	 * @return Assignment[]
 	 */
-	public function findActiveAsOf(string $date): array {
-		return $this->readCache->entities('assignments.activeAsOf.' . $date, function () use ($date): array {
+	public function findActiveOrStartingBy(string $today, string $horizon): array {
+		return $this->readCache->entities('assignments.activeOrStartingBy.' . $today . '.' . $horizon, function () use ($today, $horizon): array {
 			$qb = $this->db->getQueryBuilder();
 			$qb->select('*')
 				->from($this->getTableName())
-				->where($qb->expr()->lte('valid_from', $qb->createNamedParameter($date)))
+				->where($qb->expr()->lte('valid_from', $qb->createNamedParameter($horizon)))
 				->andWhere($qb->expr()->orX(
 					$qb->expr()->isNull('valid_to'),
-					$qb->expr()->gte('valid_to', $qb->createNamedParameter($date)),
+					$qb->expr()->andX(
+						$qb->expr()->gte('valid_to', $qb->createNamedParameter($today)),
+						$qb->expr()->gte('valid_to', 'valid_from'),
+					),
 				))
 				->orderBy('id', 'ASC');
 			return array_values($this->findEntities($qb));

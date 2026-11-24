@@ -64,6 +64,16 @@ final class ContributionCycleSettings {
 		return $this->readDays(self::SETTING_WARNING_LEAD_DAYS, self::DEFAULT_WARNING_LEAD_DAYS);
 	}
 
+	/**
+	 * Letzter Tag des Vorwarnfensters ab `$today`: bis hierhin legt der Tageslauf
+	 * Forderungen an ({@see ClaimGenerationService}), und dieselbe Grenze gilt
+	 * für die Aufgaben, die ihn begleiten ({@see ContributionCycleTaskService},
+	 * {@see MandateTaskService}).
+	 */
+	public function warningHorizon(string $today): string {
+		return (new \DateTimeImmutable($today))->modify('+' . $this->warningLeadDays() . ' days')->format('Y-m-d');
+	}
+
 	/** @throws \InvalidArgumentException außerhalb des Plausibilitätsbereichs */
 	public function setWarningLeadDays(int $days): void {
 		$this->writeDays(self::SETTING_WARNING_LEAD_DAYS, $days);

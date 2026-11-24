@@ -2682,7 +2682,10 @@ group** (**"Contributions" tab → Contribution groups**):
   amount above the lower limit, for example when a member wants to give more this
   once. The preview appears by itself and says from when the change applies –
   after an already announced collection only from then on; saving is possible
-  only once it matches the fields. **The payment method takes effect at once**
+  only once it matches the fields. A claim the daily run has already created
+  but not yet announced (no pre-notification, no payment request) is
+  recalculated: amount and description follow the change, period and
+  collection date stay. **The payment method takes effect at once**
   and has no lock window: switch to *Bank transfer* and nothing is collected
   from now on, not even a collection already announced – the member transfers
   open and future claims themselves; the payment request with GiroCode goes out
@@ -2722,6 +2725,14 @@ creates a claim as soon as the collection date of its period falls into the
 13.5). A claim is the same row as an open item and therefore also appears
 under *Bookings → Open items*; its state, dunning status and exceptions are
 shown by the "Claims" segment (*Forderungen*) in Collection (13.8).
+
+For a **new member**, the first collection date lies as far after joining as
+the cycle's date lies after the start of its period (collection on the 15th with
+a quarterly cycle: joining on 1 December → collection on 15 December). The first
+claim is also created in the early-warning window, so possibly before the member
+joins. If the member is entered so late that the pre-notification can no longer
+go out in time, the first claim goes along with the cycle's next date – the
+preview already says so when creating the assignment.
 
 **The member list** (*Contributions → Members* tab) shows for each member
 the mandate (IBAN, marked *Draft* or *suspended* where applicable) and

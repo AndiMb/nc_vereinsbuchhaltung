@@ -5068,7 +5068,9 @@
         "„Mein Bereich\" öffnen": "„Mijn omgeving” openen",
         "Guten Tag {name},\n\nwillkommen bei {verein}! Schön, dass Sie dabei sind.\n\n{naechste_schritte}\n\nBei Fragen melden Sie sich gern beim Vorstand.": "Beste {name},\n\nwelkom bij {verein}! Fijn dat u erbij bent.\n\n{naechste_schritte}\n\nMet vragen kunt u altijd terecht bij het bestuur.",
         "Der Platzhalter {naechste_schritte} gehört in den Text, nicht in den Betreff.": "De placeholder {naechste_schritte} hoort in de tekst, niet in het onderwerp.",
-        "{platzhalter} setzt an seiner Stelle die nächsten Schritte des Mitglieds ein: Passwort festlegen bei einem neuen Konto, Mandat einrichten bei Lastschrift ohne Mandat. Gibt es keine, fällt er weg; ohne den Platzhalter stehen die Schritte am Ende.": "{platzhalter} voegt op die plek de volgende stappen van het lid in: wachtwoord instellen bij een nieuw account, machtiging inrichten bij incasso zonder machtiging. Zijn er geen, dan valt hij weg; zonder de placeholder staan de stappen aan het eind."
+        "{platzhalter} setzt an seiner Stelle die nächsten Schritte des Mitglieds ein: Passwort festlegen bei einem neuen Konto, Mandat einrichten bei Lastschrift ohne Mandat. Gibt es keine, fällt er weg; ohne den Platzhalter stehen die Schritte am Ende.": "{platzhalter} voegt op die plek de volgende stappen van het lid in: wachtwoord instellen bij een nieuw account, machtiging inrichten bij incasso zonder machtiging. Zijn er geen, dan valt hij weg; zonder de placeholder staan de stappen aan het eind.",
+        "Die Zuweisung wurde vor ihrem Beginn beendet.": "De toewijzing is beëindigd voordat ze begon.",
+        "Für einen Einzug am {scheduled} ist die Frist für die Vorabinformation schon zu knapp. Der erste Beitrag wird deshalb mit dem nächsten Termin am {due} eingezogen.": "Voor een incasso op {scheduled} is de termijn voor de vooraankondiging al te kort. De eerste contributie wordt daarom geïncasseerd op de volgende datum, {due}."
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

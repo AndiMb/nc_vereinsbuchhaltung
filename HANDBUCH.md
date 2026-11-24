@@ -2734,7 +2734,10 @@ Was ein Mitglied zahlt, steht in einer **Zuweisung** zu einer
   Zahlungsart neu ein: beliebig über der Untergrenze, etwa wenn ein Mitglied
   ausnahmsweise mehr geben möchte. Die Vorschau erscheint von selbst und nennt, ab
   wann die Änderung gilt – bei einem schon angekündigten Einzug erst danach;
-  gespeichert wird erst, wenn sie zum Stand der Felder passt. **Die Zahlungsart
+  gespeichert wird erst, wenn sie zum Stand der Felder passt. Eine Forderung,
+  die der Tageslauf schon angelegt, aber noch nicht angekündigt hat (keine
+  Vorabinfo, keine Zahlungsaufforderung), rechnet die App dabei neu: Betrag und
+  Bezeichnung folgen der Änderung, Zeitraum und Einzugstermin bleiben. **Die Zahlungsart
   wirkt sofort** und kennt kein Sperrfenster: Stellen Sie auf *Überweisung* um,
   wird ab jetzt nichts mehr eingezogen, auch ein schon angekündigter Einzug
   nicht – offene wie künftige Forderungen überweist das Mitglied selbst, die
@@ -2776,6 +2779,14 @@ der App legt eine Forderung an, sobald der Einzugstermin ihrer Periode ins
 ist dieselbe Zeile wie ein offener Posten und steht deshalb auch unter *Buchungen
 → Offene Posten*; ihren Zustand, Mahnstand und die Störfälle zeigt das Segment
 *Forderungen* im Einzug (13.8).
+
+Bei einem **neuen Mitglied** liegt der erste Einzugstermin so weit nach dem
+Beitritt wie der Termin des Turnus nach dem Periodenbeginn (Einzug am 15. bei
+Quartalsturnus: Beitritt am 1.12. → Einzug am 15.12.). Die erste Forderung
+entsteht ebenfalls im Vorwarnfenster, also auch schon vor dem Beitritt. Wird das
+Mitglied so spät erfasst, dass die Vorabinfo nicht mehr rechtzeitig rausgehen
+kann, fährt die erste Forderung mit dem nächsten Termin des Turnus mit – das
+sagt schon die Vorschau beim Anlegen.
 
 **Die Mitgliederliste** (Reiter *Beiträge → Mitglieder*) zeigt je Mitglied das
 Mandat (IBAN, bei Bedarf mit der Marke *Entwurf* oder *ausgesetzt*) und die

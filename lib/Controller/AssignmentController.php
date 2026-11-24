@@ -103,11 +103,13 @@ class AssignmentController extends Controller {
 	#[NoAdminRequired]
 	#[RequiresRole(PermissionService::ROLE_WRITE)]
 	#[NoRevisionBump]
-	public function previewNew(int $intervalMonths, string $validFrom, float $monthlyAmount = 0, ?float $annualAmount = null, ?int $groupId = null): DataResponse {
+	public function previewNew(int $intervalMonths, string $validFrom, float $monthlyAmount = 0, ?float $annualAmount = null, ?int $groupId = null, string $paymentMethod = Assignment::PAYMENT_METHOD_DIRECT_DEBIT): DataResponse {
 		$transient = new Assignment();
 		$transient->setIntervalMonths($intervalMonths);
 		$transient->setMonthlyAmountCents(MonthlyAmount::centsFromEuro($monthlyAmount));
 		$transient->setValidFrom($validFrom);
+		// Nur bei Lastschrift kann die Vorabinfo-Frist den Termin verschieben; geprüft wird sie im Service.
+		$transient->setPaymentMethod($paymentMethod);
 		if ($annualAmount !== null) {
 			// Jahresbetrag (Issue #270): ob das angebrochene Jahr anteilig zählt, steht an der Gruppe.
 			if ($groupId === null) {
