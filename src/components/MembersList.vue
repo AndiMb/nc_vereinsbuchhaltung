@@ -519,29 +519,34 @@ export default {
 					const { data: member } = await api.createMember(payload.stammdaten)
 					if (payload.account) {
 						try {
-							await createAndLinkAccount(member.id, payload.account)
+							await createAndLinkAccount(member.id, payload.account, payload.accountInvite ?? {})
 						} catch (e) {
 							problems.push(e.createdUid
 								? this.tRaw('Das Nextcloud-Konto „{uid}" wurde angelegt, die Verknüpfung mit der Akte nicht.', { uid: e.createdUid })
 								: this.errMsg(e, this.t('Das Nextcloud-Konto konnte nicht angelegt werden')))
 						}
 					}
-					if (payload.welcomeMail) {
-						try {
-							await api.sendWelcomeMail(member.id, payload.welcomeMail)
-						} catch (e) {
-							problems.push(this.errMsg(e, this.t('Die Willkommens-Mail konnte nicht gesendet werden')))
+					try {
+						if (payload.mandate) {
+							stage = 'mandate'
+							// Schritt 2 des Assistenten (Spec §3.1): Papier entscheidet per Datum
+							// aktiv/Entwurf, elektronisch verschickt den Einmal-Link (lib/mandateCreate.js).
+							await createMandateForMember(member.id, payload.mandate)
 						}
-					}
-					if (payload.mandate) {
-						stage = 'mandate'
-						// Schritt 2 des Assistenten (Spec §3.1): Papier entscheidet per Datum
-						// aktiv/Entwurf, elektronisch verschickt den Einmal-Link (lib/mandateCreate.js).
-						await createMandateForMember(member.id, payload.mandate)
-					}
-					if (payload.assignment) {
-						stage = 'assignment'
-						await api.createAssignment({ memberId: member.id, ...payload.assignment })
+						if (payload.assignment) {
+							stage = 'assignment'
+							await api.createAssignment({ memberId: member.id, ...payload.assignment })
+						}
+					} finally {
+						// Zuletzt, damit sie Mandat und Beitrag kennt (Schritt „Mandat einrichten"), und auch,
+						// wenn eines davon scheitert: sie trägt womöglich den Passwort-Link des neuen Kontos.
+						if (payload.welcomeMail) {
+							try {
+								await api.sendWelcomeMail(member.id, payload.welcomeMail)
+							} catch (e) {
+								problems.push(this.errMsg(e, this.t('Die Willkommens-Mail konnte nicht gesendet werden')))
+							}
+						}
 					}
 				}
 				this.memberDialogOpen = false

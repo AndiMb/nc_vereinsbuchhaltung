@@ -16,7 +16,7 @@ const CLUB_NAME = 'Testverein e.V.'
 const PASSWORD = 'E2e-Passwort-12345!'
 
 /** Konten, die diese Spec anlegt; sie räumt sie am Ende ab (Datenbank-Snapshots enthalten sie sonst für alle). */
-const CREATED_USERS = ['mona.konto', 'e2e.nachholer', 'e2e.verknuepft']
+const CREATED_USERS = ['mona.konto', 'e2e.nachholer', 'e2e.verknuepft', 'paula.passwort']
 
 const ocs = (path) => `${BASE_URL}/ocs/v2.php/cloud/users${path}?format=json`
 
@@ -174,11 +174,41 @@ test.describe('Nextcloud-Konto und Willkommens-Mail', () => {
 		expect(info).toBeTruthy()
 		expect(info.email).toBe('mona.konto@example.org')
 		expect(info.displayname ?? info['display-name']).toBe('Mona Konto')
-		await expect(accountCell(page, 'Mona Konto')).toHaveText('Bestätigung ausstehend')
+		// Ein Konto, das die Administration gerade selbst angelegt hat, gilt sofort (AccountHandoverService).
+		await expect(accountCell(page, 'Mona Konto')).toHaveText('Ja')
 
 		const welcome = await waitForSubject('mona.konto@example.org', `Hallo Mona, willkommen bei ${CLUB_NAME}`)
 		expect(welcome.text).toContain('Guten Tag Mona Konto,')
 		expect(welcome.text).not.toContain('{name}')
+	})
+
+	// Ohne Passwort bringt die Willkommensmail den Link zum Passwort-Festlegen mit; Nextcloud schickt keine eigene
+	// Einladung (das Konto entsteht zunächst ohne Mailadresse, src/lib/nextcloudAccount.js).
+	test('Aufnehmen mit neuem Konto ohne Passwort: eine Mail mit „Passwort festlegen“, keine Einladung von Nextcloud', async ({ page, request }) => {
+		await clearCapturedMails()
+		await openApp(page, USERS.admin)
+		await switchTab(page, 'Beiträge')
+		const dialog = await openAdmitDialog(page)
+
+		await dialog.getByRole('textbox', { name: 'Vorname', exact: true }).fill('Paula')
+		await dialog.getByRole('textbox', { name: 'Nachname', exact: true }).fill('Passwort')
+		await dialog.getByLabel('E-Mail', { exact: true }).fill('paula.passwort@example.org')
+		await dialog.getByText('Nextcloud-Konto für dieses Mitglied anlegen').click()
+		await expect(dialog.getByRole('textbox', { name: 'Kontoname', exact: true })).toHaveValue('paula.passwort')
+		await dialog.getByText('Willkommens-Mail an die Adresse des Mitglieds senden').click()
+
+		await dialog.getByRole('button', { name: 'Aufnehmen' }).click()
+		await expect(dialog).toBeHidden()
+
+		const info = await userInfo(request, 'paula.passwort')
+		expect(info.email).toBe('paula.passwort@example.org')
+		await expect(accountCell(page, 'Paula Passwort')).toHaveText('Ja')
+
+		const welcome = await waitForSubject('paula.passwort@example.org', `Willkommen bei ${CLUB_NAME}`)
+		expect(welcome.text).toContain('Passwort festlegen')
+		expect(welcome.text).toMatch(/lostpassword\/reset\/form\/\w+\/paula\.passwort/)
+		// Nur die eine Mail: keine Einladung von Nextcloud, kein Bestätigungslink.
+		expect((await capturedMails()).filter((m) => m.to.includes('paula.passwort@example.org'))).toHaveLength(1)
 	})
 
 	test('Aufnehmen ohne Nextcloud-Konto: Willkommens-Mail geht trotzdem raus, die Liste sagt „Nein“', async ({ page, request }) => {
@@ -227,7 +257,7 @@ test.describe('Nextcloud-Konto und Willkommens-Mail', () => {
 		await account.getByRole('textbox', { name: 'Kontoname', exact: true }).fill('e2e.nachholer')
 		await account.getByLabel('Passwort (optional)').fill(PASSWORD)
 		await account.getByRole('button', { name: 'Konto anlegen und verknüpfen' }).click()
-		await expect(page.getByText('Nextcloud-Konto angelegt. Die Verknüpfung gilt, sobald das Mitglied den Link in seiner Mail bestätigt.').first()).toBeVisible()
+		await expect(page.getByText('Nextcloud-Konto angelegt und mit der Akte verknüpft.').first()).toBeVisible()
 		expect((await api.listMembers(request)).find((m) => m.id === member.id).ncUserId).toBe('e2e.nachholer')
 
 		await clearCapturedMails()
@@ -259,5 +289,34 @@ test.describe('Nextcloud-Konto und Willkommens-Mail', () => {
 		// Betreff zeigt, dass die Antwort da ist.
 		await expect(section.getByRole('textbox', { name: 'Betreff', exact: true })).toHaveValue('Willkommen bei {verein}')
 		expect((await api.getJson(request, '/welcome-mail/template')).isDefault).toBe(true)
+	})
+
+	// Ohne IBAN: das Mitglied hinterlegt sie und erteilt das Mandat selbst in „Mein Bereich“
+	// (MandateRequestMailService). Ist die Verknüpfung noch offen, steht der Bestätigungsschritt mit drin.
+	test('Akte: Mandat per Mail anfragen', async ({ page, request }) => {
+		const member = await ensureMember(request, 'Mira', 'Mandat', 'mira.mandat@example.org')
+		await api.updateSettings(request, { self_service_enabled: '1' })
+		await api.linkMember(request, member.id, 'test4', { confirm: false })
+		try {
+			await clearCapturedMails()
+			await openApp(page, USERS.admin)
+			await switchTab(page, 'Beiträge')
+			const akte = await openAkte(page, 'Mira Mandat')
+			await akte.getByRole('button', { name: 'Per Mail anfragen' }).click()
+			await expect(page.getByText('Anfrage an mira.mandat@example.org verschickt.').first()).toBeVisible()
+
+			// Sie- oder Du-Form je nachdem, ob die Verknüpfung schon gilt (RecipientL10n); es zählt der Inhalt.
+			const mails = (await capturedMails()).filter((m) => m.to.includes('mira.mandat@example.org'))
+			expect(mails).toHaveLength(1)
+			expect(mails[0].subject).toMatch(/SEPA-Lastschriftmandat ein$/)
+			expect(mails[0].text).toContain('/apps/vereinsbuchhaltung/self')
+			const linked = (await api.listMembers(request)).find((m) => m.id === member.id)
+			if (!linked.ncLinkConfirmed) {
+				expect(mails[0].text).toContain('/link-account/')
+			}
+		} finally {
+			await api.unlinkMember(request, member.id)
+			await api.updateSettings(request, { self_service_enabled: '0' })
+		}
 	})
 })

@@ -12,6 +12,7 @@ use OCP\AppFramework\Controller;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
+use OCP\AppFramework\Http\Attribute\PasswordConfirmationRequired;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\IL10N;
 use OCP\IRequest;
@@ -52,9 +53,14 @@ class WelcomeMailController extends Controller {
 		return new DataResponse($this->service->template());
 	}
 
-	/** Betreff und Text sind optional: ohne sie geht die Vorlage der Einstellungen raus. */
+	/**
+	 * Betreff und Text sind optional: ohne sie geht die Vorlage der Einstellungen raus.
+	 * Passwort-Bestätigung wie in Nextclouds Benutzerverwaltung: die Mail kann den Link
+	 * zum Festlegen des Passworts eines neu angelegten Kontos tragen.
+	 */
 	#[NoAdminRequired]
 	#[RequiresRole(PermissionService::ROLE_WRITE)]
+	#[PasswordConfirmationRequired]
 	public function send(int $id, ?string $subject = null, ?string $body = null): DataResponse {
 		try {
 			$this->service->send($id, $subject, $body);

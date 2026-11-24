@@ -8,7 +8,9 @@ use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Db\Member;
 use OCA\Vereinsbuchhaltung\Exception\UserFacingException;
 use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
+use OCA\Vereinsbuchhaltung\Service\AccountHandoverService;
 use OCA\Vereinsbuchhaltung\Service\AnonymizationCandidateService;
+use OCA\Vereinsbuchhaltung\Service\MandateRequestMailService;
 use OCA\Vereinsbuchhaltung\Service\MemberAnonymizationService;
 use OCA\Vereinsbuchhaltung\Service\MemberLinkConfirmationService;
 use OCA\Vereinsbuchhaltung\Service\MemberService;
@@ -17,6 +19,7 @@ use OCP\AppFramework\Controller;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
+use OCP\AppFramework\Http\Attribute\PasswordConfirmationRequired;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\IL10N;
 use OCP\IRequest;
@@ -36,6 +39,8 @@ class MemberController extends Controller {
 		private AnonymizationCandidateService $anonymizationCandidates,
 		private MemberAnonymizationService $anonymization,
 		private MemberLinkConfirmationService $linkConfirmation,
+		private AccountHandoverService $accountHandover,
+		private MandateRequestMailService $mandateRequest,
 		private IL10N $l10n,
 	) {
 		parent::__construct(Application::APP_ID, $request);
@@ -204,13 +209,15 @@ class MemberController extends Controller {
 	 * auch dann nur ausstehend: der Bestätigungslink geht sofort an die
 	 * Mailadresse des Mitglieds, erst seine Bestätigung macht die Verknüpfung
 	 * wirksam (#295). Scheitert nur der Mailversand, bleibt die Verknüpfung
-	 * ausstehend und die Antwort trägt den Grund in `linkMailError`.
+	 * ausstehend und die Antwort trägt den Grund in `linkMailError`. Ein Konto,
+	 * das die Verwaltung gerade für das Mitglied angelegt hat, gilt sofort
+	 * ({@see AccountHandoverService}).
 	 */
 	#[NoAdminRequired]
 	#[RequiresRole(PermissionService::ROLE_WRITE)]
 	public function link(int $id, string $ncUserId): DataResponse {
 		try {
-			$member = $this->service->link($id, $ncUserId);
+			$member = $this->service->link($id, $ncUserId, $this->accountHandover->isFreshManagedAccount($ncUserId));
 			$mailError = null;
 			if (!$member->isNcLinkConfirmed()) {
 				try {
@@ -234,6 +241,26 @@ class MemberController extends Controller {
 		try {
 			$sent = $this->linkConfirmation->send($this->service->find($id));
 			return new DataResponse($this->decorate($this->service->find($id)) + ['linkMailSentTo' => $sent['email']]);
+		} catch (\InvalidArgumentException|UserFacingException $e) {
+			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
+		} catch (DoesNotExistException) {
+			return new DataResponse(['message' => $this->l10n->t('Mitglied nicht gefunden')], Http::STATUS_NOT_FOUND);
+		}
+	}
+
+	/**
+	 * Bittet das Mitglied per Mail, sein Mandat in „Mein Bereich" selbst
+	 * einzurichten. Passwort-Bestätigung wie in Nextclouds Benutzerverwaltung:
+	 * die Mail kann den Link zum Festlegen des Passworts eines neu angelegten
+	 * Kontos tragen ({@see \OCA\Vereinsbuchhaltung\Service\AccountHandoverService}).
+	 */
+	#[NoAdminRequired]
+	#[RequiresRole(PermissionService::ROLE_WRITE)]
+	#[PasswordConfirmationRequired]
+	public function requestMandate(int $id): DataResponse {
+		try {
+			$sent = $this->mandateRequest->send($id);
+			return new DataResponse($this->decorate($this->service->find($id)) + ['mandateRequestSentTo' => $sent['email']]);
 		} catch (\InvalidArgumentException|UserFacingException $e) {
 			return new DataResponse(['message' => $e->getMessage()], Http::STATUS_BAD_REQUEST);
 		} catch (DoesNotExistException) {

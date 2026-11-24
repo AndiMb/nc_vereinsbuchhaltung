@@ -18,10 +18,12 @@ export function pendingAccountText(uid) {
 
 /**
  * Rückfrage vor dem Verknüpfen (#295): nennt die Benutzer-ID, denn Anzeigename und Mailadresse
- * setzt jedes Konto selbst – nur die ID unterscheidet zwei Konten sicher.
+ * setzt jedes Konto selbst – nur die ID unterscheidet zwei Konten sicher. Sofort gilt die
+ * Verknüpfung nur bei einem Konto, das sich noch nie angemeldet hat und das die angemeldete
+ * Person in Nextcloud verwaltet (AccountHandoverService).
  */
 export function linkConfirmText(memberName, account) {
-	return tRaw('{name} mit dem Nextcloud-Konto „{konto}" (Benutzer-ID {uid}, {email}) verknüpfen? Das Mitglied bekommt dann einen Bestätigungslink an seine Mailadresse; erst wenn es ihn mit diesem Konto bestätigt, gilt die Verknüpfung.', {
+	return tRaw('{name} mit dem Nextcloud-Konto „{konto}" (Benutzer-ID {uid}, {email}) verknüpfen? Hat sich das Konto schon einmal angemeldet, bekommt das Mitglied einen Bestätigungslink an seine Mailadresse; erst wenn es ihn mit diesem Konto bestätigt, gilt die Verknüpfung. Ein noch nie genutztes Konto, das Sie in Nextcloud verwalten, gilt sofort.', {
 		name: memberName,
 		konto: account.displayName,
 		uid: account.uid,

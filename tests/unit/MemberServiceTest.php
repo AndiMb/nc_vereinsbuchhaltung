@@ -750,6 +750,26 @@ class MemberServiceTest extends TestCase {
 		$this->assertNull($result->confirmedNcUserId());
 	}
 
+	/**
+	 * Ein Konto, das die Verwaltung gerade für das Mitglied angelegt hat
+	 * (AccountHandoverService), gilt sofort – ohne Bestätigungslink und damit
+	 * auch ohne Mailadresse in der Akte.
+	 */
+	public function testLinkEinesNeuAngelegtenKontosGiltSofort(): void {
+		$member = $this->memberWithEmail();
+		$member->setEmail(null);
+		$this->mapper->method('find')->willReturn($member);
+		$this->userManager->method('userExists')->willReturn(true);
+		$this->mapper->method('findByNcUserId')->willReturn(null);
+		$this->mapper->method('update')->willReturnArgument(0);
+
+		$result = $this->service()->link(1, 'neu', true);
+
+		$this->assertTrue($result->isNcLinkConfirmed());
+		$this->assertSame('neu', $result->confirmedNcUserId());
+		$this->assertNull($result->getNcLinkTokenHash());
+	}
+
 	public function testLinkAufAnderesKontoSetztDieBestaetigungZurueck(): void {
 		$member = $this->memberWithEmail();
 		$member->setNcUserId('alt');

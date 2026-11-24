@@ -760,11 +760,13 @@ export const api = {
 	 * Verknüpft ein Mitglied mit einem Nextcloud-Konto. Seit #295 gilt eine
 	 * Verknüpfung erst, wenn das Mitglied sie bestätigt; `confirm` (Standard)
 	 * erledigt das gleich mit (siehe fixtures/member-link.mjs). `confirm: false`
-	 * lässt sie ausstehend.
+	 * lässt sie ausstehend. Ein Konto, das sich noch nie angemeldet hat und das
+	 * `user` in Nextcloud verwaltet, gilt sofort (AccountHandoverService) – ob ein
+	 * Testkonto schon angemeldet war, hängt von der Reihenfolge der Läufe ab.
 	 */
 	async linkMember(request, id, ncUserId, { user = 'admin', expectOk = true, confirm = true } = {}) {
 		const resp = await call(request, 'POST', `/members/${id}/link`, { user, expectOk, data: { ncUserId } })
-		if (confirm && resp.ok()) {
+		if (confirm && resp.ok() && !(await resp.json()).ncLinkConfirmed) {
 			await confirmMemberLink(id)
 		}
 		return resp
