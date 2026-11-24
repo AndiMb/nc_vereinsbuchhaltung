@@ -20,6 +20,7 @@ use OCA\Vereinsbuchhaltung\Db\TransactionRunner;
 use OCA\Vereinsbuchhaltung\Exception\ConflictException;
 use OCA\Vereinsbuchhaltung\Exception\InvoiceNotIssuableException;
 use OCA\Vereinsbuchhaltung\Service\CostCenter\CostCenterDefaults;
+use OCA\Vereinsbuchhaltung\Service\Invoice\InvoiceDueDate;
 use OCA\Vereinsbuchhaltung\Service\Invoice\LineCostCenterRule;
 use OCA\Vereinsbuchhaltung\Service\Text\Utf8;
 use OCP\AppFramework\Db\DoesNotExistException;
@@ -388,9 +389,7 @@ class InvoiceService {
 			$issued = $this->numbers->issue($invoice->getKind(), new \DateTimeImmutable($date));
 			$dueDate = $invoice->getDueDate();
 			if ($dueDate === null) {
-				// Eine Stornorechnung wird nicht bezahlt, ihr Ziel ist ihr Datum.
-				$days = $invoice->isCredit() ? 0 : $this->settings->defaultDueDays();
-				$dueDate = (new \DateTimeImmutable($date))->modify('+' . $days . ' days')->format('Y-m-d');
+				$dueDate = InvoiceDueDate::forInvoice($invoice, $date, $this->settings->defaultDueDays(), $this->settings->dueBasis());
 			}
 			if ($dueDate < $date) {
 				throw new InvoiceNotIssuableException($this->msg('Das Zahlungsziel liegt vor dem Rechnungsdatum.'), [$this->msg('Zahlungsziel')]);

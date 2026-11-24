@@ -173,10 +173,29 @@ class InvoiceSettingsTest extends TestCase {
 			'USt-IdNr. kaputt' => [['club_vat_id' => '12']],
 			'BIC kaputt' => [['invoice_bic' => 'ABC']],
 			'Zahlungsziel negativ' => [['invoice_default_due_days' => -1]],
+			'Zahlungsziel negativ ab Rechnungsdatum' => [['invoice_default_due_days' => -3, 'invoice_due_basis' => 'issue']],
+			'Zahlungsziel zu weit vor der Leistung' => [['invoice_default_due_days' => -366, 'invoice_due_basis' => 'delivery']],
+			'Bezug des Zahlungsziels unbekannt' => [['invoice_due_basis' => 'irgendwann']],
 			'Pfad mit ..' => [['invoice_folder' => 'a/../b']],
 			'Name auf Rechnungen zu lang' => [['club_invoice_name' => str_repeat('x', 201)]],
 			'Kontoinhaber länger als im GiroCode erlaubt' => [['club_account_holder' => str_repeat('x', 71)]],
 		];
+	}
+
+	public function testZahlungszielAbLeistungsdatumDarfNegativSein(): void {
+		$s = $this->settings();
+
+		$this->assertSame('issue', $s->dueBasis());
+		$this->assertNull($s->update(['invoice_default_due_days' => -3, 'invoice_due_basis' => 'delivery']));
+		$this->assertSame('delivery', $s->dueBasis());
+		$this->assertSame(-3, $s->defaultDueDays());
+		$this->assertSame('delivery', $s->all()['invoice_due_basis']);
+
+		// Zurück auf das Rechnungsdatum geht nur mit einer Frist, die dazu passt.
+		$this->assertNotNull($s->update(['invoice_due_basis' => 'issue']));
+		$this->assertSame('delivery', $s->dueBasis(), 'Ein abgelehnter Wechsel schreibt nichts.');
+		$this->assertNull($s->update(['invoice_default_due_days' => 10, 'invoice_due_basis' => 'issue']));
+		$this->assertSame(10, $s->defaultDueDays());
 	}
 
 	public function testKopieAnDenVorstandBrauchtEineGueltigeAdresse(): void {

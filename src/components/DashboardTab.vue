@@ -223,6 +223,7 @@
 							</td>
 							<td class="nowrap right">
 								<div class="vbh-actions">
+									<CommentMark v-if="r.comment" :text="r.comment" />
 									<NcButton
 										v-if="suggestionFor(r)"
 										variant="tertiary"
@@ -291,6 +292,7 @@ import NcButton from '@nextcloud/vue/components/NcButton'
 import NcEmptyContent from '@nextcloud/vue/components/NcEmptyContent'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import BookingCard from './BookingCard.vue'
+import CommentMark from './CommentMark.vue'
 import SetupChecklist from './SetupChecklist.vue'
 import api from '../api.js'
 import { useAccounts } from '../composables/useAccounts.js'
@@ -318,7 +320,7 @@ function monthOf(key) {
 
 export default {
 	name: 'DashboardTab',
-	components: { NcButton, NcEmptyContent, NcIconSvgWrapper, SetupChecklist, BookingCard },
+	components: { NcButton, NcEmptyContent, NcIconSvgWrapper, SetupChecklist, BookingCard, CommentMark },
 	props: {
 		// true, solange der Dashboard-Tab aktiv ist - steuert den Chart-Redraw
 		// (Chart.js braucht bei v-show="display:none" beim ersten Rendern einen

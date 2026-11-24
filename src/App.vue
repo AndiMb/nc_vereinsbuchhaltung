@@ -190,6 +190,7 @@
 					@update:bookingView="bookingView = $event"
 					@attachmentsChanged="afterAttachmentsChanged"
 					@goClaims="goToClaims"
+					@goInvoice="goToInvoice"
 					@invoicePaid="onInvoicesChanged({ bookings: true })"
 					@reimbursementBookingChanged="onReimbursementBookingChanged"
 					@help="openHelp('bookings')" />
@@ -1752,6 +1753,17 @@ export default {
 			this.requestEinzugClaims(memberId)
 			this.activeTab = 'contributions'
 			this.contribView = 'batch'
+		},
+
+		/**
+		 * Offene Posten → Reiter „Rechnungen“, Detailansicht der Rechnung: dort
+		 * laufen Zahlung und Storno eines Rechnungspostens (Issue #396).
+		 *
+		 * @param {number} invoiceId Rechnung des Postens
+		 */
+		goToInvoice(invoiceId) {
+			this.selectedInvoiceId = invoiceId
+			this.activeTab = 'invoices'
 		},
 
 		// --- Kollaboration: Änderungen anderer Browser erkennen -------------

@@ -188,6 +188,36 @@ export function addDays(iso, days) {
 	return date.toISOString().slice(0, 10)
 }
 
+/**
+ * Das Zahlungsziel, das eine Rechnung ohne eigene Angabe bekommt (Issue #391).
+ * Dieselbe Rechnung wie InvoiceDueDate::default() auf dem Server: die Frist
+ * zählt ab dem Rechnungsdatum oder ab dem Leistungszeitpunkt, dort auch
+ * negativ („Tage vor der Leistung“). Bei einem Zeitraum zählt eine Frist
+ * danach ab seinem Ende, eine davor ab seinem Beginn. Nie vor dem
+ * Rechnungsdatum.
+ *
+ * @param {{issueDate: string, deliveryDate?: string, periodStart?: string, periodEnd?: string}} dates Daten der Rechnung
+ * @param {number} days Frist in Tagen
+ * @param {string} basis `issue` oder `delivery`
+ * @return {string} JJJJ-MM-TT; leer, solange das Rechnungsdatum fehlt
+ */
+export function defaultDueDate(dates, days, basis) {
+	const issue = dates.issueDate
+	if (!issue) { return '' }
+	let reference = null
+	if (basis === 'delivery') {
+		reference = dates.deliveryDate
+			|| (days < 0 ? dates.periodStart || dates.periodEnd : dates.periodEnd || dates.periodStart)
+			|| null
+	}
+	if (!reference) {
+		reference = issue
+		days = Math.max(0, days)
+	}
+	const due = addDays(reference, days)
+	return due < issue ? issue : due
+}
+
 /** Steuerauswahl einer Position bei Regelbesteuerung: Schlüssel → Kategorie und Satz in Basispunkten. */
 export const TAX_KEYS = {
 	S1900: { category: 'S', rateBp: 1900 },

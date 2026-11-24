@@ -19,6 +19,22 @@ verwenden, z. B. `**Neu:**`.
 
 ## [Unreleased]
 
+**Neu:**
+- **Zahlungsziel ab Leistungsdatum (#391):** In den Einstellungen der
+  Rechnungen legen Sie fest, ob das Zahlungsziel ab dem **Rechnungsdatum**
+  oder ab dem **Leistungsdatum** zählt. Ab dem Leistungsdatum sind auch
+  negative Tage möglich, etwa −3 für „drei Tage vor dem Auftritt“. Der Editor
+  trägt das Ziel selbst ein und passt es an, wenn Sie Rechnungs- oder
+  Leistungsdatum ändern – bis Sie es von Hand überschreiben.
+
+**Behoben:**
+- **Kommentar-Symbol in der Übersicht (#395):** Die Liste **Letzte
+  Buchungen** zeigt das Kommentar-Symbol jetzt wie der Reiter *Buchungen*.
+- **Rechnungsposten unter „Offene Posten“ (#396):** Bei Posten, die zu einer
+  Rechnung gehören, standen dort **Bezahlt** und **Stornieren**, obwohl beides
+  nur im Reiter *Rechnungen* geht – ein Klick endete in einer Fehlermeldung.
+  Jetzt führt **Zur Rechnung** direkt zur Rechnung.
+
 ## [0.56.1] – 2026-11-24
 
 **Behoben:**

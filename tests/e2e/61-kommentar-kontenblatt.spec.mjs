@@ -134,6 +134,10 @@ test.describe('Kommentar an Buchungen', () => {
 
 		await switchTab(page, 'Buchungen')
 		await expect(visibleSection(page).locator('tr', { hasText: 'Beitrag Dora' }).locator('.vbh-commentmark')).toHaveAttribute('aria-label', `Kommentar: ${TEXT}`)
+
+		// Auch „Letzte Buchungen“ in der Übersicht zeigt das Symbol (#395).
+		await switchTab(page, 'Übersicht')
+		await expect(visibleSection(page).locator('tr', { hasText: 'Beitrag Dora' }).locator('.vbh-commentmark')).toHaveAttribute('aria-label', `Kommentar: ${TEXT}`)
 	})
 
 	test('im abgeschlossenen Geschäftsjahr bleibt nur der Kommentar änderbar', async ({ page, request }) => {
