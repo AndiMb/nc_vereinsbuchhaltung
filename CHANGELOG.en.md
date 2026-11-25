@@ -17,6 +17,17 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 
 ## [Unreleased]
 
+**New:**
+- **Notices about new versions can be switched off:** under *Settings →
+  Display*, the switch **Point out what's new after an update** turns off two
+  notices for everyone: the app's "What's new?" window and Nextcloud's
+  notification "Vereinsbuchhaltung updated to version …", which so far reached
+  members without a role too – in the bell, by push and by email. It is on by
+  default, so nothing changes unless you switch it off. The list of changes
+  stays available via Help. Nextcloud's update notices for all apps can still
+  only be switched off by the Nextcloud administrator (chapter 12.0 of the
+  manual).
+
 ## [0.57.0] – 2026-11-25
 
 **New:**

@@ -1,4 +1,4 @@
-import { inNextcloud } from './girocode.mjs'
+import { inNextcloud } from './container.mjs'
 
 // Bestätigung einer Kontoverknüpfung durch das Mitglied (#295).
 //

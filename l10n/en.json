@@ -5074,7 +5074,10 @@
         "Neu: Beim Aufnehmen bekommt ein Mitglied eine Mail statt zwei – die Willkommens-Mail bringt den Link zum Passwort und bei Bedarf die Bitte um ein Mandat mit.": "New: when admitted, a member gets one email instead of two – the welcome email carries the password link and, if needed, the request for a mandate.",
         "Neu: Aus der Mitgliederakte lässt sich ein Mandat per Mail anfragen; das Mitglied hinterlegt IBAN und Mandat selbst.": "New: a mandate can be requested by email from the member record; the member enters IBAN and mandate themselves.",
         "Neu: Das Zahlungsziel einer Rechnung kann ab dem Leistungsdatum zählen, auch mit negativen Tagen.": "New: an invoice's payment term can count from the service date, negative days included.",
-        "Behoben: Die erste Forderung eines neuen Mitglieds entsteht rechtzeitig für den ersten Einzugstermin.": "Fixed: the first claim of a new member is created in time for the first collection date."
+        "Behoben: Die erste Forderung eines neuen Mitglieds entsteht rechtzeitig für den ersten Einzugstermin.": "Fixed: the first claim of a new member is created in time for the first collection date.",
+        "Hinweise auf neue Versionen": "Notices about new versions",
+        "Nach einem Update auf Neuerungen hinweisen": "Point out what's new after an update",
+        "Nach einem Update zeigt die App Verwaltern, Buchhaltern und Revisoren einmal „Was ist neu?“, und Nextcloud meldet allen, die die App nutzen – auch Mitgliedern ohne Rolle –, dass die Vereinsbuchhaltung aktualisiert wurde. Ausgeschaltet entfällt beides für alle. Die Liste der Neuerungen bleibt über die Hilfe (?) erreichbar.": "After an update, the app shows administrators, bookkeepers and auditors “What's new?” once, and Nextcloud tells everyone who uses the app – members without a role included – that Vereinsbuchhaltung has been updated. Switched off, both are dropped for everyone. The list of changes stays available via Help (?)."
     },
     "pluralForm": "nplurals=2; plural=(n != 1);"
 }

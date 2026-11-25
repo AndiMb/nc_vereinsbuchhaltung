@@ -86,7 +86,7 @@ Abschnitte stehen in dieser Reihenfolge:
 | Gruppe | Abschnitte (Kapitel) |
 |---|---|
 | Grundlagen | Verein mit Vereinsname, Vereinswährung, Corporate Design und Angaben des Vereins (2.5, 2.6) · Berechtigungen (2.1) · Belege (2.4) · Kontoauszüge automatisch einlesen (3.3) · Geschäftsjahr (8.1) |
-| Listen und Berichte | Darstellung – Beträge in den Buchungslisten neutral oder mit Vorzeichen und Farbe, für alle Nutzer gleich · Ampel im Gliederungsbericht (7.5) |
+| Listen und Berichte | Darstellung – Beträge in den Buchungslisten neutral oder mit Vorzeichen und Farbe, für alle Nutzer gleich; Hinweise auf neue Versionen (12.0) · Ampel im Gliederungsbericht (7.5) |
 | Module | Beiträge & SEPA (13.1) · Mandats-Rechtstext (13.2) · Willkommens-Mail (13.2) · Zuwendungsbestätigungen (13.12) · Rechnungen (15.1) · Auslagenerstattung (4.6) · Kostenstellen (5.8) |
 | Daten und Sicherung | Datenübernahme aus „zero Buchhaltung" (3.1) · Sicherung und Umzug (12.3) · Zurücksetzen mit *Alle Daten löschen* (12.1) |
 
@@ -2102,6 +2102,40 @@ Buchen & zuordnen, Konten, Berichte, Beiträge & SEPA, Sphären); in den
 einzelnen Ansichten führen ebenfalls Hilfe-Symbole genau dorthin. Von jedem
 Kapitel führt ein Link **direkt in dieses Handbuch** – die App liefert es
 selbst als lesbare Seite aus, es muss also nichts auf GitHub gesucht werden.
+
+**Was ist neu?** Nach einem Update der App öffnet sich beim nächsten Aufruf
+einmal das Fenster **„Was ist neu?"** mit den Neuerungen, die die eigene Rolle
+betreffen. Verwalter, Buchhalter und Revisoren sehen es, Mitglieder ohne Rolle
+nicht. *Verstanden* schließt es bis zum nächsten Update. Im Hilfe-Fenster holt
+der Link **„Was ist neu in Version …?"** die Liste jederzeit zurück.
+
+Unabhängig davon meldet **Nextcloud selbst** nach jedem App-Update allen, die
+die App nutzen dürfen – also auch Mitgliedern, die nur „Mein Bereich" sehen –,
+in den Benachrichtigungen (Glocke): „Vereinsbuchhaltung wurde auf Version …
+aktualisiert". Der Knopf *Was ist neu* daneben zeigt den technischen
+Änderungsverlauf der App.
+
+**Hinweise abschalten.** Stören die Hinweise, schaltet eine Verwalterin oder ein
+Verwalter sie unter *Nextcloud-Einstellungen → Vereinsbuchhaltung →
+Darstellung → Hinweise auf neue Versionen* ab: Schalter **Nach einem Update auf
+Neuerungen hinweisen**, ab Werk an. Ausgeschaltet gilt für **alle**:
+
+- Das Fenster „Was ist neu?" öffnet sich nicht mehr von selbst. Der Link im
+  Hilfe-Fenster bleibt.
+- Nextclouds Benachrichtigung zur Vereinsbuchhaltung erscheint nicht mehr – auch
+  eine, die schon in der Glocke liegt, verschwindet –, und sie kommt weder als
+  Push aufs Handy noch in der Benachrichtigungs-Mail.
+
+Wer die Hinweise später wieder einschaltet, bekommt nur, was danach neu
+dazukommt, nicht alles, was sich in der Zwischenzeit angesammelt hat.
+
+> **Für Nextcloud-Administratoren:** Die Benachrichtigungen über App-Updates
+> stammen aus der Nextcloud-App *Update notification*. Eine Abmeldung pro App
+> sieht Nextcloud nicht vor; der Schalter der Vereinsbuchhaltung verwirft nur
+> die Meldung zu dieser App. Für **alle Apps** der Instanz schaltet sie nur
+> der Befehl
+> `occ config:app:set updatenotification app_updated.enabled --value=false --type=boolean`
+> ab.
 
 ### 12.1 „Alle Daten löschen" / Reset
 

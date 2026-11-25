@@ -83,7 +83,7 @@ opens the matching chapter of this handbook. The sections come in this order:
 | Group | Sections (chapter) |
 |---|---|
 | Basics | Club with club name, club currency, corporate design and club details (2.5, 2.6) · Permissions (2.1) · Receipts (2.4) · Automatically import bank statements (3.3) · Fiscal year (8.1) |
-| Lists and reports | Display – amounts in the posting lists neutral or with sign and color, the same for all users · Status in the structured report (7.5) |
+| Lists and reports | Display – amounts in the posting lists neutral or with sign and color, the same for all users; notices about new versions (12.0) · Status in the structured report (7.5) |
 | Modules | Fees & SEPA (13.1) · Mandate legal text (13.2) · Welcome email (13.2) · Donation receipts (13.12) · Invoices (15.1) · Expense reimbursement (4.6) · Cost centres (5.8) |
 | Data and backup | Data import from "zero Buchhaltung" (3.1) · Backup and migration (12.3) · Reset with *Delete all data* (12.1) |
 
@@ -2050,6 +2050,38 @@ posting & assigning, accounts, reports, contributions & SEPA, spheres); help
 icons in the individual views also lead there directly. From every chapter,
 a link leads **directly into this manual** – the app itself serves it as a
 readable page, so nothing needs to be looked up on GitHub.
+
+**What's new?** After an update of the app, the window **"What's new?"** opens
+once on the next visit, listing the changes that concern your role.
+Administrators, bookkeepers and auditors see it; members without a role don't.
+*Got it* closes it until the next update. In the help window, the link
+**"What's new in version …?"** brings the list back at any time.
+
+Independently of that, **Nextcloud itself** tells everyone who may use the app
+after every app update – including members who only see "My area" – in the
+notifications (bell): "Vereinsbuchhaltung updated to version …". The *See
+what's new* button next to it shows the app's technical changelog.
+
+**Switching the notices off.** If the notices are a nuisance, an administrator
+switches them off under *Nextcloud settings → Vereinsbuchhaltung → Display →
+Notices about new versions*: switch **Point out what's new after an update**,
+on by default. Switched off, this applies to **everyone**:
+
+- The "What's new?" window no longer opens by itself. The link in the help
+  window stays.
+- Nextcloud's notification about Vereinsbuchhaltung no longer appears – one
+  already sitting in the bell disappears too – and it is neither pushed to
+  phones nor included in the notification email.
+
+If you switch the notices back on later, you only get what is new from then
+on, not everything that piled up in the meantime.
+
+> **For Nextcloud administrators:** the notifications about app updates come
+> from the Nextcloud app *Update notification*. Nextcloud offers no opt-out per
+> app; the Vereinsbuchhaltung switch only discards the notice about this app.
+> To switch them off for **all apps** of the instance, only the command
+> `occ config:app:set updatenotification app_updated.enabled --value=false --type=boolean`
+> does that.
 
 ### 12.1 "Delete all data" / reset
 

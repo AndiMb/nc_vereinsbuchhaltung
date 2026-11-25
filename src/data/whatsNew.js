@@ -428,3 +428,30 @@ export function filterWhatsNewEntries(entries, role, sinceVersion, currentVersio
 		.filter((entry) => !sinceVersion || isNewerVersion(entry.version, sinceVersion))
 		.filter((entry) => !currentVersion || compareVersions(entry.version, currentVersion) <= 0)
 }
+
+/**
+ * Was beim Start der App mit dem Splash geschieht, nach der Antwort von
+ * GET /whatsnew (App.vue, loadWhatsNew()):
+ *
+ * - 'markSeen': still die laufende Version als gesehen merken, nichts zeigen.
+ *   Beim echten Erstlogin (noch nichts gesehen) wäre eine Wand historischer
+ *   Änderungen nur Ballast. Hat der Verein die Hinweise auf neue Versionen
+ *   ausgeschaltet (`enabled: false`, Einstellungen → Darstellung), gilt
+ *   dasselbe – schaltet er sie später wieder ein, kommt nur, was danach neu
+ *   ist, statt allem, was sich in der Zwischenzeit angesammelt hat.
+ * - 'show': es gibt Einträge, die die Person noch nicht gesehen hat.
+ * - 'none': nichts zu tun.
+ *
+ * Fehlt `enabled` (älterer Server), gilt der Schalter als an.
+ *
+ * @param {{currentVersion: string, lastSeenVersion: string, enabled?: boolean}} state
+ * @param {boolean} hasUnseenEntries ob filterWhatsNewEntries() etwas übrig lässt
+ * @return {'markSeen'|'show'|'none'}
+ */
+export function whatsNewBootAction({ currentVersion, lastSeenVersion, enabled }, hasUnseenEntries) {
+	if (!currentVersion) { return 'none' }
+	if (lastSeenVersion === '' || enabled === false) {
+		return lastSeenVersion === currentVersion ? 'none' : 'markSeen'
+	}
+	return hasUnseenEntries ? 'show' : 'none'
+}
