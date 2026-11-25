@@ -1,6 +1,6 @@
 import { getContainer, runOcc } from '@nextcloud/e2e-test-server'
 import { expect, test } from '@playwright/test'
-import { api, BANK_ACCOUNT, BANK_ACCOUNT_IBAN, openApp, tabButton, USERS, visibleSection } from './fixtures/nextcloud.mjs'
+import { api, BANK_ACCOUNT, BANK_ACCOUNT_IBAN, E2E_TIME_ZONE, openApp, tabButton, USERS, visibleSection } from './fixtures/nextcloud.mjs'
 
 // Turnuswechsel und Sperrfenster im Self-Service („Mein Beitrag“):
 //
@@ -24,8 +24,8 @@ const LOCK_EXPLANATION = 'Für die laufende Periode wurde bereits eine Vorabinfo
 const GAP_EXPLANATION = 'Dieser Turnuswechsel ist im Moment nicht möglich'
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
-/** JJJJ-MM-TT in der Vereinszone – der Server rechnet „heute“ dort, nicht in UTC (#263). */
-const clubDate = (date) => new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Berlin' }).format(date)
+/** JJJJ-MM-TT in der Vereinszone – der Server rechnet „heute“ dort (#263). */
+const clubDate = (date) => new Intl.DateTimeFormat('sv-SE', { timeZone: E2E_TIME_ZONE }).format(date)
 const today = () => clubDate(new Date())
 const plusDays = (days) => clubDate(new Date(Date.now() + days * 86400000))
 const german = (isoDate) => isoDate.split('-').reverse().join('.')

@@ -14,6 +14,18 @@ export const AUTH_DIR = join(__dirname, '..', '.auth')
 export const FIXTURES_DIR = join(__dirname, '..', '..', 'fixtures')
 
 export const BASE_URL = process.env.NEXTCLOUD_URL || `http://localhost:${process.env.E2E_PORT || 8080}`
+
+// Eine Zeitzone für die ganze Suite: Vereinszone des Testservers
+// (`default_timezone`, gesetzt im Global-Setup), Browser (`timezoneId`) und
+// Testprozess (`TZ`, playwright.config.mjs). Die Specs bilden „heute“ meist
+// mit `new Date().toISOString()`, also in UTC; der Server rechnet in der
+// Vereinszone, ohne Einstellung Europe/Berlin (#263). Zwischen 00:00 Uhr
+// deutscher Zeit und 00:00 UTC war das Testdatum für den Server „gestern“ –
+// jeder CI-Lauf in dieser Stunde scheiterte an „Der Beginn einer Zuweisung
+// darf nicht in der Vergangenheit liegen“ und zog über die Wiederholungen
+// noch Nextclouds Ratenlimit (HTTP 429) nach sich.
+export const E2E_TIME_ZONE = 'UTC'
+
 // App-POSTs brauchen /index.php, sonst antwortet der Server mit Umleitungen.
 const API = `${BASE_URL}/index.php/apps/vereinsbuchhaltung/api`
 
