@@ -1,6 +1,6 @@
 import { getContainer, runOcc } from '@nextcloud/e2e-test-server'
 import { expect, test } from '@playwright/test'
-import { api, openApp, switchTab, USERS, visibleSection } from './fixtures/nextcloud.mjs'
+import { api, E2E_TIME_ZONE, openApp, switchTab, USERS, visibleSection } from './fixtures/nextcloud.mjs'
 
 // Beitragsfreie Zuweisung (0 €): so bildet ein Verein Pausen und Passivmitgliedschaften ab, etwa mit einer
 // Beitragsgruppe „Ruhend“. Für eine solche Zuweisung entstehen keine Forderungen, es wird nichts eingezogen,
@@ -9,8 +9,8 @@ import { api, openApp, switchTab, USERS, visibleSection } from './fixtures/nextc
 
 const GROUP_NAME = 'Ruhend E2E'
 const PAYING_GROUP_NAME = 'Zahlend E2E'
-// In der Vereinszone: der Server rechnet „heute“ dort, nicht in UTC (#263).
-const today = () => new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Berlin' }).format(new Date())
+// In der Vereinszone: der Server rechnet „heute“ dort (#263).
+const today = () => new Intl.DateTimeFormat('sv-SE', { timeZone: E2E_TIME_ZONE }).format(new Date())
 const suffix = () => `${Date.now() % 100000}`
 
 async function enableMembership(request) {

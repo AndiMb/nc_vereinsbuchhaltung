@@ -1,13 +1,19 @@
-import { getContainer, restoreSnapshot } from '@nextcloud/e2e-test-server'
+import { getContainer, restoreSnapshot, runOcc } from '@nextcloud/e2e-test-server'
 import { existsSync, rmSync } from 'fs'
-import { AUTH_DIR, authHeaders, BASE_URL } from '../fixtures/nextcloud.mjs'
+import { AUTH_DIR, authHeaders, BASE_URL, E2E_TIME_ZONE } from '../fixtures/nextcloud.mjs'
 
 // Läuft einmal vor jedem `playwright test`: spielt den "init"-Snapshot
 // (Nutzer + Rollen, leerer Buchungsbestand) zurück und verwirft gecachte
 // Anmeldezustände – die Sessions leben in der zurückgesetzten Datenbank.
 export default async function globalSetup() {
 	console.log('\n🔄 Stelle "init"-Snapshot wieder her…')
-	await restoreSnapshot('init', getContainer())
+	const container = getContainer()
+	await restoreSnapshot('init', container)
+
+	// Vereinszone = Zone der Suite (E2E_TIME_ZONE). Hier statt in
+	// setup/server.mjs, damit es auch für einen schon laufenden Container gilt;
+	// config.php gehört nicht zum Datenbank-Snapshot.
+	await runOcc(['config:system:set', 'default_timezone', '--value', E2E_TIME_ZONE], { container })
 
 	if (existsSync(AUTH_DIR)) {
 		rmSync(AUTH_DIR, { recursive: true, force: true })

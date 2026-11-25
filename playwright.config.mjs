@@ -1,5 +1,10 @@
 import { defineConfig, devices } from '@playwright/test'
-import { BASE_URL } from './tests/e2e/fixtures/nextcloud.mjs'
+import { BASE_URL, E2E_TIME_ZONE } from './tests/e2e/fixtures/nextcloud.mjs'
+
+// Auch lokale Datumsrechnung im Testprozess (getDate(), getMonth()) in der
+// Zone der Suite, nicht in der des Entwicklerrechners; die Worker erben die
+// Variable. Warum eine Zone für alles: E2E_TIME_ZONE in fixtures/nextcloud.mjs.
+process.env.TZ = E2E_TIME_ZONE
 
 // Playwright-Konfiguration der E2E-Suite (tests/e2e/).
 //
@@ -24,6 +29,7 @@ export default defineConfig({
 	use: {
 		...devices['Desktop Chrome'],
 		baseURL: BASE_URL,
+		timezoneId: E2E_TIME_ZONE,
 		trace: 'on-first-retry',
 		screenshot: 'only-on-failure',
 		video: 'retain-on-failure',
