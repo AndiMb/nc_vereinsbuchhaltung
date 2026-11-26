@@ -15,6 +15,11 @@ Markdown headings as "[object Object]" since `marked` v18 (wrong renderer
 callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 **bold lead-in** at the start of a line instead, e.g. `**New:**`.
 
+That popup reads `CHANGELOG.<language>.md` and falls back to this file. For
+German-speaking accounts (`de`, `de_DE`), `npm run build` generates
+`CHANGELOG.de.md` and `CHANGELOG.de_DE.md` from `CHANGELOG.md`
+(scripts/changelog-de.mjs); they are not under version control.
+
 ## [Unreleased]
 
 **New:**
@@ -27,6 +32,12 @@ callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
   stays available via Help. Nextcloud's update notices for all apps can still
   only be switched off by the Nextcloud administrator (chapter 12.0 of the
   manual).
+
+**Fixed:**
+- **Nextcloud's "What's new" in German:** the dialog Nextcloud offers after an
+  update of the app showed German-speaking accounts the English changelog. It
+  only reads `CHANGELOG.<language>.md` and otherwise the English version; the
+  package now ships `CHANGELOG.de.md` and `CHANGELOG.de_DE.md`.
 
 ## [0.57.0] – 2026-11-25
 

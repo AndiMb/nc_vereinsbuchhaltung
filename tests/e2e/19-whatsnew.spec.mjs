@@ -10,9 +10,12 @@ import { api, openApp, openSettingsPage, USERS } from './fixtures/nextcloud.mjs'
 // der Splash kam bei jedem Laden wieder.
 test.describe('Was ist neu', () => {
 	// Ohne Konten haette der Setup-Assistent Vorrang – der Splash bliebe aus.
+	// Ebenso bei ausgeschalteten Hinweisen auf neue Versionen: ein
+	// abgebrochener Lauf des Blocks unten koennte den Schalter aus lassen.
 	test.beforeAll(async ({ request }) => {
 		await api.resetBook(request)
 		await api.seedDefaultAccounts(request)
+		await api.updateSettings(request, { update_hints_enabled: '1' })
 	})
 
 	/** Zuletzt gesehene Version des Verwalters setzen (pro Nutzer, IConfig). */
@@ -76,9 +79,12 @@ test.describe('Was ist neu', () => {
 // (App updatenotification) verwirft der UpdateNotificationFilter der App –
 // auch für Mitglieder ohne Rolle, die den Splash ohnehin nie sehen.
 test.describe('Schalter „Hinweise auf neue Versionen“', () => {
+	// Der Stand ab Werk (kein gespeicherter Wert = an) prüft
+	// SettingsControllerSepaTest; hier zählt, dass jeder Lauf mit „an“ beginnt.
 	test.beforeAll(async ({ request }) => {
 		await api.resetBook(request)
 		await api.seedDefaultAccounts(request)
+		await api.updateSettings(request, { update_hints_enabled: '1' })
 	})
 
 	test.afterAll(async ({ request }) => {
@@ -133,7 +139,7 @@ echo 'VBH-RESULT ' . json_encode($result);
 		await expect(toggle).toBeChecked({ checked: !from })
 	}
 
-	test('ab Werk an: Splash und Nextcloud-Benachrichtigung wie bisher', async ({ page, request }) => {
+	test('eingeschaltet: Splash und Nextcloud-Benachrichtigung wie bisher', async ({ page, request }) => {
 		expect((await api.getSettings(request)).update_hints_enabled).toBe(true)
 		expect(await updateNoticeForMember()).toEqual({ shown: true, subject: expect.stringContaining('Vereinsbuchhaltung') })
 
@@ -176,6 +182,33 @@ echo 'VBH-RESULT ' . json_encode($result);
 
 		expect((await api.getSettings(request)).update_hints_enabled).toBe(true)
 		expect((await updateNoticeForMember()).shown).toBe(true)
+	})
+})
+
+// Nextclouds eigener Dialog „Was ist neu“ (App updatenotification) liest den
+// Abschnitt der Version aus CHANGELOG.<sprache>.md, sonst aus CHANGELOG.en.md.
+// Die deutschen Fassungen erzeugt `npm run build` (scripts/changelog-de.mjs);
+// hier gefragt wird Nextclouds eigener Leser, so wie der Dialog ihn aufruft.
+test.describe('Nextclouds „Was ist neu“-Dialog', () => {
+	function changelogEntry(version, language) {
+		return inNextcloud(String.raw`
+$manager = \OCP\Server::get(\OCA\UpdateNotification\Manager::class);
+echo 'VBH-RESULT ' . json_encode(['entry' => $manager->getChangelog('vereinsbuchhaltung', $argv[1], $argv[2])]);
+`, [version, language])
+	}
+
+	test('zeigt deutschsprachigen Konten den deutschen Abschnitt, allen anderen den englischen', async ({ request }) => {
+		const version = (await api.getJson(request, '/whatsnew', { user: USERS.verwalter })).currentVersion
+
+		for (const language of ['de', 'de_DE']) {
+			const { entry } = await changelogEntry(version, language)
+			expect(entry, `Abschnitt ${version} für ${language}`).toContain(`## [${version}]`)
+			expect(entry, `Abschnitt ${version} für ${language}`).toMatch(/\*\*(Neu|Geändert|Behoben|Verbessert|Sicherheit):\*\*/)
+		}
+		for (const language of ['en', 'nl']) {
+			const { entry } = await changelogEntry(version, language)
+			expect(entry, `Abschnitt ${version} für ${language}`).toMatch(/\*\*(New|Changed|Fixed|Improved|Security):\*\*/)
+		}
 	})
 })
 
