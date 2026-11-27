@@ -19,6 +19,13 @@ verwenden, z. B. `**Neu:**`.
 
 ## [Unreleased]
 
+**Neu:**
+- **Hinweise auf neue Versionen abschaltbar:** Der Schalter unter
+  *Einstellungen → Darstellung* (ab Werk an) schaltet für alle das Fenster
+  „Was ist neu?“ der App und Nextclouds Benachrichtigung „Vereinsbuchhaltung
+  wurde aktualisiert“ ab, die bisher auch Mitglieder ohne Rolle bekamen
+  (Kapitel 12.0 des Handbuchs).
+
 ## [0.57.0] – 2026-11-25
 
 **Neu:**

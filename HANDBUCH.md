@@ -86,7 +86,7 @@ Abschnitte stehen in dieser Reihenfolge:
 | Gruppe | Abschnitte (Kapitel) |
 |---|---|
 | Grundlagen | Verein mit Vereinsname, Vereinswährung, Corporate Design und Angaben des Vereins (2.5, 2.6) · Berechtigungen (2.1) · Belege (2.4) · Kontoauszüge automatisch einlesen (3.3) · Geschäftsjahr (8.1) |
-| Listen und Berichte | Darstellung – Beträge in den Buchungslisten neutral oder mit Vorzeichen und Farbe, für alle Nutzer gleich · Ampel im Gliederungsbericht (7.5) |
+| Listen und Berichte | Darstellung – Beträge in den Buchungslisten neutral oder mit Vorzeichen und Farbe, für alle Nutzer gleich; Hinweise auf neue Versionen (12.0) · Ampel im Gliederungsbericht (7.5) |
 | Module | Beiträge & SEPA (13.1) · Mandats-Rechtstext (13.2) · Willkommens-Mail (13.2) · Zuwendungsbestätigungen (13.12) · Rechnungen (15.1) · Auslagenerstattung (4.6) · Kostenstellen (5.8) |
 | Daten und Sicherung | Datenübernahme aus „zero Buchhaltung" (3.1) · Sicherung und Umzug (12.3) · Zurücksetzen mit *Alle Daten löschen* (12.1) |
 
@@ -2102,6 +2102,23 @@ Buchen & zuordnen, Konten, Berichte, Beiträge & SEPA, Sphären); in den
 einzelnen Ansichten führen ebenfalls Hilfe-Symbole genau dorthin. Von jedem
 Kapitel führt ein Link **direkt in dieses Handbuch** – die App liefert es
 selbst als lesbare Seite aus, es muss also nichts auf GitHub gesucht werden.
+
+**Was ist neu?** Nach einem Update öffnet sich einmal das Fenster **„Was ist
+neu?"** (nur für Verwalter, Buchhalter und Revisoren); im Hilfe-Fenster holt
+der Link **„Was ist neu in Version …?"** es jederzeit zurück. Zusätzlich meldet
+**Nextcloud selbst** allen, die die App nutzen – auch Mitgliedern ohne Rolle –,
+in der Glocke: „Vereinsbuchhaltung wurde auf Version … aktualisiert".
+
+Beides schaltet ein Verwalter unter *Nextcloud-Einstellungen →
+Vereinsbuchhaltung → Darstellung → Hinweise auf neue Versionen* für alle ab
+(Schalter **Nach einem Update auf Neuerungen hinweisen**, ab Werk an). Die
+Nextcloud-Meldung verschwindet dann auch aus Push und Benachrichtigungs-Mail;
+der Link im Hilfe-Fenster bleibt.
+
+> **Für Nextcloud-Administratoren:** Der Schalter betrifft nur die Meldung zu
+> dieser App. Für **alle Apps** der Instanz schaltet sie nur
+> `occ config:app:set updatenotification app_updated.enabled --value=false --type=boolean`
+> ab.
 
 ### 12.1 „Alle Daten löschen" / Reset
 

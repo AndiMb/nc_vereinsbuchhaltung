@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { compareVersions } from '../lib/version.js'
-import { buildWhatsNewEntries, filterWhatsNewEntries } from './whatsNew.js'
+import { buildWhatsNewEntries, filterWhatsNewEntries, whatsNewBootAction } from './whatsNew.js'
 
 describe('filterWhatsNewEntries', () => {
 	const entries = buildWhatsNewEntries()
@@ -121,5 +121,24 @@ describe('echte Liste', () => {
 				expect(compareVersions(entry.version, laufend), `${entry.version} bei ${laufend}`).toBeLessThanOrEqual(0)
 			}
 		}
+	})
+})
+
+// Schalter „Hinweise auf neue Versionen“: an wie bisher, aus nie ein Splash.
+describe('whatsNewBootAction', () => {
+	const nachUpdate = { currentVersion: '0.57.0', lastSeenVersion: '0.56.0' }
+
+	it('an: Splash, wenn es Ungesehenes gibt', () => {
+		expect(whatsNewBootAction({ ...nachUpdate, enabled: true }, true)).toBe('show')
+		expect(whatsNewBootAction({ ...nachUpdate, enabled: true }, false)).toBe('none')
+	})
+
+	it('aus: kein Splash, die neue Version gilt still als gesehen', () => {
+		expect(whatsNewBootAction({ ...nachUpdate, enabled: false }, true)).toBe('markSeen')
+		expect(whatsNewBootAction({ ...nachUpdate, lastSeenVersion: '0.57.0', enabled: false }, false)).toBe('none')
+	})
+
+	it('Erstlogin: still als gesehen merken', () => {
+		expect(whatsNewBootAction({ ...nachUpdate, lastSeenVersion: '', enabled: true }, true)).toBe('markSeen')
 	})
 })

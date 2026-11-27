@@ -83,7 +83,7 @@ opens the matching chapter of this handbook. The sections come in this order:
 | Group | Sections (chapter) |
 |---|---|
 | Basics | Club with club name, club currency, corporate design and club details (2.5, 2.6) · Permissions (2.1) · Receipts (2.4) · Automatically import bank statements (3.3) · Fiscal year (8.1) |
-| Lists and reports | Display – amounts in the posting lists neutral or with sign and color, the same for all users · Status in the structured report (7.5) |
+| Lists and reports | Display – amounts in the posting lists neutral or with sign and color, the same for all users; notices about new versions (12.0) · Status in the structured report (7.5) |
 | Modules | Fees & SEPA (13.1) · Mandate legal text (13.2) · Welcome email (13.2) · Donation receipts (13.12) · Invoices (15.1) · Expense reimbursement (4.6) · Cost centres (5.8) |
 | Data and backup | Data import from "zero Buchhaltung" (3.1) · Backup and migration (12.3) · Reset with *Delete all data* (12.1) |
 
@@ -2050,6 +2050,23 @@ posting & assigning, accounts, reports, contributions & SEPA, spheres); help
 icons in the individual views also lead there directly. From every chapter,
 a link leads **directly into this manual** – the app itself serves it as a
 readable page, so nothing needs to be looked up on GitHub.
+
+**What's new?** After an update, the window **"What's new?"** opens once (only
+for administrators, bookkeepers and auditors); in the help window, the link
+**"What's new in version …?"** brings it back at any time. In addition,
+**Nextcloud itself** tells everyone who uses the app – members without a role
+included – in the bell: "Vereinsbuchhaltung updated to version …".
+
+An administrator switches both off for everyone under *Nextcloud settings →
+Vereinsbuchhaltung → Display → Notices about new versions* (switch **Point out
+what's new after an update**, on by default). The Nextcloud notice then also
+disappears from push and the notification email; the link in the help window
+stays.
+
+> **For Nextcloud administrators:** the switch only affects the notice about
+> this app. For **all apps** of the instance, only
+> `occ config:app:set updatenotification app_updated.enabled --value=false --type=boolean`
+> switches them off.
 
 ### 12.1 "Delete all data" / reset
 

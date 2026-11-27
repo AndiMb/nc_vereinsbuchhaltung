@@ -64,6 +64,7 @@
 					v-model:amountDisplay="amountDisplay"
 					:storageSaving="storageSaving"
 					:saveStorageSettings="saveSettings" />
+				<SettingsUpdateHints />
 			</NcSettingsSection>
 		</div>
 
@@ -220,6 +221,7 @@ import SettingsSepaBasics from './components/SettingsSepaBasics.vue'
 import SettingsSepaModule from './components/SettingsSepaModule.vue'
 import SettingsStatementWatch from './components/SettingsStatementWatch.vue'
 import SettingsToc from './components/SettingsToc.vue'
+import SettingsUpdateHints from './components/SettingsUpdateHints.vue'
 import SettingsWelcomeMail from './components/SettingsWelcomeMail.vue'
 import SettingsXbucImport from './components/SettingsXbucImport.vue'
 import api from './api.js'
@@ -271,6 +273,7 @@ export default {
 		SettingsSepaModule,
 		SettingsStatementWatch,
 		SettingsToc,
+		SettingsUpdateHints,
 		SettingsWelcomeMail,
 		SettingsXbucImport,
 	},
