@@ -1,6 +1,10 @@
 /vendor/
 /node_modules/
 /js/
+# Deutsche Fassung des Änderungsverlaufs für Nextclouds Dialog „Was ist neu“,
+# erzeugt aus CHANGELOG.md vor jedem Build (scripts/changelog-de.mjs)
+/CHANGELOG.de.md
+/CHANGELOG.de_DE.md
 /build/
 *.log
 .DS_Store

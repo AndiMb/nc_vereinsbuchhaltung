@@ -17,7 +17,18 @@ als „[object Object]" (falsche Renderer-Callback-Signatur, Nextcloud-
 Core-Bug, reproduziert 23.08.2026). Stattdessen **Fettdruck als Zeilenanfang**
 verwenden, z. B. `**Neu:**`.
 
+Dieses Popup liest nicht diese Datei, sondern `CHANGELOG.<sprache>.md` und
+sonst `CHANGELOG.en.md`. Für deutschsprachige Konten (`de`, `de_DE`) erzeugt
+`npm run build` daraus `CHANGELOG.de.md` und `CHANGELOG.de_DE.md`
+(scripts/changelog-de.mjs); beide sind nicht versioniert.
+
 ## [Unreleased]
+
+**Behoben:**
+- **Nextclouds „Was ist neu“ auf Deutsch:** Der Dialog, den Nextcloud nach
+  einem Update der App anbietet, zeigte deutschsprachigen Konten den
+  englischen Änderungsverlauf. Das Paket bringt jetzt `CHANGELOG.de.md` und
+  `CHANGELOG.de_DE.md` mit.
 
 ## [0.57.0] – 2026-11-25
 
