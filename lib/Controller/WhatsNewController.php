@@ -7,6 +7,7 @@ namespace OCA\Vereinsbuchhaltung\Controller;
 use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCA\Vereinsbuchhaltung\Middleware\RequiresRole;
 use OCA\Vereinsbuchhaltung\Service\PermissionService;
+use OCA\Vereinsbuchhaltung\Service\UpdateHintSettings;
 use OCP\App\IAppManager;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
@@ -27,6 +28,8 @@ use OCP\IUserSession;
  * das Attribut würde die Verb-Heuristik der PermissionMiddleware den
  * POST-Endpunkt als "schreibend" einstufen und Revisoren (nur Lesezugriff)
  * vom Wegklicken des Splash-Screens aussperren.
+ *
+ * `enabled`: Schalter „Hinweise auf neue Versionen“ (UpdateHintSettings).
  */
 class WhatsNewController extends Controller {
 
@@ -37,6 +40,7 @@ class WhatsNewController extends Controller {
 		private IUserConfig $config,
 		private IAppManager $appManager,
 		private IUserSession $userSession,
+		private UpdateHintSettings $updateHints,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -50,6 +54,7 @@ class WhatsNewController extends Controller {
 			'lastSeenVersion' => $uid !== null
 				? $this->config->getValueString($uid, Application::APP_ID, self::CONFIG_KEY, '')
 				: '',
+			'enabled' => $this->updateHints->isEnabled(),
 		]);
 	}
 

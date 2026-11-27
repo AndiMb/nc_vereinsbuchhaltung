@@ -22,6 +22,13 @@ German-speaking accounts (`de`, `de_DE`), `npm run build` generates
 
 ## [Unreleased]
 
+**New:**
+- **Notices about new versions can be switched off:** the switch under
+  *Settings → Display* (on by default) turns off, for everyone, the app's
+  "What's new?" window and Nextcloud's notification "Vereinsbuchhaltung
+  updated to version …", which so far reached members without a role too
+  (chapter 12.0 of the manual).
+
 **Fixed:**
 - **Nextcloud's "What's new" in German:** the dialog Nextcloud offers after an
   update of the app showed German-speaking accounts the English changelog. The

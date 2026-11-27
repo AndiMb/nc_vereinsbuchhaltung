@@ -511,7 +511,7 @@ import { useRules } from './composables/useRules.js'
 import { useSort } from './composables/useSort.js'
 import { useSync } from './composables/useSync.js'
 import { useTasks } from './composables/useTasks.js'
-import { buildWhatsNewEntries, filterWhatsNewEntries } from './data/whatsNew.js'
+import { buildWhatsNewEntries, filterWhatsNewEntries, whatsNewBootAction } from './data/whatsNew.js'
 import { accountLabel, accountOption } from './lib/accountLabel.js'
 import { allocationError, bookingLines, carryingLines, defaultAllocation, firstAllocationError, toPayload, withAllocations } from './lib/allocation.js'
 import { takeBootState } from './lib/bootState.js'
@@ -2203,16 +2203,15 @@ export default {
 				const { data } = await api.whatsNew()
 				this.whatsNewCurrentVersion = data.currentVersion
 				this.whatsNewLastSeenVersion = data.lastSeenVersion
-				if (data.lastSeenVersion === '') {
-					// Echter Erstlogin (oder Instanz ohne Historie): still auf den
-					// aktuellen Stand markieren, kein Popup - eine Wand historischer
-					// Aenderungen waere fuer neue Vereinskonten nur Ballast. Der
-					// Setup-Assistent uebernimmt bereits den Erstlauf-Flow.
+				const action = whatsNewBootAction(data, this.whatsNewEntries.length > 0)
+				if (action === 'markSeen') {
+					// Erstlogin oder ausgeschaltete Hinweise: still als gesehen
+					// merken, kein Popup (siehe whatsNewBootAction()).
 					this.whatsNewLastSeenVersion = data.currentVersion
 					await api.dismissWhatsNew(data.currentVersion)
 					return
 				}
-				if (!this.showSetupWizard && this.whatsNewEntries.length) {
+				if (action === 'show' && !this.showSetupWizard) {
 					this.whatsNewShow = true
 				}
 			} catch { /* kein Blocker, still weiterarbeiten */ }

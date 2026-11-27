@@ -30,6 +30,7 @@ use OCA\Vereinsbuchhaltung\Service\ReimbursementSettings;
 use OCA\Vereinsbuchhaltung\Service\ReportService;
 use OCA\Vereinsbuchhaltung\Service\SelfServiceService;
 use OCA\Vereinsbuchhaltung\Service\SepaDebtorAccountService;
+use OCA\Vereinsbuchhaltung\Service\UpdateHintSettings;
 use OCA\Vereinsbuchhaltung\Service\WatchFolderService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Db\DoesNotExistException;
@@ -567,6 +568,11 @@ class SettingsController extends Controller {
 		// die Zuordnungen bleiben gespeichert und werden nur ausgeblendet.
 		if (array_key_exists(CostCenterSettings::SETTING_ENABLED, $params)) {
 			$this->config->setValueString($appId, CostCenterSettings::SETTING_ENABLED, (string)$params[CostCenterSettings::SETTING_ENABLED] === '1' ? '1' : '0');
+		}
+
+		// Hinweise auf neue Versionen (UpdateHintSettings), standardmäßig an.
+		if (array_key_exists(UpdateHintSettings::SETTING_ENABLED, $params)) {
+			$this->config->setValueString($appId, UpdateHintSettings::SETTING_ENABLED, (string)$params[UpdateHintSettings::SETTING_ENABLED] === '1' ? '1' : '0');
 		}
 
 		// Rechnungsmodul (Epic #168): Ausstellerangaben und Vorgaben. Das

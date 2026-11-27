@@ -10,6 +10,7 @@ use OCA\Vereinsbuchhaltung\Listener\PermissionPrincipalDeletedListener;
 use OCA\Vereinsbuchhaltung\Listener\UserDeletedListener;
 use OCA\Vereinsbuchhaltung\Middleware\PermissionMiddleware;
 use OCA\Vereinsbuchhaltung\Middleware\RevisionMiddleware;
+use OCA\Vereinsbuchhaltung\Notification\UpdateNotificationFilter;
 use OCA\Vereinsbuchhaltung\Service\ActorContextService;
 use OCA\Vereinsbuchhaltung\Service\ClubClock;
 use OCA\Vereinsbuchhaltung\Service\PeriodService;
@@ -51,6 +52,10 @@ class Application extends App implements IBootstrap {
 		// Mitglied (Spec §2.2/§3.1) und löst die Verknüpfung, sobald das
 		// Konto weg ist.
 		$context->registerEventListener(BeforeUserDeletedEvent::class, MemberAccountDeletionListener::class);
+
+		// Verwirft Nextclouds Hinweis „Vereinsbuchhaltung wurde aktualisiert“,
+		// wenn die Hinweise auf neue Versionen aus sind.
+		$context->registerNotifierService(UpdateNotificationFilter::class);
 
 		// Ausdrücklich als geteilter Dienst: der TransactionRunner zählt die
 		// Verschachtelungstiefe und sammelt Nach-Commit-Aufgaben in

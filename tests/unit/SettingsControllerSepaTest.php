@@ -36,6 +36,7 @@ use OCA\Vereinsbuchhaltung\Service\ReimbursementSettings;
 use OCA\Vereinsbuchhaltung\Service\Report\BudgetStatus;
 use OCA\Vereinsbuchhaltung\Service\SelfServiceService;
 use OCA\Vereinsbuchhaltung\Service\SepaDebtorAccountService;
+use OCA\Vereinsbuchhaltung\Service\UpdateHintSettings;
 use OCA\Vereinsbuchhaltung\Tests\Unit\Support\ClubClockStub;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\DataResponse;
@@ -122,6 +123,7 @@ class SettingsControllerSepaTest extends TestCase {
 			$reimbursementSettings,
 			$currency,
 			$budgetStatusSettings,
+			new UpdateHintSettings($config),
 		);
 
 		return new SettingsController(
@@ -318,6 +320,19 @@ class SettingsControllerSepaTest extends TestCase {
 
 		$this->assertTrue($data['self_service_transfer_switch_enabled']);
 		$this->assertSame('1', $this->store['self_service_transfer_switch_enabled']);
+	}
+
+	/** Hinweise auf neue Versionen: ab Werk an (heutiges Verhalten), abschaltbar und wieder einschaltbar. */
+	public function testHinweiseAufNeueVersionenSindStandardmaessigAnUndLassenSichAbschalten(): void {
+		$this->assertTrue($this->controller()->index()->getData()['update_hints_enabled']);
+
+		$data = $this->update(['update_hints_enabled' => '0'])->getData();
+
+		$this->assertFalse($data['update_hints_enabled']);
+		$this->assertSame('0', $this->store['update_hints_enabled']);
+
+		$this->store['update_hints_enabled'] = '1';
+		$this->assertTrue($this->controller()->index()->getData()['update_hints_enabled']);
 	}
 
 	public function testNichtGeschickteFelderBleibenUnangetastet(): void {

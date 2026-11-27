@@ -24,6 +24,13 @@ sonst `CHANGELOG.en.md`. Für deutschsprachige Konten (`de`, `de_DE`) erzeugt
 
 ## [Unreleased]
 
+**Neu:**
+- **Hinweise auf neue Versionen abschaltbar:** Der Schalter unter
+  *Einstellungen → Darstellung* (ab Werk an) schaltet für alle das Fenster
+  „Was ist neu?“ der App und Nextclouds Benachrichtigung „Vereinsbuchhaltung
+  wurde aktualisiert“ ab, die bisher auch Mitglieder ohne Rolle bekamen
+  (Kapitel 12.0 des Handbuchs).
+
 **Behoben:**
 - **Nextclouds „Was ist neu“ auf Deutsch:** Der Dialog, den Nextcloud nach
   einem Update der App anbietet, zeigte deutschsprachigen Konten den

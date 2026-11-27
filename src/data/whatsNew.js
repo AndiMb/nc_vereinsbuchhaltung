@@ -428,3 +428,21 @@ export function filterWhatsNewEntries(entries, role, sinceVersion, currentVersio
 		.filter((entry) => !sinceVersion || isNewerVersion(entry.version, sinceVersion))
 		.filter((entry) => !currentVersion || compareVersions(entry.version, currentVersion) <= 0)
 }
+
+/**
+ * Was beim Start mit dem Splash geschieht (App.vue, loadWhatsNew()).
+ * 'markSeen' – still als gesehen merken: beim Erstlogin (sonst eine Wand
+ * historischer Änderungen) und bei ausgeschalteten Hinweisen auf neue
+ * Versionen (sonst käme beim Wiedereinschalten alles Aufgestaute).
+ *
+ * @param {{currentVersion: string, lastSeenVersion: string, enabled?: boolean}} state
+ * @param {boolean} hasUnseenEntries ob filterWhatsNewEntries() etwas übrig lässt
+ * @return {'markSeen'|'show'|'none'}
+ */
+export function whatsNewBootAction({ currentVersion, lastSeenVersion, enabled }, hasUnseenEntries) {
+	if (!currentVersion) { return 'none' }
+	if (lastSeenVersion === '' || enabled === false) {
+		return lastSeenVersion === currentVersion ? 'none' : 'markSeen'
+	}
+	return hasUnseenEntries ? 'show' : 'none'
+}
