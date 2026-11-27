@@ -23,15 +23,8 @@ import api from '../api.js'
 import { useSettingsCardSave } from '../composables/useSettingsCardSave.js'
 
 /**
- * Schalter „Hinweise auf neue Versionen“ (UpdateHintSettings im Backend),
- * standardmäßig an. Aus heißt: kein „Was ist neu“-Splash nach einem Update
- * (App.vue, whatsNewBootAction()) und keine Nextcloud-Benachrichtigung
- * „Vereinsbuchhaltung wurde aktualisiert“ (UpdateNotificationFilter) – für
- * alle, auch Mitglieder ohne Rolle.
- *
- * Wirkt sofort wie die Modulschalter; scheitert das Speichern, springt der
- * Schalter zurück und der Grund steht in der Karte. Schreibt nur das eine
- * Feld – SettingsController::update() speichert teilweise.
+ * Schalter „Hinweise auf neue Versionen“ (UpdateHintSettings). Wirkt sofort
+ * wie die Modulschalter; scheitert das Speichern, springt er zurück.
  */
 export default {
 	name: 'SettingsUpdateHints',
@@ -44,7 +37,6 @@ export default {
 	data() {
 		return {
 			loaded: false,
-			// Bis zur Antwort der Stand ab Werk; der Schalter ist so lange gesperrt.
 			enabled: true,
 		}
 	},
@@ -55,7 +47,6 @@ export default {
 			this.enabled = data.update_hints_enabled !== false
 			this.loaded = true
 		} catch {
-			// Bleibt gesperrt: ohne geladenen Stand nichts überschreiben.
 			this.error = this.t('Die Einstellungen konnten nicht geladen werden.')
 		}
 	},

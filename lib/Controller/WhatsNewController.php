@@ -29,9 +29,7 @@ use OCP\IUserSession;
  * POST-Endpunkt als "schreibend" einstufen und Revisoren (nur Lesezugriff)
  * vom Wegklicken des Splash-Screens aussperren.
  *
- * `enabled` meldet den vereinsweiten Schalter „Hinweise auf neue Versionen“
- * (UpdateHintSettings). Ausgeschaltet öffnet die Oberfläche den Splash nicht
- * mehr von selbst, sondern merkt die laufende Version still als gesehen.
+ * `enabled`: Schalter „Hinweise auf neue Versionen“ (UpdateHintSettings).
  */
 class WhatsNewController extends Controller {
 

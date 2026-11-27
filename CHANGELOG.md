@@ -17,31 +17,14 @@ als „[object Object]" (falsche Renderer-Callback-Signatur, Nextcloud-
 Core-Bug, reproduziert 23.08.2026). Stattdessen **Fettdruck als Zeilenanfang**
 verwenden, z. B. `**Neu:**`.
 
-Dieses Popup liest nicht diese Datei, sondern `CHANGELOG.<sprache>.md` und
-sonst `CHANGELOG.en.md`. Für deutschsprachige Konten (`de`, `de_DE`) erzeugt
-`npm run build` aus dieser Datei `CHANGELOG.de.md` und `CHANGELOG.de_DE.md`
-(scripts/changelog-de.mjs). Die beiden sind nicht versioniert und werden nicht
-von Hand bearbeitet.
-
 ## [Unreleased]
 
 **Neu:**
-- **Hinweise auf neue Versionen abschaltbar:** Unter *Einstellungen →
-  Darstellung* schaltet der Schalter **Nach einem Update auf Neuerungen
-  hinweisen** zwei Hinweise für alle ab: das Fenster „Was ist neu?“ der App
-  und Nextclouds Benachrichtigung „Vereinsbuchhaltung wurde aktualisiert“, die
-  bisher auch Mitglieder ohne Rolle in der Glocke, per Push und per Mail
-  bekamen. Ab Werk ist er an, es bleibt also alles wie bisher. Die Liste der
-  Neuerungen bleibt über die Hilfe erreichbar. Nextclouds Update-Hinweise für
-  alle Apps schaltet weiterhin nur der Nextcloud-Administrator ab (Kapitel 12.0
-  des Handbuchs).
-
-**Behoben:**
-- **Nextclouds „Was ist neu“ auf Deutsch:** Der Dialog, den Nextcloud nach
-  einem Update der App anbietet, zeigte deutschsprachigen Konten den
-  englischen Änderungsverlauf. Er liest nur `CHANGELOG.<sprache>.md` und sonst
-  die englische Fassung; das Paket bringt jetzt `CHANGELOG.de.md` und
-  `CHANGELOG.de_DE.md` mit.
+- **Hinweise auf neue Versionen abschaltbar:** Der Schalter unter
+  *Einstellungen → Darstellung* (ab Werk an) schaltet für alle das Fenster
+  „Was ist neu?“ der App und Nextclouds Benachrichtigung „Vereinsbuchhaltung
+  wurde aktualisiert“ ab, die bisher auch Mitglieder ohne Rolle bekamen
+  (Kapitel 12.0 des Handbuchs).
 
 ## [0.57.0] – 2026-11-25
 

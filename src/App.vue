@@ -2205,10 +2205,8 @@ export default {
 				this.whatsNewLastSeenVersion = data.lastSeenVersion
 				const action = whatsNewBootAction(data, this.whatsNewEntries.length > 0)
 				if (action === 'markSeen') {
-					// Echter Erstlogin oder vom Verein ausgeschaltete Hinweise:
-					// still auf den aktuellen Stand markieren, kein Popup (warum,
-					// steht an whatsNewBootAction()). Den Erstlauf-Flow
-					// uebernimmt der Setup-Assistent.
+					// Erstlogin oder ausgeschaltete Hinweise: still als gesehen
+					// merken, kein Popup (siehe whatsNewBootAction()).
 					this.whatsNewLastSeenVersion = data.currentVersion
 					await api.dismissWhatsNew(data.currentVersion)
 					return

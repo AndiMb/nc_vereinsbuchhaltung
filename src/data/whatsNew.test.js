@@ -124,36 +124,21 @@ describe('echte Liste', () => {
 	})
 })
 
-// Was beim Start mit dem Splash geschieht. Der Schalter „Hinweise auf neue
-// Versionen“ (Einstellungen → Darstellung) ist ab Werk an: dann bleibt alles
-// wie bisher. Aus: nie ein Splash, sondern still als gesehen merken.
+// Schalter „Hinweise auf neue Versionen“: an wie bisher, aus nie ein Splash.
 describe('whatsNewBootAction', () => {
 	const nachUpdate = { currentVersion: '0.57.0', lastSeenVersion: '0.56.0' }
 
-	it('eingeschaltet: zeigt den Splash, wenn es Ungesehenes gibt', () => {
+	it('an: Splash, wenn es Ungesehenes gibt', () => {
 		expect(whatsNewBootAction({ ...nachUpdate, enabled: true }, true)).toBe('show')
 		expect(whatsNewBootAction({ ...nachUpdate, enabled: true }, false)).toBe('none')
 	})
 
-	it('ohne Angabe des Servers gilt der Schalter als an', () => {
-		expect(whatsNewBootAction(nachUpdate, true)).toBe('show')
-	})
-
-	it('ausgeschaltet: nie ein Splash, die neue Version gilt still als gesehen', () => {
+	it('aus: kein Splash, die neue Version gilt still als gesehen', () => {
 		expect(whatsNewBootAction({ ...nachUpdate, enabled: false }, true)).toBe('markSeen')
-		expect(whatsNewBootAction({ ...nachUpdate, enabled: false }, false)).toBe('markSeen')
+		expect(whatsNewBootAction({ ...nachUpdate, lastSeenVersion: '0.57.0', enabled: false }, false)).toBe('none')
 	})
 
-	it('ausgeschaltet und schon auf dem Stand: nichts zu schreiben', () => {
-		expect(whatsNewBootAction({ currentVersion: '0.57.0', lastSeenVersion: '0.57.0', enabled: false }, false)).toBe('none')
-	})
-
-	it('Erstlogin: still als gesehen merken, egal wie der Schalter steht', () => {
-		expect(whatsNewBootAction({ currentVersion: '0.57.0', lastSeenVersion: '', enabled: true }, true)).toBe('markSeen')
-		expect(whatsNewBootAction({ currentVersion: '0.57.0', lastSeenVersion: '', enabled: false }, true)).toBe('markSeen')
-	})
-
-	it('ohne laufende Version nichts tun', () => {
-		expect(whatsNewBootAction({ currentVersion: '', lastSeenVersion: '0.56.0', enabled: true }, true)).toBe('none')
+	it('Erstlogin: still als gesehen merken', () => {
+		expect(whatsNewBootAction({ ...nachUpdate, lastSeenVersion: '', enabled: true }, true)).toBe('markSeen')
 	})
 })

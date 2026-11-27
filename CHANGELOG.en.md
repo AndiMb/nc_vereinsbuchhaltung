@@ -15,29 +15,14 @@ Markdown headings as "[object Object]" since `marked` v18 (wrong renderer
 callback signature, a Nextcloud core bug, reproduced 2026-08-23). Use a
 **bold lead-in** at the start of a line instead, e.g. `**New:**`.
 
-That popup reads `CHANGELOG.<language>.md` and falls back to this file. For
-German-speaking accounts (`de`, `de_DE`), `npm run build` generates
-`CHANGELOG.de.md` and `CHANGELOG.de_DE.md` from `CHANGELOG.md`
-(scripts/changelog-de.mjs); they are not under version control.
-
 ## [Unreleased]
 
 **New:**
-- **Notices about new versions can be switched off:** under *Settings →
-  Display*, the switch **Point out what's new after an update** turns off two
-  notices for everyone: the app's "What's new?" window and Nextcloud's
-  notification "Vereinsbuchhaltung updated to version …", which so far reached
-  members without a role too – in the bell, by push and by email. It is on by
-  default, so nothing changes unless you switch it off. The list of changes
-  stays available via Help. Nextcloud's update notices for all apps can still
-  only be switched off by the Nextcloud administrator (chapter 12.0 of the
-  manual).
-
-**Fixed:**
-- **Nextcloud's "What's new" in German:** the dialog Nextcloud offers after an
-  update of the app showed German-speaking accounts the English changelog. It
-  only reads `CHANGELOG.<language>.md` and otherwise the English version; the
-  package now ships `CHANGELOG.de.md` and `CHANGELOG.de_DE.md`.
+- **Notices about new versions can be switched off:** the switch under
+  *Settings → Display* (on by default) turns off, for everyone, the app's
+  "What's new?" window and Nextcloud's notification "Vereinsbuchhaltung
+  updated to version …", which so far reached members without a role too
+  (chapter 12.0 of the manual).
 
 ## [0.57.0] – 2026-11-25
 

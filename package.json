@@ -5,7 +5,7 @@
 	"license": "AGPL-3.0-or-later",
 	"private": true,
 	"scripts": {
-		"prebuild": "node scripts/l10n-js.mjs && node scripts/changelog-de.mjs",
+		"prebuild": "node scripts/l10n-js.mjs",
 		"build": "webpack --node-env production --progress",
 		"dev": "webpack --node-env development --progress",
 		"watch": "webpack --node-env development --progress --watch",
@@ -14,7 +14,6 @@
 		"test": "vitest run",
 		"l10n:check": "node tests/l10n/check.mjs",
 		"l10n:js": "node scripts/l10n-js.mjs",
-		"changelog:de": "node scripts/changelog-de.mjs",
 		"phpstan": "php .phpstan/vendor/phpstan/phpstan/phpstan.phar analyse --no-progress --memory-limit=1G",
 		"phpunit": "php .phpstan/vendor/phpunit/phpunit/phpunit --configuration phpunit.xml",
 		"test:e2e:server": "node tests/e2e/setup/server.mjs",

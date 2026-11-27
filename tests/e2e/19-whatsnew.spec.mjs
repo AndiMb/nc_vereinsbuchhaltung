@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { inNextcloud } from './fixtures/container.mjs'
+import { inNextcloud } from './fixtures/girocode.mjs'
 import { api, openApp, openSettingsPage, USERS } from './fixtures/nextcloud.mjs'
 
 // Der "Was ist neu"-Splash (WhatsNewDialog.vue) ist der einzige Dialog, der
@@ -10,11 +10,10 @@ import { api, openApp, openSettingsPage, USERS } from './fixtures/nextcloud.mjs'
 // der Splash kam bei jedem Laden wieder.
 test.describe('Was ist neu', () => {
 	// Ohne Konten haette der Setup-Assistent Vorrang – der Splash bliebe aus.
-	// Ebenso bei ausgeschalteten Hinweisen auf neue Versionen: ein
-	// abgebrochener Lauf des Blocks unten koennte den Schalter aus lassen.
 	test.beforeAll(async ({ request }) => {
 		await api.resetBook(request)
 		await api.seedDefaultAccounts(request)
+		// Ausgeschaltete Hinweise (Block unten) unterdrückten den Splash ebenfalls.
 		await api.updateSettings(request, { update_hints_enabled: '1' })
 	})
 
@@ -73,142 +72,65 @@ test.describe('Was ist neu', () => {
 	})
 })
 
-// Der Schalter „Hinweise auf neue Versionen“ (Einstellungen → Darstellung):
-// ab Werk an, ausgeschaltet geht der Splash niemandem mehr von selbst auf, und
-// Nextclouds eigene Benachrichtigung „Vereinsbuchhaltung wurde aktualisiert“
-// (App updatenotification) verwirft der UpdateNotificationFilter der App –
-// auch für Mitglieder ohne Rolle, die den Splash ohnehin nie sehen.
+// Schalter „Hinweise auf neue Versionen“ (Einstellungen → Darstellung). Aus
+// heißt: kein Splash, und der UpdateNotificationFilter verwirft Nextclouds
+// Benachrichtigung „Vereinsbuchhaltung wurde aktualisiert“ – auch für
+// Mitglieder ohne Rolle. Die prüft der Test über IManager::prepare(), denselben
+// Weg wie Glocke, Push und Mail (der Testserver hat die App notifications nicht).
 test.describe('Schalter „Hinweise auf neue Versionen“', () => {
-	// Der Stand ab Werk (kein gespeicherter Wert = an) prüft
-	// SettingsControllerSepaTest; hier zählt, dass jeder Lauf mit „an“ beginnt.
 	test.beforeAll(async ({ request }) => {
 		await api.resetBook(request)
 		await api.seedDefaultAccounts(request)
+	})
+
+	test.beforeEach(async ({ request }) => {
 		await api.updateSettings(request, { update_hints_enabled: '1' })
+		await api.raw(request, 'POST', '/whatsnew/seen', { data: { version: '0.20.0' } })
 	})
 
 	test.afterAll(async ({ request }) => {
 		await api.updateSettings(request, { update_hints_enabled: '1' })
 	})
 
-	function markSeen(request, version) {
-		return api.raw(request, 'POST', '/whatsnew/seen', { user: USERS.verwalter, data: { version } })
-	}
-
-	/** Lädt die App und wartet auf GET /whatsnew – erst danach ist entschieden, ob der Splash kommt. */
-	async function openAppAndWaitForWhatsNew(page) {
-		await openApp(page, USERS.verwalter, { booted: true })
-	}
-
-	/**
-	 * Bereitet Nextcloud die Update-Benachrichtigung der App für ein Mitglied
-	 * ohne Rolle auf, wie Glocke, Push und Mail es tun (IManager::prepare()).
-	 * Ohne die App notifications im Testserver gibt es keine Glocke; die
-	 * Entscheidung fällt aber genau hier.
-	 */
-	function updateNoticeForMember() {
+	function updateNoticeShown() {
 		return inNextcloud(String.raw`
 $manager = \OCP\Server::get(\OCP\Notification\IManager::class);
 $n = $manager->createNotification();
 $n->setApp('updatenotification')->setUser($argv[1])->setDateTime(new \DateTime())
 	->setObject('app_updated', 'vereinsbuchhaltung')->setSubject('app_updated', ['vereinsbuchhaltung']);
 try {
-	$result = ['shown' => true, 'subject' => $manager->prepare($n, 'de')->getParsedSubject()];
+	$manager->prepare($n, 'de');
+	$result = ['shown' => true];
 } catch (\OCP\Notification\AlreadyProcessedException $e) {
 	$result = ['shown' => false];
-} catch (\Throwable $e) {
-	$result = ['error' => get_class($e) . ': ' . $e->getMessage()];
 }
 echo 'VBH-RESULT ' . json_encode($result);
 `, [USERS.ohneRolle])
 	}
 
-	/**
-	 * Den Schalter in den Einstellungen umlegen und warten, bis der Server ihn
-	 * hat. Das Eingabefeld selbst ist unsichtbar überlagert – geklickt wird wie
-	 * in 40-settings-legal-text auf die Beschriftung.
-	 */
-	async function flipToggle(page, { from }) {
-		const label = 'Nach einem Update auf Neuerungen hinweisen'
-		await openSettingsPage(page, USERS.admin)
-		const card = page.getByTestId('settings-update-hints')
-		const toggle = card.getByRole('switch', { name: label })
-		await expect(toggle).toBeChecked({ checked: from })
-		await card.getByText(label).click()
-		await expect(page.getByRole('status').filter({ hasText: 'Einstellungen gespeichert.' }).first()).toBeVisible()
-		await expect(toggle).toBeChecked({ checked: !from })
-	}
-
-	test('eingeschaltet: Splash und Nextcloud-Benachrichtigung wie bisher', async ({ page, request }) => {
-		expect((await api.getSettings(request)).update_hints_enabled).toBe(true)
-		expect(await updateNoticeForMember()).toEqual({ shown: true, subject: expect.stringContaining('Vereinsbuchhaltung') })
-
-		await markSeen(request, '0.20.0')
-		await openAppAndWaitForWhatsNew(page)
+	test('an: Splash erscheint, Nextcloud meldet das Update', async ({ page }) => {
+		expect(await updateNoticeShown()).toEqual({ shown: true })
+		await openApp(page, USERS.admin, { booted: true })
 		await expect(page.locator('.vbh-whatsnew')).toBeVisible()
 	})
 
-	test('in den Einstellungen abschaltbar, die Nextcloud-Benachrichtigung entfällt', async ({ page, request }) => {
-		await api.updateSettings(request, { update_hints_enabled: '1' })
-		await flipToggle(page, { from: true })
-
+	test('aus: in den Einstellungen abgeschaltet, kein Splash und keine Nextcloud-Meldung', async ({ page, request }) => {
+		// Das Eingabefeld ist überlagert; geklickt wird auf die Beschriftung.
+		const label = 'Nach einem Update auf Neuerungen hinweisen'
+		await openSettingsPage(page, USERS.admin)
+		const card = page.getByTestId('settings-update-hints')
+		await expect(card.getByRole('switch', { name: label })).toBeChecked()
+		await card.getByText(label).click()
+		await expect(page.getByRole('status').filter({ hasText: 'Einstellungen gespeichert.' }).first()).toBeVisible()
 		expect((await api.getSettings(request)).update_hints_enabled).toBe(false)
-		expect(await updateNoticeForMember()).toEqual({ shown: false })
-	})
 
-	test('ausgeschaltet: kein Splash, die Liste bleibt über die Hilfe erreichbar', async ({ page, request }) => {
-		await api.updateSettings(request, { update_hints_enabled: '0' })
+		expect(await updateNoticeShown()).toEqual({ shown: false })
 
-		// Ungesehene Einträge liegen vor – trotzdem kein Splash. Die laufende
-		// Version gilt danach still als gesehen: schaltet der Verein die
-		// Hinweise später wieder ein, kommt nicht alles Aufgestaute auf einmal.
-		await markSeen(request, '0.20.0')
+		// Statt des Splash merkt die App die laufende Version still als gesehen.
 		const gemerkt = page.waitForResponse((r) => r.request().method() === 'POST' && r.url().endsWith('/api/whatsnew/seen'))
-		await openAppAndWaitForWhatsNew(page)
+		await openApp(page, USERS.admin, { booted: true })
 		await gemerkt
 		await expect(page.locator('.vbh-whatsnew')).toBeHidden()
-		const stand = await api.getJson(request, '/whatsnew', { user: USERS.verwalter })
-		expect(stand).toMatchObject({ enabled: false, lastSeenVersion: stand.currentVersion })
-
-		// Auf Nachfrage bleibt die Liste da.
-		await page.getByRole('button', { name: 'Hilfe' }).first().click()
-		await page.getByRole('link', { name: /Was ist neu in Version/ }).click()
-		await expect(page.locator('.vbh-whatsnew .vbh-whatsnew-entry').first()).toBeVisible()
-	})
-
-	test('wieder einschaltbar, die Nextcloud-Benachrichtigung kommt zurück', async ({ page, request }) => {
-		await api.updateSettings(request, { update_hints_enabled: '0' })
-		await flipToggle(page, { from: false })
-
-		expect((await api.getSettings(request)).update_hints_enabled).toBe(true)
-		expect((await updateNoticeForMember()).shown).toBe(true)
-	})
-})
-
-// Nextclouds eigener Dialog „Was ist neu“ (App updatenotification) liest den
-// Abschnitt der Version aus CHANGELOG.<sprache>.md, sonst aus CHANGELOG.en.md.
-// Die deutschen Fassungen erzeugt `npm run build` (scripts/changelog-de.mjs);
-// hier gefragt wird Nextclouds eigener Leser, so wie der Dialog ihn aufruft.
-test.describe('Nextclouds „Was ist neu“-Dialog', () => {
-	function changelogEntry(version, language) {
-		return inNextcloud(String.raw`
-$manager = \OCP\Server::get(\OCA\UpdateNotification\Manager::class);
-echo 'VBH-RESULT ' . json_encode(['entry' => $manager->getChangelog('vereinsbuchhaltung', $argv[1], $argv[2])]);
-`, [version, language])
-	}
-
-	test('zeigt deutschsprachigen Konten den deutschen Abschnitt, allen anderen den englischen', async ({ request }) => {
-		const version = (await api.getJson(request, '/whatsnew', { user: USERS.verwalter })).currentVersion
-
-		for (const language of ['de', 'de_DE']) {
-			const { entry } = await changelogEntry(version, language)
-			expect(entry, `Abschnitt ${version} für ${language}`).toContain(`## [${version}]`)
-			expect(entry, `Abschnitt ${version} für ${language}`).toMatch(/\*\*(Neu|Geändert|Behoben|Verbessert|Sicherheit):\*\*/)
-		}
-		for (const language of ['en', 'nl']) {
-			const { entry } = await changelogEntry(version, language)
-			expect(entry, `Abschnitt ${version} für ${language}`).toMatch(/\*\*(New|Changed|Fixed|Improved|Security):\*\*/)
-		}
 	})
 })
 

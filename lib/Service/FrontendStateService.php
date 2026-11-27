@@ -200,7 +200,7 @@ class FrontendStateService {
 			KassenberichtArchive::SETTING_FOLDER => $this->config->getValueString(Application::APP_ID, KassenberichtArchive::SETTING_FOLDER, KassenberichtArchive::DEFAULT_FOLDER),
 			// Zuwendungsbestätigungen (Issue #10): ersetzen in der Akte die informelle Beitragsbestätigung.
 			DonationReceiptSettings::SETTING_ENABLED => $this->config->getValueString(Application::APP_ID, DonationReceiptSettings::SETTING_ENABLED, '0') === '1',
-			// Hinweise auf neue Versionen („Was ist neu“, Nextclouds Update-Benachrichtigung), standardmäßig an.
+			// Hinweise auf neue Versionen, standardmäßig an.
 			UpdateHintSettings::SETTING_ENABLED => $this->updateHints->isEnabled(),
 		] + $this->invoiceSettings->all();
 	}

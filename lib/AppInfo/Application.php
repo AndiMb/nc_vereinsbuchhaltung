@@ -53,9 +53,8 @@ class Application extends App implements IBootstrap {
 		// Konto weg ist.
 		$context->registerEventListener(BeforeUserDeletedEvent::class, MemberAccountDeletionListener::class);
 
-		// Kein eigener Benachrichtigungstyp: der Filter verwirft Nextclouds
-		// Hinweis „Vereinsbuchhaltung wurde aktualisiert“, wenn der Verein die
-		// Hinweise auf neue Versionen ausgeschaltet hat (siehe dort).
+		// Verwirft Nextclouds Hinweis „Vereinsbuchhaltung wurde aktualisiert“,
+		// wenn die Hinweise auf neue Versionen aus sind.
 		$context->registerNotifierService(UpdateNotificationFilter::class);
 
 		// Ausdrücklich als geteilter Dienst: der TransactionRunner zählt die

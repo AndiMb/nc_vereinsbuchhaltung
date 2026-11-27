@@ -8,14 +8,9 @@ use OCA\Vereinsbuchhaltung\AppInfo\Application;
 use OCP\IAppConfig;
 
 /**
- * Schalter „Hinweise auf neue Versionen“ (Einstellungen → Darstellung).
- *
- * Standardmäßig an. Ausgeschaltet erscheint nach einem Update weder der
- * eigene „Was ist neu“-Splash der App (WhatsNewDialog.vue) noch Nextclouds
- * Benachrichtigung „Vereinsbuchhaltung wurde aktualisiert“ aus der App
- * `updatenotification` – die verwirft UpdateNotificationFilter. Über den
- * Hilfe-Link „Was ist neu in Version …?“ lässt sich die Liste weiterhin
- * aufrufen; das ist kein Hinweis, sondern eine Frage der Person selbst.
+ * Schalter „Hinweise auf neue Versionen“ (Einstellungen → Darstellung), ab
+ * Werk an. Aus: kein „Was ist neu“-Splash und keine Nextcloud-Benachrichtigung
+ * zum Update (UpdateNotificationFilter).
  */
 class UpdateHintSettings {
 

@@ -570,8 +570,7 @@ class SettingsController extends Controller {
 			$this->config->setValueString($appId, CostCenterSettings::SETTING_ENABLED, (string)$params[CostCenterSettings::SETTING_ENABLED] === '1' ? '1' : '0');
 		}
 
-		// Hinweise auf neue Versionen: „Was ist neu“-Splash und Nextclouds
-		// Update-Benachrichtigung zur App (UpdateHintSettings), standardmäßig an.
+		// Hinweise auf neue Versionen (UpdateHintSettings), standardmäßig an.
 		if (array_key_exists(UpdateHintSettings::SETTING_ENABLED, $params)) {
 			$this->config->setValueString($appId, UpdateHintSettings::SETTING_ENABLED, (string)$params[UpdateHintSettings::SETTING_ENABLED] === '1' ? '1' : '0');
 		}
