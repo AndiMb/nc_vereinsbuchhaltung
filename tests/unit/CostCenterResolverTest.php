@@ -84,7 +84,7 @@ class CostCenterResolverTest extends TestCase {
 		$accountMapper = $this->createMock(AccountMapper::class);
 		$accountMapper->method('findAll')->willReturn($accounts);
 		$lineMapper = $this->createMock(JournalLineMapper::class);
-		$lineMapper->method('sumByAccount')->willReturn($sums);
+		$lineMapper->method('sumResultByAccount')->willReturn($sums);
 		$ccMapper = $this->createMock(CostCenterMapper::class);
 		$ccMapper->method('findAll')->willReturn($costCenters);
 		$periods = $this->createMock(PeriodService::class);

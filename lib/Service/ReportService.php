@@ -100,7 +100,7 @@ class ReportService {
 	public function costCenterReport(string $userId, ?int $periodId = null): array {
 		$accounts = $this->accountMapper->findAll($userId);
 		[$from, $to] = $this->periods->range($userId, $periodId);
-		$sums = $this->lineMapper->sumByAccount($userId, $from, $to);
+		$sums = $this->lineMapper->sumResultByAccount($userId, $from, $to);
 		$resolver = $this->costCenterResolver($userId);
 		$mode = $resolver->mode();
 
@@ -206,7 +206,7 @@ class ReportService {
 	public function sphereReport(string $userId, ?int $periodId = null): array {
 		$accounts = $this->accountMapper->findAll($userId);
 		[$from, $to] = $this->periods->range($userId, $periodId);
-		$sums = $this->lineMapper->sumByAccount($userId, $from, $to);
+		$sums = $this->lineMapper->sumResultByAccount($userId, $from, $to);
 
 		// Alle vier Sphären + „nicht zugeordnet" immer anlegen, auch ohne
 		// Bewegung – macht offene Zuordnungen im Bericht sofort sichtbar.
@@ -364,7 +364,7 @@ class ReportService {
 
 		$rows = [];
 		foreach ($periods as $p) {
-			$sums = $this->lineMapper->sumByAccount($userId, $p->getStartDate(), $p->getEndDate());
+			$sums = $this->lineMapper->sumResultByAccount($userId, $p->getStartDate(), $p->getEndDate());
 			$result = LedgerAggregator::incomeExpense($accounts, $sums);
 			$rows[] = [
 				'periodId' => (int)$p->getId(),

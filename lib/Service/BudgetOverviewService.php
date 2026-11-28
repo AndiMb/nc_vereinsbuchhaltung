@@ -51,11 +51,11 @@ class BudgetOverviewService {
 		$basis = BudgetComparison::basis($basis);
 		$accounts = $this->accountMapper->findAll($userId);
 		$plan = $this->budgetMapper->findByPeriod($userId, (int)$period->getId());
-		$sums = $this->lineMapper->sumByAccount($userId, $period->getStartDate(), $period->getEndDate());
+		$sums = $this->lineMapper->sumResultByAccount($userId, $period->getStartDate(), $period->getEndDate());
 		$comparePlan = $compare !== null && $basis === BudgetComparison::BASIS_PLAN
 			? $this->budgetMapper->findByPeriod($userId, (int)$compare->getId()) : [];
 		$compareSums = $compare !== null && $basis === BudgetComparison::BASIS_ACTUAL
-			? $this->lineMapper->sumByAccount($userId, $compare->getStartDate(), $compare->getEndDate()) : [];
+			? $this->lineMapper->sumResultByAccount($userId, $compare->getStartDate(), $compare->getEndDate()) : [];
 
 		$byId = [];
 		$planCents = [];

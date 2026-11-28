@@ -115,8 +115,10 @@ class JournalController extends Controller {
 		}
 
 		// Ergebnis aus den Bewegungen des Zeitraums. Damit gilt: Änderung des
-		// Vermögens (Bank/Kasse) = Ergebnis.
-		$result = LedgerAggregator::incomeExpense($accounts, $moveSums);
+		// Vermögens (Bank/Kasse) = Ergebnis. Ohne Eröffnungsbuchungen: die
+		// Kontozeilen oben zeigen einen Anfangsbestand, ein Umsatz ist er
+		// nicht (#393).
+		$result = LedgerAggregator::incomeExpense($accounts, $this->lineMapper->sumResultByAccount($userId, $from, $to));
 
 		// --- Bank-Abstimmung ---------------------------------------------
 		// Kontostand = kumulativer Saldo (inkl. Eröffnung) bis Jahresende.

@@ -210,11 +210,38 @@ class JournalLineMapper extends QBMapper {
 	 * ist eine DATE-Spalte; die Grenzen werden als ISO-Datum (YYYY-MM-DD)
 	 * übergeben und von der Datenbank als Datum verglichen.
 	 *
+	 * Enthält die Eröffnungsbuchungen: für Kontostände und für die Spalten
+	 * Soll/Haben eines Kontos ist das richtig. Wer daraus ein Ergebnis
+	 * (Einnahmen, Ausgaben, Soll-Ist) rechnet, nimmt {@see sumResultByAccount()}.
+	 *
 	 * @param string|null $from inklusive untere Datumsgrenze (z.B. 2026-01-01)
 	 * @param string|null $to inklusive obere Datumsgrenze (z.B. 2026-12-31)
 	 * @return array<int, array{debit:int, credit:int}>
 	 */
 	public function sumByAccount(string $userId, ?string $from = null, ?string $to = null): array {
+		return $this->sums($userId, $from, $to, true);
+	}
+
+	/**
+	 * Wie {@see sumByAccount()}, aber ohne Eröffnungsbuchungen – die Grundlage
+	 * jeder Ergebnisrechnung.
+	 *
+	 * Ein Anfangsbestand ist kein Umsatz. Bei einem Geldkonto fiel das nie auf:
+	 * weder das Geldkonto noch das Eigenkapital-Gegenkonto zählen ins Ergebnis.
+	 * Trägt aber ein Konto ohne Geldkonto-Kennzeichen einen Anfangsbestand –
+	 * etwa eine Verbindlichkeit aus erhaltenen Kautionen –, stand er als
+	 * Einnahme des Jahres im Bericht, ohne dass Geld geflossen wäre (#393).
+	 *
+	 * @param string|null $from inklusive untere Datumsgrenze
+	 * @param string|null $to inklusive obere Datumsgrenze
+	 * @return array<int, array{debit:int, credit:int}>
+	 */
+	public function sumResultByAccount(string $userId, ?string $from = null, ?string $to = null): array {
+		return $this->sums($userId, $from, $to, false);
+	}
+
+	/** @return array<int, array{debit:int, credit:int}> */
+	private function sums(string $userId, ?string $from, ?string $to, bool $withOpening): array {
 		$qb = $this->db->getQueryBuilder();
 		$qb->select('l.account_id')
 			->selectAlias($qb->func()->sum('l.debit_cents'), 'debit')
@@ -229,6 +256,9 @@ class JournalLineMapper extends QBMapper {
 		if ($to !== null) {
 			$qb->andWhere($qb->expr()->lte('j.date', $qb->createNamedParameter($to)));
 		}
+		if (!$withOpening) {
+			$this->excludeOpening($qb);
+		}
 		$result = $qb->executeQuery();
 		$out = [];
 		while (($row = $result->fetch()) !== false) {
@@ -242,7 +272,21 @@ class JournalLineMapper extends QBMapper {
 	}
 
 	/**
-	 * Wie {@see sumByAccount()}, aber zusätzlich nach Monat getrennt.
+	 * Nimmt Eröffnungsbuchungen ({@see JournalMapper::OPENING_REF}) aus einer
+	 * Abfrage über `vbh_journal j` heraus. Der IS-NULL-Zweig ist nötig: ein
+	 * bloßes `<> 'EB'` verwürfe in SQL auch jede Buchung ohne Belegnummer.
+	 */
+	private function excludeOpening(IQueryBuilder $qb): void {
+		$qb->andWhere($qb->expr()->orX(
+			$qb->expr()->isNull('j.document_ref'),
+			$qb->expr()->neq('j.document_ref', $qb->createNamedParameter(JournalMapper::OPENING_REF)),
+		));
+	}
+
+	/**
+	 * Wie {@see sumResultByAccount()}, aber zusätzlich nach Monat getrennt –
+	 * also ebenfalls ohne Eröffnungsbuchungen: die Monatsreihe ist ein
+	 * Einnahmen-/Ausgabenverlauf, kein Kontostand (#393).
 	 *
 	 * Die Datenbank gruppiert nach Konto und Buchungstag; den Monat bildet
 	 * {@see foldByMonth()} in PHP. Eine Teilstring-Funktion im SQL ginge auf
@@ -265,6 +309,7 @@ class JournalLineMapper extends QBMapper {
 			->andWhere($qb->expr()->lte('j.date', $qb->createNamedParameter($to)))
 			->groupBy('l.account_id')
 			->addGroupBy('j.date');
+		$this->excludeOpening($qb);
 		$result = $qb->executeQuery();
 		$rows = [];
 		while (($row = $result->fetch()) !== false) {

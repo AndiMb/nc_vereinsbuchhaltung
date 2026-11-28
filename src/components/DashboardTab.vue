@@ -457,6 +457,9 @@ export default {
 			for (const item of this.journalData) {
 				const date = item.journal && item.journal.date
 				if (!date) { continue }
+				// Eine Eröffnungsbuchung (Belegnummer „EB“, JournalMapper::OPENING_REF)
+				// ist Anfangsbestand, kein Umsatz – wie in den Summen darüber (#393).
+				if (item.journal.documentRef === 'EB') { continue }
 				const key = String(date).slice(0, 7)
 				// Buchungen außerhalb des Zeitraums (undefined) und unbrauchbare
 				// Datumsangaben (NaN) fallen über diesen Vergleich beide heraus.
