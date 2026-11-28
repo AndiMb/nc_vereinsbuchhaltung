@@ -67,8 +67,11 @@ class BackupFileSource {
 			}
 			yield ['kind' => 'mandates', 'id' => $mandate->getId(), 'label' => (string)$mandate->getMandateReference(), 'read' => fn (): ?string => $this->mandateDocuments->contentOrNull($mandate)];
 		}
-		foreach ($this->donationReceipts?->all() ?? [] as $receipt) {
-			yield ['kind' => DonationReceiptStorage::APPDATA_FOLDER, 'id' => $receipt->getId(), 'label' => $receipt->getFileName(), 'read' => fn (): ?string => $this->donationReceipts?->readOrNull($receipt)];
+		$receipts = $this->donationReceipts;
+		if ($receipts !== null) {
+			foreach ($receipts->all() as $receipt) {
+				yield ['kind' => DonationReceiptStorage::APPDATA_FOLDER, 'id' => $receipt->getId(), 'label' => $receipt->getFileName(), 'read' => fn (): ?string => $receipts->readOrNull($receipt)];
+			}
 		}
 	}
 
