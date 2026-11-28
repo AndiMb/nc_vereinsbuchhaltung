@@ -74,7 +74,8 @@ class KassenberichtRenderer {
 		$prevTo = $previous?->getEndDate() ?? PeriodRule::previousDay($from);
 
 		$accounts = $this->accountMapper->findAll($userId);
-		$moveSums = $this->lineMapper->sumByAccount($userId, $from, $to);
+		// Ergebnis ohne Eröffnungsbuchungen, Bestände (darunter) mit ihnen (#393).
+		$moveSums = $this->lineMapper->sumResultByAccount($userId, $from, $to);
 		$cumEnd = $this->lineMapper->sumByAccount($userId, null, $to);
 		$cumStart = $this->lineMapper->sumByAccount($userId, null, $prevTo);
 

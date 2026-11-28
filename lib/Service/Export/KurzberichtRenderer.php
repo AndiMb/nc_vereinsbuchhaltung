@@ -66,7 +66,8 @@ class KurzberichtRenderer {
 		$beforeSince = (new \DateTimeImmutable($since))->modify('-1 day')->format('Y-m-d');
 
 		$accounts = $this->accountMapper->findAll($userId);
-		$moveSums = $this->lineMapper->sumByAccount($userId, $since, $today);
+		// Ergebnis ohne Eröffnungsbuchungen, Bestände (darunter) mit ihnen (#393).
+		$moveSums = $this->lineMapper->sumResultByAccount($userId, $since, $today);
 		$cumStart = $this->lineMapper->sumByAccount($userId, null, $beforeSince);
 		$cumEnd = $this->lineMapper->sumByAccount($userId, null, $today);
 
@@ -79,7 +80,7 @@ class KurzberichtRenderer {
 		$plan = $this->budgetMapper->findByPeriod($userId, (int)$period->getId());
 		$soll = null;
 		if ($plan !== []) {
-			$periodMoveSums = $this->lineMapper->sumByAccount($userId, $period->getStartDate(), $today);
+			$periodMoveSums = $this->lineMapper->sumResultByAccount($userId, $period->getStartDate(), $today);
 			$soll = LedgerAggregator::planActual($accounts, $periodMoveSums, $plan);
 		}
 

@@ -270,7 +270,7 @@ class CsvExportService {
 	public function report(string $userId, ?int $periodId = null): CsvFile {
 		[$from, $to] = $this->periods->range($userId, $periodId);
 		$accounts = $this->accountMapper->findAll($userId);
-		$moveSums = $this->lineMapper->sumByAccount($userId, $from, $to);
+		$moveSums = $this->lineMapper->sumResultByAccount($userId, $from, $to);
 		$erfolg = LedgerAggregator::incomeExpense($accounts, $moveSums);
 
 		$csv = self::BOM;
@@ -491,7 +491,7 @@ class CsvExportService {
 		foreach ($periods as $period) {
 			$id = (int)$period->getId();
 			$ids[] = $id;
-			$movById[$id] = $this->lineMapper->sumByAccount($userId, $period->getStartDate(), $period->getEndDate());
+			$movById[$id] = $this->lineMapper->sumResultByAccount($userId, $period->getStartDate(), $period->getEndDate());
 			$cumById[$id] = $this->lineMapper->sumByAccount($userId, null, $period->getEndDate());
 		}
 

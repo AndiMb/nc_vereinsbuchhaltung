@@ -300,7 +300,7 @@ class StructuredReportService {
 	 * @return array<int, int>
 	 */
 	private function actualCents(string $userId, Period $p, array $accounts, ?string $until = null): array {
-		$sums = $this->lineMapper->sumByAccount($userId, $p->getStartDate(), $until ?? $p->getEndDate());
+		$sums = $this->lineMapper->sumResultByAccount($userId, $p->getStartDate(), $until ?? $p->getEndDate());
 		$out = [];
 		foreach ($accounts as $a) {
 			if ($a->isBudgetable()) {

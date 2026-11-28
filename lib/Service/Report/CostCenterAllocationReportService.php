@@ -48,7 +48,7 @@ class CostCenterAllocationReportService {
 		[$from, $to] = $this->periods->range($userId, $periodId);
 		return self::compute(
 			$this->accounts->findAll($userId),
-			$this->lines->sumByAccount($userId, $from, $to),
+			$this->lines->sumResultByAccount($userId, $from, $to),
 			$this->allocations->sumByCostCenterAndAccount($userId, $from, $to),
 			$this->costCenters->findAll($userId),
 			// Einen Plan gibt es je Geschäftsjahr – bei „alle Zeiträume“ keinen.

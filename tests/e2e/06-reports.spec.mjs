@@ -113,6 +113,52 @@ test.describe('Berichte und Exporte', () => {
 		}
 	})
 
+	// Issue #393: der Anfangsbestand eines Kontos ohne Geldkonto-Kennzeichen
+	// (hier eine Verbindlichkeit aus Vorjahren) stand als Einnahme des Jahres
+	// im Ergebnis. Gegen die echte Instanz geprueft, weil die Regel in der
+	// Summenabfrage steckt und kein Unit-Test sie erreicht.
+	test('ein Anfangsbestand auf einem Nicht-Geldkonto ist kein Umsatz', async ({ request }) => {
+		const periods = await api.listPeriods(request)
+		const periode = periods.find((p) => p.id === demoPeriod)
+		const balances = `/journal/balances?period=${demoPeriod}`
+		const vorher = await api.getJson(request, balances)
+
+		const konto = await api.createAccount(request, {
+			number: '3559',
+			name: 'Erhaltene Kautionen E2E',
+			type: 'liability',
+			category: 'Verbindlichkeiten',
+		})
+		try {
+			const resp = await api.raw(request, 'POST', `/accounts/${konto.id}/opening`, {
+				data: { amount: 1000, date: periode.startDate },
+			})
+			expect(resp.status()).toBe(200)
+
+			const nachher = await api.getJson(request, balances)
+			expect(nachher.totals.income).toBeCloseTo(vorher.totals.income, 2)
+			expect(nachher.totals.expense).toBeCloseTo(vorher.totals.expense, 2)
+			expect(nachher.totals.result).toBeCloseTo(vorher.totals.result, 2)
+			// Der Bestand selbst bleibt am Konto sichtbar.
+			const zeile = nachher.accounts.find((a) => a.accountId === konto.id)
+			expect(zeile.credit).toBeCloseTo(1000, 2)
+			expect(zeile.balance).toBeCloseTo(1000, 2)
+
+			// Kassenbericht und Einnahmen-/Ausgaben-Export zeigen nur Konten mit
+			// Umsatz - das Konto darf dort gar nicht erst auftauchen.
+			for (const path of [`/export/kassenbericht?period=${demoPeriod}`, `/export/report?period=${demoPeriod}`]) {
+				const body = await (await api.raw(request, 'GET', path, { user: USERS.revisor })).text()
+				expect(body, path).not.toContain('Erhaltene Kautionen E2E')
+			}
+			// Die Sphaerenrechnung summiert dieselben Konten wie das Ergebnis.
+			const sphaeren = await api.getJson(request, `/report/spheres?period=${demoPeriod}`)
+			expect(sphaeren.totals.income).toBeCloseTo(vorher.totals.income, 2)
+		} finally {
+			await api.raw(request, 'POST', `/accounts/${konto.id}/opening`, { data: { amount: 0 } })
+			await api.deleteAccount(request, konto.id)
+		}
+	})
+
 	test('CSV-Exporte liefern Journal und Saldenliste', async ({ request }) => {
 		for (const path of [`/export/journal?period=${demoPeriod}`, `/export/balances?period=${demoPeriod}`]) {
 			const resp = await api.raw(request, 'GET', path, { user: USERS.revisor })

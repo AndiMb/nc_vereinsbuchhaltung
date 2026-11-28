@@ -33,6 +33,13 @@ German-speaking accounts (`de`, `de_DE`), `npm run build` generates
 - **Nextcloud's "What's new" in German:** the dialog Nextcloud offers after an
   update of the app showed German-speaking accounts the English changelog. The
   package now ships `CHANGELOG.de.md` and `CHANGELOG.de_DE.md`.
+- **Opening balances no longer count as income (#393):** when an account
+  that is not a cash/bank account carried an opening balance – for example
+  a liability for deposits received – it appeared as income or expense of
+  the year, although no money had moved. The opening entry stays visible on
+  the account but no longer counts in the overview, the income/expense
+  report, cash report, short report, spheres, cost centres, financial plan,
+  structured report, multi-year overview and their exports.
 
 ## [0.57.0] – 2026-11-25
 

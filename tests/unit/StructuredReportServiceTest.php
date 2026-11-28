@@ -89,7 +89,7 @@ class StructuredReportServiceTest extends TestCase {
 	}
 
 	public function testBuildWithoutOverridesIsUnchanged(): void {
-		$this->lineMapper->expects($this->exactly(2))->method('sumByAccount')
+		$this->lineMapper->expects($this->exactly(2))->method('sumResultByAccount')
 			->with(self::USER, '2026-01-01', '2026-12-31')
 			->willReturn([11 => ['debit' => 12_300, 'credit' => 0]]);
 
@@ -100,7 +100,7 @@ class StructuredReportServiceTest extends TestCase {
 	}
 
 	public function testColumnOverrideReplacesTemplateColumns(): void {
-		$this->lineMapper->method('sumByAccount')->willReturn([11 => ['debit' => 12_300, 'credit' => 0]]);
+		$this->lineMapper->method('sumResultByAccount')->willReturn([11 => ['debit' => 12_300, 'credit' => 0]]);
 
 		$report = $this->service->build(self::USER, $this->template(), null, [
 			['source' => 'plan', 'periodOffset' => 0],
@@ -120,7 +120,7 @@ class StructuredReportServiceTest extends TestCase {
 	}
 
 	public function testActualUntilLimitsCurrentPeriod(): void {
-		$this->lineMapper->expects($this->once())->method('sumByAccount')
+		$this->lineMapper->expects($this->once())->method('sumResultByAccount')
 			->with(self::USER, '2026-01-01', '2026-06-30')
 			->willReturn([]);
 
@@ -143,7 +143,7 @@ class StructuredReportServiceTest extends TestCase {
 		$service = new StructuredReportService($this->accountMapper, $this->budgetMapper, $this->lineMapper, $periods, $reports, $this->l10n);
 
 		$ranges = [];
-		$this->lineMapper->method('sumByAccount')->willReturnCallback(function (string $u, ?string $from, ?string $to) use (&$ranges): array {
+		$this->lineMapper->method('sumResultByAccount')->willReturnCallback(function (string $u, ?string $from, ?string $to) use (&$ranges): array {
 			$ranges[] = [$from, $to];
 			return [];
 		});
@@ -158,7 +158,7 @@ class StructuredReportServiceTest extends TestCase {
 	}
 
 	public function testPlanActualMatchesBuild(): void {
-		$this->lineMapper->method('sumByAccount')->willReturn([11 => ['debit' => 12_300, 'credit' => 0]]);
+		$this->lineMapper->method('sumResultByAccount')->willReturn([11 => ['debit' => 12_300, 'credit' => 0]]);
 
 		$report = $this->service->build(self::USER, $this->template(), null, [
 			['source' => 'plan', 'periodOffset' => 0],
